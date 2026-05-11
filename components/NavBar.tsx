@@ -1,45 +1,43 @@
 'use client';
 
 import Link from 'next/link';
-import { Globe2, BookMarked, Route } from 'lucide-react';
+import { Globe2, Inbox, LayoutGrid } from 'lucide-react';
 
 interface NavBarProps {
-  active: 'home' | 'library' | 'plan';
+  active: 'home' | 'inbox' | 'boards';
 }
 
 const NAV_ITEMS = [
-  { key: 'home', label: 'Map', icon: Globe2, href: '/' },
-  { key: 'library', label: 'Library', icon: BookMarked, href: '/library' },
-  { key: 'plan', label: 'Plan', icon: Route, href: '/plan' },
+  { key: 'home',   label: 'Map',    icon: Globe2,     href: '/'       },
+  { key: 'inbox',  label: 'Inbox',  icon: Inbox,      href: '/inbox'  },
+  { key: 'boards', label: 'Boards', icon: LayoutGrid, href: '/boards' },
 ] as const;
 
 export default function NavBar({ active }: NavBarProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-lg">
-      <div className="flex items-center justify-around px-2 pb-safe">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
+      style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
+    >
+      <div className="flex items-stretch">
         {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {
           const isActive = active === key;
           return (
             <Link
               key={key}
               href={href}
-              className={`flex flex-col items-center gap-0.5 px-6 py-3 rounded-xl transition-all ${
-                isActive
-                  ? 'text-indigo-600'
-                  : 'text-gray-400 hover:text-gray-600'
+              className={`flex-1 flex flex-col items-center py-2 transition-colors ${
+                isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              <Icon
-                size={22}
-                className={isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}
-              />
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+              <span className="text-xs mt-0.5 font-medium">{label}</span>
+              {/* Active indicator dot */}
               <span
-                className={`text-[10px] font-semibold uppercase tracking-wide ${
-                  isActive ? 'text-indigo-600' : 'text-gray-400'
+                className={`mt-0.5 rounded-full transition-all duration-200 ${
+                  isActive ? 'w-1 h-1 bg-indigo-600' : 'w-0 h-1 bg-transparent'
                 }`}
-              >
-                {label}
-              </span>
+              />
             </Link>
           );
         })}

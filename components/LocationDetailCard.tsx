@@ -13,23 +13,27 @@ interface LocationDetailCardProps {
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
   return (
     <>
+      {/* Invisible backdrop — tap to close */}
       <motion.div
         className="fixed inset-0 z-[1400]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
+        aria-hidden="true"
       />
+
+      {/* Slide-up panel */}
       <motion.div
-        className="fixed bottom-20 left-0 right-0 z-[1500] mx-3 mb-1"
+        className="fixed bottom-0 left-0 right-0 z-[1500] mx-3 mb-20"
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col">
-          {/* Header */}
-          <div className="flex items-start justify-between p-4 pb-3">
+          {/* ── Header ──────────────────────────────────────────────────── */}
+          <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">
             <div className="flex-1 min-w-0 pr-3">
               <span
                 className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2 py-0.5 rounded-full inline-block mb-2`}
@@ -41,6 +45,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </h3>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Close"
@@ -49,8 +54,9 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             </button>
           </div>
 
-          {/* Scrollable content */}
+          {/* ── Scrollable body ──────────────────────────────────────────── */}
           <div className="overflow-y-auto px-4 pb-4 space-y-3">
+            {/* Description */}
             {item.description && (
               <p className="text-sm text-gray-600 leading-relaxed">
                 {item.description}
@@ -63,18 +69,20 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                   Locations
                 </p>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {item.locations.map((loc, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <MapPin size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <span className="text-sm text-gray-700 font-medium">{loc.name}</span>
+                        <span className="text-sm text-gray-700 font-medium block">
+                          {loc.name}
+                        </span>
                         {loc.address && (
-                          <p className="text-xs text-gray-400">{loc.address}</p>
+                          <span className="text-xs text-gray-400 block">{loc.address}</span>
                         )}
-                        <p className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400">
                           {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
-                        </p>
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -119,7 +127,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             {item.notes && (
               <div className="bg-amber-50 rounded-xl p-3">
                 <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800">{item.notes}</p>
+                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
               </div>
             )}
           </div>

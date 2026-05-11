@@ -1,8 +1,42 @@
 import { NextRequest } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
-import { SavedItem } from '@/lib/types';
+import { generateObject, streamObject } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { z } from 'zod';
+import { SavedItem, AgentStep } from '@/lib/types';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// ─── Zod schemas ─────────────────────────────────────────────────────────────
+
+const locationSchema = z.object({
+  name: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  address: z.string().optional(),
+});
+
+const activitySchema = z.object({
+  time: z.string(),
+  location: locationSchema,
+  name: z.string(),
+  duration: z.string(),
+  tips: z.array(z.string()),
+});
+
+const dayPlanSchema = z.object({
+  day: z.number(),
+  theme: z.string(),
+  locations: z.array(locationSchema),
+  activities: z.array(activitySchema),
+});
+
+const tripPlanSchema = z.object({
+  overview: z.string(),
+  totalLocations: z.number(),
+  estimatedDailyDistance: z.string(),
+  days: z.array(dayPlanSchema),
+  tips: z.array(z.string()),
+});
+
+// ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let items: SavedItem[], days: number, preferences: string;
@@ -16,80 +50,98 @@ export async function POST(req: NextRequest) {
     return new Response('No items provided', { status: 400 });
   }
 
-  const summary = items.map((item) => ({
-    title: item.title,
-    platform: item.platform,
-    locations: item.locations,
-    activities: item.activities,
-    tags: item.tags,
-  }));
+  const encoder = new TextEncoder();
 
-  const prompt = `You are an expert travel route planner. Create an optimized ${days}-day trip itinerary based on the saved travel inspirations below.
+  const stream = new ReadableStream({
+    async start(controller) {
+      function emit(msg: object) {
+        controller.enqueue(encoder.encode(JSON.stringify(msg) + '\n'));
+      }
 
-Saved travel content:
-${JSON.stringify(summary, null, 2)}
+      function step(type: AgentStep['type'], message: string) {
+        emit({ t: 'step', step: { type, message, timestamp: Date.now() } });
+      }
 
+      try {
+        // ── Step 1: Resolve locations ────────────────────────────────────
+        step('searching', 'Collecting locations from your saved items…');
+
+        const rawLocations = items.flatMap((i) => i.locations);
+
+        if (rawLocations.length === 0) {
+          step('error', 'No locations found in saved items. Add items with identified locations first.');
+          controller.close();
+          return;
+        }
+
+        const { object: resolvedLocs } = await generateObject({
+          model: anthropic('claude-sonnet-4-6'),
+          schema: z.object({ locations: z.array(locationSchema) }),
+          prompt: `Verify these ${rawLocations.length} travel locations have accurate GPS coordinates. Correct any wrong ones and return all of them.\n\n${JSON.stringify(rawLocations)}`,
+        });
+
+        step('found', `Resolved ${resolvedLocs.locations.length} location${resolvedLocs.locations.length !== 1 ? 's' : ''}`);
+
+        // ── Step 2: Cluster into day groups ──────────────────────────────
+        step('clustering', `Grouping locations into ${days}-day clusters…`);
+
+        const { object: clusters } = await generateObject({
+          model: anthropic('claude-sonnet-4-6'),
+          schema: z.object({
+            groups: z.array(z.object({
+              day: z.number(),
+              theme: z.string(),
+              locationNames: z.array(z.string()),
+            })),
+          }),
+          prompt: `Cluster these ${resolvedLocs.locations.length} locations into ${days} geographic day groups, minimising travel distance each day. Give each day a short theme.\n\nLocations:\n${JSON.stringify(resolvedLocs.locations)}`,
+        });
+
+        step('routing', 'Building optimised route…');
+
+        // ── Step 3: Stream full itinerary ────────────────────────────────
+        const contentSummary = items.map((i) => ({
+          title: i.title,
+          activities: i.activities,
+          tags: i.tags,
+        }));
+
+        const planStream = streamObject({
+          model: anthropic('claude-sonnet-4-6'),
+          schema: tripPlanSchema,
+          prompt: `Create a detailed ${days}-day travel itinerary.
+
+Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
+Day clusters: ${JSON.stringify(clusters.groups)}
+Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
 
-Create a detailed itinerary. Return ONLY valid JSON with no markdown and no explanation, exactly this shape:
-{
-  "overview": "1-2 sentence trip overview",
-  "totalLocations": 5,
-  "estimatedDailyDistance": "5-10 km",
-  "days": [
-    {
-      "day": 1,
-      "theme": "Arrival & Old Town Exploration",
-      "locations": [
-        { "name": "Place Name", "lat": 35.6762, "lng": 139.6503, "address": "optional" }
-      ],
-      "activities": [
-        {
-          "time": "09:00",
-          "location": { "name": "Place Name", "lat": 35.6762, "lng": 139.6503 },
-          "name": "Activity name",
-          "duration": "2 hours",
-          "tips": ["Arrive early to avoid crowds", "Wear comfortable shoes"]
+Rules:
+- 2-4 activities per day with realistic timing
+- Cluster geographically nearby places each day
+- Focus on routes and activities only — no bookings or costs
+- Include practical tips for each activity`,
+        });
+
+        for await (const partial of planStream.partialObjectStream) {
+          emit({ t: 'plan', plan: partial });
         }
-      ]
-    }
-  ],
-  "tips": ["General trip tip 1", "General trip tip 2"]
-}
 
-Planning principles:
-- Cluster geographically nearby places on the same day to minimise travel
-- Balance activity types across each day (sightseeing, food, relaxation)
-- Include realistic travel time between locations
-- Suggest morning/afternoon/evening activities with appropriate timing
-- Focus on routes and activities only — do NOT mention bookings, reservations, or costs
-- If locations span multiple cities, organise by city
-- Add 2-4 activities per day, not more`;
-
-  const stream = await anthropic.messages.stream({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const readable = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of stream) {
-          if (
-            chunk.type === 'content_block_delta' &&
-            chunk.delta.type === 'text_delta'
-          ) {
-            controller.enqueue(new TextEncoder().encode(chunk.delta.text));
-          }
-        }
+        step('validating', 'Finalising your itinerary…');
+        step('done', `Your ${days}-day plan is ready!`);
+      } catch (err) {
+        step('error', err instanceof Error ? err.message : 'Something went wrong generating your plan');
       } finally {
         controller.close();
       }
     },
   });
 
-  return new Response(readable, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson',
+      'Cache-Control': 'no-cache',
+      'X-Content-Type-Options': 'nosniff',
+    },
   });
 }

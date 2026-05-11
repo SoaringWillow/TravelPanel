@@ -1,16 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { generateObject } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { z } from 'zod';
 import { detectPlatform } from '@/lib/parse-url';
 import { ImportResult } from '@/lib/types';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// ─── Schemas ────────────────────────────────────────────────────────────────
+
+const locationSchema = z.object({
+  name: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  address: z.string().optional(),
+});
+
+const importSchema = z.object({
+  title: z.string().describe('Concise descriptive title for this travel content'),
+  description: z.string().describe('2-3 sentence summary of the travel content'),
+  locations: z.array(locationSchema).describe('Real identifiable locations with accurate GPS coordinates'),
+  activities: z.array(z.string()).describe('Specific things to do at these places'),
+  tags: z.array(z.string()).describe('Relevant tags from: food, nature, culture, adventure, relaxation, photography, shopping, nightlife, history, art, architecture, beach, mountain, city, rural'),
+});
+
+// ─── Page fetcher ────────────────────────────────────────────────────────────
 
 async function fetchPageData(url: string) {
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (compatible; TravelPanel/1.0; +https://travelpanel.app)',
+        'User-Agent': 'Mozilla/5.0 (compatible; TravelPanel/1.0)',
         Accept: 'text/html,application/xhtml+xml',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
       },
@@ -48,6 +66,8 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Route handler ───────────────────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
   let url: string;
   try {
@@ -63,7 +83,7 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const claudePrompt = `You are a travel content analyzer. Analyze this social media content and extract travel information.
+  const prompt = `You are a travel content analyzer. Extract travel information from this social media content.
 
 Platform: ${platform}
 URL: ${url}
@@ -72,52 +92,32 @@ Description: ${page?.description ?? '(unavailable)'}
 Page content snippet:
 ${page?.textContent ?? '(could not fetch page)'}
 
-Return ONLY valid JSON with no markdown, no explanation, exactly this shape:
-{
-  "title": "concise descriptive title for this travel content",
-  "description": "2-3 sentence summary of the travel content",
-  "locations": [
-    {
-      "name": "specific place name",
-      "lat": 35.6762,
-      "lng": 139.6503,
-      "address": "optional full address"
-    }
-  ],
-  "activities": ["specific activity 1", "activity 2"],
-  "tags": ["food", "nature"]
-}
-
 Rules:
-- Only include real locations with accurate GPS coordinates you are confident about
-- If no specific identifiable location exists, return empty array for locations
+- Only include real locations with GPS coordinates you are confident about
+- If no specific identifiable location exists, return an empty locations array
 - Activities should be specific things to do at the places
-- Tags only from: food, nature, culture, adventure, relaxation, photography, shopping, nightlife, history, art, architecture, beach, mountain, city, rural
-- Keep locations array empty rather than guessing coordinates`;
+- Use only recognized tag values`;
 
-  let claudeResult: Partial<ImportResult> = {};
+  let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: claudePrompt }],
+    const { object } = await generateObject({
+      model: anthropic('claude-sonnet-4-6'),
+      schema: importSchema,
+      prompt,
     });
-    const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-    // Strip potential markdown fences
-    const json = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-    claudeResult = JSON.parse(json);
+    claudeResult = object;
   } catch {
     // Fall through to defaults
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult.title || page?.title || url).slice(0, 200),
-    description: (claudeResult.description || page?.description || '').slice(0, 500),
+    title: (claudeResult?.title || page?.title || url).slice(0, 200),
+    description: (claudeResult?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
-    locations: Array.isArray(claudeResult.locations) ? claudeResult.locations : [],
-    activities: Array.isArray(claudeResult.activities) ? claudeResult.activities : [],
-    tags: Array.isArray(claudeResult.tags) ? claudeResult.tags : [],
+    locations: claudeResult?.locations ?? [],
+    activities: claudeResult?.activities ?? [],
+    tags: claudeResult?.tags ?? [],
   };
 
   return NextResponse.json(result);

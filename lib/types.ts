@@ -1,3 +1,5 @@
+// ─── Core geo/content types ────────────────────────────────────────────────
+
 export interface Location {
   lat: number;
   lng: number;
@@ -6,6 +8,12 @@ export interface Location {
 }
 
 export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'other';
+
+// pending  → just captured, SW hasn't processed yet
+// processing → SW currently calling /api/import
+// done     → Claude extracted locations/activities
+// failed   → failed after retries
+export type EnrichmentStatus = 'pending' | 'processing' | 'done' | 'failed';
 
 export interface SavedItem {
   id: string;
@@ -19,6 +27,39 @@ export interface SavedItem {
   tags: string[];
   savedAt: number;
   notes?: string;
+  enrichmentStatus: EnrichmentStatus;
+  retryCount: number;
+  boardId?: string; // undefined = Inbox (unassigned)
+}
+
+// ─── Board / Collection ─────────────────────────────────────────────────────
+
+export interface Board {
+  id: string;
+  name: string;
+  emoji: string;          // e.g. "🗼", default "🗺"
+  description?: string;
+  coverThumbnail?: string; // thumbnail of first item with an image
+  itemIds: string[];       // ordered SavedItem ids
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ─── AI Planner types ────────────────────────────────────────────────────────
+
+export type AgentStepType =
+  | 'searching'
+  | 'found'
+  | 'clustering'
+  | 'routing'
+  | 'validating'
+  | 'done'
+  | 'error';
+
+export interface AgentStep {
+  type: AgentStepType;
+  message: string;
+  timestamp: number;
 }
 
 export interface Activity {
@@ -44,6 +85,19 @@ export interface TripPlan {
   tips: string[];
 }
 
+export interface Trip {
+  id: string;
+  boardId: string;
+  boardName: string;
+  days: number;
+  preferences: string;
+  agentSteps: AgentStep[];
+  plan: TripPlan | null;
+  createdAt: number;
+}
+
+// ─── API types ───────────────────────────────────────────────────────────────
+
 export interface ImportResult {
   platform: Platform;
   title: string;
@@ -53,3 +107,8 @@ export interface ImportResult {
   activities: string[];
   tags: string[];
 }
+
+// NDJSON messages streamed from /api/plan
+export type PlanStreamMessage =
+  | { t: 'step'; step: AgentStep }
+  | { t: 'plan'; plan: Partial<TripPlan> };
