@@ -43,13 +43,13 @@ function BoundsController({ plan, items }: BoundsControllerProps) {
 
     if (plan?.days && plan.days.length > 0) {
       for (const day of plan.days) {
-        for (const loc of day.locations) {
+        for (const loc of (day.locations ?? [])) {
           coords.push([loc.lng, loc.lat]);
         }
       }
     } else {
       for (const item of items) {
-        for (const loc of item.locations) {
+        for (const loc of (item.locations ?? [])) {
           coords.push([loc.lng, loc.lat]);
         }
       }
@@ -87,7 +87,7 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
   const allItemLocations = useMemo(
     () =>
       items.flatMap((item) =>
-        item.locations.map((loc) => ({ loc, item }))
+        (item.locations ?? []).map((loc) => ({ loc, item }))
       ),
     [items]
   );
@@ -104,6 +104,7 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
 
       <BoundsController plan={plan} items={items} />
 
+      {/* No-plan markers: platform-colored dots */}
       {days.length === 0 &&
         allItemLocations.map(({ loc, item }, i) => (
           <Marker
@@ -125,52 +126,60 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
           </Marker>
         ))}
 
+      {/* Route lines per day */}
       {days.length > 0 &&
         days.map((day, dayIdx) => {
-          const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
-          const isActive = dayIdx === activeDayIndex;
-          const lineCoords = day.locations.map((loc) => [loc.lng, loc.lat]);
+          const locations = day?.locations ?? [];
+          if (locations.length < 2) return null;
 
-          if (lineCoords.length < 2) return null;
+          const color    = DAY_COLORS[dayIdx % DAY_COLORS.length];
+          const isActive = dayIdx === activeDayIndex;
 
           const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
             type: 'Feature',
             geometry: {
               type: 'LineString',
-              coordinates: lineCoords,
+              coordinates: locations.map((loc) => [loc.lng, loc.lat]),
             },
             properties: {},
           };
 
           const layerStyle = {
-            id: `route-line-${dayIdx}`,
+            id:   `route-line-${dayIdx}`,
             type: 'line' as const,
             paint: {
-              'line-color': isActive ? color : hexToRgba(color, 0.4),
-              'line-width': isActive ? 4 : 2,
+              'line-color':   isActive ? color : hexToRgba(color, 0.4),
+              'line-width':   isActive ? 4 : 2,
               'line-opacity': 1,
             },
             layout: {
-              'line-cap': 'round' as const,
+              'line-cap':  'round' as const,
               'line-join': 'round' as const,
             },
           };
 
           return (
-            <Source key={`route-source-${dayIdx}`} id={`route-source-${dayIdx}`} type="geojson" data={geojson}>
+            <Source
+              key={`route-source-${dayIdx}`}
+              id={`route-source-${dayIdx}`}
+              type="geojson"
+              data={geojson}
+            >
               <Layer {...layerStyle} />
             </Source>
           );
         })}
 
+      {/* Day location markers with numbers */}
       {days.length > 0 &&
         days.flatMap((day, dayIdx) => {
-          const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+          const locations = day?.locations ?? [];
+          const color    = DAY_COLORS[dayIdx % DAY_COLORS.length];
           const isActive = dayIdx === activeDayIndex;
-          const size = isActive ? 28 : 20;
-          const opacity = isActive ? 1 : 0.5;
+          const size     = isActive ? 28 : 20;
+          const opacity  = isActive ? 1 : 0.5;
 
-          return day.locations.map((loc, locIdx) => (
+          return locations.map((loc, locIdx) => (
             <Marker
               key={`day-${dayIdx}-loc-${locIdx}`}
               longitude={loc.lng}
@@ -179,20 +188,20 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
             >
               <div
                 style={{
-                  width: size,
-                  height: size,
-                  borderRadius: '50%',
+                  width:           size,
+                  height:          size,
+                  borderRadius:    '50%',
                   backgroundColor: color,
-                  border: '3px solid white',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  border:          '3px solid white',
+                  boxShadow:       '0 2px 8px rgba(0,0,0,0.3)',
                   opacity,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: isActive ? 11 : 9,
-                  fontWeight: 700,
-                  transition: 'all 0.25s ease',
+                  display:         'flex',
+                  alignItems:      'center',
+                  justifyContent:  'center',
+                  color:           'white',
+                  fontSize:        isActive ? 11 : 9,
+                  fontWeight:      700,
+                  transition:      'all 0.25s ease',
                 }}
               >
                 {locIdx + 1}

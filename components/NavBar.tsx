@@ -8,9 +8,9 @@ interface NavBarProps {
 }
 
 const NAV_ITEMS = [
-  { key: 'home',   label: 'Map',    icon: Globe2,     href: '/'       },
-  { key: 'inbox',  label: 'Inbox',  icon: Inbox,      href: '/inbox'  },
-  { key: 'boards', label: 'Boards', icon: LayoutGrid, href: '/boards' },
+  { key: 'home',   label: 'Map',         icon: Globe2,     href: '/'       },
+  { key: 'inbox',  label: 'Inspiration', icon: Inbox,      href: '/inbox'  },
+  { key: 'boards', label: 'Collections', icon: LayoutGrid, href: '/boards' },
 ] as const;
 
 export default function NavBar({ active }: NavBarProps) {

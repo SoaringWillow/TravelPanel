@@ -26,7 +26,8 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
-  const [preferences, setPreferences] = useState('');
+  const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
+  const [customNotes, setCustomNotes] = useState('');
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
@@ -60,7 +61,14 @@ export default function PlanPage() {
     const res = await fetch('/api/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: boardItems, days, preferences }),
+      body: JSON.stringify({
+        items: boardItems,
+        days,
+        preferences: [
+          ...Array.from(selectedChips),
+          ...(customNotes.trim() ? [customNotes.trim()] : []),
+        ].join('. '),
+      }),
     });
 
     if (!res.ok || !res.body) {
@@ -93,7 +101,7 @@ export default function PlanPage() {
         }
       }
     }
-  }, [boardItems, days, preferences]);
+  }, [boardItems, days, selectedChips, customNotes]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -104,7 +112,25 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    setSelectedChips(new Set());
+    setCustomNotes('');
   }, []);
+
+  function toggleChip(chip: string) {
+    setSelectedChips((prev) => {
+      const next = new Set(prev);
+      if (next.has(chip)) next.delete(chip);
+      else next.add(chip);
+      return next;
+    });
+  }
+
+  const CHIP_GROUPS: Array<{ label: string; chips: string[] }> = [
+    { label: 'Pace',      chips: ['🐢 Easy & relaxed', '⚡ Packed schedule'] },
+    { label: 'Transport', chips: ['🚶 Walking', '🚇 Transit', '🚗 Drive'] },
+    { label: 'Food',      chips: ['🍜 Street food', '🍽 Sit-down', '☕ Café culture', '🌱 Plant-based'] },
+    { label: 'Interests', chips: ['📸 Photography', '🏛 Culture', '🌿 Nature', '🛍 Shopping', '🎨 Art', '🌃 Nightlife', '🏖 Beach'] },
+  ];
 
   const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
 
@@ -194,14 +220,38 @@ export default function PlanPage() {
                 </div>
               </div>
 
-              {/* Preferences textarea */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Preferences</label>
+              {/* Preference chips */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-gray-700">Travel style</label>
+                {CHIP_GROUPS.map(({ label, chips }) => (
+                  <div key={label} className="space-y-1.5">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {chips.map((chip) => {
+                        const active = selectedChips.has(chip);
+                        return (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() => toggleChip(chip)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 ${
+                              active
+                                ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-400'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {chip}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
                 <textarea
-                  value={preferences}
-                  onChange={(e) => setPreferences(e.target.value)}
-                  placeholder="e.g. prefer walking, love street food, avoid museums…"
-                  rows={3}
+                  value={customNotes}
+                  onChange={(e) => setCustomNotes(e.target.value)}
+                  placeholder="Anything else? e.g. avoid hills, travelling with kids…"
+                  rows={2}
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
                 />
               </div>
@@ -220,7 +270,7 @@ export default function PlanPage() {
                 disabled={!hasLocations}
                 className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Generate Plan
+                ✨ Begin planning
               </button>
             </div>
           )}

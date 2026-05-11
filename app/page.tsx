@@ -23,7 +23,7 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
 
-  // Open import sheet with pre-filled URL from ?import= query param
+  // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
     const importUrl = searchParams.get('import');
     if (importUrl) {
@@ -31,6 +31,28 @@ function HomePageInner() {
       setShowImport(true);
     }
   }, [searchParams]);
+
+  // Handle ?flyTo=lat,lng&itemId=id — pan map and open detail card
+  useEffect(() => {
+    if (items.length === 0) return;
+
+    const flyToParam  = searchParams.get('flyTo');
+    const itemIdParam = searchParams.get('itemId');
+
+    if (flyToParam) {
+      const [lat, lng] = flyToParam.split(',').map(Number);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setFlyTo({ lat, lng, name: '' });
+      }
+    }
+
+    if (itemIdParam) {
+      const found = items.find((i) => i.id === itemIdParam);
+      if (found) setSelectedItem(found);
+    }
+  // Run once when items are loaded and params are present
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length > 0 ? 'loaded' : 'empty', searchParams.toString()]);
 
   function handleItemSaved(item: SavedItem) {
     addItem(item);
@@ -77,7 +99,7 @@ function HomePageInner() {
         <button
           onClick={() => setShowImport(true)}
           className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          aria-label="Import content"
+          aria-label="Clip inspiration"
         >
           <Plus size={24} />
         </button>

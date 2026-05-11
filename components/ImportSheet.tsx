@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -29,6 +29,8 @@ type Stage = 'idle' | 'loading' | 'preview';
 
 const ALL_PLATFORMS = ['wechat', 'xiaohongshu', 'douyin', 'bilibili', 'other'] as const;
 
+const IMPORT_TIMEOUT_MS = 25_000;
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
@@ -37,8 +39,8 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [stage, setStage]     = useState<Stage>('idle');
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError]     = useState('');
+  const abortRef              = useRef<AbortController | null>(null);
 
-  // Sync when parent changes initialUrl (e.g. from ?import= param)
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
@@ -50,20 +52,37 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   async function handleImport() {
     if (!trimmedUrl) return;
+
+    // Cancel any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const timeoutId = setTimeout(() => controller.abort('timeout'), IMPORT_TIMEOUT_MS);
+
     setStage('loading');
     setError('');
+
     try {
       const res = await fetch('/api/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: trimmedUrl }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ImportResult = await res.json();
       setPreview(data);
       setStage('preview');
-    } catch {
-      setError('Failed to import. Please check the URL and try again.');
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isTimeout = err instanceof Error && (err.name === 'AbortError' || err.message === 'timeout');
+      setError(
+        isTimeout
+          ? 'Taking too long — the page may be private or unsupported. You can save the URL for later.'
+          : 'Could not clip this URL. You can save it for later.'
+      );
       setStage('idle');
     }
   }
@@ -90,7 +109,31 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     resetState();
   }
 
+  function handleSaveUrlAnyway() {
+    if (!trimmedUrl) return;
+    const platform = detectPlatform(trimmedUrl);
+    const item: SavedItem = {
+      id: crypto.randomUUID(),
+      url: trimmedUrl,
+      platform,
+      title: trimmedUrl,
+      description: '',
+      thumbnail: undefined,
+      locations: [],
+      activities: [],
+      tags: [],
+      savedAt: Date.now(),
+      notes: notes.trim() || undefined,
+      enrichmentStatus: 'pending',
+      retryCount: 0,
+      boardId: undefined,
+    };
+    onSaved(item);
+    resetState();
+  }
+
   function resetState() {
+    abortRef.current?.abort();
     setUrl('');
     setNotes('');
     setPreview(null);
@@ -116,7 +159,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       <DrawerContent className="max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <DrawerHeader className="pb-2">
-          <DrawerTitle>Import from Social Media</DrawerTitle>
+          <DrawerTitle>Clip inspiration</DrawerTitle>
         </DrawerHeader>
 
         <div className="px-4 pb-8 space-y-4">
@@ -176,14 +219,26 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   Analyzing with AI…
                 </>
               ) : (
-                'Import & Extract Locations'
+                'Clip & discover places'
               )}
             </button>
           )}
 
-          {/* ── Error message ────────────────────────────────────────────── */}
+          {/* ── Error message + save-anyway fallback ─────────────────────── */}
           {error && (
-            <p className="text-sm text-red-500">{error}</p>
+            <div className="space-y-2">
+              <p className="text-sm text-red-500">{error}</p>
+              {trimmedUrl && (
+                <button
+                  type="button"
+                  onClick={handleSaveUrlAnyway}
+                  className="w-full py-2.5 rounded-xl border-2 border-indigo-200 text-indigo-600 text-sm font-medium hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <BookmarkPlus size={15} />
+                  Save URL for later
+                </button>
+              )}
+            </div>
           )}
 
           {/* ── Preview card ─────────────────────────────────────────────── */}
@@ -223,7 +278,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 <div className="bg-indigo-50 rounded-2xl p-4">
                   <p className="text-xs font-semibold text-indigo-600 mb-2 flex items-center gap-1.5">
                     <MapPin size={12} />
-                    📍 {preview.locations.length} location{preview.locations.length !== 1 ? 's' : ''} found
+                    📍 {preview.locations.length} place{preview.locations.length !== 1 ? 's' : ''} found
                   </p>
                   <div className="space-y-1.5">
                     {preview.locations.map((loc, i) => (
@@ -242,7 +297,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 </div>
               ) : (
                 <p className="text-sm text-gray-400 text-center py-2">
-                  No specific locations detected
+                  No places spotted yet
                 </p>
               )}
 
@@ -282,7 +337,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               {/* Notes */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                  Your notes (optional)
+                  Personal notes
                 </p>
                 <textarea
                   value={notes}
@@ -311,7 +366,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   className="flex-[2] py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <CheckCircle2 size={16} />
-                  Save to Library
+                  Add to collection
                 </button>
               </div>
             </div>

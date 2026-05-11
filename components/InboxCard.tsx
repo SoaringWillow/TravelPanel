@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2 } from 'lucide-react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 
@@ -39,23 +39,67 @@ export default function InboxCard({
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
-  // ── Skeleton state (pending / processing) ────────────────────────────────
+  // ── Pending / processing state ───────────────────────────────────────────
+  // If we have a title, show a partial card; otherwise show a skeleton
 
   if (enrichmentStatus === 'pending' || enrichmentStatus === 'processing') {
+    if (!item.title || item.title === item.url) {
+      // Full skeleton — no content yet
+      return (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+          <div className="w-full h-32 bg-gray-200" />
+          <div className="p-4 space-y-3">
+            <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
+            <div className="h-3 bg-gray-200 rounded-full w-3/5" />
+            <div className="flex items-center gap-2 pt-1">
+              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
+              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Partial card — title is known, enrichment still running
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
-        {/* Thumbnail placeholder */}
-        <div className="w-full h-32 bg-gray-200" />
-        <div className="p-4 space-y-3">
-          {/* Title bars */}
-          <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
-          <div className="h-3 bg-gray-200 rounded-full w-3/5" />
-          {/* Status row */}
-          <div className="flex items-center gap-2 pt-1">
-            <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
-            <span className="text-xs text-indigo-400 font-medium">
-              Analyzing inspiration…
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
+            >
+              {PLATFORM_LABELS[item.platform]}
             </span>
+          </div>
+
+          <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">
+            {item.title}
+          </h3>
+
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-1.5">
+              <Loader2 size={12} className="text-indigo-400 animate-spin flex-shrink-0" />
+              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                aria-label="Open original"
+              >
+                <ExternalLink size={13} />
+              </a>
+              <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                aria-label="Delete"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -67,35 +111,48 @@ export default function InboxCard({
   if (enrichmentStatus === 'failed') {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-        {/* Platform badge + truncated URL */}
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
           >
             {PLATFORM_LABELS[item.platform]}
           </span>
-          <span className="text-xs text-gray-400 truncate flex-1 min-w-0">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-gray-400 truncate flex-1 min-w-0 hover:text-indigo-500 hover:underline transition-colors"
+          >
             {truncateUrl(item.url)}
-          </span>
+          </a>
         </div>
 
-        {/* Title or URL fallback */}
         <p className="text-sm font-semibold text-gray-700 line-clamp-2 leading-snug">
           {item.title || item.url}
         </p>
 
-        {/* Warning + retry */}
         <div className="flex items-center justify-between pt-1">
           <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
             ⚠ Could not analyze
           </span>
-          <button
-            type="button"
-            onClick={() => onViewOnMap(item.id)}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
-          >
-            Retry
-          </button>
+          <div className="flex items-center gap-1.5">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              aria-label="Open original"
+            >
+              <ExternalLink size={14} />
+            </a>
+            <button
+              type="button"
+              onClick={() => onViewOnMap(item.id)}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -151,7 +208,8 @@ export default function InboxCard({
           <div className="flex items-center gap-3 mb-2">
             {item.locations.length > 0 && (
               <span className="text-xs text-gray-500 flex items-center gap-0.5">
-                📍 {item.locations.length}
+                <MapPin size={10} className="text-indigo-400" />
+                {item.locations.length}
               </span>
             )}
             {item.activities.length > 0 && (
@@ -180,15 +238,26 @@ export default function InboxCard({
         <div className="flex items-center justify-between pt-2 border-t border-gray-50">
           <span className="text-xs text-gray-400">{date}</span>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {/* View on Map */}
             <button
               type="button"
               onClick={() => onViewOnMap(item.id)}
               className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
             >
-              View on Map
+              Map
             </button>
+
+            {/* Open original */}
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              aria-label={`Open in ${PLATFORM_LABELS[item.platform]}`}
+            >
+              <ExternalLink size={13} />
+            </a>
 
             {/* Move to board */}
             {onMoveToBoard && (
@@ -196,9 +265,9 @@ export default function InboxCard({
                 type="button"
                 onClick={() => onMoveToBoard(item.id)}
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Move to board"
+                aria-label="Move to collection"
               >
-                <LayoutGrid size={14} />
+                <LayoutGrid size={13} />
               </button>
             )}
 
@@ -209,7 +278,7 @@ export default function InboxCard({
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               aria-label="Delete"
             >
-              <Trash2 size={14} />
+              <Trash2 size={13} />
             </button>
           </div>
         </div>

@@ -6,6 +6,34 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 
+// ─── Tag → emoji map ─────────────────────────────────────────────────────────
+
+const TAG_EMOJI: Record<string, string> = {
+  beach:        '🏖',
+  mountain:     '🏔',
+  food:         '🍜',
+  photography:  '📸',
+  culture:      '🏛',
+  history:      '🏛',
+  nature:       '🌿',
+  shopping:     '🛍',
+  art:          '🎨',
+  nightlife:    '🌃',
+  adventure:    '🧗',
+  city:         '🏙',
+  relaxation:   '🧘',
+  architecture: '🏗',
+  rural:        '🌾',
+};
+
+function getPinEmoji(tags: string[]): string | null {
+  for (const tag of tags) {
+    const emoji = TAG_EMOJI[tag.toLowerCase()];
+    if (emoji) return emoji;
+  }
+  return null;
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface PopupInfo {
@@ -48,6 +76,113 @@ function MapController({ flyTo }: MapControllerProps) {
   return null;
 }
 
+// ─── Pin component ───────────────────────────────────────────────────────────
+
+interface PinProps {
+  item: SavedItem;
+  locName: string;
+  onClick: () => void;
+}
+
+function Pin({ item, locName, onClick }: PinProps) {
+  const [hovered, setHovered] = useState(false);
+  const emoji = getPinEmoji(item.tags);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* Hover label */}
+      {hovered && (
+        <div
+          style={{
+            position:     'absolute',
+            bottom:       '100%',
+            left:         '50%',
+            transform:    'translateX(-50%)',
+            marginBottom: 6,
+            background:   'white',
+            borderRadius: 8,
+            boxShadow:    '0 4px 12px rgba(0,0,0,0.18)',
+            padding:      '4px 8px',
+            width:        160,
+            pointerEvents: 'none',
+            zIndex:       10,
+          }}
+        >
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#1f2937', lineHeight: 1.3, margin: 0 }}
+             className="line-clamp-1">
+            {locName}
+          </p>
+          <p style={{ fontSize: 10, color: '#6b7280', marginTop: 1, margin: 0 }}
+             className="line-clamp-2">
+            {item.title}
+          </p>
+        </div>
+      )}
+
+      {item.thumbnail ? (
+        /* Photo-style pin */
+        <button
+          type="button"
+          aria-label={`${item.title} – ${locName}`}
+          onClick={onClick}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{
+            width:        36,
+            height:       36,
+            borderRadius: 8,
+            overflow:     'hidden',
+            border:       '2.5px solid white',
+            boxShadow:    hovered ? '0 4px 12px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.25)',
+            cursor:       'pointer',
+            padding:      0,
+            display:      'block',
+            transform:    hovered ? 'scale(1.15)' : 'scale(1)',
+            transition:   'all 0.15s ease',
+          }}
+        >
+          <img
+            src={item.thumbnail}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            onError={(e) => {
+              // Fallback: hide image, show emoji circle instead
+              (e.currentTarget.closest('button') as HTMLButtonElement).style.display = 'none';
+            }}
+          />
+        </button>
+      ) : (
+        /* Emoji / color circle pin */
+        <button
+          type="button"
+          aria-label={`${item.title} – ${locName}`}
+          onClick={onClick}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{
+            width:           emoji ? 34 : 26,
+            height:          emoji ? 34 : 26,
+            borderRadius:    '50%',
+            backgroundColor: emoji ? 'white' : PLATFORM_COLORS[item.platform],
+            border:          `2.5px solid ${emoji ? PLATFORM_COLORS[item.platform] : 'white'}`,
+            boxShadow:       hovered ? '0 4px 12px rgba(0,0,0,0.30)' : '0 2px 8px rgba(0,0,0,0.22)',
+            cursor:          'pointer',
+            padding:         0,
+            display:         'flex',
+            alignItems:      'center',
+            justifyContent:  'center',
+            fontSize:        emoji ? 16 : 0,
+            transform:       hovered ? 'scale(1.2)' : 'scale(1)',
+            transition:      'all 0.15s ease',
+          }}
+        >
+          {emoji ?? ''}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
@@ -82,37 +217,17 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               latitude={loc.lat}
               anchor="bottom"
             >
-              <button
-                type="button"
-                aria-label={`${item.title} – ${loc.name}`}
-                onClick={(e) => {
-                  e.stopPropagation();
+              <Pin
+                item={item}
+                locName={loc.name}
+                onClick={() => {
                   setPopupInfo({
                     item,
                     location: loc,
                     longitude: loc.lng,
-                    latitude: loc.lat,
+                    latitude:  loc.lat,
                   });
                   onPinClick(item);
-                }}
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  backgroundColor: PLATFORM_COLORS[item.platform],
-                  border: '3px solid white',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.30)',
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'block',
-                  outline: 'none',
-                  transition: 'transform 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.2)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
                 }}
               />
             </Marker>
