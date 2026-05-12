@@ -2,9 +2,14 @@
 
 ## What This App Is
 
-TravelPanel is a travel inspiration clipper + AI trip planner. The core loop: user shares a URL from any social app (Instagram, YouTube, Xiaohongshu) via iOS Share Sheet → Claude extracts structured location/activity data → clips are organized into boards → the trip planner generates a multi-day itinerary from the user's saved clips, enriched with real-world context (festivals, weather, price signals).
+TravelPanel is a travel inspiration clipper + AI trip planner. The core loop: user shares a URL from any social app (Instagram, YouTube, Xiaohongshu) via iOS Share Sheet → Claude extracts both **spots** (geographic skeleton) AND **substance** (tips, warnings, opinions, wisdom) from the post → clips are organized into boards → the trip planner generates a multi-day itinerary that *cites the source clips inline*, enriched with real-world context (festivals, weather, price signals).
 
-**The moat is the clip action, not the AI plan.** Every decision should be measured against: does this make saving and organizing easier?
+**Two foundational moats:**
+
+1. **The clip action.** iOS Share Sheet flow is the product. If saving breaks or slows, retention collapses.
+2. **Substance over Spots.** Every clip has two extraction layers — pins AND content. Competitors (Romy, 圆周旅记) extract only pins, throwing away the actual wisdom in posts. We extract both, store substance as first-class data, and surface it in plans with source attribution.
+
+Every decision is measured against: does this make capture easier OR does it preserve more substance from each clip?
 
 ## Product Strategy
 

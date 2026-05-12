@@ -8,12 +8,13 @@
 
 **Thesis**: The moat is the clip action, not the AI plan. TravelPanel's defensible advantage is that a user can share from any social app in 2 taps and have their save instantly extracted, titled, and organized — and that corpus of organized saves compounds in value the longer they use the app. Everything else (planning, map, export) is downstream value from the clip corpus the user builds.
 
-**Top 5 strategic bets:**
-1. Nail the iOS Share Sheet flow before building anything else — it is the product
-2. Build an enrichment layer that injects real-world signals (festivals, weather, prices) into the planner, bridging the gap that social media guides can't close
-3. Extract the Clip Engine as modular shared infrastructure, then launch CookPanel as the first sibling vertical
-4. Add full-text + embedding hybrid search — the hidden "killer feature" users discover when they have 200+ saves and can't find anything
-5. Own the on-trip execution moment ("I just landed, what's my day?") — the white space no competitor has touched
+**Top 6 strategic bets:**
+1. **Substance over Spots.** Every clip carries two layers — a geographic skeleton (pins) AND the actual content (warnings, tips, opinions, mistakes-to-avoid). Competitors throw away the substance and keep only pins. We extract, store, and surface substance as first-class data. This is the deepest moat in the document.
+2. Nail the iOS Share Sheet flow before building anything else — it is the product
+3. Build an enrichment layer that injects real-world signals (festivals, weather, prices) into the planner, bridging the gap that social media guides can't close
+4. Extract the Clip Engine as modular shared infrastructure, then launch CookPanel as the first sibling vertical
+5. Add full-text + embedding hybrid search across both spots AND substance — the hidden "killer feature" users discover when they have 200+ saves
+6. Own the on-trip execution moment ("I just landed, what's my day?") — the white space no competitor has touched
 
 **Top 5 non-bets (v1):**
 1. In-app booking or affiliate commissions
@@ -79,17 +80,21 @@ China's most technically impressive travel planner. Standouts: a streaming agent
 
 What it gets right: streaming agent UX makes users feel like a knowledgeable friend is actively thinking. District-aware clustering is more useful than GPS-only distance grouping. The progressive disclosure of reasoning builds trust.
 
-What it lacks: it's a planning tool, not a capture tool. Users must manually enter destinations. There is no ambient organization from social feed clipping. Content comes from structured input, not from the chaos of what people actually save from Instagram at midnight.
+What it lacks (critical):
+- **Spot-only extraction**. 圆周旅记 reduces every input to a list of locations. The actual content of source posts — warnings, opinions, "best time to go," "skip the official tour" — is discarded. The plan output is geographic but informationally hollow.
+- It's a planning tool, not a capture tool. Users must manually enter destinations. No ambient organization from social feed clipping.
 
-**Lesson**: Build visible reasoning into the plan-generation streaming UX. Show the thinking, not just the output.
+**Lesson**: Build visible reasoning into the plan-generation streaming UX. Show the thinking, not just the output. **AND**: do not make the same spot-only mistake — extract substance alongside spots from the very first clip.
 
 ### Romy
 
 A beautifully designed trip board app. Romy's main innovation is a block-based itinerary builder — draggable time blocks, rich cards per place, polished day-view. Very well-designed output.
 
-Weakness: Romy is manual-first. You find, you type, you plan. It does not capture from social media. Its AI is surface-level autofill rather than generative planning. The "blocks" metaphor is closer to a Google Calendar than a travel intelligence layer.
+Critical weakness — the **spot-extraction trap**: Share a YouTube video titled "35 mistakes to avoid when visiting Hawaii" and Romy returns ~9 incidental pins from the video. The content of the video — the actual 35 mistakes, which is the *entire point* of saving the video — is discarded. This is worse than not clipping the video at all, because the user feels confident their wisdom is captured when in fact only the geographic skeleton was preserved. Romy has converted a piece of substance into a list of irrelevant Google Maps stars.
 
-**Lesson**: The block/timeline view for day plans is the right mental model for plan output. Take the visual language; add AI generation on top.
+Other weaknesses: Romy is manual-first; AI is surface-level autofill rather than generative planning; the "blocks" metaphor is closer to a Google Calendar than a travel intelligence layer.
+
+**Lesson**: The block/timeline view for day plans is the right mental model for plan output — take the visual language. **AND**: the spot-extraction trap is the single biggest gap in the competitive set. The clip's content matters more than its coordinates. Building substance extraction is a structural moat that requires Romy to rearchitect, not just ship a feature.
 
 ### Wanderlog
 
@@ -178,6 +183,40 @@ This is the differentiation that the chatbot travel apps cannot copy by adding a
 
 The share-sheet flow is not a convenience feature. It is the product. If the save flow breaks, becomes slower, or becomes more awkward, retention collapses within weeks. Every infrastructure decision should be measured against its effect on capture friction.
 
+### Substance over Spots — The Deepest Moat
+
+Every clip carries two distinct kinds of value:
+
+- **Spots** — geographic skeleton: locations, addresses, coordinates. What Romy and 圆周旅记 extract.
+- **Substance** — the actual content: warnings, opinions, tips, "go in the morning," cash-only flags, "skip the official tour, do this instead," "first-timer mistakes," seasonal advice, contextual rules.
+
+Competitors throw away the substance and keep only the spots. This is a category of failure, not a missing feature. A YouTube video titled "35 mistakes to avoid when visiting Hawaii" is structurally not about spots — it's about wisdom. Reducing it to 9 incidental pins is worse than not clipping it at all, because the user is given false confidence that their research is captured.
+
+**TravelPanel extracts both layers from every clip and stores substance as first-class data.**
+
+```
+Clip extraction output:
+{
+  spots:     [...locations, lat/lng, addresses...],
+  substance: [{
+    type: 'tip' | 'warning' | 'opinion' | 'wisdom' | 'context' | 'recommendation',
+    content: "Arrive before 8am or you'll wait 40+ minutes",
+    applies_to: { spot_id?, region?, season?, trip_phase? },
+    source_quote: "...the line wraps around the block by 8:30..."
+  }]
+}
+```
+
+**Three downstream consequences:**
+
+1. **Sourced plans.** Every plan element cites the clip(s) it came from. The plan UI surfaces source attribution inline: *"Day 2 morning — Bear Pond Espresso. **Tip from your IG save by @tokyoeats**: 'arrive at 8am to skip the line.'"* Plans become a synthesis of the user's specific saves, attributable line by line — not a black-box AI generation that the user has to trust blindly.
+
+2. **Substance-only plan elements.** Some clips contribute only substance (no associated spot). The planner surfaces them as advisories: *"Day 1 — don't rent a car at the airport; rideshare is more reliable when jet-lagged. **From your YouTube clip 'Hawaii first-timer mistakes.'**"* This is the thing Romy structurally cannot do.
+
+3. **The Wisdom view (third primary surface).** Beyond Map and Plan, every board has a "**Wisdom**" tab — the substance library, browsable and searchable. Users can ask their corpus: "What did I learn about Tokyo from my saves?" and get a synthesized briefing with citations back to source clips. This is the post-200-saves retention feature: at scale, your clip corpus becomes a personal knowledge base, not just a pin collection.
+
+**Why this is structurally defensible**: The spot-extraction model is baked into the data schema and product surface of every competitor. Adding substance later requires re-architecting the extraction layer, the storage schema, and the plan-output UX simultaneously. We have the chance to build it as the foundation, before the competitive set realizes the gap exists.
+
 ---
 
 ## Part IV: User Personas & Journeys
@@ -202,14 +241,17 @@ With TravelPanel v2: Trip timeline on his board. "Tokyo 2022" is a separate memo
 
 ## Part V: UX/UI Vision & Design Principles
 
-### Six Core Principles
+### Seven Core Principles
 
 1. **Capture in 1 tap. Organize in 0 taps. Plan in 1 sentence.** Every interaction is measured against this.
-2. **Make the corpus feel like a collection, not a database.** Boards should feel editorial — a curated magazine spread, not a spreadsheet.
-3. **Surface intelligence without demanding attention.** AI works silently; insights emerge when users open the app, not as interruptions.
-4. **Show your reasoning.** When the planner clusters or suggests, explain briefly: "These 4 cafes are all in Shinjuku → grouped into Day 2 afternoon." Let users correct it; each correction is a training signal.
-5. **The plan is a gift moment.** User invested effort saving; receiving the plan should feel like opening something. The streaming animation, the copy, the pacing matter as much as the itinerary data.
-6. **Mobile-first capture; desktop-native planning.** Inspiration happens on phones at midnight. Itinerary review happens on big screens with multiple tabs.
+2. **Substance is first-class.** Clips are content, not bookmarks. Tips, warnings, and opinions live alongside the map pin — and are surfaced in the plan, not buried in the source URL.
+3. **Plans are sourced.** Every recommendation in a plan cites the clip it came from — by author, by quoted snippet, by tappable link back to the original. No black-box AI synthesis. The user can always trace any suggestion to their own research.
+4. **Make the corpus feel like a collection, not a database.** Boards should feel editorial — a curated magazine spread, not a spreadsheet.
+5. **Surface intelligence without demanding attention.** AI works silently; insights emerge when users open the app, not as interruptions.
+6. **Show your reasoning.** When the planner clusters or suggests, explain briefly: "These 4 cafes are all in Shinjuku → grouped into Day 2 afternoon." Let users correct it; each correction is a training signal.
+7. **The plan is a gift moment.** User invested effort saving; receiving the plan should feel like opening something. The streaming animation, the copy, the pacing matter as much as the itinerary data.
+
+(Implicit: mobile-first capture; desktop-native planning. Inspiration happens on phones at midnight. Itinerary review happens on big screens with multiple tabs.)
 
 ### Specific UX Upgrades (v1 → v2)
 
@@ -366,12 +408,21 @@ The Clip Engine is not a product feature — it is an infrastructure strategy. T
 
 ```
 @clip-engine/capture     — iOS Share Sheet, browser extension, paste handler
-@clip-engine/extract     — URL fetching, OG parsing, Claude AI extraction (Zod schema)
-@clip-engine/storage     — IndexedDB schema, Supabase sync, migration helpers
+@clip-engine/extract     — URL/text/image fetching, OG parsing, Claude AI extraction.
+                           TWO-LAYER OUTPUT (Zod-typed):
+                             • spots:     geographic skeleton (locations, lat/lng)
+                             • substance: tips, warnings, opinions, wisdom, context
+                                          (with source_quote for citation)
+@clip-engine/storage     — IndexedDB schema, Supabase sync, migration helpers.
+                           Substance is first-class data, indexed and searchable.
 @clip-engine/organize    — Board engine, auto-categorization, tag inference
 @clip-engine/enrich      — Real-world signal injection: festivals/events, weather,
                            price-surge periods, public holidays, visa conditions.
                            User toggle: "my clips only" ↔ "clips + trusted online context"
+@clip-engine/synthesize  — Plan generation with full source attribution. Every
+                           element cites the clip(s) it came from. Substance-only
+                           items (no associated spot) are surfaced as advisories.
+                           Powers both the trip plan and the per-board Wisdom view.
 @clip-engine/output      — Domain-specific "do something" layer (pluggable)
 ```
 
@@ -424,31 +475,33 @@ Build TravelPanel → CookPanel as separate identities. After CookPanel launches
 
 ## Part IX: Non-Obvious Insights
 
-1. **Identity formation drives clipping retention, not utility.** Users save because curation feels like having taste. The emotional promise is "you're the kind of person who finds hidden gems." Pinterest internalized this. Reinforce it in copy, onboarding, and empty states. Users who feel like curators clip 3× more than users who feel like list-makers.
+1. **The spot-extraction trap is the #1 competitive failure of the category.** Romy and 圆周旅记 both reduce every clip to its geographic skeleton — a list of pins. They throw away the substance: warnings, opinions, "go in the morning," cash-only flags, "skip the official tour." A user who clips "35 mistakes to avoid in Hawaii" gets back 9 incidental pins and zero of the 35 mistakes. This is worse than not clipping the video, because the user is given false confidence that their wisdom is captured. Substance extraction is the structural moat: it requires re-architecting the data schema and plan-output UX simultaneously, which competitors cannot do as a feature ship.
 
-2. **The empty-map problem is fatal at onboarding.** A blank globe on first open is a conversion killer. Three seed demo boards are required before any public marketing. The boards should show the app as it looks after 3 months of real use.
+2. **Identity formation drives clipping retention, not utility.** Users save because curation feels like having taste. The emotional promise is "you're the kind of person who finds hidden gems." Pinterest internalized this. Reinforce it in copy, onboarding, and empty states. Users who feel like curators clip 3× more than users who feel like list-makers.
 
-3. **The plan generation is a gift moment, not a utility transaction.** Users invested effort saving; receiving the plan should feel like unwrapping something. The streaming animation, pacing, copy ("Building your Tokyo adventure..."), and post-generation reveal screen matter as much as the itinerary accuracy.
+3. **The empty-map problem is fatal at onboarding.** A blank globe on first open is a conversion killer. Three seed demo boards are required before any public marketing. The boards should show the app as it looks after 3 months of real use.
 
-4. **Visible reasoning builds trust faster than accuracy alone.** When the planner explains why it grouped items ("These 4 cafes are all in Shinjuku → Day 2 afternoon"), users trust the output more and forgive mistakes. They also self-correct, which surfaces training data. Show the work.
+4. **The plan generation is a gift moment, not a utility transaction.** Users invested effort saving; receiving the plan should feel like unwrapping something. The streaming animation, pacing, copy ("Building your Tokyo adventure..."), and post-generation reveal screen matter as much as the itinerary accuracy.
 
-5. **The Xiaohongshu fix is not a scraping problem.** RED and WeChat block scrapers by design and will always win that arms race. The fix is: accept the image payload from the iOS Share Sheet directly, describe it with Claude Vision, generate metadata from the description. This is 4–8 hours of work and sidesteps the problem entirely.
+5. **Visible reasoning builds trust faster than accuracy alone.** When the planner explains why it grouped items ("These 4 cafes are all in Shinjuku → Day 2 afternoon"), users trust the output more and forgive mistakes. They also self-correct, which surfaces training data. Show the work.
 
-6. **The PWA Share Sheet has a 90-day attention half-life.** Users engage with the novel "share to TravelPanel" behavior for the first few weeks. As novelty fades, retention requires push notifications to re-engage — which PWAs cannot do reliably on iOS. This is the trigger point to evaluate Capacitor, likely around month 3.
+6. **The Xiaohongshu fix is not a scraping problem.** RED and WeChat block scrapers by design and will always win that arms race. The fix is: accept the image payload from the iOS Share Sheet directly, describe it with Claude Vision, generate metadata from the description. This is 4–8 hours of work and sidesteps the problem entirely.
 
-7. **Vibe search is the hidden killer feature users do not ask for.** Nobody requests "vector search." But the experience of typing "minimalist coffee Tokyo with natural light" and retrieving the exact save they were looking for is the moment users realize TravelPanel is irreplaceable. Build embedding search before it feels urgent.
+7. **The PWA Share Sheet has a 90-day attention half-life.** Users engage with the novel "share to TravelPanel" behavior for the first few weeks. As novelty fades, retention requires push notifications to re-engage — which PWAs cannot do reliably on iOS. This is the trigger point to evaluate Capacitor, likely around month 3.
 
-8. **Travel has a 9-month → 1-month → 3-day funnel.** Inspiration → Decision → Execution. Most apps focus on the 1-month Decision phase. TravelPanel owns the 9-month Inspiration phase. The 3-day Execution phase ("I just landed, what's my day?") is white space — no good product exists for it. On-trip mode is the next product category to own.
+8. **Vibe search is the hidden killer feature users do not ask for.** Search ranges across both spots AND substance — typing "minimalist coffee Tokyo with natural light" should retrieve a clip even if the location name doesn't match, because the substance ("the morning light through the windows is unreal") does. Nobody requests "vector search." But the experience of typing "minimalist coffee Tokyo with natural light" and retrieving the exact save they were looking for is the moment users realize TravelPanel is irreplaceable. Build embedding search before it feels urgent.
 
-9. **AI cost can spiral silently.** A heavy user regenerating plans 10× a day can create significant Claude API spend with no ceiling. Add per-user cost tracking via PostHog custom properties from day 1. Cap plan generations in the free tier early — not primarily as monetization, but as protection.
+9. **Travel has a 9-month → 1-month → 3-day funnel.** Inspiration → Decision → Execution. Most apps focus on the 1-month Decision phase. TravelPanel owns the 9-month Inspiration phase. The 3-day Execution phase ("I just landed, what's my day?") is white space — no good product exists for it. On-trip mode is the next product category to own.
 
-10. **The data graph compounds; loss is existential.** After 6 months of clipping, a user's IndexedDB is a unique, irreplaceable personal artifact. Cloud backup and JSON export must exist before any marketing push — before auth, before Pro. Users who lose their data do not come back.
+10. **AI cost can spiral silently.** A heavy user regenerating plans 10× a day can create significant Claude API spend with no ceiling. Add per-user cost tracking via PostHog custom properties from day 1. Cap plan generations in the free tier early — not primarily as monetization, but as protection.
 
-11. **On-trip execution is a daily-active-user machine.** Pre-trip planning happens once per trip (roughly weekly DAU for frequent travelers). On-trip "what's next?" happens every day of the trip, every few hours. It is the highest-frequency use case and the least competitive category. This is the Phase C investment that changes the retention curve.
+11. **The data graph compounds; loss is existential.** After 6 months of clipping, a user's IndexedDB is a unique, irreplaceable personal artifact. Cloud backup and JSON export must exist before any marketing push — before auth, before Pro. Users who lose their data do not come back.
 
-12. **The killer demo is not plan speed.** Layla and a dozen others generate plans in seconds. The killer demo is: "I clipped 127 things without thinking about it. Here they are, organized perfectly, for a trip I'm taking next month." That demo does not exist anywhere else. It is the only demo that should be used in marketing.
+12. **On-trip execution is a daily-active-user machine.** Pre-trip planning happens once per trip (roughly weekly DAU for frequent travelers). On-trip "what's next?" happens every day of the trip, every few hours. It is the highest-frequency use case and the least competitive category. This is the Phase C investment that changes the retention curve.
 
-13. **Trips aren't always geographic.** "Best hidden bars worldwide" is a real trip a user might plan. Do not force geographic clustering on every board. Let users flag boards as "general inspiration" vs "specific destination."
+13. **The killer demo is not plan speed.** Layla and a dozen others generate plans in seconds. The killer demo is: "I clipped 127 things without thinking about it. Here they are, organized perfectly, for a trip I'm taking next month." That demo does not exist anywhere else. It is the only demo that should be used in marketing.
+
+14. **Trips aren't always geographic.** "Best hidden bars worldwide" is a real trip a user might plan. Do not force geographic clustering on every board. Let users flag boards as "general inspiration" vs "specific destination."
 
 ---
 
