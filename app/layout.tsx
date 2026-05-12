@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { CapacitorBridge } from '@/components/CapacitorBridge';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -18,8 +19,10 @@ export default function RootLayout({
         <meta name="theme-color" content="#6366f1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body>
+        <CapacitorBridge />
         <div className="min-h-screen">
           {children}
         </div>
@@ -27,3 +30,4 @@ export default function RootLayout({
     </html>
   );
 }
+

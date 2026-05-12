@@ -35,14 +35,56 @@ app/
     enrich/             — (future) Real-world enrichment signals
 
 components/
+  CapacitorBridge.tsx   — Client-side Capacitor init + URL scheme deep link handler
+                          Listens for travelpanel:// URLs from the Share Extension
+                          and routes them to /share
   MapView.tsx           — Main map with NaN-guard coord validation
   RouteMapView.tsx      — Route layer for planned trips
   InboxCard.tsx         — Clip card with partial-state loading pattern
+
+ios/App/
+  App/                  — Xcode project (Capacitor-generated)
+    Info.plist          — URL scheme (travelpanel://) + ATS config
+    AppDelegate.swift   — Capacitor app delegate (handles URL open events)
+  ShareExtension/       — Native iOS Share Extension
+    ShareViewController.swift — Receives shared URL, opens app via URL scheme
+                                or writes to App Group as fallback
+    Info.plist          — Extension config (accepts URLs, web pages, text)
+    XCODE_SETUP.md      — Step-by-step Xcode wiring instructions
+  capacitor.config.ts   — Capacitor config (app ID, server URL, plugins)
 
 lib/
   db.ts                 — IndexedDB v2 schema + state machines
                           (enrichmentStatus: pending | done | failed)
 ```
+
+## iOS Build Workflow
+
+The app uses Capacitor (not React Native) to wrap the Next.js PWA as a native iOS app. The native shell loads the deployed Vercel URL.
+
+### Prerequisites (macOS)
+- Xcode 15+
+- CocoaPods: `sudo gem install cocoapods`
+- Run `cd ios/App && pod install` once after cloning
+
+### Development (live reload from local server)
+```bash
+# Start Next.js dev server first
+npm run dev
+
+# In a separate terminal, sync and open Xcode
+# Replace with your Mac's local IP so the device can reach it
+CAPACITOR_SERVER_URL=http://192.168.1.100:3000 npm run ios:dev
+```
+
+### Production build
+```bash
+CAPACITOR_SERVER_URL=https://your-app.vercel.app npm run ios:build
+# Then: Product → Archive in Xcode
+```
+
+### Share Extension wiring (first-time Xcode setup)
+See `ios/App/ShareExtension/XCODE_SETUP.md` — must be completed in Xcode before the native Share Sheet works.
 
 ## Key Technical Decisions
 
