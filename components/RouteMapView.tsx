@@ -22,6 +22,10 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+function isValidLoc(loc: { lat?: number; lng?: number } | null | undefined): boolean {
+  return !!loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng);
+}
+
 interface RouteMapViewProps {
   items: SavedItem[];
   plan: Partial<TripPlan> | null;
@@ -44,13 +48,13 @@ function BoundsController({ plan, items }: BoundsControllerProps) {
     if (plan?.days && plan.days.length > 0) {
       for (const day of plan.days) {
         for (const loc of (day.locations ?? [])) {
-          coords.push([loc.lng, loc.lat]);
+          if (isValidLoc(loc)) coords.push([loc.lng, loc.lat]);
         }
       }
     } else {
       for (const item of items) {
         for (const loc of (item.locations ?? [])) {
-          coords.push([loc.lng, loc.lat]);
+          if (isValidLoc(loc)) coords.push([loc.lng, loc.lat]);
         }
       }
     }
@@ -87,7 +91,9 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
   const allItemLocations = useMemo(
     () =>
       items.flatMap((item) =>
-        (item.locations ?? []).map((loc) => ({ loc, item }))
+        (item.locations ?? [])
+          .filter(isValidLoc)
+          .map((loc) => ({ loc, item }))
       ),
     [items]
   );
@@ -129,7 +135,7 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
       {/* Route lines per day */}
       {days.length > 0 &&
         days.map((day, dayIdx) => {
-          const locations = day?.locations ?? [];
+          const locations = (day?.locations ?? []).filter(isValidLoc);
           if (locations.length < 2) return null;
 
           const color    = DAY_COLORS[dayIdx % DAY_COLORS.length];
@@ -173,7 +179,7 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
       {/* Day location markers with numbers */}
       {days.length > 0 &&
         days.flatMap((day, dayIdx) => {
-          const locations = day?.locations ?? [];
+          const locations = (day?.locations ?? []).filter(isValidLoc);
           const color    = DAY_COLORS[dayIdx % DAY_COLORS.length];
           const isActive = dayIdx === activeDayIndex;
           const size     = isActive ? 28 : 20;

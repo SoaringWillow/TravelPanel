@@ -55,6 +55,7 @@ function MapController({ flyTo }: MapControllerProps) {
 
   useEffect(() => {
     if (!flyTo || !mapRef) return;
+    if (!Number.isFinite(flyTo.lat) || !Number.isFinite(flyTo.lng)) return;
 
     const prev = prevFlyToRef.current;
     const isSame =
@@ -210,7 +211,12 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         {items.flatMap((item) => {
           if (!item.locations || item.locations.length === 0) return [];
 
-          return item.locations.map((loc, locIndex) => (
+          return item.locations
+            .filter(
+              (loc) =>
+                Number.isFinite(loc?.lat) && Number.isFinite(loc?.lng),
+            )
+            .map((loc, locIndex) => (
             <Marker
               key={`${item.id}-${locIndex}`}
               longitude={loc.lng}
