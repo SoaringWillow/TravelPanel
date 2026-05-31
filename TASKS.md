@@ -185,16 +185,39 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Files to change**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add user location dot to the map using the browser Geolocation API + MapLibre `GeolocateControl`
+- Add a "Locate me" FAB that flies the map to the user's current position
+- Implement a "Nearby" chip/filter on the home page: shows only clips within 10km of current position, with distance label on each pin ("1.2km")
+- Distance calculation: Haversine formula, client-side
+- Graceful degradation: if geolocation denied, hide the locate button with a toast ("Location permission denied")
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Files**: new `app/timeline/[boardId]/page.tsx`, `lib/types.ts`, `lib/db.ts`  
+**What to do**:
+- Add "Check in" action on location detail cards — records `checkedInAt: number` on a SavedItem
+- New timeline page per board: vertical timeline of checked-in places sorted by `checkedInAt`
+- Each entry shows thumbnail, title, distance from previous stop, time gap
+- Link from board detail page: "View trip timeline"
+- Empty state: "Start checking in to places as you visit them"
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Needs**: Supabase (B1 keys) — blocked until B1 is activated  
+**What to do**: Generate a read-only share link for a board (UUID-keyed public URL), allow recipients to view and clone the board into their own collection
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Files**: `components/NearbyAlert.tsx`, `app/page.tsx`  
+**What to do**:
+- On map view, periodically check if the user is within 500m of any saved clip that they haven't visited (no `checkedInAt`)
+- Show a subtle bottom toast: "You're near [Place name] — your saved clip from [source]"
+- Tap opens the detail card
+- Requires C1 geolocation to be active; no-ops if location is unavailable
+- Debounce: max one alert per 5 minutes per place
 
 ---
 
