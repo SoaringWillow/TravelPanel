@@ -22,7 +22,7 @@
 - Update `components/InboxCard.tsx` to show substance count badge (e.g. "3 tips")
 
 ### A2 — Enrichment Retry Queue 🔴 HIGH PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Enrichment is currently fire-and-forget. Items silently fail to enrich (no error, no retry). Users see empty cards. This is a retention killer.  
 **Files to change**: `app/share/page.tsx`, `lib/db.ts`, possibly a new `lib/retryQueue.ts`  
 **What to do**:

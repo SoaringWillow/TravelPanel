@@ -9,6 +9,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -25,9 +26,11 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
+
+  const { retryItem } = useEnrichmentRetry(refreshItem);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -151,6 +154,7 @@ export default function InboxPage() {
                     onDelete={removeItem}
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
+                    onRetry={retryItem}
                   />
                 </motion.div>
               ))}

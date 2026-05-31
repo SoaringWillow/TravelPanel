@@ -4,7 +4,8 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard, updateItemEnrichment } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { enrichItem } from '@/lib/enrichItem';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -85,34 +86,27 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment — fire and forget with keepalive
+    // Background enrichment
     setEnrichmentLoading(true);
-    fetch('/api/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: rawUrl }),
-      keepalive: true,
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<ImportResult>;
-      })
-      .then((data) => {
-        updateItemEnrichment(itemId, 'done', {
-          title: data.title,
-          description: data.description,
-          thumbnail: data.thumbnail,
-          locations: data.locations,
-          activities: data.activities,
-          tags: data.tags,
-          substance: data.substance,
-          platform: data.platform,
-        });
-        setEnrichedData(data);
-        setEnrichmentLoading(false);
-      })
-      .catch(() => {
-        updateItemEnrichment(itemId, 'failed');
+    enrichItem(itemId, rawUrl)
+      .then(async (success) => {
+        if (success) {
+          // Read back the enriched data to show location count in the done UI
+          const { getItemById } = await import('@/lib/db');
+          const updated = await getItemById(itemId);
+          if (updated) {
+            setEnrichedData({
+              platform: updated.platform,
+              title: updated.title,
+              description: updated.description,
+              thumbnail: updated.thumbnail,
+              locations: updated.locations,
+              activities: updated.activities,
+              tags: updated.tags,
+              substance: updated.substance,
+            } as ImportResult);
+          }
+        }
         setEnrichmentLoading(false);
       });
 

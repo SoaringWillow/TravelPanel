@@ -11,6 +11,7 @@ interface InboxCardProps {
   onDelete: (id: string) => void;
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
+  onRetry?: (id: string, url: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -36,13 +37,16 @@ export default function InboxCard({
   onDelete,
   onViewOnMap,
   onMoveToBoard,
+  onRetry,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
   // ── Pending / processing state ───────────────────────────────────────────
-  // If we have a title, show a partial card; otherwise show a skeleton
+  // 'processing' on a card that has no content = initial enrichment in flight
+  // 'processing' on a card that already has a title = retry in flight
+  const isRetrying = enrichmentStatus === 'processing' && !!item.title && item.title !== item.url;
 
-  if (enrichmentStatus === 'pending' || enrichmentStatus === 'processing') {
+  if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
       return (
@@ -106,9 +110,11 @@ export default function InboxCard({
     );
   }
 
-  // ── Failed state ─────────────────────────────────────────────────────────
+  // ── Failed / retrying state ───────────────────────────────────────────────
 
-  if (enrichmentStatus === 'failed') {
+  if (enrichmentStatus === 'failed' || isRetrying) {
+    const exhausted = (item.retryCount ?? 0) >= 3;
+
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
@@ -132,9 +138,16 @@ export default function InboxCard({
         </p>
 
         <div className="flex items-center justify-between pt-1">
-          <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-            ⚠ Could not analyze
-          </span>
+          {isRetrying ? (
+            <span className="text-xs text-indigo-500 font-medium flex items-center gap-1">
+              <Loader2 size={11} className="animate-spin" />
+              Retrying…
+            </span>
+          ) : exhausted ? (
+            <span className="text-xs text-red-500 font-medium">✕ Could not analyze</span>
+          ) : (
+            <span className="text-xs text-amber-600 font-medium">⚠ Analysis failed</span>
+          )}
           <div className="flex items-center gap-1.5">
             <a
               href={item.url}
@@ -145,12 +158,22 @@ export default function InboxCard({
             >
               <ExternalLink size={14} />
             </a>
+            {!isRetrying && onRetry && (
+              <button
+                type="button"
+                onClick={() => onRetry(item.id, item.url)}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
+              >
+                Retry
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => onViewOnMap(item.id)}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
+              onClick={() => onDelete(item.id)}
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              aria-label="Delete"
             >
-              Retry
+              <Trash2 size={13} />
             </button>
           </div>
         </div>

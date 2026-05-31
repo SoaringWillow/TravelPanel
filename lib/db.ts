@@ -100,6 +100,15 @@ export async function getPendingItems(): Promise<SavedItem[]> {
   }
 }
 
+export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedItem[]> {
+  try {
+    const db = await getDB();
+    return db.getAllFromIndex('items', 'by-status', status);
+  } catch {
+    return [];
+  }
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,
