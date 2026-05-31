@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- ─── Header ─────────────────────────────────────────── -->
+  <div class="header">
+    <div class="logo">
+      <span class="logo-icon">✈️</span>
+      TravelPanel
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="openAppBtn" title="Open TravelPanel">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── Page preview (or no-URL state) ─────────────────── -->
+  <div id="pagePreview" class="page-preview" style="display:none">
+    <span class="platform-chip" id="platformChip">Other</span>
+    <p class="page-title" id="pageTitle">Untitled page</p>
+    <p class="page-url" id="pageUrl"></p>
+  </div>
+
+  <div id="noUrlState" class="no-url-state" style="display:none">
+    <p>🗺️</p>
+    <p>Navigate to a travel page<br/>to clip it.</p>
+  </div>
+
+  <!-- ─── Actions ─────────────────────────────────────────── -->
+  <div class="actions">
+    <button class="clip-btn" id="clipBtn" disabled>
+      <span class="btn-icon">✂️</span>
+      Clip to TravelPanel
+    </button>
+
+    <div class="config-warning" id="configWarning" style="display:none">
+      ⚠️ Set your TravelPanel URL in
+      <a id="warningSettingsLink" href="#">Settings</a> first.
+    </div>
+  </div>
+
+  <!-- ─── Footer ─────────────────────────────────────────── -->
+  <div class="footer">
+    <span>TravelPanel Clipper</span>
+    <button class="footer-link" id="footerSettingsBtn">Configure URL</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -3,17 +3,29 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share written by the iOS Share Extension via App Groups.
+// NOTE: @capacitor/preferences reads from UserDefaults.standard by default.
+// For this to work with the App Group suite used by ShareViewController.swift,
+// configure the Preferences plugin with iosGroup in capacitor.config.ts once
+// the App Group is enabled in Xcode.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: title }     = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: imageData } = await Preferences.get({ key: 'pendingShareImageData' });
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareImageData' });
+
+    // Store large image in sessionStorage to avoid bloating the URL.
+    // share/page.tsx reads this on mount and clears it immediately.
+    if (imageData) {
+      sessionStorage.setItem('pendingShareImage', imageData);
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);

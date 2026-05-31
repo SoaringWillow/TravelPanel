@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "description": "Clip any travel URL into TravelPanel — save spots, wisdom, and tips from any page.",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "https://*/*"
+  ]
+}

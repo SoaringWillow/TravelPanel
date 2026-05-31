@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -13,6 +13,24 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Stage = 'picking' | 'saving' | 'done';
+
+// Platforms that commonly block scraping — show the screenshot paste zone proactively.
+const VISION_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
+// ─── Image helper ────────────────────────────────────────────────────────────
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the data:image/...;base64, prefix — we send raw base64 to the API
+      resolve(result.split(',')[1] ?? '');
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -29,13 +47,52 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver]           = useState(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const platform = rawUrl ? detectPlatform(rawUrl) : 'other';
+  const showVisionZone = VISION_PLATFORMS.has(platform);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read image written by CapacitorBridge (iOS Share Extension image path)
+  useEffect(() => {
+    const stored = sessionStorage.getItem('pendingShareImage');
+    if (stored) {
+      sessionStorage.removeItem('pendingShareImage');
+      setScreenshotBase64(stored);
+      setScreenshotPreview(`data:image/jpeg;base64,${stored}`);
+    }
+  }, []);
+
+  // ── Paste / drag-drop image capture ──────────────────────────────────────
+
+  const handleImageFile = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const b64 = await fileToBase64(file);
+    setScreenshotBase64(b64);
+    setScreenshotPreview(URL.createObjectURL(file));
+  }, []);
+
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items ?? []).find(
+        (i) => i.type.startsWith('image/'),
+      );
+      if (item) {
+        const file = item.getAsFile();
+        if (file) handleImageFile(file);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [handleImageFile]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -49,7 +106,6 @@ function SharePageInner() {
     };
   }, [stage]);
 
-  const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
 
@@ -88,9 +144,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if user provided one
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotBase64 ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -166,6 +222,58 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Vision zone — screenshot paste for anti-scraping platforms */}
+        {showVisionZone && (
+          <div className="mt-4">
+            {screenshotPreview ? (
+              <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={screenshotPreview} alt="Screenshot preview" className="w-full max-h-32 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => { setScreenshotBase64(null); setScreenshotPreview(null); }}
+                  className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 px-3 py-1.5">
+                  <p className="text-white text-xs font-medium">📸 Screenshot added — AI will read the image</p>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file) handleImageFile(file);
+                }}
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = () => { if (input.files?.[0]) handleImageFile(input.files[0]); };
+                  input.click();
+                }}
+                className={`w-full border-2 border-dashed rounded-xl px-4 py-3 flex items-center gap-3 transition-colors text-left ${
+                  isDragOver
+                    ? 'border-indigo-400 bg-indigo-50'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <ImagePlus size={18} className="text-gray-400 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-gray-600">Add a screenshot (optional)</p>
+                  <p className="text-xs text-gray-400">Paste, drag, or tap — helps AI extract content blocked by {platformLabel}</p>
+                </div>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
