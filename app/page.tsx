@@ -12,6 +12,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NearbyAlert from '@/components/NearbyAlert';
 import NavBar from '@/components/NavBar';
+import OnboardingTour from '@/components/OnboardingTour';
 
 // ── Haversine distance in km ──────────────────────────────────────────────────
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -201,6 +202,7 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+      <OnboardingTour />
     </main>
   );
 }

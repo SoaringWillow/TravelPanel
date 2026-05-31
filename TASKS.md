@@ -316,7 +316,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - In share page textarea/input: add `inputmode="text"` and ensure the form scrolls to keep the focused field visible
 
 ### E3 — Onboarding Tutorial Overlay
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: New users land on a blank map with no context. The seed data helps but there's no guidance on the app's core gesture (long-press a pin, tap to detail card, check in).
 **Files**: new `components/OnboardingTour.tsx`, `app/page.tsx`
 **What to do**:
@@ -364,7 +364,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Works alongside existing tap-to-open behavior
 
 ### E7 — Plan View Substance Citations
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done — already implemented in A12 (sourcedTips type, API route, and plan view rendering are all wired)
 **Why**: A12 threaded substance into plans but the UI rendering of `sourcedTips` may not be showing the "from your clip: X" attribution visually.
 **Files to change**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx` (if it exists)
 **What to do**:

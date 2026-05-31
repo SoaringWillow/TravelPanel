@@ -103,3 +103,11 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 20:41 | 54d00d8 | feat(C2): post-trip timeline with check-in system
 2026-05-31 20:42 | 8d6da73 | feat(C4): proactive resurfacing — nearby clip alert toast
 2026-05-31 20:44 | e104bef | feat(D1,D2,D7): haptics + skeleton loading + offline indicator
+2026-05-31 20:49 | 9de495d | feat(D4): add inline item editing to LocationDetailCard
+2026-05-31 20:50 | fa42fb3 | feat(D5): add status filters, sort selector, and session persistence to Inbox
+2026-05-31 20:52 | 506191d | feat(D3): add pull-to-refresh to Inbox and Boards pages
+2026-05-31 20:55 | 9f2d702 | feat(D6): add app icons, splash screens, and PWA icon meta tags
+2026-05-31 20:59 | 4d9d080 | feat(E1): add safe area insets for iOS notch and home indicator
+2026-05-31 21:00 | 16fa5ea | feat(E2): keyboard-aware input handling for iOS
+2026-05-31 21:01 | 2421a63 | feat(E4,E5): source URL button and board thumbnail grid
+2026-05-31 21:02 | 506bde0 | feat(E6): swipe-to-delete gesture on InboxCard
