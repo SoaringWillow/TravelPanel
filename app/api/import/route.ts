@@ -81,31 +81,20 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// Platforms whose pages are blocked to our scraper — image Vision is the fallback.
+const VISION_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+// ─── Shared extraction prompt (text) ─────────────────────────────────────────
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildPrompt(platform: string, url: string, pageTitle: string, pageDesc: string, pageText: string) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
+Title: ${pageTitle}
+Description: ${pageDesc}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${pageText}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -127,15 +116,93 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  return `You are a travel content analyzer. The attached screenshot is a post from ${platform} (URL: ${url}).
+
+This platform blocks web scraping, so the screenshot IS the full content. Analyze everything visible in the image.
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+Read ALL text in the image including captions, overlays, hashtags, and comments.
+Do NOT invent or guess coordinates.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, warning, or opinion visible in the image.
+Read the full caption text, any overlaid text, and visible comments.
+Examples:
+- "Arrive before 8am to beat the queue" → tip
+- "Cash only" → warning
+- "Best in spring" → context
+- "Overrated" → opinion
+
+For list-style posts, extract ALL visible items.
+Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
+  try {
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = body.imageBase64;
+    imageMimeType = body.imageMimeType ?? 'image/jpeg';
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // Use Vision if an image was provided, or platform is known to block scraping.
+  const useVision = !!imageBase64;
+  const page = useVision ? null : await fetchPageData(url);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision && imageBase64) {
+      // Multimodal: analyze the screenshot directly
+      const dataUrl = imageBase64.startsWith('data:')
+        ? imageBase64
+        : `data:${imageMimeType};base64,${imageBase64}`;
+
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: buildVisionPrompt(platform, url) },
+              { type: 'image', image: new URL(dataUrl) },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text-only: scrape + analyze
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildPrompt(
+          platform,
+          url,
+          page?.title ?? '(unavailable)',
+          page?.description ?? '(unavailable)',
+          page?.textContent ?? '(could not fetch page)',
+        ),
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
@@ -144,7 +211,7 @@ Never return an empty substance array for a real travel post.`;
     platform,
     title: (claudeResult?.title || page?.title || url).slice(0, 200),
     description: (claudeResult?.description || page?.description || '').slice(0, 500),
-    thumbnail: page?.thumbnail || undefined,
+    thumbnail: useVision ? undefined : (page?.thumbnail || undefined),
     locations: claudeResult?.locations ?? [],
     activities: claudeResult?.activities ?? [],
     tags: claudeResult?.tags ?? [],
