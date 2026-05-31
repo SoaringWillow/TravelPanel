@@ -43,7 +43,7 @@
 - If `NEXT_PUBLIC_POSTHOG_KEY` is missing, trigger resource request notification (see A5)
 
 ### A4 — AI Cost Guard
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Heavy users can spike API spend with no ceiling. No visibility into per-user cost.  
 **Files to change**: `app/api/plan/route.ts`, `app/api/import/route.ts`  
 **What to do**:

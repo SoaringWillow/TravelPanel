@@ -2,9 +2,20 @@
 
 import { updateItemEnrichment } from './db';
 import { ImportResult } from './types';
+import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 
 export async function enrichItem(id: string, url: string): Promise<boolean> {
+  const limit = checkEnrichmentLimit();
+  if (!limit.allowed) {
+    // Don't mark as failed — leave as pending so retry queue picks it up later
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[TravelPanel] Enrichment rate limit hit. Resets in ${Math.ceil((limit.resetsAt - Date.now()) / 60000)}m`);
+    }
+    return false;
+  }
+
   await updateItemEnrichment(id, 'processing');
+  recordEnrichment();
   try {
     const res = await fetch('/api/import', {
       method: 'POST',

@@ -74,18 +74,22 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        const { object: resolvedLocs } = await generateObject({
+        const resolvedResult = await generateObject({
           model: anthropic('claude-sonnet-4-6'),
           schema: z.object({ locations: z.array(locationSchema) }),
           prompt: `Verify these ${rawLocations.length} travel locations have accurate GPS coordinates. Correct any wrong ones and return all of them.\n\n${JSON.stringify(rawLocations)}`,
         });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[plan/resolve] tokens:', resolvedResult.usage);
+        }
+        const { object: resolvedLocs } = resolvedResult;
 
         step('found', `Resolved ${resolvedLocs.locations.length} location${resolvedLocs.locations.length !== 1 ? 's' : ''}`);
 
         // ── Step 2: Cluster into day groups ──────────────────────────────
         step('clustering', `Grouping locations into ${days}-day clusters…`);
 
-        const { object: clusters } = await generateObject({
+        const clusterResult = await generateObject({
           model: anthropic('claude-sonnet-4-6'),
           schema: z.object({
             groups: z.array(z.object({
@@ -96,6 +100,10 @@ export async function POST(req: NextRequest) {
           }),
           prompt: `Cluster these ${resolvedLocs.locations.length} locations into ${days} geographic day groups, minimising travel distance each day. Give each day a short theme.\n\nLocations:\n${JSON.stringify(resolvedLocs.locations)}`,
         });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[plan/cluster] tokens:', clusterResult.usage);
+        }
+        const { object: clusters } = clusterResult;
 
         step('routing', 'Building optimised route…');
 

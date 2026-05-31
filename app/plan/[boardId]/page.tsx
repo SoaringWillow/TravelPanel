@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage } from '@/lib/types';
 import { getBoardById, getAllItems } from '@/lib/db';
+import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -31,6 +32,7 @@ export default function PlanPage() {
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const [planLimitError, setPlanLimitError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -53,10 +55,21 @@ export default function PlanPage() {
   const hasLocations = itemsWithLocations.length > 0;
 
   const generatePlan = useCallback(async () => {
+    setPlanLimitError(null);
+    const limit = checkPlanLimit();
+    if (!limit.allowed) {
+      setPlanLimitError(
+        `You've used all ${5} free plans today. More plans available in ${formatResetsIn(limit.resetsAt)}. ` +
+        `Unlimited plans coming in Pro — stay tuned!`
+      );
+      return;
+    }
+
     setStage('generating');
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    recordPlanGeneration();
 
     const res = await fetch('/api/plan', {
       method: 'POST',
@@ -261,6 +274,14 @@ export default function PlanPage() {
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
                   <MapPin size={14} className="flex-shrink-0 mt-0.5" />
                   <span>Add items with identified locations to plan a trip.</span>
+                </div>
+              )}
+
+              {/* Plan rate limit warning */}
+              {planLimitError && (
+                <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 text-xs text-indigo-700">
+                  <Lightbulb size={14} className="flex-shrink-0 mt-0.5 text-indigo-500" />
+                  <span>{planLimitError}</span>
                 </div>
               )}
 
