@@ -80,3 +80,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 05:52 | f5231a0 | feat(A9): export plans to PDF and calendar (.ics)
 2026-05-31 05:54 | 13f1f43 | feat(A10): multi-version plans — save, name, switch, regenerate
 2026-05-31 05:55 | 2a78787 | docs: log Phase A completion in SESSIONS.md
+2026-05-31 05:56 | 89374c5 | chore: session log auto-entry + regenerated PWA service worker
+2026-05-31 06:17 | 62810e6 | feat: model routing — Haiku for enrichment/clustering, Opus for itinerary
