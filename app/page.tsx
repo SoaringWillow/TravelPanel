@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import { checkInItem } from '@/lib/db';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import NearbyAlert from '@/components/NearbyAlert';
 import NavBar from '@/components/NavBar';
 
 // ── Haversine distance in km ──────────────────────────────────────────────────
@@ -168,6 +169,15 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Nearby alert toast (proactive resurfacing) */}
+      {!selectedItem && (
+        <NearbyAlert
+          userCoords={userCoords}
+          items={items}
+          onSelectItem={setSelectedItem}
+        />
+      )}
 
       {/* Import FAB */}
       {!selectedItem && (

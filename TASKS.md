@@ -210,7 +210,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Generate a read-only share link for a board (UUID-keyed public URL), allow recipients to view and clone the board into their own collection
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/NearbyAlert.tsx`, `app/page.tsx`  
 **What to do**:
 - On map view, periodically check if the user is within 500m of any saved clip that they haven't visited (no `checkedInAt`)
