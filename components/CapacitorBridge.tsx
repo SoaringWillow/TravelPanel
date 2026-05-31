@@ -12,8 +12,15 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: imgb64 } = await Preferences.get({ key: 'pendingShareImageData' });
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareImageData' });
+
+    // Stash image for the share page to pick up
+    if (imgb64) {
+      try { sessionStorage.setItem('pendingShareImageData', imgb64); } catch { /* private mode */ }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -51,8 +58,16 @@ export function CapacitorBridge() {
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            // Image thumbnail from Share Extension (base64-encoded JPEG)
+            const imgb64 = parsed.searchParams.get('imgb64');
 
             if (shareUrl) {
+              // Store image data for the share page before routing
+              if (imgb64) {
+                try { sessionStorage.setItem('pendingShareImageData', imgb64); } catch { /* private mode */ }
+              } else {
+                try { sessionStorage.removeItem('pendingShareImageData'); } catch { /* private mode */ }
+              }
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);

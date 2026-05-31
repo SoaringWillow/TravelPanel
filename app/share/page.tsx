@@ -29,12 +29,20 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [sharedImageData, setSharedImageData] = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards and pick up any image shared via iOS Share Extension
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    try {
+      const img = sessionStorage.getItem('pendingShareImageData');
+      if (img) {
+        setSharedImageData(img);
+        sessionStorage.removeItem('pendingShareImageData');
+      }
+    } catch { /* private mode / SSR */ }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +96,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment (with optional vision image for Xiaohongshu / anti-scrape platforms)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const enrichOpts = sharedImageData ? { imageData: sharedImageData, mimeType: 'image/jpeg' } : undefined;
+    enrichItem(itemId, rawUrl, enrichOpts)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +173,21 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Image thumbnail (from iOS Share Sheet) */}
+          {sharedImageData && (
+            <div className="mt-2 flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`data:image/jpeg;base64,${sharedImageData}`}
+                alt="Shared screenshot"
+                className="w-14 h-14 rounded-lg object-cover border border-gray-200"
+              />
+              <span className="text-xs text-indigo-500 font-medium">
+                📷 Using image for extraction
+              </span>
+            </div>
           )}
         </div>
 
