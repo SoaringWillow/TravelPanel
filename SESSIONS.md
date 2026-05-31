@@ -94,3 +94,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:17 | 86b4ef5 | chore: session log auto-entry
 2026-05-31 07:17 | 036278b | docs: mark B1 Supabase as scaffolded (dormant until keys) in TASKS.md
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
+2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
