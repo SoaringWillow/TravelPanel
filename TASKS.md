@@ -179,19 +179,141 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
-## PHASE C — On-Trip Mode (Future)
+## PHASE C — iOS Polish & Premium Feel (Current Sprint)
 
-### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+> All Phase A + B tasks are done. The product now extracts both spots and substance, has
+> a browser extension, fixes Xiaohongshu via Claude Vision, does semantic search, and
+> has full data export. The next gap is **iOS look and feel**: the app must feel native,
+> beautiful, and premium — good enough to ship to the App Store.
 
-### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+### Recommended execution order for Phase C:
+`C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8`
 
-### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+---
 
-### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+### C1 — Dark Mode Support 🔴 HIGH IMPACT
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect dark mode. Without it, the app looks unfinished and causes eye strain at night.  
+**Files**: `app/globals.css`, `tailwind.config.ts`, all page/component files  
+**What to do**:
+- Add `darkMode: 'media'` to `tailwind.config.ts` (system preference)
+- Audit all hardcoded `bg-white`, `text-gray-900` classes — wrap with `dark:bg-gray-900 dark:text-white` equivalents
+- Map backgrounds: `#000` or `#0f0f0f` in dark, white pins on dark tiles
+- Bottom NavBar: `dark:bg-gray-900/95`
+- Share/plan pages: dark-mode safe card backgrounds
+- Test on iOS Simulator with dark mode toggle
+
+### C2 — Map View Premium Redesign 🔴 HIGH IMPACT
+**Status**: `[ ]` Not started  
+**Why**: The map IS the product. Currently uses basic dots. Premium apps have beautiful custom map styles + rich pin designs.  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Switch map style to a premium dark/travel-themed tile: use OpenFreeMap's `liberty` or `positron` style
+- Replace circle pins with custom teardrop-shaped markers sized by category:
+  - food 🍜 → orange teardrop
+  - nature 🌿 → green teardrop
+  - culture 🏛 → purple teardrop
+  - beach 🏖 → cyan teardrop
+  - default → indigo teardrop
+- Show a small thumbnail image inside the pin if the item has one
+- Pin tap: slide-up card (instead of popup) — matches iOS sheet UX
+- Show a "substance count" badge on each pin (e.g. "3 tips")
+- Smooth camera animation when navigating to a pin
+
+### C3 — iOS Haptic Feedback
+**Status**: `[ ]` Not started  
+**Why**: Haptics are the difference between "web app" and "native app" feel. Every key tap should have feedback.  
+**Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/InboxCard.tsx`, `components/NavBar.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` with `haptic(style)` wrapper:
+  - Uses Capacitor's Haptics plugin on iOS
+  - No-ops silently on web/Android
+  - Styles: `light`, `medium`, `heavy`, `success`, `warning`, `error`
+- Apply haptics to: save clip (success), delete clip (warning), plan generated (success), nav tab switch (light), pull-to-refresh (light), board created (medium)
+- Install `@capacitor/haptics` if not already present
+
+### C4 — Gesture-Dismiss on Clip Detail
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect to swipe-down to close sheets. Currently the detail view has no gesture dismissal.  
+**Files**: Any clip detail modal/sheet component  
+**What to do**:
+- Add `@use-gesture/react` drag handler to the bottom sheet handle
+- Dragging down > 100px or flicking down → dismiss with spring animation
+- While dragging: scale the background (parent) slightly (0.95) for depth effect
+- This pattern should apply to: clip detail, board selector, move-to-board sheet
+
+### C5 — On-Trip GPS Mode 🗺
+**Status**: `[ ]` Not started  
+**Why**: The killer on-trip use case — "What did I save near here?" During a trip, users need location-aware clip surfacing.  
+**Files**: new `app/trip-mode/page.tsx`, `components/MapView.tsx`  
+**What to do**:
+- Add "Start Trip" button on the map view
+- In trip mode: show device GPS location on the map (blue pulsing dot)
+- Highlight clips within 2km radius — surface them in a "Nearby saves" panel
+- Sort nearby clips by distance, show walking time estimate
+- "Get directions" → deep link to Apple Maps with coordinates
+- Auto-refresh location every 30s
+- Exit trip mode button
+
+### C6 — Shared Boards (Read-Only Link Sharing)
+**Status**: `[ ]` Not started  
+**Why**: "Here's my Tokyo list" is one of the top requested features from analogous apps.  
+**Files**: `app/boards/[id]/page.tsx`, new `app/shared/[boardId]/page.tsx`, `app/api/share-board/route.ts`  
+**What to do**:
+- Add "Share board" button on board detail page
+- Generate a short UUID-based share token, store token→boardId mapping in IndexedDB
+- Shared URL: `/shared/[token]` — renders board + clips in read-only mode
+- The shared page works without auth: fetches board data from the owning device
+- NOTE: For the shared page to work cross-device, Supabase (B1) needs to be active. Until then, sharing creates a link that only works on the same device (localhost or Vercel for a single user). Document this clearly.
+- Share via iOS Share Sheet / copy link
+
+### C7 — Post-Trip Timeline View
+**Status**: `[ ]` Not started  
+**Why**: After a trip, users want a beautiful "trip diary" view to look back on.  
+**Files**: new `app/plan/[boardId]/timeline/page.tsx`  
+**What to do**:
+- Add "Timeline view" toggle in the plan view
+- Shows activities in chronological scroll (Day 1 → Day N)
+- Each day has a header card with the day theme + route map thumbnail
+- Activities show as timeline items with time + location + sourced tips
+- Pull-to-refresh loads the most recent plan version
+- Export as PDF (reuse lib/exportPlan.ts)
+
+### C8 — App Store Readiness Polish
+**Status**: `[ ]` Not started  
+**Why**: The product needs to ship. This task is a bundle of small things that block App Store submission.  
+**Files**: `ios/App/App/Info.plist`, new `app/onboarding/page.tsx`, various  
+**What to do**:
+- Add proper `NSLocationWhenInUseUsageDescription` to Info.plist (for GPS mode)
+- Add `NSPhotoLibraryUsageDescription` for the screenshot upload feature
+- Create a 3-step onboarding modal (first-launch only):
+  1. "Save inspiration from any app" — shows Share Sheet animation
+  2. "AI extracts spots + wisdom" — shows substance layer UI
+  3. "Build your dream trip" — shows plan view
+  - "Get started" → dismisses, clears `hasSeenOnboarding` flag
+- App icon: confirm the Capacitor-bundled icon matches the brand (✈ on indigo)
+- Launch screen: update to show TravelPanel branding
+- Privacy manifest: add required `NSPrivacyCollectedDataTypes` entries
+
+---
+
+## PHASE D — Monetization + Growth (Future)
+
+### D1 — Pro Subscription Paywall
+**Status**: `[ ]` Not started  
+**What to do**: Gate plan generation (> 3/month) and semantic search behind a Pro tier ($4.99/month). Use RevenueCat for iOS IAP. Show paywall sheet with "Pro" badge in nav.
+
+### D2 — Push Notifications
+**Status**: `[ ]` Not started  
+**What to do**: Weekly "You saved 3 new spots — ready to plan?" nudge. Use `@capacitor/push-notifications` + OneSignal free tier.
+
+### D3 — Social Sharing (Trip Card)
+**Status**: `[ ]` Not started  
+**What to do**: Generate a beautiful shareable image of the trip plan (destination collage + day summary). Share to Instagram Stories / WhatsApp.
+
+### D4 — Referral System
+**Status**: `[ ]` Not started  
+**What to do**: "Invite a friend → unlock 3 extra plans for both". Requires auth (B1).
 
 ---
 
