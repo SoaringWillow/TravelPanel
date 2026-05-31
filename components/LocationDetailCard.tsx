@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import SubstanceList from './SubstanceList';
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -108,6 +109,9 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 </div>
               </div>
             )}
+
+            {/* Substance — the Wisdom view (the moat) */}
+            <SubstanceList items={item.substance ?? []} />
 
             {/* Tags */}
             {item.tags.length > 0 && (

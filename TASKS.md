@@ -7,6 +7,20 @@
 
 ---
 
+## ⭐ Recommended Execution Order (revised 2026-05-31)
+
+The moat is **Substance over Spots**. A1 made the app *extract* substance, but it's
+currently invisible (only a count badge) and the trip planner throws it away. The two
+highest-value tasks are surfacing substance (A11) and threading it into plans (A12) —
+do these before clustering/search polish.
+
+`A11 → A12 → A3 → A7 → A8 → A6 → A9 → A10`
+
+(A3 is NOT blocked — it no-ops without a key. Build it now; it just stays dormant
+until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
+
+---
+
 ## PHASE A — Bug-Free MVP (Current Sprint)
 
 ### A1 — Substance Extraction (2-layer clip schema) 🔴 HIGHEST PRIORITY
@@ -33,7 +47,7 @@
 
 ### A3 — Error Tracking (PostHog)
 **Status**: `[ ]` Not started  
-**Needs**: `NEXT_PUBLIC_POSTHOG_KEY` env var (free tier, request from user)  
+**Needs**: `NEXT_PUBLIC_POSTHOG_KEY` env var (free tier) — but NOT a blocker; wrappers no-op without it  
 **Files to change**: `app/layout.tsx`, new `lib/analytics.ts`  
 **What to do**:
 - Install `posthog-js`
@@ -107,6 +121,28 @@
 - Store multiple plans per board in IndexedDB (`trips` store)
 - Show plan version selector at top of plan view
 - "Regenerate" creates a new version (doesn't overwrite current)
+
+### A11 — Surface Substance in Clip Detail (the "Wisdom view") 🔴 HIGHEST PRIORITY
+**Status**: `[x]` Done  
+**Why**: A1 extracts substance but `LocationDetailCard` never shows it — the moat is invisible. This is the payoff for the count badge users already see.  
+**Files to change**: `components/LocationDetailCard.tsx`, possibly a new `components/SubstanceList.tsx`  
+**What to do**:
+- Add a "Wisdom" section to the detail card rendering `item.substance`
+- Group by type with an icon/color per type: tip 💡, warning ⚠️, opinion 💬, wisdom 🧠, context 🌍, recommendation ⭐
+- Show `content`; if `source_quote` present, show it as a subtle italic citation under the content
+- Extract a reusable `SubstanceList` so the plan view (A12) can reuse it
+- Empty state: don't render the section if `substance` is empty
+
+### A12 — Thread Substance into Trip Plans (sourced itineraries) 🔴 HIGHEST PRIORITY
+**Why**: The strategic promise is "the trip planner generates an itinerary that *cites the source clips inline*." Currently `/api/plan` builds `contentSummary` from only `title/activities/tags` — substance is dropped, so plans can't cite wisdom. This wires the moat end-to-end.  
+**Status**: `[ ]` Not started  
+**Files to change**: `app/api/plan/route.ts`, `lib/types.ts` (Activity/DayPlan), `components/DayStripCard.tsx` or plan view  
+**What to do**:
+- Include each item's `substance` (with source title) in the `contentSummary` passed to the planner
+- Update the planner prompt: when an activity is informed by a clip's tip/warning, surface that wisdom in the activity's `tips` and note which saved clip it came from
+- Add an optional `sourcedTips?: { content: string; sourceTitle: string }[]` to the `Activity` type so citations render distinctly from generic tips
+- In the day plan UI, render sourced tips with a "from your clip: <title>" attribution
+- Keep it graceful: items without substance still plan fine
 
 ---
 
