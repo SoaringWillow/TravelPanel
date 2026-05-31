@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=/home/user/TravelPanel/TASKS.md; incomplete=$(grep -c \"^\\*\\*Status\\*\\*: \\`\\[ \\]\\`\" \"$file\" 2>/dev/null || echo 0); next=$(awk \"/^### /{header=\\$0} /\\*\\*Status\\*\\*: \\`\\[ \\]\\`/{print header; exit}\" \"$file\" | sed \"s/### //\"); echo \"{\\\"systemMessage\\\": \\\"TravelPanel — $incomplete tasks remaining. Next: $next — see TASKS.md for full queue.\\\"}\"",
+            "statusMessage": "Loading task queue..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command // empty'); if echo \"$cmd\" | grep -q 'git commit'; then hash=$(git -C /home/user/TravelPanel log -1 --format='%h' 2>/dev/null); msg=$(git -C /home/user/TravelPanel log -1 --format='%s' 2>/dev/null); echo \"$(date '+%Y-%m-%d %H:%M') | $hash | $msg\" >> /home/user/TravelPanel/SESSIONS.md; fi",
+            "statusMessage": "Logging commit..."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Read(**)",
+      "Edit(**)"
+    ]
+  }
+}
