@@ -21,6 +21,9 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const fromExtension   = searchParams.get('from_extension') === 'true';
+  // imageData: base64 JPEG thumbnail passed by the iOS Share Extension for
+  // platforms like Xiaohongshu that block server-side page fetches.
+  const imageData       = searchParams.get('imageData') ?? undefined;
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -93,9 +96,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass imageData so Xiaohongshu/WeChat clips
+    // get Claude Vision extraction instead of the blocked page fetch.
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageData)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
