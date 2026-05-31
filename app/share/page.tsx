@@ -30,11 +30,26 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
+  // Image payload from iOS Share Sheet (set in sessionStorage by CapacitorBridge)
+  const pendingImageRef = useRef<string | null>(null);
+
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Claim any pending image data written by CapacitorBridge and clear immediately
+    // so it isn't re-used by a subsequent share action.
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        pendingImageRef.current = img;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage not available (SSR guard)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +103,11 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image payload if available (e.g. Xiaohongshu Vision)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const pendingImage = pendingImageRef.current ?? undefined;
+    pendingImageRef.current = null;
+    enrichItem(itemId, rawUrl, pendingImage)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

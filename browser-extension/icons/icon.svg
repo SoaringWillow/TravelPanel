@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background circle with gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="64" y1="16" x2="64" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e0e7ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+
+  <!-- Map pin shape -->
+  <path d="M64 18 C46 18 32 32 32 50 C32 68 64 110 64 110 C64 110 96 68 96 50 C96 32 82 18 64 18 Z"
+        fill="url(#pin)" opacity="0.95"/>
+
+  <!-- Inner circle -->
+  <circle cx="64" cy="50" r="16" fill="url(#bg)"/>
+
+  <!-- Small dot center -->
+  <circle cx="64" cy="50" r="5" fill="white" opacity="0.9"/>
+</svg>

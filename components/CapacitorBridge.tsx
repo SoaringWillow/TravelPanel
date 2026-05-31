@@ -11,9 +11,21 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: image }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImage' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImage' }),
+    ]);
+
+    // Stash image in sessionStorage for the share page to pick up
+    if (image) {
+      try { sessionStorage.setItem('pendingShareImage', image); } catch { /* ignore */ }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -45,14 +57,25 @@ export function CapacitorBridge() {
 
         // Handle URL scheme deep links from the iOS Share Extension.
         // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // When an image was also captured, it is written to App Group Preferences
+        // under 'pendingShareImage' and we stash it in sessionStorage here.
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
-            // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
 
             if (shareUrl) {
+              // Read and clear any pending image from App Group
+              try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: image } = await Preferences.get({ key: 'pendingShareImage' });
+                if (image) {
+                  await Preferences.remove({ key: 'pendingShareImage' });
+                  sessionStorage.setItem('pendingShareImage', image);
+                }
+              } catch { /* Preferences not available — continue without image */ }
+
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);
