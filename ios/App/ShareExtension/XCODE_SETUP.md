@@ -81,3 +81,46 @@ CAPACITOR_SERVER_URL=http://192.168.1.100:3000 npm run ios:sync
 CAPACITOR_SERVER_URL=https://your-app.vercel.app npm run ios:build
 # Then archive from Xcode: Product → Archive
 ```
+
+---
+
+## App Icon & Launch Screen Setup
+
+### App Icon
+
+The icon is pre-generated and placed at:
+```
+ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+```
+
+This single 1024×1024 PNG satisfies all modern iOS icon requirements. Xcode 14+ supports
+a "universal" single-image app icon — no need to specify individual sizes.
+
+Verify in Xcode:
+1. Open **Assets.xcassets** → **AppIcon**
+2. You should see the indigo map-pin icon in the "iOS" slot
+3. If it shows as empty: drag `AppIcon-512@2x.png` into the 1024×1024 slot
+
+To regenerate icons (e.g. after design changes):
+```bash
+node scripts/generate-app-icons.js
+```
+
+### Launch Screen
+
+The launch screen storyboard at `ios/App/App/Base.lproj/LaunchScreen.storyboard` is
+configured to show the `Splash` image asset centered on an indigo (#6366f1) background.
+
+Pre-generated splash images are at:
+```
+ios/App/App/Assets.xcassets/Splash.imageset/
+  splash-2732x2732.png      (3× scale)
+  splash-2732x2732-1.png    (2× scale)
+  splash-2732x2732-2.png    (1× scale)
+```
+
+Each shows the indigo gradient background with the white map-pin centered. Because the
+storyboard uses `contentMode="center"`, the pin renders at its natural size regardless
+of device screen dimensions.
+
+No Xcode changes required — the storyboard and image assets are already wired.

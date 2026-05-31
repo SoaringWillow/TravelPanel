@@ -161,12 +161,14 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
-**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
+**Status**: `[x]` Done  
+**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel  
+**Delivered**: `browser-extension/` — MV3 extension with popup UI, context menus (right-click clip), configurable TravelPanel URL, PNG icon generator, Safari-compatible manifest
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+**Status**: `[x]` Done  
+**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance  
+**Delivered**: ShareViewController extracts preview image → compressed JPEG saved to App Group → CapacitorBridge reads into sessionStorage → share page passes imageBase64 to enrichItem → /api/import uses Claude Vision (generateObject with image message part)
 
 ### B4 — Embedding/Vibe Search
 **Status**: `[ ]` Not started  
@@ -174,24 +176,202 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
-**What to do**: "Download all my data" as JSON from the account settings page
+**Status**: `[x]` Done  
+**What to do**: "Download all my data" as JSON from the account settings page  
+**Delivered**: `app/settings/page.tsx` — new Settings tab in NavBar; data summary card; "Download backup (JSON)" exports all items/boards/trips; danger-zone clear-all; `getAllTrips()` added to db.ts
 
 ---
 
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Files to change**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add user location dot to the map using the browser Geolocation API + MapLibre `GeolocateControl`
+- Add a "Locate me" FAB that flies the map to the user's current position
+- Implement a "Nearby" chip/filter on the home page: shows only clips within 10km of current position, with distance label on each pin ("1.2km")
+- Distance calculation: Haversine formula, client-side
+- Graceful degradation: if geolocation denied, hide the locate button with a toast ("Location permission denied")
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Files**: new `app/timeline/[boardId]/page.tsx`, `lib/types.ts`, `lib/db.ts`  
+**What to do**:
+- Add "Check in" action on location detail cards — records `checkedInAt: number` on a SavedItem
+- New timeline page per board: vertical timeline of checked-in places sorted by `checkedInAt`
+- Each entry shows thumbnail, title, distance from previous stop, time gap
+- Link from board detail page: "View trip timeline"
+- Empty state: "Start checking in to places as you visit them"
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Needs**: Supabase (B1 keys) — blocked until B1 is activated  
+**What to do**: Generate a read-only share link for a board (UUID-keyed public URL), allow recipients to view and clone the board into their own collection
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Files**: `components/NearbyAlert.tsx`, `app/page.tsx`  
+**What to do**:
+- On map view, periodically check if the user is within 500m of any saved clip that they haven't visited (no `checkedInAt`)
+- Show a subtle bottom toast: "You're near [Place name] — your saved clip from [source]"
+- Tap opens the detail card
+- Requires C1 geolocation to be active; no-ops if location is unavailable
+- Debounce: max one alert per 5 minutes per place
+
+---
+
+## PHASE D — iOS Polish & Production Readiness
+
+### D1 — Haptic Feedback
+**Status**: `[x]` Done  
+**Files**: new `lib/haptics.ts`, `package.json`, `components/LocationDetailCard.tsx`, `app/share/page.tsx`, `components/ImportSheet.tsx`  
+**What to do**:
+- Add `@capacitor/haptics` to package.json dependencies
+- Create `lib/haptics.ts`: thin wrapper with `taptic(style)` — tries `@capacitor/haptics`, falls back to `navigator.vibrate()`
+- Trigger `light` impact on: pin tap, board selection
+- Trigger `medium` impact on: item saved, check-in confirmed
+- Trigger `success` notification on: enrichment complete, plan generated
+- Graceful no-op on web/desktop
+
+### D2 — Skeleton Loading States
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, new `components/SkeletonCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create `SkeletonCard` component: animated shimmer card matching InboxCard dimensions
+- In inbox and boards pages, show 4–6 SkeletonCards while `loading === true`
+- Replace spinner with skeleton in board detail page
+- Use `bg-gray-200 animate-pulse rounded` pattern with Tailwind
+
+### D3 — Pull-to-Refresh
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Add pull-to-refresh gesture on iOS using `@capacitor/haptics` + touch events
+- On pull: trigger re-enrichment for pending items, refresh board/item lists
+- Show a subtle spinner at top during refresh
+
+### D4 — Item Editing
+**Status**: `[x]` Done  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an "Edit" button to the detail card (pencil icon in header)
+- Editable fields: title (text input), notes (textarea), tags (chip selector)
+- Save button: calls `updateItemFields(id, { title, notes, tags })` in db.ts
+- Autosave on blur for notes field
+- Optimistic update in useSavedItems
+
+### D5 — Inbox Filters & Sort
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`, `components/SearchBar.tsx`  
+**What to do**:
+- Add filter chips below search bar: All · Unassigned · Enriched · Failed · [platform chips]
+- Add sort selector: Newest · Oldest · Most substance · Closest (if location active)
+- Persist selected filter in sessionStorage
+- "Failed" filter shows items with `enrichmentStatus === 'failed'` with retry button
+
+### D6 — App Icon & Launch Screen
+**Status**: `[x]` Done  
+**Files**: `public/`, `ios/App/App/Assets.xcassets/`, `app/layout.tsx`  
+**What to do**:
+- Generate all required iOS app icon sizes from the indigo pin design (use generate-icons.js as base)
+- Update `public/manifest.json` with proper icon paths
+- Add Apple touch icon meta tags in layout.tsx
+- Create proper launch screen storyboard in Xcode (replace default)
+- Document in ios/App/XCODE_SETUP.md
+
+### D7 — Offline Indicator
+**Status**: `[x]` Done  
+**Files**: new `components/OfflineIndicator.tsx`, `app/layout.tsx`  
+**What to do**:
+- Listen to `navigator.onLine` events
+- Show a subtle banner: "You're offline — clips save locally, enrichment paused"
+- Banner dismisses automatically when connection returns
+- Prevent import attempts when offline (show helpful message instead)
+
+---
+
+## PHASE E — iOS Polish & Production Readiness (Sprint 3)
+
+### E1 — Safe Area + Bottom Spacing Polish
+**Status**: `[x]` Done
+**Why**: On iPhone with notch/Dynamic Island and home indicator, content sits behind the nav bar and status bar. This makes the app feel unfinished.
+**Files to change**: `app/globals.css`, `components/NavBar.tsx`, `app/layout.tsx`, all page files with bottom-padded scroll areas
+**What to do**:
+- Add `pb-[env(safe-area-inset-bottom)]` and `pt-[env(safe-area-inset-top)]` CSS utilities to `globals.css`
+- Update NavBar to use `pb-[env(safe-area-inset-bottom)]` so it extends behind the home indicator
+- Update all pages that have `pb-24` to use `pb-[calc(6rem+env(safe-area-inset-bottom))]` or a utility class
+- Add `pt-[env(safe-area-inset-top)]` to page headers that currently use `pt-12` (should be `pt-12 + safe-area-top`)
+- Use `viewport-fit=cover` (already set) + CSS env() variables
+
+### E2 — Keyboard-Aware Input Handling
+**Status**: `[x]` Done
+**Why**: On iOS, the software keyboard covers form inputs in the import sheet and search bar. Users can't see what they're typing.
+**Files to change**: `components/ImportSheet.tsx`, `app/inbox/page.tsx`, `app/share/page.tsx`
+**What to do**:
+- In ImportSheet: scroll the input into view on focus via `element.scrollIntoView({ behavior: 'smooth', block: 'center' })`
+- Add `inputmode="url"` to URL input fields for the correct iOS keyboard
+- Add `autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck={false}` to URL inputs
+- In search bar: add `inputmode="search"` and `enterKeyHint="search"` to trigger the search keyboard on iOS
+- In share page textarea/input: add `inputmode="text"` and ensure the form scrolls to keep the focused field visible
+
+### E3 — Onboarding Tutorial Overlay
+**Status**: `[x]` Done
+**Why**: New users land on a blank map with no context. The seed data helps but there's no guidance on the app's core gesture (long-press a pin, tap to detail card, check in).
+**Files**: new `components/OnboardingTour.tsx`, `app/page.tsx`
+**What to do**:
+- Create `OnboardingTour` component that shows 3 tooltip-style step cards:
+  1. "Clip a link — tap + to save travel inspiration" (points to FAB)
+  2. "Tap any pin to see tips and wisdom from the post" (points to map)
+  3. "Build a board — organize clips into trips" (points to boards tab in NavBar)
+- Show only on first visit (flag: `localStorage.getItem('hasSeenTour')`)
+- Each step has a "Next" button; last step has "Got it" that sets the flag
+- Overlay uses a semi-transparent backdrop with a spotlight cutout around the pointed element
+- Skip button on step 1
+
+### E4 — Clip Source URL Preview
+**Status**: `[x]` Done
+**Why**: When users tap a clip, they can't navigate back to the original post. The URL is stored but never shown.
+**Files to change**: `components/LocationDetailCard.tsx`
+**What to do**:
+- Add an "Open source" link at the bottom of the detail card (below check-in button)
+- Show the platform icon + domain name (e.g. "📱 xiaohongshu.com")
+- Tap opens `window.open(item.url, '_blank')`
+- Only show if `item.url` is a valid http/https URL
+- Style: subtle gray border button, external link icon (ExternalLink from lucide-react)
+
+### E5 — Board Cover Thumbnails
+**Status**: `[x]` Done
+**Why**: Board cards show an emoji + name but no visual preview of what's inside. A photo grid or cover photo makes boards feel alive.
+**Files to change**: `components/BoardCard.tsx`, `lib/db.ts`
+**What to do**:
+- Show up to 4 item thumbnails in a 2×2 grid as the board card background (if thumbnails available)
+- If < 4 thumbnails: fill remaining slots with the board emoji on indigo
+- `coverThumbnail` is already stored on Board — use it as the primary large thumbnail
+- Use CSS `object-cover` to fill the grid cells
+- Overlay the board name + emoji in a gradient footer at the bottom of the card
+
+### E6 — Swipe-to-Delete on Inbox Cards
+**Status**: `[x]` Done
+**Why**: Deleting a clip requires tapping the card to open a menu. Mobile-native UX expects swipe-left-to-delete.
+**Files to change**: `components/InboxCard.tsx`
+**What to do**:
+- Add swipe-left gesture: track `touchstart`/`touchmove`/`touchend`, translate card left
+- Reveal a red delete zone behind the card when swiped >60px
+- Swipe >50% of card width: snap to delete (with haptic + `onDelete` callback)
+- Partial swipe: snap back to original position
+- Show a trash icon in the revealed zone
+- Works alongside existing tap-to-open behavior
+
+### E7 — Plan View Substance Citations
+**Status**: `[x]` Done — already implemented in A12 (sourcedTips type, API route, and plan view rendering are all wired)
+**Why**: A12 threaded substance into plans but the UI rendering of `sourcedTips` may not be showing the "from your clip: X" attribution visually.
+**Files to change**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx` (if it exists)
+**What to do**:
+- Find where activities are rendered in the plan view
+- If `activity.sourcedTips` exists and has items, render each with a subtle "📎 from: [sourceTitle]" attribution badge
+- Style: small amber/gold chip, italic source title, tucked below the activity description
+- Test with the seed board data that has substance items
 
 ---
 
