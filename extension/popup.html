@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="brand">
+        <svg class="brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+        <span class="brand-name">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="openOptions" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- IDLE: show URL and clip button -->
+    <div id="s-idle" class="state active">
+      <div class="url-pill">
+        <svg class="url-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <span class="url-text" id="urlText">Loading...</span>
+      </div>
+      <button class="btn-primary" id="clipBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        Preview &amp; Clip
+      </button>
+      <div class="unconfigured-warning hidden" id="unconfiguredWarning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        TravelPanel URL not configured.
+        <button class="link-btn" id="configureNow">Configure →</button>
+      </div>
+    </div>
+
+    <!-- LOADING: spinner while API processes -->
+    <div id="s-loading" class="state">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+      </div>
+      <p class="loading-text">Extracting places &amp; wisdom…</p>
+      <p class="loading-sub">Claude is analyzing the page</p>
+    </div>
+
+    <!-- PREVIEW: extracted data before saving -->
+    <div id="s-preview" class="state">
+      <div class="preview-header">
+        <div class="platform-badge" id="platformBadge"></div>
+        <h2 class="preview-title" id="previewTitle"></h2>
+        <p class="preview-desc" id="previewDesc"></p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <span class="stat-num" id="locNum">0</span>
+          <span class="stat-label">places</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="subNum">0</span>
+          <span class="stat-label">insights</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="actNum">0</span>
+          <span class="stat-label">activities</span>
+        </div>
+      </div>
+
+      <div class="sections" id="sections"></div>
+
+      <button class="btn-save" id="saveBtn">
+        Open in TravelPanel
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ERROR: when extraction fails -->
+    <div id="s-error" class="state">
+      <div class="error-icon">⚠️</div>
+      <p class="error-msg" id="errorMsg"></p>
+      <button class="btn-secondary" id="retryBtn">Try again</button>
+      <button class="btn-ghost" id="directSaveBtn">Skip preview &amp; open TravelPanel</button>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

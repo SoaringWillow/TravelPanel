@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Camera, X } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -34,12 +34,16 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]               = useState(initialUrl);
+  const [notes, setNotes]           = useState('');
+  const [stage, setStage]           = useState<Stage>('idle');
+  const [preview, setPreview]       = useState<ImportResult | null>(null);
+  const [error, setError]           = useState('');
+  const [screenshotB64, setScreenshotB64] = useState<string | null>(null);
+  const [screenshotMime, setScreenshotMime] = useState<string>('image/jpeg');
+  const [screenshotName, setScreenshotName] = useState<string>('');
+  const abortRef                    = useRef<AbortController | null>(null);
+  const fileInputRef                = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -47,6 +51,23 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   const trimmedUrl       = url.trim();
   const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
+  const isXiaohongshu   = detectedPlatform === 'xiaohongshu';
+
+  // ── Screenshot handler ───────────────────────────────────────────────────
+
+  const handleScreenshotFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      // dataUrl = "data:image/jpeg;base64,XXXX..."
+      const [header, b64] = dataUrl.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+      setScreenshotB64(b64);
+      setScreenshotMime(mime);
+      setScreenshotName(file.name);
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -64,10 +85,15 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setError('');
 
     try {
+      const body: Record<string, string> = { url: trimmedUrl };
+      if (screenshotB64) {
+        body.imageBase64 = screenshotB64;
+        body.imageMimeType = screenshotMime;
+      }
       const res = await fetch('/api/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: trimmedUrl }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -141,6 +167,8 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setScreenshotB64(null);
+    setScreenshotName('');
   }
 
   function handleClose() {
@@ -207,6 +235,51 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             />
           </div>
 
+          {/* ── Screenshot upload (Xiaohongshu / failed extraction) ─────── */}
+          {stage !== 'preview' && (isXiaohongshu || error) && (
+            <div className="space-y-2">
+              <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                <Camera size={12} />
+                {isXiaohongshu
+                  ? 'Xiaohongshu blocks link fetching — add a screenshot for better results'
+                  : 'Add a screenshot to help Claude extract places & wisdom'}
+              </p>
+              {screenshotB64 ? (
+                <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl">
+                  <Camera size={14} className="text-indigo-500 flex-shrink-0" />
+                  <span className="text-sm text-indigo-700 flex-1 truncate">{screenshotName}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setScreenshotB64(null); setScreenshotName(''); }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2.5 rounded-xl border-2 border-dashed border-amber-300 text-amber-600 text-sm font-medium hover:bg-amber-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Camera size={15} />
+                  Upload screenshot
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleScreenshotFile(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+          )}
+
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (
             <button
@@ -219,6 +292,11 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 <>
                   <Loader2 size={16} className="animate-spin" />
                   Analyzing with AI…
+                </>
+              ) : screenshotB64 ? (
+                <>
+                  <Camera size={16} />
+                  Clip with screenshot
                 </>
               ) : (
                 'Clip & discover places'
