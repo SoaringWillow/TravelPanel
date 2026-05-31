@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, SlidersHorizontal } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, EnrichmentStatus } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
@@ -17,15 +17,39 @@ import SkeletonCard from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
-// ─── Platform filter config ───────────────────────────────────────────────────
+// ─── Filter / sort config ─────────────────────────────────────────────────────
+
+type StatusFilter = 'all' | 'enriched' | 'failed' | 'pending';
+type SortOrder   = 'newest' | 'oldest' | 'substance';
+
+const STATUS_FILTERS: Array<{ key: StatusFilter; label: string }> = [
+  { key: 'all',      label: 'All'      },
+  { key: 'enriched', label: 'Enriched' },
+  { key: 'failed',   label: 'Failed'   },
+  { key: 'pending',  label: 'Pending'  },
+];
 
 const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'wechat', label: 'WeChat' },
-  { key: 'xiaohongshu', label: 'Little Red Book' },
-  { key: 'douyin', label: 'Douyin' },
-  { key: 'bilibili', label: 'Bilibili' },
+  { key: 'all',          label: 'All platforms'  },
+  { key: 'wechat',       label: 'WeChat'         },
+  { key: 'xiaohongshu',  label: 'Little Red Book' },
+  { key: 'douyin',       label: 'Douyin'         },
+  { key: 'bilibili',     label: 'Bilibili'       },
 ];
+
+const SORT_OPTIONS: Array<{ key: SortOrder; label: string }> = [
+  { key: 'newest',    label: 'Newest'         },
+  { key: 'oldest',    label: 'Oldest'         },
+  { key: 'substance', label: 'Most substance' },
+];
+
+function readSession<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const v = sessionStorage.getItem(key);
+    return v !== null ? (JSON.parse(v) as T) : fallback;
+  } catch { return fallback; }
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -36,24 +60,73 @@ export default function InboxPage() {
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
+  const [statusFilter,   setStatusFilter]   = useState<StatusFilter>('all');
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
-  const [movingItemId, setMovingItemId] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [sortOrder,      setSortOrder]      = useState<SortOrder>('newest');
+  const [showSort,       setShowSort]       = useState(false);
+  const [movingItemId,   setMovingItemId]   = useState<string | null>(null);
+  const [query,          setQuery]          = useState('');
+  const [hydrated,       setHydrated]       = useState(false);
+
+  // Hydrate from sessionStorage after mount
+  useEffect(() => {
+    setStatusFilter(readSession<StatusFilter>('inbox:statusFilter', 'all'));
+    setActivePlatform(readSession<Platform | 'all'>('inbox:platform', 'all'));
+    setSortOrder(readSession<SortOrder>('inbox:sort', 'newest'));
+    setHydrated(true);
+  }, []);
+
+  // Persist to sessionStorage on change
+  useEffect(() => {
+    if (!hydrated) return;
+    sessionStorage.setItem('inbox:statusFilter', JSON.stringify(statusFilter));
+  }, [statusFilter, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    sessionStorage.setItem('inbox:platform', JSON.stringify(activePlatform));
+  }, [activePlatform, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    sessionStorage.setItem('inbox:sort', JSON.stringify(sortOrder));
+  }, [sortOrder, hydrated]);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
 
-  // Only unassigned items (boardId === undefined)
+  // Base: only unassigned items
   const inboxItems = items.filter((i) => i.boardId === undefined);
 
+  // Status filter
+  const statusFiltered = (() => {
+    switch (statusFilter) {
+      case 'enriched': return inboxItems.filter((i) => i.enrichmentStatus === 'done');
+      case 'failed':   return inboxItems.filter((i) => i.enrichmentStatus === 'failed');
+      case 'pending':  return inboxItems.filter((i) => i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'processing');
+      default:         return inboxItems;
+    }
+  })();
+
+  // Platform filter
   const platformFiltered =
     activePlatform === 'all'
-      ? inboxItems
-      : inboxItems.filter((i) => i.platform === activePlatform);
+      ? statusFiltered
+      : statusFiltered.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  // Search
+  const searched = searchItems(platformFiltered, query);
+
+  // Sort
+  const sorted = [...searched].sort((a, b) => {
+    switch (sortOrder) {
+      case 'oldest':    return a.savedAt - b.savedAt;
+      case 'substance': return (b.substance?.length ?? 0) - (a.substance?.length ?? 0);
+      default:          return b.savedAt - a.savedAt;
+    }
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -74,12 +147,9 @@ export default function InboxPage() {
       if (!movingItemId) return;
 
       if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
         const item = items.find((i) => i.id === movingItemId);
         if (item && item.boardId) {
           await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
           const allItems = await getAllItems();
           const updatedItem = allItems.find((i) => i.id === movingItemId);
           if (updatedItem) {
@@ -91,11 +161,12 @@ export default function InboxPage() {
       }
 
       setMovingItemId(null);
-      // Trigger a soft reload by navigating to the same page
       router.refresh();
     },
     [movingItemId, items, router]
   );
+
+  const failedCount = inboxItems.filter((i) => i.enrichmentStatus === 'failed').length;
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -104,23 +175,100 @@ export default function InboxPage() {
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
+          {failedCount > 0 && (
+            <span className="bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+              {failedCount} failed
+            </span>
+          )}
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
         </div>
 
-        {/* Search */}
-        <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+        {/* Search + Sort */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1">
+            <SearchBar onSearch={handleSearch} />
+          </div>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSort((v) => !v)}
+              className={`p-2.5 rounded-xl border transition-all ${
+                showSort || sortOrder !== 'newest'
+                  ? 'bg-indigo-50 border-indigo-300 text-indigo-600'
+                  : 'bg-white border-gray-200 text-gray-500 hover:border-indigo-200'
+              }`}
+              aria-label="Sort"
+            >
+              <SlidersHorizontal size={16} />
+            </button>
+            {showSort && (
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-1 z-20 min-w-[160px]">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => { setSortOrder(opt.key); setShowSort(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                      sortOrder === opt.key
+                        ? 'text-indigo-600 font-semibold bg-indigo-50'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Platform filter tabs */}
+        {/* Status filter chips */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {STATUS_FILTERS.map((f) => {
+            const count = (() => {
+              switch (f.key) {
+                case 'enriched': return inboxItems.filter((i) => i.enrichmentStatus === 'done').length;
+                case 'failed':   return inboxItems.filter((i) => i.enrichmentStatus === 'failed').length;
+                case 'pending':  return inboxItems.filter((i) => i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'processing').length;
+                default:         return inboxItems.length;
+              }
+            })();
+            const isActive = statusFilter === f.key;
+            const isFailed = f.key === 'failed';
+            return (
+              <button
+                key={f.key}
+                onClick={() => setStatusFilter(f.key)}
+                className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+                  isActive && isFailed
+                    ? 'bg-red-500 text-white border-red-500'
+                    : isActive
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : isFailed && count > 0
+                    ? 'bg-white text-red-500 border-red-200 hover:border-red-400'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                }`}
+              >
+                {f.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Platform filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
           {PLATFORM_FILTERS.map((p) => {
-            const count =
-              p.key === 'all'
-                ? inboxItems.length
-                : inboxItems.filter((i) => i.platform === p.key).length;
+            const base = statusFilter === 'all'
+              ? inboxItems
+              : statusFilter === 'enriched'
+              ? inboxItems.filter((i) => i.enrichmentStatus === 'done')
+              : statusFilter === 'failed'
+              ? inboxItems.filter((i) => i.enrichmentStatus === 'failed')
+              : inboxItems.filter((i) => i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'processing');
+            const count = p.key === 'all' ? base.length : base.filter((i) => i.platform === p.key).length;
+            if (p.key !== 'all' && count === 0) return null;
             const isActive = activePlatform === p.key;
             return (
               <button
@@ -140,29 +288,39 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24" onClick={() => setShowSort(false)}>
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
+            <div className="text-5xl mb-4">
+              {statusFilter === 'failed' ? '⚠️' : query.trim() ? '🔍' : '📥'}
+            </div>
             <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
+              {query.trim()
+                ? 'No matches found.'
+                : statusFilter === 'failed'
+                ? 'No failed clips.'
+                : statusFilter === 'enriched'
+                ? 'No enriched clips yet.'
+                : 'Your inbox is empty.'}
             </h3>
             <p className="text-sm text-gray-500 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
+                : statusFilter === 'failed'
+                ? 'Any clips that fail to enrich will appear here with a retry button.'
+                : activePlatform !== 'all'
+                ? `No ${PLATFORM_LABELS[activePlatform as Platform]} items match this filter.`
+                : 'Share content from social apps to get started!'}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map((item) => (
+              {sorted.map((item) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -188,7 +346,6 @@ export default function InboxPage() {
       <AnimatePresence>
         {movingItemId && (
           <>
-            {/* Backdrop */}
             <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
@@ -198,7 +355,6 @@ export default function InboxPage() {
               onClick={() => setMovingItemId(null)}
             />
 
-            {/* Sheet */}
             <motion.div
               key="sheet"
               initial={{ y: '100%' }}
@@ -208,12 +364,10 @@ export default function InboxPage() {
               className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
               style={{ maxHeight: 300 }}
             >
-              {/* Handle */}
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-gray-200 rounded-full" />
               </div>
 
-              {/* Header */}
               <div className="flex items-center justify-between px-5 py-3">
                 <h3 className="font-semibold text-gray-800">Move to board</h3>
                 <button
@@ -225,10 +379,8 @@ export default function InboxPage() {
                 </button>
               </div>
 
-              {/* Board chips */}
               <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: 200 }}>
                 <div className="flex flex-wrap gap-2">
-                  {/* Inbox (unassign) chip */}
                   <button
                     type="button"
                     onClick={() => handleBoardSelect(null)}
@@ -238,7 +390,6 @@ export default function InboxPage() {
                     <span>Inbox (unassign)</span>
                   </button>
 
-                  {/* Board chips */}
                   {boards.map((board) => (
                     <button
                       key={board.id}

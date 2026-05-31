@@ -262,7 +262,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Optimistic update in useSavedItems
 
 ### D5 — Inbox Filters & Sort
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `components/SearchBar.tsx`  
 **What to do**:
 - Add filter chips below search bar: All · Unassigned · Enriched · Failed · [platform chips]
