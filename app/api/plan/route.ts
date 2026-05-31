@@ -13,12 +13,22 @@ const locationSchema = z.object({
   address: z.string().optional(),
 });
 
+const sourcedTipSchema = z.object({
+  content: z.string().describe('A tip, warning, or insight drawn from the user\'s saved clip'),
+  sourceTitle: z.string().describe('The exact title of the saved clip this insight came from'),
+});
+
 const activitySchema = z.object({
   time: z.string(),
   location: locationSchema,
   name: z.string(),
   duration: z.string(),
-  tips: z.array(z.string()),
+  tips: z.array(z.string()).describe('Generic practical tips for this activity'),
+  sourcedTips: z.array(sourcedTipSchema).describe(
+    'Tips that come directly from the wisdom in the user\'s saved clips (their substance). ' +
+    'Cite the source clip title. Only include when a clip genuinely informs this activity. ' +
+    'This is the key differentiator — the plan reflects the user\'s own curated knowledge.'
+  ),
 });
 
 const dayPlanSchema = z.object({
@@ -108,11 +118,20 @@ export async function POST(req: NextRequest) {
         step('routing', 'Building optimised route…');
 
         // ── Step 3: Stream full itinerary ────────────────────────────────
+        // Include substance (the wisdom layer) so the plan can cite the user's
+        // own clips inline — this is the sourced-itinerary moat.
         const contentSummary = items.map((i) => ({
           title: i.title,
           activities: i.activities,
           tags: i.tags,
+          substance: (i.substance ?? []).map((s) => ({
+            type: s.type,
+            content: s.content,
+            applies_to: s.applies_to,
+          })),
         }));
+
+        const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
         const planStream = streamObject({
           model: anthropic('claude-sonnet-4-6'),
@@ -128,7 +147,13 @@ Rules:
 - 2-4 activities per day with realistic timing
 - Cluster geographically nearby places each day
 - Focus on routes and activities only — no bookings or costs
-- Include practical tips for each activity`,
+- Include practical tips for each activity
+- IMPORTANT — Sourced wisdom: each saved clip carries a "substance" array of the
+  user's own tips/warnings/opinions. When a clip's substance is relevant to an
+  activity, surface it in that activity's "sourcedTips" with the exact clip title
+  as sourceTitle. This makes the plan reflect the user's curated knowledge, not
+  generic advice. ${hasSubstance ? 'The clips DO contain substance — use it.' : 'If no substance is present, return an empty sourcedTips array.'}
+  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.`,
         });
 
         for await (const partial of planStream.partialObjectStream) {

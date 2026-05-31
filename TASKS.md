@@ -135,7 +135,7 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 
 ### A12 — Thread Substance into Trip Plans (sourced itineraries) 🔴 HIGHEST PRIORITY
 **Why**: The strategic promise is "the trip planner generates an itinerary that *cites the source clips inline*." Currently `/api/plan` builds `contentSummary` from only `title/activities/tags` — substance is dropped, so plans can't cite wisdom. This wires the moat end-to-end.  
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `app/api/plan/route.ts`, `lib/types.ts` (Activity/DayPlan), `components/DayStripCard.tsx` or plan view  
 **What to do**:
 - Include each item's `substance` (with source title) in the `contentSummary` passed to the planner

@@ -413,6 +413,23 @@ export default function PlanPage() {
                           ))}
                         </ul>
                       )}
+
+                      {/* Sourced tips — wisdom cited from the user's own clips */}
+                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                        <div className="space-y-1 pt-1">
+                          {activity.sourcedTips.map((st, sIdx) => (
+                            <div
+                              key={sIdx}
+                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                            >
+                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
+                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
+                                from your clip: {st.sourceTitle}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

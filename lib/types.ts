@@ -82,12 +82,19 @@ export interface AgentStep {
   timestamp: number;
 }
 
+// A tip that traces back to a specific saved clip — the sourced-itinerary moat.
+export interface SourcedTip {
+  content: string;
+  sourceTitle: string; // title of the clip this wisdom came from
+}
+
 export interface Activity {
   time: string;
   location: Location;
   name: string;
   duration: string;
   tips: string[];
+  sourcedTips?: SourcedTip[]; // wisdom drawn from the user's own clips, cited
 }
 
 export interface DayPlan {
