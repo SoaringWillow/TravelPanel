@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { taptic } from '@/lib/haptics';
 import {
   Drawer,
   DrawerContent,
@@ -106,6 +107,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    taptic('success');
     onSaved(item);
     resetState();
   }

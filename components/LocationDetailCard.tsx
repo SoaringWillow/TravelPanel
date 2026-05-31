@@ -6,6 +6,7 @@ import { X, MapPin, CheckCircle2 } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
+import { taptic } from '@/lib/haptics';
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -19,6 +20,7 @@ export default function LocationDetailCard({ item, onClose, onCheckIn }: Locatio
   function handleCheckIn() {
     if (checkedIn) return;
     setCheckedIn(true);
+    taptic('success');
     onCheckIn?.(item.id);
   }
 

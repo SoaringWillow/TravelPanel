@@ -221,6 +221,76 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & Production Readiness
+
+### D1 — Haptic Feedback
+**Status**: `[x]` Done  
+**Files**: new `lib/haptics.ts`, `package.json`, `components/LocationDetailCard.tsx`, `app/share/page.tsx`, `components/ImportSheet.tsx`  
+**What to do**:
+- Add `@capacitor/haptics` to package.json dependencies
+- Create `lib/haptics.ts`: thin wrapper with `taptic(style)` — tries `@capacitor/haptics`, falls back to `navigator.vibrate()`
+- Trigger `light` impact on: pin tap, board selection
+- Trigger `medium` impact on: item saved, check-in confirmed
+- Trigger `success` notification on: enrichment complete, plan generated
+- Graceful no-op on web/desktop
+
+### D2 — Skeleton Loading States
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, new `components/SkeletonCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create `SkeletonCard` component: animated shimmer card matching InboxCard dimensions
+- In inbox and boards pages, show 4–6 SkeletonCards while `loading === true`
+- Replace spinner with skeleton in board detail page
+- Use `bg-gray-200 animate-pulse rounded` pattern with Tailwind
+
+### D3 — Pull-to-Refresh
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Add pull-to-refresh gesture on iOS using `@capacitor/haptics` + touch events
+- On pull: trigger re-enrichment for pending items, refresh board/item lists
+- Show a subtle spinner at top during refresh
+
+### D4 — Item Editing
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an "Edit" button to the detail card (pencil icon in header)
+- Editable fields: title (text input), notes (textarea), tags (chip selector)
+- Save button: calls `updateItemFields(id, { title, notes, tags })` in db.ts
+- Autosave on blur for notes field
+- Optimistic update in useSavedItems
+
+### D5 — Inbox Filters & Sort
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `components/SearchBar.tsx`  
+**What to do**:
+- Add filter chips below search bar: All · Unassigned · Enriched · Failed · [platform chips]
+- Add sort selector: Newest · Oldest · Most substance · Closest (if location active)
+- Persist selected filter in sessionStorage
+- "Failed" filter shows items with `enrichmentStatus === 'failed'` with retry button
+
+### D6 — App Icon & Launch Screen
+**Status**: `[ ]` Not started  
+**Files**: `public/`, `ios/App/App/Assets.xcassets/`, `app/layout.tsx`  
+**What to do**:
+- Generate all required iOS app icon sizes from the indigo pin design (use generate-icons.js as base)
+- Update `public/manifest.json` with proper icon paths
+- Add Apple touch icon meta tags in layout.tsx
+- Create proper launch screen storyboard in Xcode (replace default)
+- Document in ios/App/XCODE_SETUP.md
+
+### D7 — Offline Indicator
+**Status**: `[x]` Done  
+**Files**: new `components/OfflineIndicator.tsx`, `app/layout.tsx`  
+**What to do**:
+- Listen to `navigator.onLine` events
+- Show a subtle banner: "You're offline — clips save locally, enrichment paused"
+- Banner dismisses automatically when connection returns
+- Prevent import attempts when offline (show helpful message instead)
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
