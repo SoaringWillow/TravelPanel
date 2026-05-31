@@ -13,13 +13,22 @@ import PullToRefresh from '@/components/PullToRefresh';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
-  const { refresh: refreshItems } = useSavedItems();
+  const { items, refresh: refreshItems } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
     return board ? board.itemIds.length : 0;
+  }
+
+  function getBoardThumbnails(boardId: string): string[] {
+    const board = boards.find((b) => b.id === boardId);
+    if (!board) return [];
+    return board.itemIds
+      .slice(0, 4)
+      .map((id) => items.find((i) => i.id === id)?.thumbnail)
+      .filter((t): t is string => !!t);
   }
 
   async function handleCreate(name: string, emoji: string) {
@@ -86,6 +95,7 @@ export default function BoardsPage() {
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
+                thumbnails={getBoardThumbnails(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
               />

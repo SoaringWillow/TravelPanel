@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, CheckCircle2, Pencil, Check } from 'lucide-react';
+import { X, MapPin, CheckCircle2, Pencil, Check, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -243,6 +243,18 @@ export default function LocationDetailCard({ item, onClose, onCheckIn, onSaved }
                 {checkedIn
                   ? `Checked in${checkInTime ? ` at ${checkInTime}` : ''}`
                   : 'Check in here'}
+              </button>
+            )}
+
+            {/* Open source URL */}
+            {!editMode && item.url && item.url.startsWith('http') && (
+              <button
+                type="button"
+                onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 active:scale-[0.98] transition-all"
+              >
+                <ExternalLink size={14} />
+                <span>Open original post</span>
               </button>
             )}
           </div>

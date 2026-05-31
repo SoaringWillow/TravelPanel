@@ -330,7 +330,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Skip button on step 1
 
 ### E4 — Clip Source URL Preview
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: When users tap a clip, they can't navigate back to the original post. The URL is stored but never shown.
 **Files to change**: `components/LocationDetailCard.tsx`
 **What to do**:
@@ -341,7 +341,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Style: subtle gray border button, external link icon (ExternalLink from lucide-react)
 
 ### E5 — Board Cover Thumbnails
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Board cards show an emoji + name but no visual preview of what's inside. A photo grid or cover photo makes boards feel alive.
 **Files to change**: `components/BoardCard.tsx`, `lib/db.ts`
 **What to do**:
