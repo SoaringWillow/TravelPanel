@@ -90,9 +90,9 @@ async function importData(file: File): Promise<ImportResult> {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-gray-50 rounded-2xl px-4 py-3 flex flex-col gap-0.5">
-      <span className="text-2xl font-bold text-gray-900">{value}</span>
-      <span className="text-xs text-gray-500">{label}</span>
+    <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col gap-0.5">
+      <span className="text-2xl font-bold text-gray-900 dark:text-white">{value}</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
     </div>
   );
 }
@@ -101,7 +101,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none overflow-hidden">
       {children}
     </div>
   );
@@ -130,20 +130,20 @@ function SectionRow({
       onClick={onClick}
       disabled={disabled}
       className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors disabled:opacity-50 ${
-        onClick && !disabled ? 'hover:bg-gray-50 active:bg-gray-100' : 'cursor-default'
+        onClick && !disabled ? 'hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700' : 'cursor-default'
       }`}
     >
-      <div className={`flex-shrink-0 ${destructive ? 'text-red-500' : 'text-gray-500'}`}>
+      <div className={`flex-shrink-0 ${destructive ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${destructive ? 'text-red-600' : 'text-gray-900'}`}>
+        <p className={`text-sm font-medium ${destructive ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
           {title}
         </p>
-        {subtitle && <p className="text-xs text-gray-400 mt-0.5 leading-snug">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{subtitle}</p>}
       </div>
       {rightContent ?? (onClick && !disabled && (
-        <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+        <ChevronRight size={16} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />
       ))}
     </button>
   );
@@ -209,12 +209,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:shadow-none px-4 pt-12 pb-4 z-10">
         <div className="flex items-center gap-2">
           <span className="text-2xl">⚙️</span>
-          <h1 className="text-xl font-bold text-gray-800">Settings</h1>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-white">Settings</h1>
         </div>
       </div>
 
@@ -231,7 +231,7 @@ export default function SettingsPage() {
 
         {/* Data & Backup */}
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-2">
             Data &amp; Backup
           </p>
           <SectionCard>
@@ -247,7 +247,7 @@ export default function SettingsPage() {
                 ) : undefined
               }
             />
-            <div className="h-px bg-gray-100 mx-4" />
+            <div className="h-px bg-gray-100 dark:bg-gray-800 mx-4" />
             <SectionRow
               icon={<Upload size={18} />}
               title="Import from backup"
@@ -275,7 +275,7 @@ export default function SettingsPage() {
 
         {/* Cloud sync */}
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-2">
             Cloud Sync
           </p>
           <SectionCard>
@@ -289,7 +289,7 @@ export default function SettingsPage() {
 
         {/* AI features */}
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-2">
             AI Features
           </p>
           <SectionCard>
@@ -303,7 +303,7 @@ export default function SettingsPage() {
 
         {/* About */}
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-2">
             About
           </p>
           <SectionCard>

@@ -271,7 +271,7 @@ export default function InboxCard({
             <button
               type="button"
               onClick={() => onViewOnMap(item.id)}
-              className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors px-1.5 py-1"
             >
               Map
             </button>
