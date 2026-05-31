@@ -119,3 +119,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 13:04 | 5a50af3 | E7: Visible reasoning chain in plan generation
 2026-05-31 13:06 | a9ec732 | E8: Map cluster popover — show clip list before zooming
 2026-05-31 13:06 | 4215c4e | E9: Offline banner — amber alert + emerald 'back online' flash
+2026-05-31 13:07 | e481529 | E10: Feature discovery tip sheet after 3rd clip
