@@ -166,8 +166,9 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Delivered**: `browser-extension/` — MV3 extension with popup UI, context menus (right-click clip), configurable TravelPanel URL, PNG icon generator, Safari-compatible manifest
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+**Status**: `[x]` Done  
+**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance  
+**Delivered**: ShareViewController extracts preview image → compressed JPEG saved to App Group → CapacitorBridge reads into sessionStorage → share page passes imageBase64 to enrichItem → /api/import uses Claude Vision (generateObject with image message part)
 
 ### B4 — Embedding/Vibe Search
 **Status**: `[ ]` Not started  

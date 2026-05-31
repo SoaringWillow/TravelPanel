@@ -85,8 +85,10 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType = 'image/jpeg';
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType = 'image/jpeg' } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,21 +100,7 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
-## Layer 1 — Spots (geographic skeleton)
-Extract real, identifiable locations with GPS coordinates you are confident about.
-If the post doesn't mention specific named places, return an empty locations array.
-Do NOT invent or guess coordinates.
-
-## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+  const substanceInstructions = `## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
 This is what competitors miss. Examples of what to capture:
 - "Arrive before 8am to beat the queue" → tip
@@ -128,14 +116,66 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+If the post doesn't mention specific named places, return an empty locations array.
+Do NOT invent or guess coordinates.
+
+${substanceInstructions}`;
+
+  const visionPrompt = `You are a travel content analyzer. The user has shared a screenshot from ${platform}.
+
+Analyze the image carefully — it likely contains Chinese or other text, travel photos, and social media post content.
+URL: ${url}${page?.title ? `\nPage title: ${page.title}` : ''}
+
+Read ALL text visible in the image, including Chinese characters. Translate any non-English text.
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+Do NOT invent or guess coordinates.
+
+${substanceInstructions}`;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision mode: the image is a screenshot from a platform like Xiaohongshu that
+      // blocks web scraping. Claude reads the actual post content from the screenshot.
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: Buffer.from(imageBase64, 'base64'),
+                mimeType: imageMimeType as 'image/jpeg' | 'image/png' | 'image/webp',
+              },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
