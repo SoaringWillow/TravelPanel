@@ -327,7 +327,7 @@ demonstrates the moat to users in their first save.
 - Keep the existing substance count badge (e.g. "+2 more") if there are more than 1
 
 ### E2 — Board Card Cover Collage
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Board cards currently show emoji + name on a flat colored gradient. Adding item thumbnails as a collage (Pinterest-style) makes the board feel rich and personal — users see their own saved content.
 **Files**: `components/BoardCard.tsx`, `app/boards/page.tsx`
 **What to do**:

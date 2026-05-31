@@ -21,6 +21,13 @@ export default function BoardsPage() {
     return board ? board.itemIds.length : 0;
   }
 
+  function getBoardThumbnails(boardId: string): string[] {
+    return items
+      .filter((i) => i.boardId === boardId && !!i.thumbnail)
+      .slice(0, 4)
+      .map((i) => i.thumbnail!);
+  }
+
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
   }
@@ -81,6 +88,7 @@ export default function BoardsPage() {
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
+                thumbnails={getBoardThumbnails(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
               />
