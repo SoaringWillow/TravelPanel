@@ -27,7 +27,13 @@ export default function SearchBar({ onSearch, placeholder = 'Search your clipsâ€
         className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
       />
       <input
-        type="text"
+        type="search"
+        inputMode="search"
+        enterKeyHint="search"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}

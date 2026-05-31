@@ -211,8 +211,12 @@ export default function LocationDetailCard({ item, onClose, onCheckIn, onSaved }
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
+                  onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300)}
                   placeholder="Add personal notes…"
                   rows={3}
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCorrect="on"
                   className="w-full border-2 border-indigo-200 rounded-xl px-3 py-2 text-sm resize-none focus:border-indigo-400 focus:outline-none transition-colors"
                 />
               </div>

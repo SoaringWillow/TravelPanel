@@ -233,6 +233,11 @@ function SharePageInner() {
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    inputMode="text"
+                    enterKeyHint="done"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="words"
                     value={newBoardName}
                     onChange={(e) => setNewBoardName(e.target.value)}
                     onKeyDown={(e) => {

@@ -305,7 +305,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use `viewport-fit=cover` (already set) + CSS env() variables
 
 ### E2 — Keyboard-Aware Input Handling
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: On iOS, the software keyboard covers form inputs in the import sheet and search bar. Users can't see what they're typing.
 **Files to change**: `components/ImportSheet.tsx`, `app/inbox/page.tsx`, `app/share/page.tsx`
 **What to do**:
