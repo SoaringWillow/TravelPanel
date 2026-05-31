@@ -393,7 +393,7 @@ demonstrates the moat to users in their first save.
 - Keep it to 3–5 short sentences total — enough to feel intelligent, not verbose
 
 ### E8 — Map: Cluster Popover with Clip List
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Tapping a cluster bubble just zooms in. Users don't know what's in the cluster until they're zoomed in enough to see individual pins — creating a frustrating hunt. A brief popover showing the top 3 clips in a cluster makes the map feel much more interactive.
 **Files**: `components/MapView.tsx`
 **What to do**:

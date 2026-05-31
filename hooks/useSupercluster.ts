@@ -59,5 +59,19 @@ export function useSupercluster(items: SavedItem[]) {
     [index],
   );
 
-  return { clusters, getExpansionZoom, setView };
+  // Returns the leaf (item, location) pairs inside a cluster.
+  const getClusterLeaves = useCallback(
+    (clusterId: number, limit = 5): PointProps[] => {
+      try {
+        return index
+          .getLeaves(clusterId, limit)
+          .map((f) => (f as Supercluster.PointFeature<PointProps>).properties);
+      } catch {
+        return [];
+      }
+    },
+    [index],
+  );
+
+  return { clusters, getExpansionZoom, getClusterLeaves, setView };
 }

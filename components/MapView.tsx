@@ -47,6 +47,14 @@ interface PopupInfo {
   latitude: number;
 }
 
+interface ClusterPopupInfo {
+  clusterId: number;
+  count: number;
+  longitude: number;
+  latitude: number;
+  leaves: Array<{ item: SavedItem; location: Location }>;
+}
+
 interface MapControllerProps {
   flyTo?: Location;
 }
@@ -265,8 +273,9 @@ interface MapViewProps {
 }
 
 export default function MapView({ items, onPinClick, flyTo, fitBoundsItems }: MapViewProps) {
-  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
-  const { clusters, getExpansionZoom, setView } = useSupercluster(items);
+  const [popupInfo, setPopupInfo]         = useState<PopupInfo | null>(null);
+  const [clusterPopup, setClusterPopup]   = useState<ClusterPopupInfo | null>(null);
+  const { clusters, getExpansionZoom, getClusterLeaves, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
   const { resolvedTheme } = useTheme();
   const mapStyle = resolvedTheme === 'dark'
@@ -299,7 +308,10 @@ export default function MapView({ items, onPinClick, flyTo, fitBoundsItems }: Ma
   );
 
   const handleMove = useCallback(
-    (e: ViewStateChangeEvent) => syncView(e.target as unknown as maplibregl.Map),
+    (e: ViewStateChangeEvent) => {
+      syncView(e.target as unknown as maplibregl.Map);
+      setClusterPopup(null);
+    },
     [syncView],
   );
 
@@ -326,19 +338,16 @@ export default function MapView({ items, onPinClick, flyTo, fitBoundsItems }: Ma
           // ── Cluster bubble ──
           if (feature.properties.cluster) {
             const clusterId = feature.properties.cluster_id as number;
-            const count = feature.properties.point_count as number;
+            const count     = feature.properties.point_count as number;
             return (
               <Marker key={`cluster-${clusterId}`} longitude={lng} latitude={lat} anchor="center">
                 <ClusterMarker
                   count={count}
                   total={maxClusterCount}
                   onClick={() => {
-                    const expansionZoom = getExpansionZoom(clusterId);
-                    mapInstanceRef.current?.easeTo({
-                      center: [lng, lat],
-                      zoom: expansionZoom,
-                      duration: 500,
-                    });
+                    const leaves = getClusterLeaves(clusterId, 3);
+                    setClusterPopup({ clusterId, count, longitude: lng, latitude: lat, leaves });
+                    setPopupInfo(null);
                   }}
                 />
               </Marker>
@@ -383,6 +392,67 @@ export default function MapView({ items, onPinClick, flyTo, fitBoundsItems }: Ma
               <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
                 {popupInfo.item.title}
               </p>
+            </div>
+          </Popup>
+        )}
+
+        {/* Cluster popover — shows top 3 items before zoom */}
+        {clusterPopup && (
+          <Popup
+            longitude={clusterPopup.longitude}
+            latitude={clusterPopup.latitude}
+            anchor="top"
+            onClose={() => setClusterPopup(null)}
+            closeButton
+            closeOnClick={false}
+            offset={[0, -4] as [number, number]}
+          >
+            <div className="w-[220px] py-0.5">
+              {clusterPopup.leaves.map((leaf, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 rounded px-1 transition-colors"
+                  onClick={() => { setClusterPopup(null); onPinClick(leaf.item); }}
+                >
+                  {leaf.item.thumbnail ? (
+                    <img
+                      src={leaf.item.thumbnail}
+                      alt=""
+                      className="w-8 h-8 rounded object-cover flex-shrink-0"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-indigo-100 flex-shrink-0 flex items-center justify-center text-xs">
+                      📍
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-800 leading-tight line-clamp-1">
+                      {leaf.location.name}
+                    </p>
+                    <p className="text-[10px] text-gray-500 line-clamp-1">
+                      {leaf.item.title}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {clusterPopup.count > 3 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClusterPopup(null);
+                    const expansionZoom = getExpansionZoom(clusterPopup.clusterId);
+                    mapInstanceRef.current?.easeTo({
+                      center: [clusterPopup.longitude, clusterPopup.latitude],
+                      zoom: expansionZoom,
+                      duration: 500,
+                    });
+                  }}
+                  className="w-full text-center text-xs text-indigo-600 font-semibold py-1.5 mt-0.5 border-t border-gray-100 hover:bg-indigo-50 rounded-b transition-colors"
+                >
+                  See all {clusterPopup.count} places →
+                </button>
+              )}
             </div>
           </Popup>
         )}
