@@ -96,3 +96,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-05-31 17:24 | 3a09244 | feat: B2 — Chrome/Safari browser extension (TravelPanel Clipper)
+2026-05-31 17:29 | d00879d | feat: B3 — Claude Vision fallback for Xiaohongshu / anti-scrape platforms

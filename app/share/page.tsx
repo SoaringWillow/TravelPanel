@@ -88,9 +88,23 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
+    // Pull image data ferried via sessionStorage from the iOS Share Extension
+    let pendingImageData: string | undefined;
+    let pendingImageMime: string | undefined;
+    try {
+      pendingImageData = sessionStorage.getItem('pendingShareImageData') ?? undefined;
+      pendingImageMime = sessionStorage.getItem('pendingShareImageMimeType') ?? undefined;
+      if (pendingImageData) {
+        sessionStorage.removeItem('pendingShareImageData');
+        sessionStorage.removeItem('pendingShareImageMimeType');
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing)
+    }
+
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageData, pendingImageMime)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
