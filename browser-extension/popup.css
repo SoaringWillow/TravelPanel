@@ -1,0 +1,344 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --indigo: #4f46e5;
+  --indigo-dark: #4338ca;
+  --indigo-light: #e0e7ff;
+  --indigo-text: #3730a3;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --gray-900: #111827;
+  --green: #22c55e;
+  --red: #ef4444;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+html, body {
+  width: 360px;
+  min-height: 280px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  color: var(--gray-900);
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Screens ─────────────────────────────────────────────────── */
+
+.screen {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hidden { display: none !important; }
+
+/* ── Header ──────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logo-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.logo-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--indigo);
+  letter-spacing: -0.3px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-400);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.icon-btn:hover {
+  color: var(--gray-700);
+  background: var(--gray-100);
+}
+
+/* ── Page Card ───────────────────────────────────────────────── */
+
+.page-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.favicon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  object-fit: contain;
+}
+
+.favicon[src=""] {
+  background: var(--gray-200);
+}
+
+.page-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-900);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.page-domain {
+  font-size: 11px;
+  color: var(--gray-400);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Status ──────────────────────────────────────────────────── */
+
+.status-area {
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.status-message {
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  line-height: 1.5;
+}
+
+.status-message.success {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.status-message.error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.status-message.loading {
+  background: var(--indigo-light);
+  color: var(--indigo-text);
+  border: 1px solid #c7d2fe;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+
+.btn {
+  width: 100%;
+  padding: 11px 16px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s, opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  line-height: 1;
+}
+
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:disabled:active { transform: none; }
+
+.btn-primary {
+  background: var(--indigo);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--indigo-dark);
+}
+
+.btn-secondary {
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--gray-200);
+}
+
+.clip-btn {
+  font-size: 15px;
+  padding: 13px 16px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.link-btn:hover {
+  color: var(--indigo);
+}
+
+/* ── Setup screen ────────────────────────────────────────────── */
+
+.setup-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.setup-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray-900);
+  line-height: 1.4;
+}
+
+.setup-desc {
+  font-size: 13px;
+  color: var(--gray-500);
+  line-height: 1.5;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.input-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--gray-900);
+  transition: border-color 0.15s;
+  outline: none;
+  background: white;
+}
+
+.input-group input:focus {
+  border-color: var(--indigo);
+}
+
+.setup-hint {
+  font-size: 11px;
+  color: var(--gray-400);
+  line-height: 1.6;
+}
+
+.setup-hint code {
+  background: var(--gray-100);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 10.5px;
+}
+
+/* ── Error screen ────────────────────────────────────────────── */
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.error-icon {
+  font-size: 36px;
+}
+
+.error-message {
+  font-size: 13px;
+  color: var(--gray-500);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── Spinner animation ───────────────────────────────────────── */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}

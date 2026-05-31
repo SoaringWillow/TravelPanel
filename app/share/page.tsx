@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -21,6 +21,8 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const isExtension     = searchParams.get('ref') === 'extension';
+  const hasNativeImage  = searchParams.get('hasImage') === '1';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -29,25 +31,57 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotData, setScreenshotData]   = useState<string | null>(null); // base64 data URI
+  const fileInputRef                          = useRef<HTMLInputElement>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Platforms that commonly block web scraping — surface the screenshot uploader for these
+  const isAntiScrapingPlatform = platform === 'xiaohongshu' || platform === 'wechat';
+
+  const handleScreenshotSelect = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === 'string') setScreenshotData(result);
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
+  // Pick up the image written to sessionStorage by CapacitorBridge (native image share)
+  useEffect(() => {
+    if (hasNativeImage) {
+      try {
+        const stored = sessionStorage.getItem('pendingShareImage');
+        if (stored) {
+          setScreenshotData(stored);
+          sessionStorage.removeItem('pendingShareImage');
+        }
+      } catch { /* sessionStorage not available */ }
+    }
+  }, [hasNativeImage]);
+
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (isExtension) {
+          window.close();
+        } else {
+          window.history.back();
+        }
       }, 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [stage]);
+  }, [stage, isExtension]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
@@ -88,9 +122,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment (pass screenshot if user provided one)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotData ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +198,46 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot uploader — shown for anti-scraping platforms, image-only shares, or when no URL */}
+          {(isAntiScrapingPlatform || !rawUrl || hasNativeImage) && stage === 'picking' && (
+            <div className="mt-3">
+              {screenshotData ? (
+                <div className="relative inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={screenshotData} alt="Screenshot preview" className="w-8 h-8 rounded object-cover" />
+                  <span className="text-xs text-green-700 font-medium">Screenshot added — AI will analyse it</span>
+                  <button
+                    type="button"
+                    onClick={() => setScreenshotData(null)}
+                    className="ml-1 text-green-500 hover:text-green-700"
+                    aria-label="Remove screenshot"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 text-xs text-indigo-600 font-medium border border-indigo-200 bg-indigo-50 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-colors"
+                >
+                  <Camera size={14} />
+                  Add screenshot for better AI extraction
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleScreenshotSelect(file);
+                }}
+              />
+            </div>
           )}
         </div>
 
@@ -244,13 +318,13 @@ function SharePageInner() {
           </AnimatePresence>
         </div>
 
-        {/* Bottom — return button (ghost) */}
+        {/* Bottom — return / close button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={() => isExtension ? window.close() : window.history.back()}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
-          Return to app
+          {isExtension ? 'Close' : 'Return to app'}
           <ChevronRight size={15} />
         </button>
       </div>
@@ -330,11 +404,15 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (isExtension) {
+            window.close();
+          } else {
+            window.history.back();
+          }
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        {isExtension ? 'Close window →' : 'Return to app →'}
       </button>
     </div>
   );
