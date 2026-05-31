@@ -277,7 +277,7 @@ demonstrates the moat to users in their first save.
 - Map tiles: switch to a dark MapLibre style (`https://tiles.openfreemap.org/styles/liberty` has a dark variant)
 
 ### D8 — Haptic Feedback
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `components/InboxCard.tsx`, `lib/haptics.ts` (new)  
 **Needs**: `@capacitor/haptics` (already in deps)  
 **What to do**:

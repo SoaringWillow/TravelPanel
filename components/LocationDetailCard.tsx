@@ -7,6 +7,7 @@ import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
 import ClipEditSheet from './ClipEditSheet';
+import { tapMedium } from '@/lib/haptics';
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -60,7 +61,7 @@ export default function LocationDetailCard({ item, onClose, onUpdated }: Locatio
             <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => setEditOpen(true)}
+                onClick={() => { tapMedium(); setEditOpen(true); }}
                 className="p-2 hover:bg-indigo-50 rounded-full transition-colors"
                 aria-label="Edit clip"
               >
