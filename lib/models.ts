@@ -16,4 +16,8 @@ export const models = {
 
   // Final itinerary stream — complex reasoning, sourced wisdom citation, route optimisation
   planItinerary: anthropic('claude-opus-4-8'),
+
+  // Vision extraction — used when an image payload is present (e.g. Xiaohongshu screenshot)
+  // Sonnet chosen over Haiku for better accuracy on Chinese text in images
+  enrichmentVision: anthropic('claude-sonnet-4-6'),
 } as const;

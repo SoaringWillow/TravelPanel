@@ -85,8 +85,13 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = body.imageBase64 || undefined;
+    imageMimeType = body.imageMimeType || 'image/jpeg';
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +101,18 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  // Skip page fetch for platforms known to block scraping — the image carries all the content
+  const isAntiScrape = platform === 'xiaohongshu' || platform === 'wechat';
+  const page = isAntiScrape && imageBase64 ? null : await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const basePrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+${imageBase64 ? '(A screenshot of the post is attached — use it as the primary source of content)' : `Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page)'}`}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,12 +137,27 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      const { object } = await generateObject({
+        model: models.enrichmentVision,
+        schema: importSchema,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: basePrompt },
+            { type: 'image', image: imageBase64, mimeType: imageMimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' },
+          ],
+        }],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: basePrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

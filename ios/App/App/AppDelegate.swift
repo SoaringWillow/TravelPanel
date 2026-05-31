@@ -7,8 +7,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Bridge pending share data written by the Share Extension (App Group UserDefaults)
+        // into standard UserDefaults so @capacitor/preferences can read it from the web layer.
+        bridgeAppGroupShareData()
         return true
+    }
+
+    private func bridgeAppGroupShareData() {
+        guard let group = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+        let keys = ["pendingShareURL", "pendingShareTitle", "pendingShareImageBase64", "pendingShareImageMimeType"]
+        var moved = false
+        for key in keys {
+            if let val = group.string(forKey: key) {
+                UserDefaults.standard.set(val, forKey: key)
+                group.removeObject(forKey: key)
+                moved = true
+            }
+        }
+        if moved { group.synchronize() }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

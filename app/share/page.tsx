@@ -29,12 +29,30 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>();
+  const [pendingImageMimeType, setPendingImageMimeType] = useState<string | undefined>();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Read pending image stashed by CapacitorBridge (from iOS Share Extension)
+  useEffect(() => {
+    try {
+      const b64 = sessionStorage.getItem('pendingShareImageBase64');
+      const mime = sessionStorage.getItem('pendingShareImageMimeType');
+      if (b64) {
+        setPendingImageBase64(b64);
+        setPendingImageMimeType(mime ?? 'image/jpeg');
+        sessionStorage.removeItem('pendingShareImageBase64');
+        sessionStorage.removeItem('pendingShareImageMimeType');
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +106,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image for vision extraction on anti-scrape platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageBase64, pendingImageMimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

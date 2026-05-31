@@ -166,8 +166,9 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Delivered**: `extension/` — MV3 manifest, popup UI (dark theme, platform detection, favicon), settings page, right-click context menu, Safari conversion instructions, icon generator script.
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+**Status**: `[x]` Done  
+**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance  
+**Delivered**: ShareViewController extracts screenshots → base64 JPEG in App Group → AppDelegate bridges to standard UserDefaults → CapacitorBridge reads into sessionStorage → share page passes to enrichItem → /api/import uses claude-sonnet-4-6 Vision for image payloads (bypasses page scrape for anti-scrape platforms).
 
 ### B4 — Embedding/Vibe Search
 **Status**: `[ ]` Not started  
