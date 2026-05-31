@@ -81,24 +81,10 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompt builders ─────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -127,15 +113,92 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  return `You are analyzing a screenshot or image from a travel post (platform: ${platform}, URL: ${url || 'unknown'}).
+
+Extract travel information from this image using the same two-layer approach:
+
+## Layer 1 — Spots (geographic skeleton)
+Read any location names, place names, or map pins visible in the image.
+Only extract locations you can identify with confidence and accurate GPS coordinates.
+If no specific places are visible, return an empty locations array.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of travel insight, tip, warning, or advice visible in captions,
+overlays, text in the image, or inferable from what's shown. This includes:
+- Tips visible as on-screen text ("Best time: sunrise")
+- Warnings implied by the image context
+- Opinions expressed in visible captions
+- Any "go here, not there" guidance
+
+For posts with multiple tips visible (e.g. a list-style post), extract ALL of them.
+Even a photo without text can yield context substance items.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageData: string | undefined;
+  try {
+    ({ url, imageData } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    // Allow image-only shares (no URL) when imageData is present
+    if (!imageData) {
+      return NextResponse.json({ error: 'URL required' }, { status: 400 });
+    }
+    url = '';
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+
+  // Use Claude Vision when:
+  // 1. Image is provided AND platform is anti-scraping (Xiaohongshu, WeChat)
+  // 2. Image is provided AND URL scraping returned no useful content
+  const scrapingFailed = !page?.textContent?.trim();
+  const antiScrapingPlatform = platform === 'xiaohongshu' || platform === 'wechat';
+  const useVision = !!imageData && (antiScrapingPlatform || scrapingFailed);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision) {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                // atob + Uint8Array avoids a Buffer/Node dependency in the edge runtime
+                image: Uint8Array.from(atob(imageData!), (c) => c.charCodeAt(0)),
+                mimeType: 'image/jpeg' as const,
+              },
+              {
+                type: 'text',
+                text: buildVisionPrompt(platform, url),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(platform, url, page),
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

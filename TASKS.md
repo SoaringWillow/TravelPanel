@@ -166,8 +166,9 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Delivered**: `browser-extension/` — Chrome MV3 manifest, polished popup (360px, platform badge, page preview), options page (app URL config + test connection), background SW, auto-opens settings on first install, `INSTALL.md` with Safari xcrun conversion steps
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+**Status**: `[x]` Done  
+**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance  
+**Delivered**: ShareViewController now captures image attachments (resize to 1024px JPEG, base64) alongside URLs using DispatchGroup; saves to App Group `pendingShareImageData`. CapacitorBridge forwards `hasImage=1` flag. Share page reads image from Preferences. `enrichItem` passes `imageData` to `/api/import`. Import route uses Claude Vision (`generateObject` with `messages` + image `Uint8Array`) when image present AND platform is xiaohongshu/wechat OR scraping failed.
 
 ### B4 — Embedding/Vibe Search
 **Status**: `[ ]` Not started  

@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImageFlag    = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,6 +30,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageData, setPendingImageData] = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +38,24 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read image data from Capacitor Preferences when the Share Extension stored one
+  useEffect(() => {
+    if (!hasImageFlag) return;
+    const readImage = async () => {
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value } = await Preferences.get({ key: 'pendingShareImageData' });
+        if (value) {
+          setPendingImageData(value);
+          await Preferences.remove({ key: 'pendingShareImageData' });
+        }
+      } catch {
+        // Not in native context — no-op
+      }
+    };
+    readImage();
+  }, [hasImageFlag]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +108,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image data for Xiaohongshu/WeChat vision extraction
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageData)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
