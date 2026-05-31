@@ -403,7 +403,7 @@ demonstrates the moat to users in their first save.
 - Popup auto-dismisses on map move and on outside click
 
 ### E9 — Offline Banner + Retry
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users plan travel in airports and on planes — offline reliability is a strategic asset. The app currently silently fails when offline. An "Offline — clips saved locally" banner with one-tap retry is the difference between trust and frustration.
 **Files**: `components/NavBar.tsx` or new `components/OfflineBanner.tsx`, `app/layout.tsx`
 **What to do**:

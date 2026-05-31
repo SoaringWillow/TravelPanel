@@ -117,3 +117,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 13:01 | 4843abe | E5: Trip plan copy-as-text button
 2026-05-31 13:02 | 6f64e7c | E6: Swipe actions on InboxCard — iOS-native left/right gestures
 2026-05-31 13:04 | 5a50af3 | E7: Visible reasoning chain in plan generation
+2026-05-31 13:06 | a9ec732 | E8: Map cluster popover — show clip list before zooming
