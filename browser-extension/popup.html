@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">🗺️</span>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button class="settings-btn" id="settingsToggle" title="Settings" aria-label="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Main content -->
+  <main id="mainView">
+    <!-- Page preview -->
+    <div class="page-preview">
+      <div class="page-favicon" id="favicon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </div>
+      <div class="page-info">
+        <div class="page-title" id="pageTitle">Loading…</div>
+        <div class="page-domain" id="pageDomain"></div>
+      </div>
+    </div>
+
+    <!-- Platform badge -->
+    <div class="platform-row" id="platformRow" style="display:none">
+      <span class="platform-badge" id="platformBadge"></span>
+    </div>
+
+    <!-- Blocked state (browser internal pages) -->
+    <div class="blocked-notice" id="blockedNotice" style="display:none">
+      <p>Navigate to a travel post to clip it.</p>
+    </div>
+
+    <!-- Clip button -->
+    <button class="clip-btn" id="clipBtn" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+  </main>
+
+  <!-- Success state -->
+  <main id="successView" style="display:none">
+    <div class="success-content">
+      <div class="success-icon">✓</div>
+      <p class="success-title">Opening TravelPanel…</p>
+      <p class="success-sub">Choose a board to save this clip.</p>
+    </div>
+  </main>
+
+  <!-- Settings panel -->
+  <div id="settingsPanel" class="settings-panel" style="display:none">
+    <label class="settings-label" for="appUrlInput">TravelPanel URL</label>
+    <input
+      type="url"
+      id="appUrlInput"
+      class="settings-input"
+      placeholder="https://your-app.vercel.app"
+    />
+    <p class="settings-hint">Set this to your deployed app URL (or http://localhost:3000 for dev).</p>
+    <button class="save-btn" id="saveSettings">Save</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

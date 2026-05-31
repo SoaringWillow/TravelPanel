@@ -85,8 +85,10 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageData: string | undefined;
+  let mimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageData, mimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +98,20 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const useVision = !!imageData && typeof imageData === 'string';
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // For Xiaohongshu and other anti-scrape platforms, skip fetch when we have an image
+  const skipFetch = useVision && (platform === 'xiaohongshu' || platform === 'wechat');
+  const page = skipFetch ? null : await fetchPageData(url);
+
+  const promptText = `You are a travel content analyzer extracting TWO layers from this ${useVision ? 'screenshot of a' : ''} social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
+${page ? `Title: ${page.title ?? '(unavailable)'}
+Description: ${page.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page.textContent ?? '(could not fetch page)'}` : '(page content unavailable — use the image provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,12 +136,34 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision) {
+      // Vision path: image was shared (e.g. Xiaohongshu screenshot).
+      // Pass as a data URI so no Buffer/Node types are needed.
+      const resolvedMime = (mimeType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+      const dataUrl = new URL(`data:${resolvedMime};base64,${imageData!}`);
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: promptText },
+              { type: 'image', image: dataUrl },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: scrape the URL and analyse
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: promptText,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
