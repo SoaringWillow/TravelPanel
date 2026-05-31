@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd=$(jq -r '.tool_input.command // empty'); if echo \"$cmd\" | grep -q 'git commit'; then hash=$(git -C /home/user/TravelPanel log -1 --format='%h' 2>/dev/null); msg=$(git -C /home/user/TravelPanel log -1 --format='%s' 2>/dev/null); echo \"$(date '+%Y-%m-%d %H:%M') | $hash | $msg\" >> /home/user/TravelPanel/SESSIONS.md; fi",
+            "command": "cmd=$(jq -r '.tool_input.command // empty'); if echo \"$cmd\" | grep -q 'git commit'; then hash=$(git -C /home/user/TravelPanel log -1 --format='%h' 2>/dev/null); msg=$(git -C /home/user/TravelPanel log -1 --format='%s' 2>/dev/null); case \"$msg\" in 'chore: session log'*) ;; *) echo \"$(date '+%Y-%m-%d %H:%M') | $hash | $msg\" >> /home/user/TravelPanel/SESSIONS.md;; esac; fi",
             "statusMessage": "Logging commit..."
           }
         ]
