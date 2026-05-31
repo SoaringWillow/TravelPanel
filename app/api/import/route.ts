@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { detectPlatform } from '@/lib/parse-url';
 import { ImportResult } from '@/lib/types';
+import { models } from '@/lib/models';
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -131,7 +131,7 @@ Never return an empty substance array for a real travel post.`;
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
     const { object } = await generateObject({
-      model: anthropic('claude-sonnet-4-6'),
+      model: models.enrichment,
       schema: importSchema,
       prompt,
     });

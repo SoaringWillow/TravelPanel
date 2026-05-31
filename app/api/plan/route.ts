@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { generateObject, streamObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
+import { models } from '@/lib/models';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         }
 
         const resolvedResult = await generateObject({
-          model: anthropic('claude-sonnet-4-6'),
+          model: models.planResolve,
           schema: z.object({ locations: z.array(locationSchema) }),
           prompt: `Verify these ${rawLocations.length} travel locations have accurate GPS coordinates. Correct any wrong ones and return all of them.\n\n${JSON.stringify(rawLocations)}`,
         });
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         step('clustering', `Grouping locations into ${days}-day clusters…`);
 
         const clusterResult = await generateObject({
-          model: anthropic('claude-sonnet-4-6'),
+          model: models.planCluster,
           schema: z.object({
             groups: z.array(z.object({
               day: z.number(),
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
         const planStream = streamObject({
-          model: anthropic('claude-sonnet-4-6'),
+          model: models.planItinerary,
           schema: tripPlanSchema,
           prompt: `Create a detailed ${days}-day travel itinerary.
 
