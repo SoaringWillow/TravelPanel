@@ -316,7 +316,7 @@ demonstrates the moat to users in their first save.
 > Priority order: E1 → E2 → E3 → E4 → E5 → E6 → E7 → E8 → E9 → E10
 
 ### E1 — Substance Preview on InboxCard 🔴 HIGHEST PRIORITY (Moat Visibility)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: A1 extracts substance but it's only visible in the detail card. The inbox shows a badge count ("3 tips") but hides the actual wisdom. Surfacing the top substance item on the card immediately shows users what makes TravelPanel different.
 **Files**: `components/InboxCard.tsx`
 **What to do**:
