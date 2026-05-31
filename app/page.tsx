@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, ArrowRight } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location, Board } from '@/lib/types';
 import { getAllBoards } from '@/lib/db';
@@ -152,8 +152,28 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
+      {/* Empty state hint — shown when no items have been saved yet */}
+      {!loading && items.length === 0 && !selectedItem && (
+        <div className="absolute inset-x-4 bottom-28 z-[999] flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl px-5 py-3.5 flex items-center gap-3 max-w-sm w-full"
+          >
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Globe2 size={20} className="text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-gray-900">Save your first clip</p>
+              <p className="text-xs text-gray-500">Share any travel link to see it on the map</p>
+            </div>
+            <ArrowRight size={16} className="text-indigo-600 flex-shrink-0" />
+          </button>
+        </div>
+      )}
+
       {/* Import FAB */}
-      {!selectedItem && (
+      {!selectedItem && items.length > 0 && (
         <button
           onClick={() => setShowImport(true)}
           className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"

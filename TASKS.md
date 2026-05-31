@@ -349,7 +349,7 @@ demonstrates the moat to users in their first save.
 - Graceful no-op if package import fails (so SSR/web never breaks)
 
 ### E4 — Beautiful Empty States
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Inbox, Boards, and the Map home screen all show blank pages on first launch (or after clearing data). Empty states are the user's first impression — they should inspire action.
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/page.tsx`
 **What to do**:
