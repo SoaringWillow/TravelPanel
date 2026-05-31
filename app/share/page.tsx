@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -29,13 +29,49 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [capturedImage, setCapturedImage]     = useState<{ base64: string; mimeType: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef    = useRef<HTMLInputElement | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Check sessionStorage for image pre-loaded by CapacitorBridge from iOS App Group
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        sessionStorage.removeItem('pendingShareImage');
+        const parsed = JSON.parse(stored) as { base64: string; mimeType: string };
+        if (parsed.base64) setCapturedImage(parsed);
+      }
+    } catch {
+      // sessionStorage unavailable — ignore
+    }
+  }, []);
+
+  // Global paste handler — lets user paste a screenshot with ⌘V / Ctrl+V
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    if (stage !== 'picking') return;
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const imageItem = items.find((i) => i.type.startsWith('image/'));
+    if (!imageItem) return;
+    const file = imageItem.getAsFile();
+    if (file) compressAndSetImage(file);
+  }, [stage]);
+
+  useEffect(() => {
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
+  async function compressAndSetImage(file: File) {
+    const base64 = await compressImageToBase64(file);
+    setCapturedImage({ base64, mimeType: 'image/jpeg' });
+  }
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -82,15 +118,15 @@ function SharePageInner() {
     };
 
     await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    track('clip_saved', { platform, toBoard: !!selectedBoardId, hasImage: !!capturedImage });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available for Vision extraction
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, capturedImage?.base64, capturedImage?.mimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -244,6 +280,60 @@ function SharePageInner() {
           </AnimatePresence>
         </div>
 
+        {/* Screenshot section — helps Vision extraction for Xiaohongshu & blocked platforms */}
+        <div className="w-full">
+          {platform === 'xiaohongshu' && !capturedImage && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2 leading-relaxed">
+              ⚠️ Xiaohongshu blocks scraping — add a screenshot for better AI extraction
+            </p>
+          )}
+
+          {capturedImage ? (
+            <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`data:${capturedImage.mimeType};base64,${capturedImage.base64}`}
+                alt="Screenshot"
+                className="w-full max-h-32 object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setCapturedImage(null)}
+                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+                aria-label="Remove screenshot"
+              >
+                <X size={12} />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent px-3 py-2">
+                <p className="text-xs text-white font-medium">📸 Screenshot added — AI will read the image</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) compressAndSetImage(file);
+                }}
+              />
+              <button
+                type="button"
+                disabled={stage === 'saving'}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-gray-200 rounded-xl px-4 py-3 flex items-center gap-2.5 text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50/50 active:scale-[0.99] transition-all disabled:opacity-50"
+              >
+                <Camera size={15} />
+                Add screenshot
+                <span className="text-xs ml-auto opacity-70">or paste ⌘V</span>
+              </button>
+            </>
+          )}
+        </div>
+
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
@@ -338,6 +428,38 @@ function SharePageInner() {
       </button>
     </div>
   );
+}
+
+// ─── Image compression helper ────────────────────────────────────────────────
+
+async function compressImageToBase64(file: File, maxBytes = 512 * 1024): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      const canvas = document.createElement('canvas');
+      const maxDim = 1280;
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+        else                { width = Math.round((width * maxDim) / height);  height = maxDim; }
+      }
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      let quality  = 0.82;
+      let dataUrl  = canvas.toDataURL('image/jpeg', quality);
+      // base64 is ~37% larger than binary — reduce quality until under limit
+      while (dataUrl.length > maxBytes * 1.37 && quality > 0.3) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      resolve(dataUrl.split(',')[1]);
+    };
+    img.onerror = reject;
+    img.src = blobUrl;
+  });
 }
 
 // ─── Public export — wrapped in Suspense (required for useSearchParams) ───────
