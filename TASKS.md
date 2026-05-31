@@ -414,7 +414,7 @@ demonstrates the moat to users in their first save.
 - On Capacitor: also listen to `Network.addListener('networkStatusChange')`
 
 ### E10 — In-App Tip Sheet: "Getting the most from TravelPanel"
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users don't know about substance extraction, vision mode, or clipboard import. A one-time contextual tip system (shown after the 3rd clip) dramatically increases feature discovery without being annoying onboarding.
 **Files**: new `components/TipSheet.tsx`, `app/inbox/page.tsx`
 **What to do**:

@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import TipSheet from '@/components/TipSheet';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -288,6 +289,7 @@ export default function InboxPage() {
         )}
       </AnimatePresence>
 
+      <TipSheet clipCount={items.length} />
       <NavBar active="inbox" />
     </div>
   );
