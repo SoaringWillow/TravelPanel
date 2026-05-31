@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
+import { AnalyticsProvider } from '@/components/AnalyticsProvider';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -24,6 +25,7 @@ export default function RootLayout({
       </head>
       <body>
         <CapacitorBridge />
+        <AnalyticsProvider />
         <ResourceBanner />
         <div className="min-h-screen">
           {children}

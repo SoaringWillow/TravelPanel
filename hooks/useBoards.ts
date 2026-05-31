@@ -8,6 +8,7 @@ import {
   addItemToBoard as dbAddItemToBoard,
   removeItemFromBoard as dbRemoveItemFromBoard,
 } from '@/lib/db';
+import { track } from '@/lib/analytics';
 
 export function useBoards() {
   const [boards, setBoards] = useState<Board[]>([]);
@@ -31,6 +32,7 @@ export function useBoards() {
       updatedAt: now,
     };
     await saveBoard(board);
+    track('board_created');
     setBoards((prev) => [board, ...prev]);
     return board;
   }, []);

@@ -46,7 +46,7 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 - After 3 failures, show a "Failed to extract info" state with a manual retry button
 
 ### A3 — Error Tracking (PostHog)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Needs**: `NEXT_PUBLIC_POSTHOG_KEY` env var (free tier) — but NOT a blocker; wrappers no-op without it  
 **Files to change**: `app/layout.tsx`, new `lib/analytics.ts`  
 **What to do**:

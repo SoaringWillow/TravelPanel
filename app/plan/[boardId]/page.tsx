@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X } from 'luc
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage } from '@/lib/types';
 import { getBoardById, getAllItems } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
+import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -62,6 +63,7 @@ export default function PlanPage() {
         `You've used all ${5} free plans today. More plans available in ${formatResetsIn(limit.resetsAt)}. ` +
         `Unlimited plans coming in Pro — stay tuned!`
       );
+      track('plan_limit_hit', { boardId });
       return;
     }
 
@@ -70,6 +72,7 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     recordPlanGeneration();
+    track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
     const res = await fetch('/api/plan', {
       method: 'POST',
