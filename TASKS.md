@@ -10,7 +10,7 @@
 ## PHASE A — Bug-Free MVP (Current Sprint)
 
 ### A1 — Substance Extraction (2-layer clip schema) 🔴 HIGHEST PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: This is the #1 strategic moat. Currently `api/import/route.ts` only extracts spots (locations + coordinates). It must ALSO extract substance: tips, warnings, opinions, "go in the morning"-style wisdom from the post content.  
 **File to change**: `app/api/import/route.ts`  
 **What to do**:
@@ -52,7 +52,7 @@
 - Log token usage per request to console in dev mode (foundation for cost tracking)
 
 ### A5 — In-App Resource Request Notifications
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `components/ResourceBanner.tsx`, new `app/api/notify/route.ts`  
 **What to do**:
 - Create a banner component that checks for missing env vars and shows what's needed

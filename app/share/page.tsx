@@ -72,6 +72,7 @@ function SharePageInner() {
       locations: [],
       activities: [],
       tags: [],
+      substance: [],
       savedAt: Date.now(),
       enrichmentStatus: 'pending',
       retryCount: 0,
@@ -104,6 +105,7 @@ function SharePageInner() {
           locations: data.locations,
           activities: data.activities,
           tags: data.tags,
+          substance: data.substance,
           platform: data.platform,
         });
         setEnrichedData(data);

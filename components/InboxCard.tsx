@@ -203,8 +203,8 @@ export default function InboxCard({
           </p>
         )}
 
-        {/* Meta row: location count + activity count */}
-        {(item.locations.length > 0 || item.activities.length > 0) && (
+        {/* Meta row: location count + activity count + substance count */}
+        {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0) && (
           <div className="flex items-center gap-3 mb-2">
             {item.locations.length > 0 && (
               <span className="text-xs text-gray-500 flex items-center gap-0.5">
@@ -215,6 +215,11 @@ export default function InboxCard({
             {item.activities.length > 0 && (
               <span className="text-xs text-gray-500">
                 🎯 {item.activities.length}
+              </span>
+            )}
+            {(item.substance?.length ?? 0) > 0 && (
+              <span className="text-xs text-amber-600 font-medium">
+                💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>

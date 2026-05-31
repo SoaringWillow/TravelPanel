@@ -1,3 +1,22 @@
+// ─── Substance (wisdom layer) ───────────────────────────────────────────────
+
+// The second extraction layer: the actual wisdom in a post, beyond the pin list.
+// e.g. "arrive before 8am", "cash-only", "skip the tourist menu", "free on Tuesdays"
+export type SubstanceType =
+  | 'tip'         // actionable advice
+  | 'warning'     // avoid / watch out
+  | 'opinion'     // subjective take from the author
+  | 'wisdom'      // broader knowledge ("cherry blossoms peak mid-April")
+  | 'context'     // background info that shapes the visit
+  | 'recommendation'; // explicit endorsement of something specific
+
+export interface SubstanceItem {
+  type: SubstanceType;
+  content: string;          // the extracted insight, 1–2 sentences max
+  applies_to?: string;      // spot name, season, or trip phase it relates to
+  source_quote?: string;    // verbatim fragment from the original post
+}
+
 // ─── Core geo/content types ────────────────────────────────────────────────
 
 export interface Location {
@@ -25,6 +44,7 @@ export interface SavedItem {
   locations: Location[];
   activities: string[];
   tags: string[];
+  substance: SubstanceItem[]; // wisdom layer — tips, warnings, opinions from the post
   savedAt: number;
   notes?: string;
   enrichmentStatus: EnrichmentStatus;
@@ -106,6 +126,7 @@ export interface ImportResult {
   locations: Location[];
   activities: string[];
   tags: string[];
+  substance: SubstanceItem[];
 }
 
 // NDJSON messages streamed from /api/plan
