@@ -118,6 +118,7 @@ export interface Trip {
   id: string;
   boardId: string;
   boardName: string;
+  name?: string; // user-facing variant name, e.g. "Relaxed pace"
   days: number;
   preferences: string;
   agentSteps: AgentStep[];

@@ -114,7 +114,7 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 - Both exports include source citations from substance items
 
 ### A10 — Multi-Version Plan Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Allow saving a named plan variant ("Relaxed pace", "Budget version")

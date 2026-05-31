@@ -4,14 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage } from '@/lib/types';
-import { getBoardById, getAllItems } from '@/lib/db';
+import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
+import PlanVersionBar from '@/components/PlanVersionBar';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -35,17 +36,24 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
+  const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       setLoadingBoard(true);
       try {
-        const [b, allItems] = await Promise.all([getBoardById(boardId), getAllItems()]);
+        const [b, allItems, trips] = await Promise.all([
+          getBoardById(boardId),
+          getAllItems(),
+          getTripsForBoard(boardId),
+        ]);
         if (b) {
           setBoard(b);
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
         }
+        setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
       } finally {
         setLoadingBoard(false);
       }
@@ -95,6 +103,12 @@ export default function PlanPage() {
 
     const reader = res.body.getReader();
     let buf = '';
+    let latestPlan: Partial<TripPlan> | null = null;
+    const collectedSteps: AgentStep[] = [];
+    const prefs = [
+      ...Array.from(selectedChips),
+      ...(customNotes.trim() ? [customNotes.trim()] : []),
+    ].join('. ');
 
     while (true) {
       const { done, value } = await reader.read();
@@ -107,18 +121,39 @@ export default function PlanPage() {
         try {
           const msg = JSON.parse(line) as PlanStreamMessage;
           if (msg.t === 'step') {
+            collectedSteps.push(msg.step);
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
             }
+            // Persist the finished plan as a new named variant.
+            if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              const trip: Trip = {
+                id: crypto.randomUUID(),
+                boardId,
+                boardName: board?.name ?? '',
+                name: `Plan ${savedTrips.length + 1}`,
+                days,
+                preferences: prefs,
+                agentSteps: collectedSteps,
+                plan: latestPlan as TripPlan,
+                createdAt: Date.now(),
+              };
+              await saveTrip(trip);
+              setSavedTrips((prev) => [...prev, trip]);
+              setCurrentTripId(trip.id);
+            }
           }
-          if (msg.t === 'plan') setPlan(msg.plan as Partial<TripPlan>);
+          if (msg.t === 'plan') {
+            latestPlan = msg.plan as Partial<TripPlan>;
+            setPlan(latestPlan);
+          }
         } catch {
           // skip bad lines
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes]);
+  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -148,6 +183,39 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  // Load a previously-saved plan variant into view.
+  const loadTrip = useCallback((trip: Trip) => {
+    if (!trip.plan) return;
+    setPlan(trip.plan);
+    setSteps(trip.agentSteps ?? []);
+    setDays(trip.days);
+    setActiveDayIndex(0);
+    setCurrentTripId(trip.id);
+    setStage('complete');
+  }, []);
+
+  const renameTrip = useCallback(async (tripId: string, name: string) => {
+    const trip = savedTrips.find((t) => t.id === tripId);
+    if (!trip) return;
+    const updated = { ...trip, name };
+    await saveTrip(updated);
+    setSavedTrips((prev) => prev.map((t) => (t.id === tripId ? updated : t)));
+  }, [savedTrips]);
+
+  const removeTrip = useCallback(async (tripId: string) => {
+    await deleteTrip(tripId);
+    setSavedTrips((prev) => prev.filter((t) => t.id !== tripId));
+    if (currentTripId === tripId) setCurrentTripId(null);
+  }, [currentTripId]);
+
+  // "New version" — return to config (keeping preferences) to generate a fresh variant.
+  const handleNewVersion = useCallback(() => {
+    setStage('idle');
+    setPlan(null);
+    setActiveDayIndex(0);
+    setCurrentTripId(null);
+  }, []);
 
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
@@ -305,6 +373,16 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* Previously-saved plan versions — tap to reopen */}
+              <PlanVersionBar
+                trips={savedTrips}
+                currentTripId={currentTripId}
+                onSelect={loadTrip}
+                onRename={renameTrip}
+                onDelete={removeTrip}
+                onNewVersion={handleNewVersion}
+              />
+
               {/* Generate button */}
               <button
                 onClick={generatePlan}
@@ -399,6 +477,16 @@ export default function PlanPage() {
                   </button>
                 </div>
               )}
+
+              {/* Saved plan versions */}
+              <PlanVersionBar
+                trips={savedTrips}
+                currentTripId={currentTripId}
+                onSelect={loadTrip}
+                onRename={renameTrip}
+                onDelete={removeTrip}
+                onNewVersion={handleNewVersion}
+              />
 
               {/* Day strip */}
               {plan.days && plan.days.length > 0 && (
