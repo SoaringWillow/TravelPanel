@@ -257,7 +257,7 @@ demonstrates the moat to users in their first save.
 - Handle schema mismatches gracefully (skip invalid records, log count)
 
 ### D6 — Trip Day Route Map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/RouteMapView.tsx`  
 **What to do**:
 - Add a "Map" tab next to the "Plan" tab in the trip planner view

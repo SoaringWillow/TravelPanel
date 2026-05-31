@@ -38,6 +38,7 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [planTab, setPlanTab] = useState<'plan' | 'map'>('plan');
 
   useEffect(() => {
     async function load() {
@@ -257,12 +258,15 @@ export default function PlanPage() {
     );
   }
 
+  // In map-tab full-screen mode, hide the text panel and fill the screen
+  const isMapFullscreen = stage === 'complete' && planTab === 'map';
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
-      {/* Top map section — always visible once stage != idle */}
+      {/* Top map section */}
       <div
-        className="relative flex-shrink-0 bg-gray-200"
-        style={{ height: stage === 'idle' ? '45vh' : '45vh' }}
+        className="relative flex-shrink-0 bg-gray-200 transition-all duration-300"
+        style={{ height: isMapFullscreen ? '100vh' : '45vh' }}
       >
         {stage === 'idle' ? (
           <MapView items={boardItems} onPinClick={() => {}} />
@@ -273,10 +277,44 @@ export default function PlanPage() {
             activeDayIndex={activeDayIndex}
           />
         )}
+
+        {/* Floating day strip + close button — only in full-screen map mode */}
+        {isMapFullscreen && plan?.days && plan.days.length > 0 && (
+          <div className="absolute bottom-4 left-0 right-0 z-10 px-4">
+            {/* Close map view */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setPlanTab('plan')}
+                className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-full shadow-md hover:bg-white transition-colors flex items-center gap-1.5"
+              >
+                ✕ Close map
+              </button>
+            </div>
+            {/* Day chips row */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+              {plan.days.map((day, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveDayIndex(idx)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md ${
+                    activeDayIndex === idx
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white'
+                  }`}
+                >
+                  Day {idx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Bottom scrollable panel */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+      {/* Bottom scrollable panel — hidden in full-screen map mode */}
+      <div
+        className="flex-1 overflow-y-auto transition-all duration-300"
+        style={{ minHeight: 0, display: isMapFullscreen ? 'none' : undefined }}
+      >
         <div className="px-4 pb-8 pt-4">
 
           {/* ── PRE-GENERATE STATE ── */}
@@ -429,6 +467,34 @@ export default function PlanPage() {
                 </button>
                 <span className="text-xl">{board.emoji}</span>
                 <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+              </div>
+
+              {/* Plan / Map tab toggle */}
+              <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPlanTab('plan')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    planTab === 'plan'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Route size={13} />
+                  Plan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlanTab('map')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    planTab === 'map'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <MapPin size={13} />
+                  Map
+                </button>
               </div>
 
               {/* Overview */}
