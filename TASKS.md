@@ -228,7 +228,7 @@ demonstrates the moat to users in their first save.
 - Empty state: if no substance, just show the locations (current behaviour)
 
 ### D3 — Clip Edit & Notes
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
 - Add an Edit button (pencil icon) to LocationDetailCard

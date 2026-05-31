@@ -100,3 +100,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 12:32 | 6a3951c | feat(B3): Claude Vision extraction for Xiaohongshu and blocked platforms
 2026-05-31 12:34 | f4fbe8a | feat(B5): settings page with full JSON backup export + Settings nav tab
 2026-05-31 12:37 | 75d1dc1 | chore: add Phase D — iOS App Polish tasks (D1-D10)
+2026-05-31 12:39 | a9da62c | feat(D1+D2): clipboard import banner + substance preview on done screen
