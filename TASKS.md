@@ -237,7 +237,7 @@ demonstrates the moat to users in their first save.
 - `SavedItem.notes` is already in the type schema — just needs UI
 
 ### D4 — Map: Filter Pins by Board
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`, `app/page.tsx`  
 **What to do**:
 - Add a horizontally-scrollable board chip row above the map (or as a floating pill bar)

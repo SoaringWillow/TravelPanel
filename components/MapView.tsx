@@ -80,6 +80,36 @@ function MapController({ flyTo }: MapControllerProps) {
   return null;
 }
 
+// ─── BoundsController: fits map to a set of items when they change ────────────
+
+function BoundsController({ items }: { items?: SavedItem[] }) {
+  const { current: map } = useMap();
+  const prevKeyRef = useRef('');
+
+  useEffect(() => {
+    if (!items || !map) return;
+    const key = items.map((i) => i.id).join(',');
+    if (key === prevKeyRef.current) return;
+    prevKeyRef.current = key;
+
+    const coords = items.flatMap((i) =>
+      i.locations
+        .filter((l) => Number.isFinite(l.lat) && Number.isFinite(l.lng))
+        .map((l) => ({ lng: l.lng, lat: l.lat }))
+    );
+    if (coords.length === 0) return;
+
+    const lngs = coords.map((c) => c.lng);
+    const lats = coords.map((c) => c.lat);
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 80, maxZoom: 13, duration: 1200 }
+    );
+  }, [items, map]);
+
+  return null;
+}
+
 // ─── Pin component ───────────────────────────────────────────────────────────
 
 interface PinProps {
@@ -230,9 +260,10 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  fitBoundsItems?: SavedItem[];
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, fitBoundsItems }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -281,6 +312,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         <NavigationControl position="top-right" />
 
         <MapController flyTo={flyTo} />
+        <BoundsController items={fitBoundsItems} />
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;

@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { SavedItem, Location } from '@/lib/types';
+import { SavedItem, Location, Board } from '@/lib/types';
+import { getAllBoards } from '@/lib/db';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -19,10 +20,18 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
-  const [showImport, setShowImport]     = useState(false);
-  const [prefilledUrl, setPrefilledUrl] = useState('');
-  const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
-  const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [showImport, setShowImport]         = useState(false);
+  const [prefilledUrl, setPrefilledUrl]     = useState('');
+  const [selectedItem, setSelectedItem]     = useState<SavedItem | null>(null);
+  const [flyTo, setFlyTo]                   = useState<Location | undefined>(undefined);
+  const [boards, setBoards]                 = useState<Board[]>([]);
+  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getAllBoards()
+      .then((b) => setBoards(b.filter((board) => !board.isDemo)))
+      .catch(() => {});
+  }, []);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -69,20 +78,65 @@ function HomePageInner() {
     setPrefilledUrl('');
   }
 
+  const filteredItems = selectedBoardId
+    ? items.filter((i) => i.boardId === selectedBoardId)
+    : items;
+
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={filteredItems}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        fitBoundsItems={selectedBoardId ? filteredItems : undefined}
+      />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 space-y-2">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
           <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+            {loading
+              ? 'Loading…'
+              : selectedBoardId
+              ? `${filteredItems.length} / ${items.length}`
+              : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
           </div>
         </div>
+
+        {/* Board filter chips — only shown when there are real boards */}
+        {boards.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+            {/* All chip */}
+            <button
+              type="button"
+              onClick={() => setSelectedBoardId(null)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                selectedBoardId === null
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-white/90 text-gray-600 backdrop-blur-sm shadow hover:bg-white'
+              }`}
+            >
+              All
+            </button>
+            {boards.map((board) => (
+              <button
+                key={board.id}
+                type="button"
+                onClick={() => setSelectedBoardId(board.id === selectedBoardId ? null : board.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                  selectedBoardId === board.id
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-white/90 text-gray-600 backdrop-blur-sm shadow hover:bg-white'
+                }`}
+              >
+                {board.emoji} {board.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Clipboard URL banner */}
