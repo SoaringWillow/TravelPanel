@@ -97,8 +97,10 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -108,16 +110,19 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Skip URL fetch for image-only requests (e.g. Xiaohongshu screenshots) but
+  // still attempt it so text context supplements the image when available.
+  const page = imageBase64 ? null : await fetchPageData(url);
+
+  const basePrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? imageBase64 ? '(screenshot provided — use the image as primary source)' : '(could not fetch page)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -142,12 +147,31 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: image is the primary source (e.g. Xiaohongshu anti-scraping)
+      const mime = (imageMimeType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: basePrompt },
+              { type: 'image', image: Buffer.from(imageBase64, 'base64'), mimeType: mime },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: basePrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -29,6 +29,10 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotB64, setScreenshotB64]     = useState<string | null>(null);
+  const [screenshotMime, setScreenshotMime]   = useState<string>('image/jpeg');
+  const [screenshotName, setScreenshotName]   = useState<string>('');
+  const screenshotInputRef                    = useRef<HTMLInputElement | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -49,9 +53,23 @@ function SharePageInner() {
     };
   }, [stage]);
 
-  const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
+  const platform      = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
+  const isXhs         = platform === 'xiaohongshu';
+
+  const handleScreenshot = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const [header, b64] = dataUrl.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+      setScreenshotB64(b64);
+      setScreenshotMime(mime);
+      setScreenshotName(file.name);
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   // Most-recently-updated 5 boards for quick-pick
   const recentBoards = [...boards]
@@ -88,9 +106,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot for Xiaohongshu vision path
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotB64 ?? undefined, screenshotB64 ? screenshotMime : undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +182,50 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Xiaohongshu screenshot hint */}
+          {isXhs && (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                <Camera size={12} />
+                Xiaohongshu blocks link fetching — add a screenshot for better extraction
+              </p>
+              {screenshotB64 ? (
+                <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl">
+                  <Camera size={14} className="text-indigo-500 flex-shrink-0" />
+                  <span className="text-sm text-indigo-700 flex-1 truncate">{screenshotName}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setScreenshotB64(null); setScreenshotName(''); }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => screenshotInputRef.current?.click()}
+                  disabled={stage === 'saving'}
+                  className="w-full py-2 rounded-xl border-2 border-dashed border-amber-300 text-amber-600 text-sm font-medium hover:bg-amber-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Camera size={15} />
+                  Upload screenshot
+                </button>
+              )}
+              <input
+                ref={screenshotInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleScreenshot(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
           )}
         </div>
 
