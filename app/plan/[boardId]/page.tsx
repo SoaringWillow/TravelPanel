@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Copy, Check } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -39,6 +39,7 @@ export default function PlanPage() {
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [planTab, setPlanTab] = useState<'plan' | 'map'>('plan');
+  const [copyDone, setCopyDone] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -184,6 +185,45 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  const handleCopyText = useCallback(async () => {
+    if (!planIsComplete(plan)) return;
+    const lines: string[] = [];
+    if (plan.overview) { lines.push(plan.overview); lines.push(''); }
+    for (const day of plan.days) {
+      lines.push(`Day ${day.day}${day.theme ? ` — ${day.theme}` : ''}`);
+      for (const a of day.activities) {
+        lines.push(`  ${a.time}  ${a.location.name} — ${a.name} (${a.duration})`);
+        for (const tip of (a.tips ?? []).slice(0, 2)) {
+          lines.push(`    · ${tip}`);
+        }
+        for (const st of (a.sourcedTips ?? [])) {
+          lines.push(`    💡 ${st.content} [from "${st.sourceTitle}"]`);
+        }
+      }
+      lines.push('');
+    }
+    if (plan.tips?.length) {
+      lines.push('Trip Tips:');
+      for (const tip of plan.tips) lines.push(`  · ${tip}`);
+    }
+    const text = lines.join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback: select from textarea
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setCopyDone(true);
+    track('plan_exported', { format: 'text', boardId });
+    setTimeout(() => setCopyDone(false), 2000);
+  }, [plan, boardId]);
 
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
@@ -532,14 +572,25 @@ export default function PlanPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleCopyText}
+                    className={`flex-1 flex items-center justify-center gap-1.5 border text-xs font-medium py-2 rounded-xl active:scale-[0.98] transition-all ${
+                      copyDone
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {copyDone ? <Check size={14} /> : <Copy size={14} />}
+                    {copyDone ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
               )}

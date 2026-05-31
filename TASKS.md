@@ -359,7 +359,7 @@ demonstrates the moat to users in their first save.
 - Only show demo seed boards in onboarding, not as the permanent empty state
 
 ### E5 — Trip Plan: Copy as Text + Share
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users want to share itineraries with travel companions via iMessage/WhatsApp. Currently the only share options are PDF and ICS. A plain-text copy button covers the most common use case.
 **Files**: `app/plan/[boardId]/page.tsx`
 **What to do**:
