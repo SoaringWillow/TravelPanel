@@ -195,6 +195,137 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS App Polish (Beautiful + Fully Functional)
+
+> Goal: Ship a beautiful, fully-functional iOS app that earns 5 stars.
+> Priority order: D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10
+
+### D1 — Clipboard Import 🔴 HIGHEST PRIORITY (North Star driver)
+**Status**: `[ ]` Not started  
+**Why**: Weekly clips per active user is the North Star. Clipboard import eliminates friction for
+every platform that doesn't support the Share Sheet — the user copies the URL anywhere, opens the
+app, and a one-tap banner captures it. This alone increases clip volume.  
+**Files**: `components/CapacitorBridge.tsx`, `app/page.tsx`  
+**What to do**:
+- On app focus (`App.addListener('appStateChange')`) check clipboard via `@capacitor/clipboard`
+- If clipboard contains a URL that hasn't been saved (check against recent items in IndexedDB), show
+  a dismissible banner at the top of the home screen: "📋 Found link: [domain] — Save to TravelPanel?"
+- Tapping "Save" navigates to `/share?url=...` with the URL pre-filled
+- Dismiss stores the URL in localStorage so the same URL isn't re-prompted
+- Web fallback: use `navigator.clipboard.readText()` with permission check (no-op on deny)
+
+### D2 — Substance Preview on Done Screen 🔴 HIGH PRIORITY  
+**Status**: `[ ]` Not started  
+**Why**: The done screen currently shows "X locations found" but drops the substance layer on the
+floor. Showing 2–3 substance items immediately makes the save feel more valuable — directly
+demonstrates the moat to users in their first save.  
+**Files**: `app/share/page.tsx`  
+**What to do**:
+- In the done stage, once enrichedData is available, render the first 2–3 substance items below the
+  location list using the SubstanceList component (or inline icons + content)
+- Animate each item in with a 100ms stagger as they arrive
+- Icon per type: tip💡 warning⚠️ opinion💬 wisdom🧠 context🌍 recommendation⭐
+- Empty state: if no substance, just show the locations (current behaviour)
+
+### D3 — Clip Edit & Notes
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an Edit button (pencil icon) to LocationDetailCard
+- Open an edit bottom sheet with fields: title (text input), notes (textarea), board selector (picker)
+- On save: write updated title/notes/boardId back to IndexedDB via a new `updateItem()` helper in db.ts
+- `SavedItem.notes` is already in the type schema — just needs UI
+
+### D4 — Map: Filter Pins by Board
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add a horizontally-scrollable board chip row above the map (or as a floating pill bar)
+- "All" chip shows every pin (default); tapping a board chip filters to that board's items only
+- Filtered state: auto-fit map bounds to visible pins (`fitBounds`)
+- Chip row is hidden when there are no boards (empty state)
+- Pair with the board detail "View on map" button that sets the filter
+
+### D5 — Restore from Backup JSON
+**Status**: `[ ]` Not started  
+**Files**: `app/settings/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Add "Restore backup" section to settings page (below the download section)
+- File input that accepts `.json` — validate the `_meta.version` field
+- Parse items/boards/trips; skip records whose `id` already exists in IndexedDB (merge, not replace)
+- Show progress: "Restoring… 47 / 120 clips" then "✓ Restored 83 new clips, skipped 37 duplicates"
+- Handle schema mismatches gracefully (skip invalid records, log count)
+
+### D6 — Trip Day Route Map
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/RouteMapView.tsx`  
+**What to do**:
+- Add a "Map" tab next to the "Plan" tab in the trip planner view
+- RouteMapView already exists — wire it to the selected day's activities
+- Show numbered markers in visit order with lines connecting them
+- Tapping a marker shows the activity name + time
+- Default view: show all days at once; Day selector filters to one day's route
+
+### D7 — Dark Mode
+**Status**: `[ ]` Not started  
+**Files**: `app/globals.css`, `app/layout.tsx`, Tailwind config  
+**What to do**:
+- Enable Tailwind `darkMode: 'class'` strategy
+- Add `dark:` variants to all pages and components (start with home, inbox, boards, plan, share)
+- Persist preference in localStorage; toggle button in settings page
+- Match iOS system dark mode on native via a `prefers-color-scheme` listener on app focus
+- Map tiles: switch to a dark MapLibre style (`https://tiles.openfreemap.org/styles/liberty` has a dark variant)
+
+### D8 — Haptic Feedback
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, `components/InboxCard.tsx`, `lib/haptics.ts` (new)  
+**Needs**: `@capacitor/haptics` (already in deps)  
+**What to do**:
+- Create `lib/haptics.ts` with `tapLight()`, `tapMedium()`, `tapSuccess()` wrappers that no-op in browser
+- Tap light: board chip selection on share screen
+- Tap medium: save button press
+- Tap success (notification): done screen CheckCircle animation
+- Long-press medium: Edit action on cards
+
+### D9 — App Icon & Splash Screen Config
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/Assets.xcassets/`, `capacitor.config.ts`  
+**What to do**:
+- Design the TravelPanel icon: blue rounded square with white location pin (same as browser extension SVG)
+- Generate all required iOS sizes (20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024) using `sharp`
+- Update `capacitor.config.ts` SplashScreen plugin config: backgroundColor `#2563EB`, showDuration 1500
+- Add a launch screen storyboard or use Capacitor's built-in splash: blue background + white pin
+- Run `npx cap sync ios` to apply
+
+### D10 — Supabase Sign-In UI Surface
+**Status**: `[ ]` Not started (no-op until keys; pairs with B1)  
+**Files**: `app/settings/page.tsx`, new `components/AuthCard.tsx`  
+**What to do**:
+- In settings page, add a "Cloud Sync" section
+- If `cloudEnabled` (from `lib/supabase.ts`) is false: show a grey "Sign in to sync ☁️" teaser card
+  with copy "Sign in to back up your clips and access them on any device"
+- If keys are present but user not signed in: show an active "Sign in" button (magic link email flow)
+- If signed in: show email + "Sign out" + last sync time
+- No active code runs until Supabase keys are set (same no-op pattern as PostHog A3)
+
+---
+
+## PHASE C — On-Trip Mode (Future)
+
+### C1 — On-Trip GPS Mode
+**Status**: `[ ]` Not started
+
+### C2 — Post-Trip Timeline
+**Status**: `[ ]` Not started
+
+### C3 — Shared Boards v1
+**Status**: `[ ]` Not started
+
+### C4 — Proactive Resurfacing
+**Status**: `[ ]` Not started
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
