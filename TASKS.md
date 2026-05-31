@@ -352,7 +352,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Overlay the board name + emoji in a gradient footer at the bottom of the card
 
 ### E6 — Swipe-to-Delete on Inbox Cards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Deleting a clip requires tapping the card to open a menu. Mobile-native UX expects swipe-left-to-delete.
 **Files to change**: `components/InboxCard.tsx`
 **What to do**:

@@ -1,8 +1,13 @@
 'use client';
 
+import { useRef, useState, useCallback } from 'react';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { taptic } from '@/lib/haptics';
+
+const SWIPE_THRESHOLD = 72; // px to reveal delete zone
+const DELETE_SNAP    = 0.5; // fraction of card width to snap-delete
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +45,37 @@ export default function InboxCard({
   onRetry,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
+
+  // Swipe-to-delete state (hooks must be declared before any early returns)
+  const swipeStart = useRef(0);
+  const swiping    = useRef(false);
+  const cardRef    = useRef<HTMLDivElement>(null);
+  const [swipeX, setSwipeX] = useState(0);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    swipeStart.current = e.touches[0].clientX;
+    swiping.current    = true;
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!swiping.current) return;
+    const delta = e.touches[0].clientX - swipeStart.current;
+    if (delta >= 0) { setSwipeX(0); return; }
+    const clamped = Math.max(delta, -(cardRef.current?.offsetWidth ?? 300) * 0.75);
+    setSwipeX(clamped);
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    if (!swiping.current) return;
+    swiping.current = false;
+    const cardW = cardRef.current?.offsetWidth ?? 300;
+    if (-swipeX >= cardW * DELETE_SNAP) {
+      taptic('success');
+      onDelete(item.id);
+    } else {
+      setSwipeX(0);
+    }
+  }, [swipeX, item.id, onDelete]);
 
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
@@ -181,7 +217,7 @@ export default function InboxCard({
     );
   }
 
-  // ── Done state (full card) ────────────────────────────────────────────────
+  // ── Done state (full card, with swipe-to-delete) ─────────────────────────
 
   const date = new Date(item.savedAt).toLocaleDateString(undefined, {
     month: 'short',
@@ -189,7 +225,24 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* Red delete zone revealed behind the card */}
+      <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-2xl">
+        <Trash2 size={22} className="text-white" />
+      </div>
+
+      {/* Swipeable card */}
+      <div
+        ref={cardRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${swipeX}px)`,
+          transition: swiping.current ? 'none' : 'transform 0.25s ease',
+        }}
+        className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+      >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -311,6 +364,7 @@ export default function InboxCard({
           </div>
         </div>
       </div>
-    </div>
+      </div> {/* end swipeable card */}
+    </div>   {/* end outer swipe container */}
   );
 }
