@@ -81,12 +81,76 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Vision extraction (image payload path) ──────────────────────────────────
+
+async function extractViaVision(
+  imageData: string,
+  imageMimeType: string,
+  url: string,
+  platform: string,
+): Promise<z.infer<typeof importSchema> | null> {
+  try {
+    const { object } = await generateObject({
+      model: models.enrichment,
+      schema: importSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: imageData,
+              mimeType: imageMimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+            },
+            {
+              type: 'text',
+              text: `You are a travel content analyzer. This screenshot is from ${PLATFORM_LABELS[platform] ?? platform} (URL: ${url}).
+
+Extract TWO layers:
+
+## Layer 1 — Spots (geographic skeleton)
+Real identifiable locations with GPS coordinates you are confident about.
+Empty array if no specific named places are visible.
+
+## Layer 2 — Substance (the wisdom — MOST IMPORTANT)
+Every actionable insight, tip, warning, opinion from the visible text/content:
+- "Arrive before 8am to beat crowds" → tip
+- "Cash only, no ATM nearby" → warning
+- "Skip the tourist version" → recommendation
+- "Overrated for the price" → opinion
+- "Typhoon season August" → context
+
+For list-format posts, extract ALL items. Never return empty substance for a real travel post.`,
+            },
+          ],
+        },
+      ],
+    });
+    return object;
+  } catch {
+    return null;
+  }
+}
+
+// Platforms whose pages return empty or anti-scraped content
+const BLOCKED_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
+const PLATFORM_LABELS: Record<string, string> = {
+  wechat: 'WeChat',
+  xiaohongshu: 'Little Red Book (Xiaohongshu)',
+  douyin: 'Douyin / TikTok',
+  bilibili: 'Bilibili',
+  other: 'Web',
+};
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageData: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageData, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -94,6 +158,11 @@ export async function POST(req: NextRequest) {
   if (!url || typeof url !== 'string') {
     return NextResponse.json({ error: 'URL required' }, { status: 400 });
   }
+
+  // Sanitise optional image fields
+  if (imageData && typeof imageData !== 'string') imageData = undefined;
+  if (imageMimeType && typeof imageMimeType !== 'string') imageMimeType = undefined;
+  const resolvedMime = imageMimeType ?? 'image/jpeg';
 
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
@@ -128,16 +197,35 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  // Choose extraction strategy:
+  // 1. If image provided AND (platform is blocked OR text scraping returned nothing) → Vision
+  // 2. Otherwise → text-based extraction
+  // 3. If text extraction fails and image is available → Vision as fallback
+  const textIsEmpty = !page?.title && !page?.description && !page?.textContent?.trim();
+  const preferVision = !!imageData && (BLOCKED_PLATFORMS.has(platform) || textIsEmpty);
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+
+  if (preferVision && imageData) {
+    claudeResult = await extractViaVision(imageData, resolvedMime, url, platform);
+  }
+
+  if (!claudeResult) {
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to Vision fallback
+    }
+  }
+
+  // Vision fallback: if text extraction failed and we have an image we haven't tried yet
+  if (!claudeResult && imageData && !preferVision) {
+    claudeResult = await extractViaVision(imageData, resolvedMime, url, platform);
   }
 
   const result: ImportResult = {
