@@ -98,3 +98,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
 2026-05-31 12:26 | 49ff730 | feat(B2): add Chrome/Safari browser extension for one-click travel clipping
 2026-05-31 12:32 | 6a3951c | feat(B3): Claude Vision extraction for Xiaohongshu and blocked platforms
+2026-05-31 12:34 | f4fbe8a | feat(B5): settings page with full JSON backup export + Settings nav tab
+2026-05-31 12:37 | 75d1dc1 | chore: add Phase D — iOS App Polish tasks (D1-D10)

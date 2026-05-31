@@ -14,6 +14,15 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 type Stage = 'picking' | 'saving' | 'done';
 
+const SUBSTANCE_ICONS: Record<string, string> = {
+  tip:            '💡',
+  warning:        '⚠️',
+  opinion:        '💬',
+  wisdom:         '🧠',
+  context:        '🌍',
+  recommendation: '⭐',
+};
+
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function SharePageInner() {
@@ -381,27 +390,59 @@ function SharePageInner() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.35 }}
-          className="w-full"
+          className="w-full space-y-2"
         >
           {enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+              <span className="text-sm animate-pulse">🔍 Extracting locations & wisdom…</span>
             </div>
-          ) : enrichedData && enrichedData.locations.length > 0 ? (
-            <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
-              <p className="text-sm font-semibold text-indigo-700">
-                📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
-              </p>
-              {enrichedData.locations.map((loc, i) => (
-                <p key={i} className="text-sm text-indigo-600">
-                  {loc.name}
-                </p>
-              ))}
-            </div>
-          ) : enrichedData && enrichedData.locations.length === 0 ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3">
-              <p className="text-sm text-gray-500">No specific locations detected</p>
-            </div>
+          ) : enrichedData ? (
+            <>
+              {/* Locations */}
+              {enrichedData.locations.length > 0 && (
+                <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
+                  <p className="text-sm font-semibold text-indigo-700">
+                    📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
+                  </p>
+                  {enrichedData.locations.map((loc, i) => (
+                    <p key={i} className="text-sm text-indigo-600">{loc.name}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Substance preview — show first 3 items with stagger */}
+              {enrichedData.substance && enrichedData.substance.length > 0 && (
+                <div className="bg-amber-50 rounded-2xl px-4 py-3 space-y-2">
+                  <p className="text-sm font-semibold text-amber-800">
+                    {SUBSTANCE_ICONS['wisdom']} {enrichedData.substance.length} wisdom item{enrichedData.substance.length !== 1 ? 's' : ''} extracted
+                  </p>
+                  {enrichedData.substance.slice(0, 3).map((s, i) => (
+                    <motion.p
+                      key={i}
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.45 + i * 0.1 }}
+                      className="text-xs text-amber-900 leading-relaxed flex gap-1.5 items-start"
+                    >
+                      <span className="flex-shrink-0 mt-0.5">{SUBSTANCE_ICONS[s.type] ?? '💡'}</span>
+                      {s.content}
+                    </motion.p>
+                  ))}
+                  {enrichedData.substance.length > 3 && (
+                    <p className="text-xs text-amber-600 font-medium">
+                      + {enrichedData.substance.length - 3} more…
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {enrichedData.locations.length === 0 && (!enrichedData.substance || enrichedData.substance.length === 0) && (
+                <div className="bg-gray-50 rounded-2xl px-4 py-3">
+                  <p className="text-sm text-gray-500">No locations or tips detected</p>
+                </div>
+              )}
+            </>
           ) : null}
         </motion.div>
 

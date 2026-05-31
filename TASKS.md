@@ -201,7 +201,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Priority order: D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10
 
 ### D1 — Clipboard Import 🔴 HIGHEST PRIORITY (North Star driver)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Weekly clips per active user is the North Star. Clipboard import eliminates friction for
 every platform that doesn't support the Share Sheet — the user copies the URL anywhere, opens the
 app, and a one-tap banner captures it. This alone increases clip volume.  
@@ -215,7 +215,7 @@ app, and a one-tap banner captures it. This alone increases clip volume.
 - Web fallback: use `navigator.clipboard.readText()` with permission check (no-op on deny)
 
 ### D2 — Substance Preview on Done Screen 🔴 HIGH PRIORITY  
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The done screen currently shows "X locations found" but drops the substance layer on the
 floor. Showing 2–3 substance items immediately makes the save feel more valuable — directly
 demonstrates the moat to users in their first save.  

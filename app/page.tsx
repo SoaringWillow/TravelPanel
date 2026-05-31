@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { ClipboardBanner } from '@/components/ClipboardBanner';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -83,6 +84,9 @@ function HomePageInner() {
           </div>
         </div>
       </div>
+
+      {/* Clipboard URL banner */}
+      <ClipboardBanner />
 
       {/* Selected item detail card */}
       <AnimatePresence>
