@@ -83,9 +83,10 @@ function SharePageInner() {
     setCapturedImage({ base64, mimeType: 'image/jpeg' });
   }
 
-  // Auto-dismiss when done
+  // Auto-dismiss when done + fire confetti
   useEffect(() => {
     if (stage === 'done') {
+      import('@/lib/confetti').then(({ fireConfetti }) => fireConfetti()).catch(() => {});
       dismissTimerRef.current = setTimeout(() => {
         window.history.back();
       }, 3000);
@@ -365,13 +366,13 @@ function SharePageInner() {
     <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
       {/* Success content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12">
-        {/* Animated green checkmark */}
+        {/* Animated checkmark — spring pop: 0 → 1.25 → 1 */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', damping: 14, stiffness: 280, delay: 0.05 }}
+          animate={{ scale: [0, 1.25, 1], opacity: 1 }}
+          transition={{ type: 'spring', damping: 10, stiffness: 300, delay: 0.05 }}
         >
-          <CheckCircle2 size={72} className="text-green-500" strokeWidth={1.5} />
+          <CheckCircle2 size={72} className="text-indigo-500" strokeWidth={1.5} />
         </motion.div>
 
         <motion.div

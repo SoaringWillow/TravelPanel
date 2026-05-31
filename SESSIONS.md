@@ -111,3 +111,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 12:55 | d875b53 | D10: Supabase sign-in UI surface in settings (no-op until keys)
 2026-05-31 12:57 | 405390a | Add Phase E tasks: premium polish & retention sprint (E1-E10)
 2026-05-31 12:57 | bba1d50 | E1: Substance preview on InboxCard — moat made visible
+2026-05-31 12:58 | 08f016f | E2: Board card cover collage — Pinterest-style 2x2 thumbnail grid
