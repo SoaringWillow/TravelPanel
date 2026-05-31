@@ -288,7 +288,7 @@ demonstrates the moat to users in their first save.
 - Long-press medium: Edit action on cards
 
 ### D9 — App Icon & Splash Screen Config
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Assets.xcassets/`, `capacitor.config.ts`  
 **What to do**:
 - Design the TravelPanel icon: blue rounded square with white location pin (same as browser extension SVG)
