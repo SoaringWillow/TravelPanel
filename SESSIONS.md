@@ -111,3 +111,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 21:00 | 16fa5ea | feat(E2): keyboard-aware input handling for iOS
 2026-05-31 21:01 | 2421a63 | feat(E4,E5): source URL button and board thumbnail grid
 2026-05-31 21:02 | 506bde0 | feat(E6): swipe-to-delete gesture on InboxCard
+2026-05-31 21:04 | 52122e9 | feat(E3): 3-step onboarding tour overlay on first launch
