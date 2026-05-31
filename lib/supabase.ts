@@ -79,6 +79,6 @@ export async function getSession(): Promise<Session | null> {
 export async function onAuthChange(cb: (session: Session | null) => void): Promise<() => void> {
   const sb = await getClient();
   if (!sb) return () => {};
-  const { data } = sb.auth.onAuthStateChange((_event, session) => cb(session));
+  const { data } = sb.auth.onAuthStateChange((_event: string, session: Session | null) => cb(session));
   return () => data.subscription.unsubscribe();
 }
