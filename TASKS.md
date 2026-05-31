@@ -149,9 +149,16 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 ## PHASE B — Cloud Sync + Auth (Next Sprint)
 
 ### B1 — Supabase Setup
-**Status**: `[ ]` Not started  
-**Needs**: `SUPABASE_URL` + `SUPABASE_ANON_KEY` env vars (request from user)  
-**What to do**: Auth (magic link + Google OAuth), Postgres schema mirroring IndexedDB, cloud sync
+**Status**: `[~]` Scaffolded, dormant until keys  
+**Needs**: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (request from user)  
+**Done** (no-op-until-keyed, same pattern as PostHog A3 — activates the moment keys are pasted):
+- `lib/supabase.ts` — lazy client + auth (magic link, Google OAuth, session, auth-change sub); `cloudEnabled` flag
+- `supabase/schema.sql` — Postgres mirror of IndexedDB (items/boards/trips as JSONB) + per-user RLS + indexes
+- `lib/cloudSync.ts` — `pushToCloud`/`pullFromCloud`/`syncNow`, last-write-wins, demo content excluded
+- `.env.local.example` — documents the two Supabase vars
+- `@supabase/supabase-js` added to deps + lockfile
+**Remaining to fully activate** (next session, once keys exist): create Supabase project, run `schema.sql`,
+add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
 **Status**: `[ ]` Not started  
