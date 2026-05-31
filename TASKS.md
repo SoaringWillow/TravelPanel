@@ -267,7 +267,7 @@ demonstrates the moat to users in their first save.
 - Default view: show all days at once; Day selector filters to one day's route
 
 ### D7 — Dark Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/globals.css`, `app/layout.tsx`, Tailwind config  
 **What to do**:
 - Enable Tailwind `darkMode: 'class'` strategy

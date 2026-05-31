@@ -103,3 +103,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 12:39 | a9da62c | feat(D1+D2): clipboard import banner + substance preview on done screen
 2026-05-31 12:40 | d41d31f | feat(D3): clip edit & notes — pencil icon opens inline edit sheet
 2026-05-31 12:42 | 2b2b44b | feat(D4): map board filter chips + fitBounds on selection
+2026-05-31 12:43 | aa4b339 | feat(D5): restore from backup JSON in settings page
+2026-05-31 12:47 | 835df77 | D6: Add Plan/Map tab toggle in trip planner complete view

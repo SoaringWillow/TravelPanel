@@ -10,8 +10,12 @@ import {
   Route,
   CheckCircle2,
   AlertCircle,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import NavBar from '@/components/NavBar';
+import { useTheme } from '@/components/ThemeProvider';
 import { getAllItems, getAllBoards, getAllTrips, saveItem, saveBoard, saveTrip } from '@/lib/db';
 import { SavedItem, Board, Trip } from '@/lib/types';
 import { track } from '@/lib/analytics';
@@ -142,6 +146,7 @@ export default function SettingsPage() {
   const [exportState,   setExportState]   = useState<ExportState>('idle');
   const [restoreState,  setRestoreState]  = useState<RestoreState>('idle');
   const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     async function loadStats() {
@@ -386,6 +391,37 @@ export default function SettingsPage() {
                 )}
               </motion.div>
             )}
+          </div>
+        </section>
+
+        {/* Appearance section */}
+        <section>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
+            Appearance
+          </p>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <p className="text-xs text-gray-500 mb-3">Color theme</p>
+            <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+              {([
+                { value: 'light',  icon: Sun,     label: 'Light'  },
+                { value: 'system', icon: Monitor, label: 'System' },
+                { value: 'dark',   icon: Moon,    label: 'Dark'   },
+              ] as const).map(({ value, icon: Icon, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    theme === value
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Icon size={13} />
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
