@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { EnrichOptions } from '@/lib/enrichItem';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,12 +30,30 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
+  const [screenshotMime, setScreenshotMime]   = useState<string>('image/jpeg');
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Check for image passed from the native Share Extension via sessionStorage.
+  // CapacitorBridge stores it under 'pendingShareImageBase64' before routing here.
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImageBase64');
+      if (stored) {
+        setScreenshotBase64(stored);
+        setScreenshotMime(sessionStorage.getItem('pendingShareImageMime') ?? 'image/jpeg');
+        sessionStorage.removeItem('pendingShareImageBase64');
+        sessionStorage.removeItem('pendingShareImageMime');
+      }
+    } catch {
+      // sessionStorage unavailable (e.g., private browsing restrictions)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +107,12 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (needed for blocked platforms)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const enrichOpts: EnrichOptions | undefined = screenshotBase64
+      ? { imageBase64: screenshotBase64, imageMimeType: screenshotMime }
+      : undefined;
+    enrichItem(itemId, rawUrl, enrichOpts)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -139,6 +161,24 @@ function SharePageInner() {
     await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
   }
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  // Platforms whose pages can't be scraped — screenshot is the only way to get content
+  const isBlockedPlatform = platform === 'xiaohongshu' || platform === 'wechat' || platform === 'douyin';
+
+  function handleScreenshotChange(e: { target: HTMLInputElement }) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // Strip the data URL prefix — API route accepts raw base64 or full data URL
+      setScreenshotBase64(dataUrl);
+      setScreenshotMime(file.type || 'image/jpeg');
+    };
+    reader.readAsDataURL(file);
+  }
+
   // ── Stage: picking ────────────────────────────────────────────────────────
 
   if (stage === 'picking' || stage === 'saving') {
@@ -164,6 +204,44 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot prompt for blocked platforms */}
+          {isBlockedPlatform && (
+            <div className="mt-2">
+              {screenshotBase64 ? (
+                <div className="flex items-center gap-2 bg-green-50 rounded-xl px-3 py-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={screenshotBase64} alt="screenshot" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-green-700">Screenshot attached</p>
+                    <p className="text-xs text-green-600">AI will analyze the image directly</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setScreenshotBase64(null)}
+                    className="text-green-400 hover:text-green-600 text-lg leading-none flex-shrink-0"
+                    aria-label="Remove screenshot"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 bg-amber-50 border border-dashed border-amber-300 rounded-xl px-3 py-2.5 cursor-pointer hover:bg-amber-100 transition-colors">
+                  <span className="text-amber-500 text-base flex-shrink-0">📷</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-amber-700">Attach a screenshot</p>
+                    <p className="text-xs text-amber-600">{PLATFORM_LABELS[platform]} blocks scraping — a screenshot lets AI extract more</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleScreenshotChange}
+                  />
+                </label>
+              )}
+            </div>
           )}
         </div>
 
