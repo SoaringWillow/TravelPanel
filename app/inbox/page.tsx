@@ -97,13 +97,13 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:shadow-none px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <h1 className="text-xl font-bold text-gray-800 dark:text-white">Inbox</h1>
+          <span className="ml-auto bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
         </div>
@@ -132,7 +132,7 @@ export default function InboxPage() {
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
                 }`}
               >
                 {p.label} ({count})
@@ -151,10 +151,10 @@ export default function InboxPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
+            <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">
               {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
                 : activePlatform === 'all'

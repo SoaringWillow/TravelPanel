@@ -96,3 +96,8 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-05-31 18:28 | 87cd4d6 | feat(B2): add browser extension for one-click travel clipping
+2026-05-31 18:35 | 6cf9a97 | feat(B3): Claude Vision extraction for Xiaohongshu and image-only shares
+2026-05-31 18:39 | ab92546 | feat(B4): semantic vibe search via Voyage AI embeddings
+2026-05-31 18:40 | 0fe7d6b | feat(B5): Settings page with full data export/import (cloud backup)
+2026-05-31 18:42 | de957c0 | chore: expand TASKS.md with detailed Phase C (iOS polish) + Phase D tasks
