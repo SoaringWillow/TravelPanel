@@ -15,13 +15,15 @@ const ICON_MAP: Record<AgentStepType, string> = {
   clustering: '🗺',
   routing: '📐',
   validating: '✅',
+  thinking: '💭',
   done: '🎉',
   error: '❌',
 };
 
 function stepColor(type: AgentStepType): string {
-  if (type === 'done') return 'text-green-400';
-  if (type === 'error') return 'text-red-400';
+  if (type === 'done')     return 'text-green-400';
+  if (type === 'error')    return 'text-red-400';
+  if (type === 'thinking') return 'text-slate-500 italic';
   return 'text-slate-300';
 }
 
@@ -50,11 +52,11 @@ export default function PlannerAgent({ steps, isRunning }: PlannerAgentProps) {
               initial={{ y: 8, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.2, delay: 0 }}
-              className={`flex items-start gap-2 mb-1 leading-relaxed ${stepColor(step.type)}`}
+              className={`flex items-start gap-2 mb-1 leading-relaxed ${stepColor(step.type)} ${step.type === 'thinking' ? 'pl-4 text-[10px]' : ''}`}
             >
               <span className="flex-shrink-0">{ICON_MAP[step.type]}</span>
               <span className="break-all">{step.message}</span>
-              {isRunning && i === steps.length - 1 && (
+              {isRunning && i === steps.length - 1 && step.type !== 'thinking' && (
                 <span className="flex-shrink-0 ml-1 mt-0.5 w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               )}
             </motion.div>

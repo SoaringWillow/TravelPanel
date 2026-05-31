@@ -5,6 +5,7 @@ import Map, { Marker, Source, Layer, NavigationControl, useMap } from 'react-map
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, TripPlan } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
+import { useTheme } from '@/components/ThemeProvider';
 
 const DAY_COLORS = [
   '#6366f1',
@@ -86,6 +87,10 @@ function BoundsController({ plan, items }: BoundsControllerProps) {
 }
 
 export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapViewProps) {
+  const { resolvedTheme } = useTheme();
+  const mapStyle = resolvedTheme === 'dark'
+    ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+    : 'https://tiles.openfreemap.org/styles/liberty';
   const days = plan?.days ?? [];
 
   const allItemLocations = useMemo(
@@ -101,7 +106,7 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
   return (
     <Map
       id="route-map"
-      mapStyle="https://tiles.openfreemap.org/styles/liberty"
+      mapStyle={mapStyle}
       initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
       style={{ width: '100%', height: '100%' }}
       reuseMaps

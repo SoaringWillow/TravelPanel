@@ -1,8 +1,49 @@
 'use client';
 
+import { useRef } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
-import { SavedItem } from '@/lib/types';
+import { SavedItem, SubstanceItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { tapLight, tapMedium } from '@/lib/haptics';
+
+// ─── Substance preview helpers ─────────────────────────────────────���──────────
+
+const TYPE_ORDER: SubstanceItem['type'][] = [
+  'wisdom', 'recommendation', 'tip', 'opinion', 'context', 'warning',
+];
+const TYPE_ICON: Record<SubstanceItem['type'], string> = {
+  tip:            '💡',
+  warning:        '⚠️',
+  opinion:        '💬',
+  wisdom:         '🧠',
+  context:        '🌍',
+  recommendation: '⭐',
+};
+const TYPE_BORDER: Record<SubstanceItem['type'], string> = {
+  tip:            'border-amber-300',
+  warning:        'border-red-300',
+  opinion:        'border-blue-300',
+  wisdom:         'border-purple-300',
+  context:        'border-teal-300',
+  recommendation: 'border-emerald-300',
+};
+const TYPE_BG: Record<SubstanceItem['type'], string> = {
+  tip:            'bg-amber-50',
+  warning:        'bg-red-50',
+  opinion:        'bg-blue-50',
+  wisdom:         'bg-purple-50',
+  context:        'bg-teal-50',
+  recommendation: 'bg-emerald-50',
+};
+
+function topSubstance(items: SubstanceItem[]): SubstanceItem | null {
+  for (const type of TYPE_ORDER) {
+    const found = items.find((s) => s.type === type);
+    if (found) return found;
+  }
+  return items[0] ?? null;
+}
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -188,8 +229,68 @@ export default function InboxCard({
     day: 'numeric',
   });
 
+  // Swipe drag state
+  const x = useMotionValue(0);
+  const THRESHOLD = 90;
+  // Left-swipe (delete): card moves left, red bg appears
+  const deleteOpacity = useTransform(x, [-THRESHOLD * 1.5, -THRESHOLD * 0.5, 0], [1, 0.6, 0]);
+  // Right-swipe (move): card moves right, blue bg appears
+  const moveOpacity   = useTransform(x, [0, THRESHOLD * 0.5, THRESHOLD * 1.5], [0, 0.6, 1]);
+
+  function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
+    const offset = info.offset.x;
+    if (offset < -THRESHOLD) {
+      // Confirm delete — snap off left then trigger
+      tapMedium();
+      animate(x, -400, { duration: 0.25 }).then(() => onDelete(item.id));
+    } else if (offset > THRESHOLD && onMoveToBoard) {
+      // Confirm move — snap back then open picker
+      tapMedium();
+      animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 }).then(() =>
+        onMoveToBoard(item.id)
+      );
+    } else {
+      // Snap back
+      animate(x, 0, { type: 'spring', stiffness: 400, damping: 35 });
+    }
+  }
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative rounded-2xl overflow-hidden">
+      {/* Delete reveal (left swipe) */}
+      <motion.div
+        style={{ opacity: deleteOpacity }}
+        className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-2xl"
+      >
+        <div className="flex flex-col items-center gap-1">
+          <Trash2 size={20} className="text-white" />
+          <span className="text-[10px] text-white font-semibold">Delete</span>
+        </div>
+      </motion.div>
+
+      {/* Move-to-board reveal (right swipe) */}
+      {onMoveToBoard && (
+        <motion.div
+          style={{ opacity: moveOpacity }}
+          className="absolute inset-0 bg-indigo-500 flex items-center pl-5 rounded-2xl"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <LayoutGrid size={20} className="text-white" />
+            <span className="text-[10px] text-white font-semibold">Move</span>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Card surface — draggable */}
+      <motion.div
+        style={{ x }}
+        drag="x"
+        dragConstraints={{ left: -THRESHOLD * 1.8, right: onMoveToBoard ? THRESHOLD * 1.8 : 0 }}
+        dragElastic={0.15}
+        onDragStart={() => tapLight()}
+        onDragEnd={handleDragEnd}
+        className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
+      >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -225,6 +326,24 @@ export default function InboxCard({
             {item.description}
           </p>
         )}
+
+        {/* Substance preview — top wisdom item */}
+        {(item.substance?.length ?? 0) > 0 && (() => {
+          const top  = topSubstance(item.substance!);
+          const rest = item.substance!.length - 1;
+          if (!top) return null;
+          return (
+            <div className={`border-l-2 ${TYPE_BORDER[top.type]} ${TYPE_BG[top.type]} rounded-r-lg px-2.5 py-1.5 mb-2`}>
+              <p className="text-xs text-gray-700 line-clamp-2 leading-relaxed">
+                <span className="mr-1">{TYPE_ICON[top.type]}</span>
+                {top.content}
+              </p>
+              {rest > 0 && (
+                <p className="text-[10px] text-gray-400 mt-0.5">+{rest} more</p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Meta row: location count + activity count + substance count */}
         {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0) && (
@@ -311,6 +430,7 @@ export default function InboxCard({
           </div>
         </div>
       </div>
-    </div>
+      </motion.div>  {/* end draggable card surface */}
+    </div>  /* end swipe container */
   );
 }

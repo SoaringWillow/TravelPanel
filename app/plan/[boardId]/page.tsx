@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Copy, Check } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -38,6 +38,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [planTab, setPlanTab] = useState<'plan' | 'map'>('plan');
+  const [copyDone, setCopyDone] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -184,6 +186,45 @@ export default function PlanPage() {
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 
+  const handleCopyText = useCallback(async () => {
+    if (!planIsComplete(plan)) return;
+    const lines: string[] = [];
+    if (plan.overview) { lines.push(plan.overview); lines.push(''); }
+    for (const day of plan.days) {
+      lines.push(`Day ${day.day}${day.theme ? ` — ${day.theme}` : ''}`);
+      for (const a of day.activities) {
+        lines.push(`  ${a.time}  ${a.location.name} — ${a.name} (${a.duration})`);
+        for (const tip of (a.tips ?? []).slice(0, 2)) {
+          lines.push(`    · ${tip}`);
+        }
+        for (const st of (a.sourcedTips ?? [])) {
+          lines.push(`    💡 ${st.content} [from "${st.sourceTitle}"]`);
+        }
+      }
+      lines.push('');
+    }
+    if (plan.tips?.length) {
+      lines.push('Trip Tips:');
+      for (const tip of plan.tips) lines.push(`  · ${tip}`);
+    }
+    const text = lines.join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback: select from textarea
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setCopyDone(true);
+    track('plan_exported', { format: 'text', boardId });
+    setTimeout(() => setCopyDone(false), 2000);
+  }, [plan, boardId]);
+
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
     if (!trip.plan) return;
@@ -257,12 +298,15 @@ export default function PlanPage() {
     );
   }
 
+  // In map-tab full-screen mode, hide the text panel and fill the screen
+  const isMapFullscreen = stage === 'complete' && planTab === 'map';
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
-      {/* Top map section — always visible once stage != idle */}
+      {/* Top map section */}
       <div
-        className="relative flex-shrink-0 bg-gray-200"
-        style={{ height: stage === 'idle' ? '45vh' : '45vh' }}
+        className="relative flex-shrink-0 bg-gray-200 transition-all duration-300"
+        style={{ height: isMapFullscreen ? '100vh' : '45vh' }}
       >
         {stage === 'idle' ? (
           <MapView items={boardItems} onPinClick={() => {}} />
@@ -273,10 +317,44 @@ export default function PlanPage() {
             activeDayIndex={activeDayIndex}
           />
         )}
+
+        {/* Floating day strip + close button — only in full-screen map mode */}
+        {isMapFullscreen && plan?.days && plan.days.length > 0 && (
+          <div className="absolute bottom-4 left-0 right-0 z-10 px-4">
+            {/* Close map view */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setPlanTab('plan')}
+                className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-full shadow-md hover:bg-white transition-colors flex items-center gap-1.5"
+              >
+                ✕ Close map
+              </button>
+            </div>
+            {/* Day chips row */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+              {plan.days.map((day, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveDayIndex(idx)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md ${
+                    activeDayIndex === idx
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white'
+                  }`}
+                >
+                  Day {idx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Bottom scrollable panel */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+      {/* Bottom scrollable panel — hidden in full-screen map mode */}
+      <div
+        className="flex-1 overflow-y-auto transition-all duration-300"
+        style={{ minHeight: 0, display: isMapFullscreen ? 'none' : undefined }}
+      >
         <div className="px-4 pb-8 pt-4">
 
           {/* ── PRE-GENERATE STATE ── */}
@@ -431,6 +509,34 @@ export default function PlanPage() {
                 <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
               </div>
 
+              {/* Plan / Map tab toggle */}
+              <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPlanTab('plan')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    planTab === 'plan'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Route size={13} />
+                  Plan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlanTab('map')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    planTab === 'map'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <MapPin size={13} />
+                  Map
+                </button>
+              </div>
+
               {/* Overview */}
               {plan.overview && (
                 <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
@@ -466,14 +572,25 @@ export default function PlanPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleCopyText}
+                    className={`flex-1 flex items-center justify-center gap-1.5 border text-xs font-medium py-2 rounded-xl active:scale-[0.98] transition-all ${
+                      copyDone
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {copyDone ? <Check size={14} /> : <Copy size={14} />}
+                    {copyDone ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
               )}

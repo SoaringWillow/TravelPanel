@@ -17,20 +17,22 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: 'automatic',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#2563EB',
     scrollEnabled: true,
     limitsNavigationsToAppBoundDomains: false,
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 800,
-      backgroundColor: '#f9fafb',
+      launchShowDuration: 1500,
+      backgroundColor: '#2563EB',
       showSpinner: false,
-      launchAutoHide: false,
+      launchAutoHide: true,
+      splashFullScreen: true,
+      splashImmersive: true,
     },
     StatusBar: {
-      style: 'Default',
-      backgroundColor: '#6366f1',
+      style: 'Light',
+      backgroundColor: '#2563EB',
       overlaysWebView: false,
     },
   },

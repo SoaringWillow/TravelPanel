@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import { useTheme } from '@/components/ThemeProvider';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -46,6 +47,14 @@ interface PopupInfo {
   latitude: number;
 }
 
+interface ClusterPopupInfo {
+  clusterId: number;
+  count: number;
+  longitude: number;
+  latitude: number;
+  leaves: Array<{ item: SavedItem; location: Location }>;
+}
+
 interface MapControllerProps {
   flyTo?: Location;
 }
@@ -76,6 +85,36 @@ function MapController({ flyTo }: MapControllerProps) {
       duration: 1500,
     });
   }, [flyTo, mapRef]);
+
+  return null;
+}
+
+// ─── BoundsController: fits map to a set of items when they change ────────────
+
+function BoundsController({ items }: { items?: SavedItem[] }) {
+  const { current: map } = useMap();
+  const prevKeyRef = useRef('');
+
+  useEffect(() => {
+    if (!items || !map) return;
+    const key = items.map((i) => i.id).join(',');
+    if (key === prevKeyRef.current) return;
+    prevKeyRef.current = key;
+
+    const coords = items.flatMap((i) =>
+      i.locations
+        .filter((l) => Number.isFinite(l.lat) && Number.isFinite(l.lng))
+        .map((l) => ({ lng: l.lng, lat: l.lat }))
+    );
+    if (coords.length === 0) return;
+
+    const lngs = coords.map((c) => c.lng);
+    const lats = coords.map((c) => c.lat);
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 80, maxZoom: 13, duration: 1200 }
+    );
+  }, [items, map]);
 
   return null;
 }
@@ -230,12 +269,18 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  fitBoundsItems?: SavedItem[];
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
-  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
-  const { clusters, getExpansionZoom, setView } = useSupercluster(items);
+export default function MapView({ items, onPinClick, flyTo, fitBoundsItems }: MapViewProps) {
+  const [popupInfo, setPopupInfo]         = useState<PopupInfo | null>(null);
+  const [clusterPopup, setClusterPopup]   = useState<ClusterPopupInfo | null>(null);
+  const { clusters, getExpansionZoom, getClusterLeaves, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const { resolvedTheme } = useTheme();
+  const mapStyle = resolvedTheme === 'dark'
+    ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+    : 'https://tiles.openfreemap.org/styles/liberty';
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -263,7 +308,10 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   );
 
   const handleMove = useCallback(
-    (e: ViewStateChangeEvent) => syncView(e.target as unknown as maplibregl.Map),
+    (e: ViewStateChangeEvent) => {
+      syncView(e.target as unknown as maplibregl.Map);
+      setClusterPopup(null);
+    },
     [syncView],
   );
 
@@ -271,7 +319,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={mapStyle}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
@@ -281,6 +329,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         <NavigationControl position="top-right" />
 
         <MapController flyTo={flyTo} />
+        <BoundsController items={fitBoundsItems} />
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;
@@ -289,19 +338,16 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
           // ── Cluster bubble ──
           if (feature.properties.cluster) {
             const clusterId = feature.properties.cluster_id as number;
-            const count = feature.properties.point_count as number;
+            const count     = feature.properties.point_count as number;
             return (
               <Marker key={`cluster-${clusterId}`} longitude={lng} latitude={lat} anchor="center">
                 <ClusterMarker
                   count={count}
                   total={maxClusterCount}
                   onClick={() => {
-                    const expansionZoom = getExpansionZoom(clusterId);
-                    mapInstanceRef.current?.easeTo({
-                      center: [lng, lat],
-                      zoom: expansionZoom,
-                      duration: 500,
-                    });
+                    const leaves = getClusterLeaves(clusterId, 3);
+                    setClusterPopup({ clusterId, count, longitude: lng, latitude: lat, leaves });
+                    setPopupInfo(null);
                   }}
                 />
               </Marker>
@@ -346,6 +392,67 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
                 {popupInfo.item.title}
               </p>
+            </div>
+          </Popup>
+        )}
+
+        {/* Cluster popover — shows top 3 items before zoom */}
+        {clusterPopup && (
+          <Popup
+            longitude={clusterPopup.longitude}
+            latitude={clusterPopup.latitude}
+            anchor="top"
+            onClose={() => setClusterPopup(null)}
+            closeButton
+            closeOnClick={false}
+            offset={[0, -4] as [number, number]}
+          >
+            <div className="w-[220px] py-0.5">
+              {clusterPopup.leaves.map((leaf, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 rounded px-1 transition-colors"
+                  onClick={() => { setClusterPopup(null); onPinClick(leaf.item); }}
+                >
+                  {leaf.item.thumbnail ? (
+                    <img
+                      src={leaf.item.thumbnail}
+                      alt=""
+                      className="w-8 h-8 rounded object-cover flex-shrink-0"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-indigo-100 flex-shrink-0 flex items-center justify-center text-xs">
+                      📍
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-800 leading-tight line-clamp-1">
+                      {leaf.location.name}
+                    </p>
+                    <p className="text-[10px] text-gray-500 line-clamp-1">
+                      {leaf.item.title}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {clusterPopup.count > 3 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClusterPopup(null);
+                    const expansionZoom = getExpansionZoom(clusterPopup.clusterId);
+                    mapInstanceRef.current?.easeTo({
+                      center: [clusterPopup.longitude, clusterPopup.latitude],
+                      zoom: expansionZoom,
+                      duration: 500,
+                    });
+                  }}
+                  className="w-full text-center text-xs text-indigo-600 font-semibold py-1.5 mt-0.5 border-t border-gray-100 hover:bg-indigo-50 rounded-b transition-colors"
+                >
+                  See all {clusterPopup.count} places →
+                </button>
+              )}
             </div>
           </Popup>
         )}

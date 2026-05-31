@@ -81,6 +81,16 @@ export async function saveItem(item: SavedItem): Promise<void> {
   await db.put('items', item);
 }
 
+export async function updateItem(
+  id: string,
+  patch: Partial<Pick<SavedItem, 'title' | 'notes' | 'boardId'>>
+): Promise<void> {
+  const db   = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...patch });
+}
+
 export async function deleteItem(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('items', id);
@@ -190,6 +200,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 }
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
 
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {

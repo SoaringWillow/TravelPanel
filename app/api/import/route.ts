@@ -85,8 +85,10 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -97,15 +99,17 @@ export async function POST(req: NextRequest) {
 
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
+  const hasImage = typeof imageBase64 === 'string' && imageBase64.length > 0;
+  const mimeType = imageMimeType || 'image/jpeg';
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const basePrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — rely on the screenshot if provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -128,14 +132,37 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  const visionPrefix = hasImage
+    ? `A screenshot of the post is attached. Read ALL visible text in the image carefully — it may be in Chinese (小红书/Xiaohongshu) or other languages. Extract locations, tips, and wisdom from both the image text and the metadata below.\n\n`
+    : '';
+
+  const prompt = visionPrefix + basePrompt;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (hasImage) {
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image', image: `data:${mimeType};base64,${imageBase64}` },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

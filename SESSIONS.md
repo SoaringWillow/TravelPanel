@@ -96,3 +96,27 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-05-31 12:26 | 49ff730 | feat(B2): add Chrome/Safari browser extension for one-click travel clipping
+2026-05-31 12:32 | 6a3951c | feat(B3): Claude Vision extraction for Xiaohongshu and blocked platforms
+2026-05-31 12:34 | f4fbe8a | feat(B5): settings page with full JSON backup export + Settings nav tab
+2026-05-31 12:37 | 75d1dc1 | chore: add Phase D — iOS App Polish tasks (D1-D10)
+2026-05-31 12:39 | a9da62c | feat(D1+D2): clipboard import banner + substance preview on done screen
+2026-05-31 12:40 | d41d31f | feat(D3): clip edit & notes — pencil icon opens inline edit sheet
+2026-05-31 12:42 | 2b2b44b | feat(D4): map board filter chips + fitBounds on selection
+2026-05-31 12:43 | aa4b339 | feat(D5): restore from backup JSON in settings page
+2026-05-31 12:47 | 835df77 | D6: Add Plan/Map tab toggle in trip planner complete view
+2026-05-31 12:51 | 1a53f5e | D7: Dark mode — ThemeProvider, CSS cascade overrides, settings toggle, dark map tiles
+2026-05-31 12:52 | 18be34b | D8: Haptic feedback via @capacitor/haptics (no-op in browser)
+2026-05-31 12:54 | 0efebb0 | D9: App icon (blue + white pin) and splash screen config
+2026-05-31 12:55 | d875b53 | D10: Supabase sign-in UI surface in settings (no-op until keys)
+2026-05-31 12:57 | 405390a | Add Phase E tasks: premium polish & retention sprint (E1-E10)
+2026-05-31 12:57 | bba1d50 | E1: Substance preview on InboxCard — moat made visible
+2026-05-31 12:58 | 08f016f | E2: Board card cover collage — Pinterest-style 2x2 thumbnail grid
+2026-05-31 12:59 | 263c0c2 | E3: Save success celebration — confetti burst + spring pop checkmark
+2026-05-31 13:00 | 828ee49 | E4: Beautiful empty states for map, inbox, and boards pages
+2026-05-31 13:01 | 4843abe | E5: Trip plan copy-as-text button
+2026-05-31 13:02 | 6f64e7c | E6: Swipe actions on InboxCard — iOS-native left/right gestures
+2026-05-31 13:04 | 5a50af3 | E7: Visible reasoning chain in plan generation
+2026-05-31 13:06 | a9ec732 | E8: Map cluster popover — show clip list before zooming
+2026-05-31 13:06 | 4215c4e | E9: Offline banner — amber alert + emerald 'back online' flash
+2026-05-31 13:07 | e481529 | E10: Feature discovery tip sheet after 3rd clip

@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,8 +174,258 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
+
+---
+
+## PHASE C — On-Trip Mode (Future)
+
+### C1 — On-Trip GPS Mode
+**Status**: `[ ]` Not started
+
+### C2 — Post-Trip Timeline
+**Status**: `[ ]` Not started
+
+### C3 — Shared Boards v1
+**Status**: `[ ]` Not started
+
+### C4 — Proactive Resurfacing
+**Status**: `[ ]` Not started
+
+---
+
+## PHASE D — iOS App Polish (Beautiful + Fully Functional)
+
+> Goal: Ship a beautiful, fully-functional iOS app that earns 5 stars.
+> Priority order: D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10
+
+### D1 — Clipboard Import 🔴 HIGHEST PRIORITY (North Star driver)
+**Status**: `[x]` Done  
+**Why**: Weekly clips per active user is the North Star. Clipboard import eliminates friction for
+every platform that doesn't support the Share Sheet — the user copies the URL anywhere, opens the
+app, and a one-tap banner captures it. This alone increases clip volume.  
+**Files**: `components/CapacitorBridge.tsx`, `app/page.tsx`  
+**What to do**:
+- On app focus (`App.addListener('appStateChange')`) check clipboard via `@capacitor/clipboard`
+- If clipboard contains a URL that hasn't been saved (check against recent items in IndexedDB), show
+  a dismissible banner at the top of the home screen: "📋 Found link: [domain] — Save to TravelPanel?"
+- Tapping "Save" navigates to `/share?url=...` with the URL pre-filled
+- Dismiss stores the URL in localStorage so the same URL isn't re-prompted
+- Web fallback: use `navigator.clipboard.readText()` with permission check (no-op on deny)
+
+### D2 — Substance Preview on Done Screen 🔴 HIGH PRIORITY  
+**Status**: `[x]` Done  
+**Why**: The done screen currently shows "X locations found" but drops the substance layer on the
+floor. Showing 2–3 substance items immediately makes the save feel more valuable — directly
+demonstrates the moat to users in their first save.  
+**Files**: `app/share/page.tsx`  
+**What to do**:
+- In the done stage, once enrichedData is available, render the first 2–3 substance items below the
+  location list using the SubstanceList component (or inline icons + content)
+- Animate each item in with a 100ms stagger as they arrive
+- Icon per type: tip💡 warning⚠️ opinion💬 wisdom🧠 context🌍 recommendation⭐
+- Empty state: if no substance, just show the locations (current behaviour)
+
+### D3 — Clip Edit & Notes
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an Edit button (pencil icon) to LocationDetailCard
+- Open an edit bottom sheet with fields: title (text input), notes (textarea), board selector (picker)
+- On save: write updated title/notes/boardId back to IndexedDB via a new `updateItem()` helper in db.ts
+- `SavedItem.notes` is already in the type schema — just needs UI
+
+### D4 — Map: Filter Pins by Board
+**Status**: `[x]` Done  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add a horizontally-scrollable board chip row above the map (or as a floating pill bar)
+- "All" chip shows every pin (default); tapping a board chip filters to that board's items only
+- Filtered state: auto-fit map bounds to visible pins (`fitBounds`)
+- Chip row is hidden when there are no boards (empty state)
+- Pair with the board detail "View on map" button that sets the filter
+
+### D5 — Restore from Backup JSON
+**Status**: `[x]` Done  
+**Files**: `app/settings/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Add "Restore backup" section to settings page (below the download section)
+- File input that accepts `.json` — validate the `_meta.version` field
+- Parse items/boards/trips; skip records whose `id` already exists in IndexedDB (merge, not replace)
+- Show progress: "Restoring… 47 / 120 clips" then "✓ Restored 83 new clips, skipped 37 duplicates"
+- Handle schema mismatches gracefully (skip invalid records, log count)
+
+### D6 — Trip Day Route Map
+**Status**: `[x]` Done  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/RouteMapView.tsx`  
+**What to do**:
+- Add a "Map" tab next to the "Plan" tab in the trip planner view
+- RouteMapView already exists — wire it to the selected day's activities
+- Show numbered markers in visit order with lines connecting them
+- Tapping a marker shows the activity name + time
+- Default view: show all days at once; Day selector filters to one day's route
+
+### D7 — Dark Mode
+**Status**: `[x]` Done  
+**Files**: `app/globals.css`, `app/layout.tsx`, Tailwind config  
+**What to do**:
+- Enable Tailwind `darkMode: 'class'` strategy
+- Add `dark:` variants to all pages and components (start with home, inbox, boards, plan, share)
+- Persist preference in localStorage; toggle button in settings page
+- Match iOS system dark mode on native via a `prefers-color-scheme` listener on app focus
+- Map tiles: switch to a dark MapLibre style (`https://tiles.openfreemap.org/styles/liberty` has a dark variant)
+
+### D8 — Haptic Feedback
+**Status**: `[x]` Done  
+**Files**: `app/share/page.tsx`, `components/InboxCard.tsx`, `lib/haptics.ts` (new)  
+**Needs**: `@capacitor/haptics` (already in deps)  
+**What to do**:
+- Create `lib/haptics.ts` with `tapLight()`, `tapMedium()`, `tapSuccess()` wrappers that no-op in browser
+- Tap light: board chip selection on share screen
+- Tap medium: save button press
+- Tap success (notification): done screen CheckCircle animation
+- Long-press medium: Edit action on cards
+
+### D9 — App Icon & Splash Screen Config
+**Status**: `[x]` Done  
+**Files**: `ios/App/App/Assets.xcassets/`, `capacitor.config.ts`  
+**What to do**:
+- Design the TravelPanel icon: blue rounded square with white location pin (same as browser extension SVG)
+- Generate all required iOS sizes (20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024) using `sharp`
+- Update `capacitor.config.ts` SplashScreen plugin config: backgroundColor `#2563EB`, showDuration 1500
+- Add a launch screen storyboard or use Capacitor's built-in splash: blue background + white pin
+- Run `npx cap sync ios` to apply
+
+### D10 — Supabase Sign-In UI Surface
+**Status**: `[x]` Done  
+**Files**: `app/settings/page.tsx`, new `components/AuthCard.tsx`  
+**What to do**:
+- In settings page, add a "Cloud Sync" section
+- If `cloudEnabled` (from `lib/supabase.ts`) is false: show a grey "Sign in to sync ☁️" teaser card
+  with copy "Sign in to back up your clips and access them on any device"
+- If keys are present but user not signed in: show an active "Sign in" button (magic link email flow)
+- If signed in: show email + "Sign out" + last sync time
+- No active code runs until Supabase keys are set (same no-op pattern as PostHog A3)
+
+---
+
+## PHASE E — Premium Polish & Retention (Current Sprint)
+
+> Goal: 5-star App Store quality. Strengthen the two moats (clip action + substance).
+> Priority order: E1 → E2 → E3 → E4 → E5 → E6 → E7 → E8 → E9 → E10
+
+### E1 — Substance Preview on InboxCard 🔴 HIGHEST PRIORITY (Moat Visibility)
+**Status**: `[x]` Done
+**Why**: A1 extracts substance but it's only visible in the detail card. The inbox shows a badge count ("3 tips") but hides the actual wisdom. Surfacing the top substance item on the card immediately shows users what makes TravelPanel different.
+**Files**: `components/InboxCard.tsx`
+**What to do**:
+- Below the clip title/description in InboxCard, show the FIRST substance item (highest-value type: wisdom > recommendation > tip > opinion > context > warning)
+- Use the icon-per-type system: tip💡 warning⚠️ opinion💬 wisdom🧠 context🌍 recommendation⭐
+- Show content text truncated to 2 lines, with the type icon and a subtle colored left border
+- Only show if `item.substance?.length > 0` and enrichment is done
+- Keep the existing substance count badge (e.g. "+2 more") if there are more than 1
+
+### E2 — Board Card Cover Collage
+**Status**: `[x]` Done
+**Why**: Board cards currently show emoji + name on a flat colored gradient. Adding item thumbnails as a collage (Pinterest-style) makes the board feel rich and personal — users see their own saved content.
+**Files**: `components/BoardCard.tsx`, `app/boards/page.tsx`
+**What to do**:
+- Show up to 4 thumbnail images from the board's items in a 2×2 grid as the card background
+- If fewer than 4 items have thumbnails, fill remaining with the board's gradient color
+- Overlay the board emoji + name + item count on top with a gradient scrim
+- On boards with no thumbnails, keep the current gradient-only design
+- Images should be object-cover within their cells, rounded corners on the card
+
+### E3 — Save Success Celebration
+**Status**: `[x]` Done
+**Why**: The save done screen is functional but flat. A celebration moment makes saving feel rewarding — this directly drives the North Star (weekly clips) by creating a positive emotional response to the clip action.
+**Files**: `app/share/page.tsx`
+**What to do**:
+- On transition to 'done' stage, trigger a confetti burst (use `canvas-confetti` package)
+- Confetti should use brand colors: indigo (#4f46e5), emerald (#10b981), and white
+- The CheckCircle icon should have a spring "pop" scale animation (0 → 1.2 → 1)
+- Duration: burst fires once on mount, auto-fades — no looping
+- Graceful no-op if package import fails (so SSR/web never breaks)
+
+### E4 — Beautiful Empty States
+**Status**: `[x]` Done
+**Why**: Inbox, Boards, and the Map home screen all show blank pages on first launch (or after clearing data). Empty states are the user's first impression — they should inspire action.
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/page.tsx`
+**What to do**:
+- Inbox empty state: Large globe emoji, "No clips yet", subtitle "Share any travel link from Safari, Instagram, or YouTube to save it here", a "Save your first clip" button that opens the import sheet
+- Boards empty state: Large grid emoji, "No boards yet", subtitle "Boards organize your clips by destination — Tokyo, Bali, Next Trip…", "Create a board" CTA button
+- Map empty state: Floating card (same style as board filter chips) centered on screen saying "Save your first clip to see it on the map →" with a pulsing indigo dot
+- Only show demo seed boards in onboarding, not as the permanent empty state
+
+### E5 — Trip Plan: Copy as Text + Share
+**Status**: `[x]` Done
+**Why**: Users want to share itineraries with travel companions via iMessage/WhatsApp. Currently the only share options are PDF and ICS. A plain-text copy button covers the most common use case.
+**Files**: `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Add a "Copy itinerary" button next to PDF/ICS export buttons
+- Format: Day 1 — Theme\n  9:00 · Location Name · Activity name (duration)\n  Tips: ...\n\nDay 2 — ...\n
+- Use `navigator.clipboard.writeText()` with fallback to a textarea select/copy
+- Show a brief "Copied!" checkmark toast on success (auto-dismiss after 2s)
+- Include the plan overview at the top and trip tips at the bottom
+
+### E6 — Swipe Actions on InboxCard (iOS gesture)
+**Status**: `[x]` Done
+**Why**: Native iOS apps (Mail, Messages) train users to swipe cards for quick actions. Swipe-to-delete is the most expected gesture on a list. Missing it makes the app feel like a web page, not a native app.
+**Files**: `components/InboxCard.tsx`
+**What to do**:
+- Left-swipe reveals a red "Delete" action (full swipe deletes)
+- Right-swipe reveals a blue "Move to board" action (opens board picker)
+- Use framer-motion `drag="x"` with constraints, thresholds, and snap-back
+- Haptic feedback: `tapLight` on reveal, `tapMedium` on confirm action
+- Must work on both mouse (desktop) and touch (iOS) — use Framer's useDragControls
+
+### E7 — Plan Generation: Visible Reasoning Chain
+**Status**: `[x]` Done
+**Why**: 圆周旅记's main competitive advantage is a streaming reasoning chain during plan generation — it builds trust and makes the AI feel knowledgeable rather than like a black box. Our PlannerAgent shows step bubbles but not the actual reasoning text.
+**Files**: `components/PlannerAgent.tsx`, `app/api/plan/route.ts`
+**What to do**:
+- Add a `thinking` step type: `{ type: 'thinking', text: string }`
+- In the plan API, stream short reasoning messages before the final plan:
+  "Analyzing 8 clips from your Tokyo board…", "Grouping by neighborhood…", "Optimizing for walking distance on Day 1…"
+- In PlannerAgent, render 'thinking' steps as italic indented lines (not full bubbles)
+- They should appear inline between the main step bubbles, with a subtle typewriter effect
+- Keep it to 3–5 short sentences total — enough to feel intelligent, not verbose
+
+### E8 — Map: Cluster Popover with Clip List
+**Status**: `[x]` Done
+**Why**: Tapping a cluster bubble just zooms in. Users don't know what's in the cluster until they're zoomed in enough to see individual pins — creating a frustrating hunt. A brief popover showing the top 3 clips in a cluster makes the map feel much more interactive.
+**Files**: `components/MapView.tsx`
+**What to do**:
+- On cluster bubble tap, show a Popup (react-map-gl Popup) with a compact list of up to 3 items
+- Each item: thumbnail (if available) + title (1 line truncated) + first location name
+- A "See all N places" link at the bottom triggers zoom-to-cluster expansion (existing behavior)
+- Popup auto-dismisses on map move and on outside click
+
+### E9 — Offline Banner + Retry
+**Status**: `[x]` Done
+**Why**: Users plan travel in airports and on planes — offline reliability is a strategic asset. The app currently silently fails when offline. An "Offline — clips saved locally" banner with one-tap retry is the difference between trust and frustration.
+**Files**: `components/NavBar.tsx` or new `components/OfflineBanner.tsx`, `app/layout.tsx`
+**What to do**:
+- Listen to `navigator.onLine` + `window.addEventListener('online'/'offline')` events
+- Show a compact amber banner just above the NavBar when offline: "✈️ Offline — your clips are saved locally"
+- When connection returns, show a brief "Back online" emerald flash (auto-dismiss after 2s)
+- For pending enrichments: if offline, skip the fetch and set status to 'pending' (existing retry queue picks it up)
+- On Capacitor: also listen to `Network.addListener('networkStatusChange')`
+
+### E10 — In-App Tip Sheet: "Getting the most from TravelPanel"
+**Status**: `[x]` Done
+**Why**: Users don't know about substance extraction, vision mode, or clipboard import. A one-time contextual tip system (shown after the 3rd clip) dramatically increases feature discovery without being annoying onboarding.
+**Files**: new `components/TipSheet.tsx`, `app/inbox/page.tsx`
+**What to do**:
+- After a user's 3rd clip save, show a bottom sheet with 3 swipeable tips:
+  1. "📋 Copy any URL, then open TravelPanel — we'll detect it automatically"
+  2. "💡 Your clips extract tips and wisdom from posts, not just map pins"
+  3. "🗺️ Plan a multi-day trip from any board — AI builds the route"
+- Each tip card: large emoji, bold title, 1-sentence description
+- Swipeable carousel (framer-motion drag)
+- "Got it" dismiss button stores `shownTipSheet: true` in localStorage
+- Only shown once, never again after dismiss
 
 ---
 

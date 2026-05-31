@@ -1,18 +1,28 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { tapLight, tapMedium, tapSuccess } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Stage = 'picking' | 'saving' | 'done';
+
+const SUBSTANCE_ICONS: Record<string, string> = {
+  tip:            '💡',
+  warning:        '⚠️',
+  opinion:        '💬',
+  wisdom:         '🧠',
+  context:        '🌍',
+  recommendation: '⭐',
+};
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -29,17 +39,54 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [capturedImage, setCapturedImage]     = useState<{ base64: string; mimeType: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef    = useRef<HTMLInputElement | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
-  // Auto-dismiss when done
+  // Check sessionStorage for image pre-loaded by CapacitorBridge from iOS App Group
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        sessionStorage.removeItem('pendingShareImage');
+        const parsed = JSON.parse(stored) as { base64: string; mimeType: string };
+        if (parsed.base64) setCapturedImage(parsed);
+      }
+    } catch {
+      // sessionStorage unavailable — ignore
+    }
+  }, []);
+
+  // Global paste handler — lets user paste a screenshot with ⌘V / Ctrl+V
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    if (stage !== 'picking') return;
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const imageItem = items.find((i) => i.type.startsWith('image/'));
+    if (!imageItem) return;
+    const file = imageItem.getAsFile();
+    if (file) compressAndSetImage(file);
+  }, [stage]);
+
+  useEffect(() => {
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
+  async function compressAndSetImage(file: File) {
+    const base64 = await compressImageToBase64(file);
+    setCapturedImage({ base64, mimeType: 'image/jpeg' });
+  }
+
+  // Auto-dismiss when done + fire confetti
   useEffect(() => {
     if (stage === 'done') {
+      import('@/lib/confetti').then(({ fireConfetti }) => fireConfetti()).catch(() => {});
       dismissTimerRef.current = setTimeout(() => {
         window.history.back();
       }, 3000);
@@ -61,6 +108,7 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    tapMedium();
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -82,15 +130,15 @@ function SharePageInner() {
     };
 
     await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    track('clip_saved', { platform, toBoard: !!selectedBoardId, hasImage: !!capturedImage });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available for Vision extraction
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, capturedImage?.base64, capturedImage?.mimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -113,6 +161,7 @@ function SharePageInner() {
       });
 
     setSavedToName(boardDisplayName ?? 'Inbox');
+    tapSuccess();
     setStage('done');
   }
 
@@ -177,7 +226,7 @@ function SharePageInner() {
             <button
               type="button"
               disabled={stage === 'saving'}
-              onClick={() => handleSave(undefined, 'Inbox')}
+              onClick={() => { tapLight(); handleSave(undefined, 'Inbox'); }}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox
@@ -189,7 +238,7 @@ function SharePageInner() {
                 key={board.id}
                 type="button"
                 disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                onClick={() => { tapLight(); handleSave(board.id, `${board.emoji} ${board.name}`); }}
                 className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}
@@ -244,6 +293,60 @@ function SharePageInner() {
           </AnimatePresence>
         </div>
 
+        {/* Screenshot section — helps Vision extraction for Xiaohongshu & blocked platforms */}
+        <div className="w-full">
+          {platform === 'xiaohongshu' && !capturedImage && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2 leading-relaxed">
+              ⚠️ Xiaohongshu blocks scraping — add a screenshot for better AI extraction
+            </p>
+          )}
+
+          {capturedImage ? (
+            <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`data:${capturedImage.mimeType};base64,${capturedImage.base64}`}
+                alt="Screenshot"
+                className="w-full max-h-32 object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setCapturedImage(null)}
+                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+                aria-label="Remove screenshot"
+              >
+                <X size={12} />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent px-3 py-2">
+                <p className="text-xs text-white font-medium">📸 Screenshot added — AI will read the image</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) compressAndSetImage(file);
+                }}
+              />
+              <button
+                type="button"
+                disabled={stage === 'saving'}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-gray-200 rounded-xl px-4 py-3 flex items-center gap-2.5 text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50/50 active:scale-[0.99] transition-all disabled:opacity-50"
+              >
+                <Camera size={15} />
+                Add screenshot
+                <span className="text-xs ml-auto opacity-70">or paste ⌘V</span>
+              </button>
+            </>
+          )}
+        </div>
+
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
@@ -263,13 +366,13 @@ function SharePageInner() {
     <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
       {/* Success content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12">
-        {/* Animated green checkmark */}
+        {/* Animated checkmark — spring pop: 0 → 1.25 → 1 */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', damping: 14, stiffness: 280, delay: 0.05 }}
+          animate={{ scale: [0, 1.25, 1], opacity: 1 }}
+          transition={{ type: 'spring', damping: 10, stiffness: 300, delay: 0.05 }}
         >
-          <CheckCircle2 size={72} className="text-green-500" strokeWidth={1.5} />
+          <CheckCircle2 size={72} className="text-indigo-500" strokeWidth={1.5} />
         </motion.div>
 
         <motion.div
@@ -291,27 +394,59 @@ function SharePageInner() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.35 }}
-          className="w-full"
+          className="w-full space-y-2"
         >
           {enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+              <span className="text-sm animate-pulse">🔍 Extracting locations & wisdom…</span>
             </div>
-          ) : enrichedData && enrichedData.locations.length > 0 ? (
-            <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
-              <p className="text-sm font-semibold text-indigo-700">
-                📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
-              </p>
-              {enrichedData.locations.map((loc, i) => (
-                <p key={i} className="text-sm text-indigo-600">
-                  {loc.name}
-                </p>
-              ))}
-            </div>
-          ) : enrichedData && enrichedData.locations.length === 0 ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3">
-              <p className="text-sm text-gray-500">No specific locations detected</p>
-            </div>
+          ) : enrichedData ? (
+            <>
+              {/* Locations */}
+              {enrichedData.locations.length > 0 && (
+                <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
+                  <p className="text-sm font-semibold text-indigo-700">
+                    📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
+                  </p>
+                  {enrichedData.locations.map((loc, i) => (
+                    <p key={i} className="text-sm text-indigo-600">{loc.name}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Substance preview — show first 3 items with stagger */}
+              {enrichedData.substance && enrichedData.substance.length > 0 && (
+                <div className="bg-amber-50 rounded-2xl px-4 py-3 space-y-2">
+                  <p className="text-sm font-semibold text-amber-800">
+                    {SUBSTANCE_ICONS['wisdom']} {enrichedData.substance.length} wisdom item{enrichedData.substance.length !== 1 ? 's' : ''} extracted
+                  </p>
+                  {enrichedData.substance.slice(0, 3).map((s, i) => (
+                    <motion.p
+                      key={i}
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.45 + i * 0.1 }}
+                      className="text-xs text-amber-900 leading-relaxed flex gap-1.5 items-start"
+                    >
+                      <span className="flex-shrink-0 mt-0.5">{SUBSTANCE_ICONS[s.type] ?? '💡'}</span>
+                      {s.content}
+                    </motion.p>
+                  ))}
+                  {enrichedData.substance.length > 3 && (
+                    <p className="text-xs text-amber-600 font-medium">
+                      + {enrichedData.substance.length - 3} more…
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {enrichedData.locations.length === 0 && (!enrichedData.substance || enrichedData.substance.length === 0) && (
+                <div className="bg-gray-50 rounded-2xl px-4 py-3">
+                  <p className="text-sm text-gray-500">No locations or tips detected</p>
+                </div>
+              )}
+            </>
           ) : null}
         </motion.div>
 
@@ -338,6 +473,38 @@ function SharePageInner() {
       </button>
     </div>
   );
+}
+
+// ─── Image compression helper ────────────────────────────────────────────────
+
+async function compressImageToBase64(file: File, maxBytes = 512 * 1024): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      const canvas = document.createElement('canvas');
+      const maxDim = 1280;
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+        else                { width = Math.round((width * maxDim) / height);  height = maxDim; }
+      }
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      let quality  = 0.82;
+      let dataUrl  = canvas.toDataURL('image/jpeg', quality);
+      // base64 is ~37% larger than binary — reduce quality until under limit
+      while (dataUrl.length > maxBytes * 1.37 && quality > 0.3) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      resolve(dataUrl.split(',')[1]);
+    };
+    img.onerror = reject;
+    img.src = blobUrl;
+  });
 }
 
 // ─── Public export — wrapped in Suspense (required for useSearchParams) ───────

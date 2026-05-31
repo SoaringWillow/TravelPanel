@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Share2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import TipSheet from '@/components/TipSheet';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -145,19 +146,45 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          query.trim() || activePlatform !== 'all' ? (
+            /* Search / filter empty */
+            <div className="flex flex-col items-center justify-center h-60 text-center px-4">
+              <div className="text-5xl mb-4">🔍</div>
+              <h3 className="font-semibold text-gray-700 mb-1">No matches</h3>
+              <p className="text-sm text-gray-500 max-w-xs">
+                {query.trim()
+                  ? `Nothing matches "${query.trim()}". Try a different search.`
+                  : `No ${PLATFORM_LABELS[activePlatform as Platform]} clips in your inbox.`}
+              </p>
+            </div>
+          ) : (
+            /* True empty inbox */
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6"
+            >
+              <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mb-5 text-4xl shadow-sm">
+                🌏
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">No clips yet</h3>
+              <p className="text-sm text-gray-500 max-w-xs leading-relaxed mb-6">
+                Share any travel link from Safari, Instagram, or YouTube to save tips,
+                spots, and wisdom — all in one place.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push('/?openImport=1')}
+                className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-6 py-3 rounded-xl shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
+              >
+                <Share2 size={16} />
+                Save your first clip
+              </button>
+              <p className="text-xs text-gray-400 mt-4">
+                Or use the Share button in any app → TravelPanel
+              </p>
+            </motion.div>
+          )
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
@@ -262,6 +289,7 @@ export default function InboxPage() {
         )}
       </AnimatePresence>
 
+      <TipSheet clipCount={items.length} />
       <NavBar active="inbox" />
     </div>
   );
