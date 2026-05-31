@@ -51,6 +51,7 @@ export interface SavedItem {
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
   isDemo?: boolean; // onboarding seed content — removable in one tap
+  embedding?: number[]; // Voyage AI semantic embedding (512-dim) — generated after enrichment
 }
 
 // ─── Board / Collection ─────────────────────────────────────────────────────

@@ -1,9 +1,36 @@
 'use client';
 
-import { updateItemEnrichment } from './db';
+import { updateItemEnrichment, getItemById, saveItem } from './db';
 import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
+import { buildEmbeddingText } from './semanticSearch';
+
+// Generate and persist an embedding for a clip after enrichment completes.
+// Fire-and-forget — failure is silent since keyword search still works.
+async function generateAndStoreEmbedding(id: string): Promise<void> {
+  const item = await getItemById(id);
+  if (!item) return;
+
+  const text = buildEmbeddingText(item);
+  if (!text) return;
+
+  try {
+    const res = await fetch('/api/embed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, type: 'document' }),
+    });
+    if (!res.ok) return;
+    const { embedding } = await res.json();
+    if (!Array.isArray(embedding) || embedding.length === 0) return;
+
+    // Persist embedding back onto the item
+    await saveItem({ ...item, embedding });
+  } catch {
+    // Network error or VOYAGE_API_KEY not set — silently skip
+  }
+}
 
 export async function enrichItem(id: string, url: string, imageData?: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
@@ -41,6 +68,10 @@ export async function enrichItem(id: string, url: string, imageData?: string): P
       locationCount: data.locations.length,
       substanceCount: data.substance?.length ?? 0,
     });
+
+    // Generate semantic embedding after enrichment (fire-and-forget)
+    generateAndStoreEmbedding(id).catch(() => {});
+
     return true;
   } catch {
     await updateItemEnrichment(id, 'failed');

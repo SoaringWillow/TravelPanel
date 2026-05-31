@@ -10,7 +10,7 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
-import { searchItems } from '@/lib/searchItems';
+import { useSemanticSearch } from '@/hooks/useSemanticSearch';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
@@ -52,7 +52,7 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const { results: filtered, isSemanticMode, isSemanticLoading } = useSemanticSearch(platformFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -110,7 +110,11 @@ export default function InboxPage() {
 
         {/* Search */}
         <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar
+            onSearch={handleSearch}
+            isSemanticMode={isSemanticMode}
+            isSemanticLoading={isSemanticLoading}
+          />
         </div>
 
         {/* Platform filter tabs */}
