@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Blue rounded square background -->
+  <rect width="128" height="128" rx="28" fill="#2563EB"/>
+  <!-- White location pin -->
+  <path d="M64 22C48.5 22 36 34.5 36 50C36 67.6 64 106 64 106C64 106 92 67.6 92 50C92 34.5 79.5 22 64 22ZM64 61C57.4 61 52 55.6 52 49C52 42.4 57.4 37 64 37C70.6 37 76 42.4 76 49C76 55.6 70.6 61 64 61Z" fill="white"/>
+</svg>
