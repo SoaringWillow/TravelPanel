@@ -5,11 +5,16 @@ import UniformTypeIdentifiers
 
 // TravelPanel Share Extension
 //
-// Receives a URL (and optional title) from the iOS Share Sheet and opens
-// the main TravelPanel app with the travelpanel://share?url=...&title=...
-// URL scheme, which the CapacitorBridge component routes to /share.
+// Receives a URL (and optional title + preview image) from the iOS Share Sheet and
+// opens the main TravelPanel app with the travelpanel://share?url=...&title=... URL
+// scheme, which the CapacitorBridge component routes to /share.
 //
-// Supported source types: URLs, plain text containing a URL, web pages.
+// When an image attachment is present (e.g. a Xiaohongshu screenshot or preview),
+// it is compressed and written to App Group UserDefaults as 'pendingShareImage'
+// (base64 JPEG). CapacitorBridge reads this key on appUrlOpen and passes it to the
+// enrichment API for Claude Vision extraction.
+//
+// Supported source types: URLs, plain text containing a URL, web pages, images.
 
 class ShareViewController: UIViewController {
 
@@ -24,42 +29,73 @@ class ShareViewController: UIViewController {
             return
         }
 
-        for item in items {
-            guard let attachments = item.attachments else { continue }
+        // Flatten all attachments from all items
+        let allAttachments: [NSItemProvider] = items.flatMap { $0.attachments ?? [] }
+        let titleText = items.first?.attributedContentText?.string ?? ""
 
-            // Priority 1: a direct URL attachment
-            for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-                    attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { [weak self] data, _ in
-                        guard let self else { return }
-                        if let url = data as? URL {
-                            let title = item.attributedContentText?.string ?? url.host ?? ""
-                            self.openApp(url: url.absoluteString, title: title)
-                        } else {
-                            self.finish()
-                        }
-                    }
-                    return
+        let group = DispatchGroup()
+        var resolvedURL: String?
+        var resolvedImage: UIImage?
+
+        // ── Extract URL (priority: kUTTypeURL > plain text with embedded URL) ──
+
+        if let urlProvider = allAttachments.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
+        }) {
+            group.enter()
+            urlProvider.loadItem(forTypeIdentifier: UTType.url.identifier) { data, _ in
+                if let url = data as? URL {
+                    resolvedURL = url.absoluteString
                 }
+                group.leave()
             }
-
-            // Priority 2: plain text that may contain a URL
-            for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
-                    attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
-                        guard let self else { return }
-                        if let text = data as? String, let url = self.extractURL(from: text) {
-                            self.openApp(url: url, title: text)
-                        } else {
-                            self.finish()
-                        }
-                    }
-                    return
+        } else if let textProvider = allAttachments.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+        }) {
+            group.enter()
+            textProvider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
+                if let text = data as? String {
+                    resolvedURL = self?.extractURL(from: text) ?? (text.isEmpty ? nil : text)
                 }
+                group.leave()
             }
         }
 
-        finish()
+        // ── Extract image (used for Vision enrichment on platforms like Xiaohongshu) ──
+
+        if let imageProvider = allAttachments.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.image.identifier)
+        }) {
+            group.enter()
+            imageProvider.loadItem(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                if let image = data as? UIImage {
+                    resolvedImage = image
+                } else if let url = data as? URL, let image = UIImage(contentsOfFile: url.path) {
+                    resolvedImage = image
+                } else if let data = data as? Data, let image = UIImage(data: data) {
+                    resolvedImage = image
+                }
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) { [weak self] in
+            guard let self else { return }
+
+            // Write compressed image to App Group so CapacitorBridge can forward it
+            if let image = resolvedImage,
+               let base64 = image.compressedBase64(maxDimension: 1024, quality: 0.75),
+               let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") {
+                defaults.set(base64, forKey: "pendingShareImage")
+                defaults.synchronize()
+            }
+
+            if let url = resolvedURL {
+                self.openApp(url: url, title: titleText)
+            } else {
+                self.finish()
+            }
+        }
     }
 
     private func extractURL(from text: String) -> String? {
@@ -83,7 +119,6 @@ class ShareViewController: UIViewController {
         }
 
         // Open the main app with the deep link.
-        // On iOS 13+, Share Extensions can open URLs via the responder chain.
         var responder: UIResponder? = self
         while let r = responder {
             if let application = r as? UIApplication {
@@ -95,14 +130,12 @@ class ShareViewController: UIViewController {
             responder = r.next
         }
 
-        // Fallback: write to App Group and let the main app pick it up on next launch
+        // Fallback: write URL to App Group and let the main app pick it up on next launch
         savePendingShareToAppGroup(url: url, title: title)
         finish()
     }
 
     private func savePendingShareToAppGroup(url: String, title: String) {
-        // App Group identifier must match the one configured in Xcode capabilities.
-        // See ios-setup.md for configuration instructions.
         guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
         defaults.set(url, forKey: "pendingShareURL")
         defaults.set(title, forKey: "pendingShareTitle")
@@ -114,5 +147,28 @@ class ShareViewController: UIViewController {
         DispatchQueue.main.async {
             self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
         }
+    }
+}
+
+// ─── UIImage compression helper ─────────────────────────────────────────────
+
+private extension UIImage {
+    /// Scale down to maxDimension × maxDimension (preserving aspect ratio),
+    /// then JPEG-compress and base64-encode. Returns nil on failure.
+    func compressedBase64(maxDimension: CGFloat, quality: CGFloat) -> String? {
+        let originalSize = size
+        let scale = min(maxDimension / max(originalSize.width, originalSize.height), 1.0)
+        let targetSize = CGSize(
+            width:  (originalSize.width  * scale).rounded(),
+            height: (originalSize.height * scale).rounded()
+        )
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let scaled = renderer.image { _ in
+            self.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+
+        guard let data = scaled.jpegData(compressionQuality: quality) else { return nil }
+        return data.base64EncodedString()
     }
 }

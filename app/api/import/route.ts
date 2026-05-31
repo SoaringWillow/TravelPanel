@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,6 +97,66 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
+
+  // Vision mode: image was passed from the iOS Share Sheet (e.g. Xiaohongshu screenshot).
+  // Skip URL scraping entirely — Claude Vision extracts everything from the image.
+  if (imageBase64) {
+    const visionPrompt = `You are a travel content analyzer. This image is a screenshot from a social media travel post (likely Xiaohongshu/小红书 or a similar platform). The post URL is: ${url}
+
+Extract TWO layers of travel intelligence directly from what you see in the image:
+
+## Layer 1 — Spots (geographic skeleton)
+Look for location names, place cards, map pins, or any text identifying real geographic places. Extract them with GPS coordinates you are confident about. If you cannot confidently identify a specific location, omit it.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, warning, or opinion visible in the image: captions, overlaid text, hashtags with advice, comment excerpts, or inferred tips from the content shown.
+- Tips on timing, pricing, queues, crowds → tip
+- Warnings about scams, closures, weather → warning
+- Personal opinions on whether something is worth it → opinion
+- Seasonal or contextual knowledge → wisdom / context
+- Specific place recommendations → recommendation
+
+Even if you cannot read Chinese text clearly, describe what you observe about the locations or activities shown.
+Never return an empty substance array if any travel content is visible.`;
+
+    let claudeResult: z.infer<typeof importSchema> | null = null;
+    try {
+      const dataUri = imageBase64.startsWith('data:')
+        ? imageBase64
+        : `data:image/jpeg;base64,${imageBase64}`;
+
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: dataUri },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
+
+    const result: ImportResult = {
+      platform,
+      title: (claudeResult?.title || url).slice(0, 200),
+      description: (claudeResult?.description || '').slice(0, 500),
+      thumbnail: undefined,
+      locations: claudeResult?.locations ?? [],
+      activities: claudeResult?.activities ?? [],
+      tags: claudeResult?.tags ?? [],
+      substance: claudeResult?.substance ?? [],
+    };
+    return NextResponse.json(result);
+  }
+
+  // Text mode: fetch the page and extract from HTML/text content.
   const page = await fetchPageData(url);
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
