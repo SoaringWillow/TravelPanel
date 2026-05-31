@@ -84,3 +84,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 06:17 | 62810e6 | feat: model routing — Haiku for enrichment/clustering, Opus for itinerary
 2026-05-31 06:18 | b2f05be | chore: session log — model routing entry
 2026-05-31 06:54 | 1a931a2 | chore: session log auto-entry
+2026-05-31 07:05 | 131be57 | fix: repair corrupted package.json + scaffold B1 Supabase cloud sync
+2026-05-31 07:12 | 7790362 | fix: restore real package.json — my prior "repair" was based on a misread
