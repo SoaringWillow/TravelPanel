@@ -37,4 +37,45 @@
 
 ---
 
+## Session: 2026-05-31 (cont.) — Phase A completion
+
+**Branch**: `claude/social-travel-ai-planner-jiVDe`
+
+### Completed — all of Phase A (A1–A12)
+- **A1** — Two-layer clip extraction: `SubstanceItem` schema; Claude extracts spots + wisdom; count badge on cards
+- **A2** — Enrichment retry queue: auto-retry on load (2s/4s/8s, max 3), crash recovery, manual retry; shared `enrichItem()`
+- **A3** — PostHog analytics: lazy, no-op without key; tracks clip/plan/board/search funnel
+- **A4** — AI cost guard: 10 enrichments/hr + 5 plans/day rolling-window limits; dev token logging
+- **A5** — Resource request banner (prior session)
+- **A6** — Pin clustering: client-side supercluster + HTML markers (preserves photo/emoji pins), tap-to-expand
+- **A7** — Full-text search: debounced multi-term search over title/desc/tags/locations/activities/substance
+- **A8** — Onboarding seed boards: 3 demo boards (Tokyo/Kyoto/Bali) rich with substance; one-tap clear
+- **A9** — Plan export: PDF (jspdf) + .ics calendar (RFC 5545, GEO deep links); both carry sourced wisdom
+- **A10** — Multi-version plans: save/name/switch/delete variants in trips store; regenerate without overwrite
+- **A11** — Wisdom view: `SubstanceList` renders substance in the clip detail card
+- **A12** — Sourced itineraries: thread substance into `/api/plan`; activities cite "from your clip: <title>"
+
+### Moat status
+Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) → search (A7) → plan with citations (A12) → export with citations (A9).
+
+### Blockers / resource requests
+- `NEXT_PUBLIC_POSTHOG_KEY` — analytics dormant until provided (no-ops safely)
+- `RESEND_API_KEY` — email notifications (mailto fallback active)
+- iOS Xcode wiring requires macOS (see `ios/App/ShareExtension/XCODE_SETUP.md`)
+
+### Next session plan
+1. Verify on a real iOS device (gates tier/monetization decisions)
+2. Begin Phase B: B1 Supabase auth + cloud sync (needs Supabase keys)
+3. Model-routing: auto-select Opus for complex planning vs Haiku for simple enrichment (user-requested)
+
+---
+
 *(Future sessions appended below — auto-logged by PostToolUse hook)*
+2026-05-31 05:39 | bcaede1 | feat(A11): surface clip substance in the Wisdom view
+2026-05-31 05:41 | c8cf665 | feat(A12): sourced itineraries — cite clip wisdom inline in trip plans
+2026-05-31 05:43 | fffa26f | feat(A3): PostHog analytics with safe no-op fallback
+2026-05-31 05:44 | 8fcf1bf | feat(A7): full-text search across clips (incl. substance)
+2026-05-31 05:47 | 2316c54 | feat(A8): onboarding seed boards that showcase substance
+2026-05-31 05:49 | 1620128 | feat(A6): pin clustering at low zoom via supercluster
+2026-05-31 05:52 | f5231a0 | feat(A9): export plans to PDF and calendar (.ics)
+2026-05-31 05:54 | 13f1f43 | feat(A10): multi-version plans — save, name, switch, regenerate
