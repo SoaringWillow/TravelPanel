@@ -50,6 +50,7 @@ export interface SavedItem {
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
+  isDemo?: boolean; // onboarding seed content — removable in one tap
 }
 
 // ─── Board / Collection ─────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ export interface Board {
   itemIds: string[];       // ordered SavedItem ids
   createdAt: number;
   updatedAt: number;
+  isDemo?: boolean; // onboarding seed content — removable in one tap
 }
 
 // ─── AI Planner types ────────────────────────────────────────────────────────

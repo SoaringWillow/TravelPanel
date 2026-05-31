@@ -7,6 +7,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
+import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
@@ -47,6 +48,9 @@ export default function BoardsPage() {
           </button>
         </div>
       </div>
+
+      {/* First-launch demo seed banner */}
+      <OnboardingSeed />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">

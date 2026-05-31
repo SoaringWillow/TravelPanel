@@ -95,7 +95,7 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 - Foundation for embedding search in Phase B
 
 ### A8 — Onboarding Seed Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `lib/seedData.ts`, `app/page.tsx`  
 **What to do**:
 - Create 3 seed boards with real-looking clip data (Tokyo, Kyoto, Bali or similar)
