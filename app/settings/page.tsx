@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
   Download,
@@ -12,7 +12,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import NavBar from '@/components/NavBar';
-import { getAllItems, getAllBoards, getAllTrips } from '@/lib/db';
+import { getAllItems, getAllBoards, getAllTrips, saveItem, saveBoard, saveTrip } from '@/lib/db';
+import { SavedItem, Board, Trip } from '@/lib/types';
 import { track } from '@/lib/analytics';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -27,6 +28,15 @@ interface DataStats {
 }
 
 type ExportState = 'idle' | 'loading' | 'done' | 'error';
+type RestoreState = 'idle' | 'loading' | 'done' | 'error';
+
+interface RestoreResult {
+  addedItems: number;
+  addedBoards: number;
+  addedTrips: number;
+  skipped: number;
+  errors: number;
+}
 
 // ─── Export helper ────────────────────────────────────────────────────────────
 
@@ -65,11 +75,73 @@ async function exportAllData(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+// ─── Restore helper ──────────────────────────────────────────────────────────
+
+async function restoreFromFile(file: File): Promise<RestoreResult> {
+  const text   = await file.text();
+  const parsed = JSON.parse(text) as {
+    _meta?: { version?: string };
+    items?:  unknown[];
+    boards?: unknown[];
+    trips?:  unknown[];
+  };
+
+  if (!parsed.items && !parsed.boards && !parsed.trips) {
+    throw new Error('Invalid backup file: missing items, boards, or trips');
+  }
+
+  // Load existing IDs for duplicate check
+  const [existingItems, existingBoards, existingTrips] = await Promise.all([
+    getAllItems(),
+    getAllBoards(),
+    getAllTrips(),
+  ]);
+  const itemIds  = new Set(existingItems.map((i) => i.id));
+  const boardIds = new Set(existingBoards.map((b) => b.id));
+  const tripIds  = new Set(existingTrips.map((t) => t.id));
+
+  let addedItems = 0, addedBoards = 0, addedTrips = 0, skipped = 0, errors = 0;
+
+  for (const raw of parsed.items ?? []) {
+    const item = raw as SavedItem;
+    if (!item.id || !item.url) { errors++; continue; }
+    if (itemIds.has(item.id)) { skipped++; continue; }
+    try {
+      await saveItem({ ...item, isDemo: false });
+      addedItems++;
+    } catch { errors++; }
+  }
+
+  for (const raw of parsed.boards ?? []) {
+    const board = raw as Board;
+    if (!board.id || !board.name) { errors++; continue; }
+    if (boardIds.has(board.id)) { skipped++; continue; }
+    try {
+      await saveBoard({ ...board, isDemo: false });
+      addedBoards++;
+    } catch { errors++; }
+  }
+
+  for (const raw of parsed.trips ?? []) {
+    const trip = raw as Trip;
+    if (!trip.id || !trip.boardId) { errors++; continue; }
+    if (tripIds.has(trip.id)) { skipped++; continue; }
+    try {
+      await saveTrip(trip);
+      addedTrips++;
+    } catch { errors++; }
+  }
+
+  return { addedItems, addedBoards, addedTrips, skipped, errors };
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const [stats,       setStats]       = useState<DataStats | null>(null);
-  const [exportState, setExportState] = useState<ExportState>('idle');
+  const [stats,         setStats]         = useState<DataStats | null>(null);
+  const [exportState,   setExportState]   = useState<ExportState>('idle');
+  const [restoreState,  setRestoreState]  = useState<RestoreState>('idle');
+  const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
 
   useEffect(() => {
     async function loadStats() {
@@ -104,6 +176,23 @@ export default function SettingsPage() {
     } catch {
       setExportState('error');
       setTimeout(() => setExportState('idle'), 3000);
+    }
+  }
+
+  async function handleRestore(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ''; // allow re-selecting same file
+    setRestoreState('loading');
+    setRestoreResult(null);
+    try {
+      const result = await restoreFromFile(file);
+      setRestoreResult(result);
+      setRestoreState('done');
+      track('backup_restored', result);
+    } catch {
+      setRestoreState('error');
+      setTimeout(() => setRestoreState('idle'), 4000);
     }
   }
 
@@ -225,6 +314,77 @@ export default function SettingsPage() {
               >
                 Saved as travelpanel-backup-{new Date().toISOString().slice(0, 10)}.json
               </motion.p>
+            )}
+          </div>
+        </section>
+
+        {/* Restore section */}
+        <section>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
+                <span className="text-lg">📂</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Restore from backup</h3>
+                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  Import a previous backup JSON file. Existing clips and boards are kept;
+                  only new records are added.
+                </p>
+              </div>
+            </div>
+
+            <label
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold cursor-pointer transition-all border-2 ${
+                restoreState === 'loading'
+                  ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                  : restoreState === 'done'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : restoreState === 'error'
+                  ? 'border-red-200 bg-red-50 text-red-700'
+                  : 'border-dashed border-gray-300 text-gray-600 hover:border-violet-400 hover:text-violet-700 hover:bg-violet-50/50'
+              }`}
+            >
+              <input
+                type="file"
+                accept=".json,application/json"
+                className="hidden"
+                disabled={restoreState === 'loading'}
+                onChange={handleRestore}
+              />
+              {restoreState === 'loading' ? (
+                <><span className="animate-spin">⏳</span> Restoring…</>
+              ) : restoreState === 'error' ? (
+                <><AlertCircle size={16} /> Invalid backup file</>
+              ) : restoreState === 'done' && restoreResult ? (
+                <><CheckCircle2 size={16} /> Restored!</>
+              ) : (
+                <>📂 Choose backup file</>
+              )}
+            </label>
+
+            {restoreState === 'done' && restoreResult && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 bg-emerald-50 rounded-xl p-3 space-y-0.5"
+              >
+                <p className="text-xs font-semibold text-emerald-800">Restore complete</p>
+                <p className="text-xs text-emerald-700">
+                  Added {restoreResult.addedItems} clips, {restoreResult.addedBoards} boards,{' '}
+                  {restoreResult.addedTrips} plans
+                </p>
+                {restoreResult.skipped > 0 && (
+                  <p className="text-xs text-emerald-600">
+                    {restoreResult.skipped} duplicates skipped
+                  </p>
+                )}
+                {restoreResult.errors > 0 && (
+                  <p className="text-xs text-amber-600">
+                    {restoreResult.errors} records couldn't be read
+                  </p>
+                )}
+              </motion.div>
             )}
           </div>
         </section>

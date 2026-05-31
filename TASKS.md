@@ -247,7 +247,7 @@ demonstrates the moat to users in their first save.
 - Pair with the board detail "View on map" button that sets the filter
 
 ### D5 — Restore from Backup JSON
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/settings/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Add "Restore backup" section to settings page (below the download section)
