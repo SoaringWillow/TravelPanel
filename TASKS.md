@@ -271,7 +271,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - "Failed" filter shows items with `enrichmentStatus === 'failed'` with retry button
 
 ### D6 — App Icon & Launch Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `public/`, `ios/App/App/Assets.xcassets/`, `app/layout.tsx`  
 **What to do**:
 - Generate all required iOS app icon sizes from the indigo pin design (use generate-icons.js as base)
