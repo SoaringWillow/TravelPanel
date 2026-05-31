@@ -381,7 +381,7 @@ demonstrates the moat to users in their first save.
 - Must work on both mouse (desktop) and touch (iOS) — use Framer's useDragControls
 
 ### E7 — Plan Generation: Visible Reasoning Chain
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: 圆周旅记's main competitive advantage is a streaming reasoning chain during plan generation — it builds trust and makes the AI feel knowledgeable rather than like a black box. Our PlannerAgent shows step bubbles but not the actual reasoning text.
 **Files**: `components/PlannerAgent.tsx`, `app/api/plan/route.ts`
 **What to do**:

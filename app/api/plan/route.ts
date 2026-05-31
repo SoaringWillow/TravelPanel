@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
         const { object: resolvedLocs } = resolvedResult;
 
         step('found', `Resolved ${resolvedLocs.locations.length} location${resolvedLocs.locations.length !== 1 ? 's' : ''}`);
+        step('thinking', `Analyzing ${items.length} clip${items.length !== 1 ? 's' : ''} for neighborhood patterns…`);
 
         // ── Step 2: Cluster into day groups ──────────────────────────────
         step('clustering', `Grouping locations into ${days}-day clusters…`);
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
         }
         const { object: clusters } = clusterResult;
 
+        step('thinking', 'Considering walking distances and travel time between each day\'s stops…');
         step('routing', 'Building optimised route…');
 
         // ── Step 3: Stream full itinerary ────────────────────────────────
@@ -132,6 +134,10 @@ export async function POST(req: NextRequest) {
         }));
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
+        const substanceCount = items.reduce((n, i) => n + (i.substance?.length ?? 0), 0);
+        if (hasSubstance) {
+          step('thinking', `Weaving in ${substanceCount} tip${substanceCount !== 1 ? 's' : ''} from your saved clips into the itinerary…`);
+        }
 
         const planStream = streamObject({
           model: models.planItinerary,

@@ -75,6 +75,7 @@ export type AgentStepType =
   | 'clustering'
   | 'routing'
   | 'validating'
+  | 'thinking'   // visible reasoning — italic, indented
   | 'done'
   | 'error';
 
