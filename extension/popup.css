@@ -1,0 +1,180 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sky: #0EA5E9;
+  --sky-dark: #0284C7;
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-2: #263348;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --green: #22c55e;
+  --radius: 10px;
+}
+
+html, body {
+  width: 320px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#app {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 80px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logo-text {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.3px;
+  background: linear-gradient(135deg, #0EA5E9, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.icon-btn:hover { color: var(--text); background: var(--surface); }
+
+/* ── States ─────────────────────────────────────────────────────── */
+.state { display: flex; flex-direction: column; gap: 10px; }
+.hidden { display: none !important; }
+
+/* Setup */
+.setup-icon { font-size: 32px; text-align: center; line-height: 1; }
+.setup-title { font-weight: 600; font-size: 15px; text-align: center; }
+.setup-desc  { font-size: 13px; color: var(--text-muted); text-align: center; }
+
+/* Page info */
+.page-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.favicon-wrap {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  margin-top: 2px;
+}
+
+.favicon-wrap img { object-fit: contain; }
+
+.page-meta { flex: 1; min-width: 0; }
+
+.page-title {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.page-url {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* Platform badge */
+.platform-badge-wrap { min-height: 0; }
+.platform-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+}
+
+.platform-badge.instagram { background: #fbf0f8; color: #c13584; border-color: #f3c6ea; }
+.platform-badge.youtube   { background: #fff0f0; color: #ff0000; border-color: #ffc2c2; }
+.platform-badge.xiaohongshu { background: #fff0f0; color: #ff2442; border-color: #ffc2c2; }
+.platform-badge.tiktok    { background: #f0fcff; color: #010101; border-color: #b0ecf8; }
+.platform-badge.twitter   { background: #f0f8ff; color: #1d9bf0; border-color: #b8deff; }
+.platform-badge.other     { background: var(--surface-2); color: var(--text-muted); border-color: var(--border); }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--sky);
+  color: white;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+}
+
+.btn-primary:hover { background: var(--sky-dark); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4); }
+
+.clip-btn { font-size: 14px; }
+
+.hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Success */
+.success-icon { display: flex; justify-content: center; }
+.success-title { font-weight: 700; font-size: 16px; text-align: center; color: var(--green); }
+.success-desc  { font-size: 13px; color: var(--text-muted); text-align: center; }

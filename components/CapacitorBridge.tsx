@@ -3,17 +3,37 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share written by the iOS Share Extension (bridged from App Group to
+// standard UserDefaults by AppDelegate). Stores the image in sessionStorage so the
+// share page can pick it up without putting binary data in query params.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: imageBase64 }, { value: imageMimeType }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImageBase64' }),
+      Preferences.get({ key: 'pendingShareImageMimeType' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImageBase64' }),
+      Preferences.remove({ key: 'pendingShareImageMimeType' }),
+    ]);
+
+    // Stash image in sessionStorage (avoids query-param length limits)
+    if (imageBase64) {
+      try {
+        sessionStorage.setItem('pendingShareImageBase64', imageBase64);
+        sessionStorage.setItem('pendingShareImageMimeType', imageMimeType ?? 'image/jpeg');
+      } catch {
+        // sessionStorage quota exceeded — image too large, skip vision
+      }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);

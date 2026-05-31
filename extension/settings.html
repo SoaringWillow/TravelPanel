@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#0EA5E9"/>
+      </svg>
+      <h1>TravelPanel Clipper</h1>
+    </header>
+
+    <section class="card">
+      <label class="field-label" for="tp-url">TravelPanel URL</label>
+      <p class="field-desc">Your deployed TravelPanel address (e.g. <code>https://myapp.vercel.app</code>)</p>
+      <input
+        id="tp-url"
+        type="url"
+        placeholder="https://travelpanel.vercel.app"
+        spellcheck="false"
+        autocomplete="off"
+      />
+      <div id="url-error" class="error hidden"></div>
+    </section>
+
+    <div class="actions">
+      <button id="btn-save" class="btn btn-primary">Save</button>
+      <div id="save-status" class="save-status hidden">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Saved
+      </div>
+    </div>
+
+    <section class="card info-card">
+      <h2>How to use</h2>
+      <ol>
+        <li>Navigate to any travel page (Instagram, YouTube, blogs…)</li>
+        <li>Click the TravelPanel icon in your toolbar</li>
+        <li>Click <strong>Clip to TravelPanel</strong></li>
+        <li>Choose a board and save — substance + locations are extracted automatically</li>
+      </ol>
+      <p class="tip">Right-click any link → <em>Clip to TravelPanel</em> also works.</p>
+    </section>
+  </div>
+  <script src="settings.js"></script>
+</body>
+</html>
