@@ -67,7 +67,8 @@ export default function LocationDetailCard({ item, onClose, onCheckIn, onSaved }
 
       {/* Slide-up panel */}
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[1500] mx-3 mb-20"
+        className="fixed bottom-0 left-0 right-0 z-[1500] mx-3"
+        style={{ marginBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 80, opacity: 0 }}

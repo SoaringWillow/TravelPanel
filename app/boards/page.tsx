@@ -37,7 +37,7 @@ export default function BoardsPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pb-4 z-10 header-safe-top">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid className="text-indigo-600" size={22} />
@@ -58,7 +58,7 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <PullToRefresh onRefresh={handlePullRefresh} className="flex-1 px-4 py-4 pb-24">
+      <PullToRefresh onRefresh={handlePullRefresh} className="flex-1 px-4 py-4 scroll-safe-bottom">
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

@@ -184,7 +184,8 @@ function HomePageInner() {
       {!selectedItem && (
         <button
           onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          className="absolute right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
           aria-label="Clip inspiration"
         >
           <Plus size={24} />

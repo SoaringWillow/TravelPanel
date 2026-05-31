@@ -79,9 +79,9 @@ export default function TimelinePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
+    <div className="flex flex-col min-h-screen bg-gray-50 scroll-safe-bottom">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pb-4 z-10 header-safe-top">
         <div className="flex items-center gap-3">
           <button
             type="button"

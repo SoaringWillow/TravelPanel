@@ -291,6 +291,90 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE E — iOS Polish & Production Readiness (Sprint 3)
+
+### E1 — Safe Area + Bottom Spacing Polish
+**Status**: `[x]` Done
+**Why**: On iPhone with notch/Dynamic Island and home indicator, content sits behind the nav bar and status bar. This makes the app feel unfinished.
+**Files to change**: `app/globals.css`, `components/NavBar.tsx`, `app/layout.tsx`, all page files with bottom-padded scroll areas
+**What to do**:
+- Add `pb-[env(safe-area-inset-bottom)]` and `pt-[env(safe-area-inset-top)]` CSS utilities to `globals.css`
+- Update NavBar to use `pb-[env(safe-area-inset-bottom)]` so it extends behind the home indicator
+- Update all pages that have `pb-24` to use `pb-[calc(6rem+env(safe-area-inset-bottom))]` or a utility class
+- Add `pt-[env(safe-area-inset-top)]` to page headers that currently use `pt-12` (should be `pt-12 + safe-area-top`)
+- Use `viewport-fit=cover` (already set) + CSS env() variables
+
+### E2 — Keyboard-Aware Input Handling
+**Status**: `[ ]` Not started
+**Why**: On iOS, the software keyboard covers form inputs in the import sheet and search bar. Users can't see what they're typing.
+**Files to change**: `components/ImportSheet.tsx`, `app/inbox/page.tsx`, `app/share/page.tsx`
+**What to do**:
+- In ImportSheet: scroll the input into view on focus via `element.scrollIntoView({ behavior: 'smooth', block: 'center' })`
+- Add `inputmode="url"` to URL input fields for the correct iOS keyboard
+- Add `autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck={false}` to URL inputs
+- In search bar: add `inputmode="search"` and `enterKeyHint="search"` to trigger the search keyboard on iOS
+- In share page textarea/input: add `inputmode="text"` and ensure the form scrolls to keep the focused field visible
+
+### E3 — Onboarding Tutorial Overlay
+**Status**: `[ ]` Not started
+**Why**: New users land on a blank map with no context. The seed data helps but there's no guidance on the app's core gesture (long-press a pin, tap to detail card, check in).
+**Files**: new `components/OnboardingTour.tsx`, `app/page.tsx`
+**What to do**:
+- Create `OnboardingTour` component that shows 3 tooltip-style step cards:
+  1. "Clip a link — tap + to save travel inspiration" (points to FAB)
+  2. "Tap any pin to see tips and wisdom from the post" (points to map)
+  3. "Build a board — organize clips into trips" (points to boards tab in NavBar)
+- Show only on first visit (flag: `localStorage.getItem('hasSeenTour')`)
+- Each step has a "Next" button; last step has "Got it" that sets the flag
+- Overlay uses a semi-transparent backdrop with a spotlight cutout around the pointed element
+- Skip button on step 1
+
+### E4 — Clip Source URL Preview
+**Status**: `[ ]` Not started
+**Why**: When users tap a clip, they can't navigate back to the original post. The URL is stored but never shown.
+**Files to change**: `components/LocationDetailCard.tsx`
+**What to do**:
+- Add an "Open source" link at the bottom of the detail card (below check-in button)
+- Show the platform icon + domain name (e.g. "📱 xiaohongshu.com")
+- Tap opens `window.open(item.url, '_blank')`
+- Only show if `item.url` is a valid http/https URL
+- Style: subtle gray border button, external link icon (ExternalLink from lucide-react)
+
+### E5 — Board Cover Thumbnails
+**Status**: `[ ]` Not started
+**Why**: Board cards show an emoji + name but no visual preview of what's inside. A photo grid or cover photo makes boards feel alive.
+**Files to change**: `components/BoardCard.tsx`, `lib/db.ts`
+**What to do**:
+- Show up to 4 item thumbnails in a 2×2 grid as the board card background (if thumbnails available)
+- If < 4 thumbnails: fill remaining slots with the board emoji on indigo
+- `coverThumbnail` is already stored on Board — use it as the primary large thumbnail
+- Use CSS `object-cover` to fill the grid cells
+- Overlay the board name + emoji in a gradient footer at the bottom of the card
+
+### E6 — Swipe-to-Delete on Inbox Cards
+**Status**: `[ ]` Not started
+**Why**: Deleting a clip requires tapping the card to open a menu. Mobile-native UX expects swipe-left-to-delete.
+**Files to change**: `components/InboxCard.tsx`
+**What to do**:
+- Add swipe-left gesture: track `touchstart`/`touchmove`/`touchend`, translate card left
+- Reveal a red delete zone behind the card when swiped >60px
+- Swipe >50% of card width: snap to delete (with haptic + `onDelete` callback)
+- Partial swipe: snap back to original position
+- Show a trash icon in the revealed zone
+- Works alongside existing tap-to-open behavior
+
+### E7 — Plan View Substance Citations
+**Status**: `[ ]` Not started
+**Why**: A12 threaded substance into plans but the UI rendering of `sourcedTips` may not be showing the "from your clip: X" attribution visually.
+**Files to change**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx` (if it exists)
+**What to do**:
+- Find where activities are rendered in the plan view
+- If `activity.sourcedTips` exists and has items, render each with a subtle "📎 from: [sourceTitle]" attribution badge
+- Style: small amber/gold chip, italic source title, tucked below the activity description
+- Test with the seed board data that has substance items
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
