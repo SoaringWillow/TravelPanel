@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Clock } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -133,7 +133,7 @@ export default function BoardDetailPage() {
 
         <div className="px-4 py-4">
           {/* Plan this trip CTA */}
-          <div className="mb-4">
+          <div className="mb-4 space-y-2">
             {hasLocations ? (
               <button
                 type="button"
@@ -161,6 +161,18 @@ export default function BoardDetailPage() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Trip timeline link */}
+            {boardItems.some((i) => i.checkedInAt != null) && (
+              <button
+                type="button"
+                onClick={() => router.push(`/timeline/${boardId}`)}
+                className="w-full flex items-center justify-center gap-2 border-2 border-indigo-200 text-indigo-600 font-semibold py-3 rounded-2xl hover:bg-indigo-50 active:scale-[0.98] transition-all text-sm"
+              >
+                <Clock size={16} />
+                View trip timeline
+              </button>
             )}
           </div>
 

@@ -49,8 +49,9 @@ export interface SavedItem {
   notes?: string;
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
-  boardId?: string; // undefined = Inbox (unassigned)
-  isDemo?: boolean; // onboarding seed content — removable in one tap
+  boardId?: string;    // undefined = Inbox (unassigned)
+  isDemo?: boolean;    // onboarding seed content — removable in one tap
+  checkedInAt?: number; // Unix ms — set when user taps "Check in" during a trip
 }
 
 // ─── Board / Collection ─────────────────────────────────────────────────────

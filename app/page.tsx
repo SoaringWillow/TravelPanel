@@ -7,6 +7,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
+import { checkInItem } from '@/lib/db';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -32,7 +33,7 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 function HomePageInner() {
   const searchParams = useSearchParams();
-  const { items, loading, addItem } = useSavedItems();
+  const { items, loading, addItem, refreshItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
@@ -69,6 +70,11 @@ function HomePageInner() {
         )
       )
     : items;
+
+  async function handleCheckIn(id: string) {
+    await checkInItem(id);
+    refreshItem(id);
+  }
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -158,6 +164,7 @@ function HomePageInner() {
           <LocationDetailCard
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            onCheckIn={handleCheckIn}
           />
         )}
       </AnimatePresence>

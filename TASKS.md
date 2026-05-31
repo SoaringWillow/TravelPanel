@@ -195,7 +195,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Graceful degradation: if geolocation denied, hide the locate button with a toast ("Location permission denied")
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/timeline/[boardId]/page.tsx`, `lib/types.ts`, `lib/db.ts`  
 **What to do**:
 - Add "Check in" action on location detail cards — records `checkedInAt: number` on a SavedItem

@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, CheckCircle2 } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -9,9 +10,22 @@ import SubstanceList from './SubstanceList';
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
+  onCheckIn?: (id: string) => void;
 }
 
-export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onCheckIn }: LocationDetailCardProps) {
+  const [checkedIn, setCheckedIn] = useState(!!item.checkedInAt);
+
+  function handleCheckIn() {
+    if (checkedIn) return;
+    setCheckedIn(true);
+    onCheckIn?.(item.id);
+  }
+
+  const checkInTime = item.checkedInAt
+    ? new Date(item.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : null;
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -133,6 +147,25 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
                 <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
               </div>
+            )}
+
+            {/* Check in */}
+            {onCheckIn && (
+              <button
+                type="button"
+                onClick={handleCheckIn}
+                disabled={checkedIn}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  checkedIn
+                    ? 'bg-green-50 text-green-600 border border-green-200 cursor-default'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]'
+                }`}
+              >
+                <CheckCircle2 size={16} />
+                {checkedIn
+                  ? `Checked in${checkInTime ? ` at ${checkInTime}` : ''}`
+                  : 'Check in here'}
+              </button>
             )}
           </div>
         </div>

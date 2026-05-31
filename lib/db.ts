@@ -81,6 +81,13 @@ export async function saveItem(item: SavedItem): Promise<void> {
   await db.put('items', item);
 }
 
+export async function checkInItem(id: string): Promise<void> {
+  const db   = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, checkedInAt: Date.now() });
+}
+
 export async function deleteItem(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('items', id);
