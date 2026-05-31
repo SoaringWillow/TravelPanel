@@ -81,12 +81,16 @@ async function fetchPageData(url: string) {
   }
 }
 
+// Platforms that commonly block scraping — Vision is especially valuable for these.
+const VISION_PRIORITY_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,6 +102,13 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
+  // Use Vision when: caller provided a screenshot, OR scraping returned nothing
+  // for a platform known to block bots (Xiaohongshu, WeChat, Douyin).
+  const scrapingBlocked =
+    VISION_PRIORITY_PLATFORMS.has(platform) &&
+    !page?.textContent?.trim();
+  const useVision = !!(imageBase64 && (scrapingBlocked || imageBase64));
+
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
@@ -105,7 +116,7 @@ URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — rely on the screenshot if provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,12 +141,36 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision && imageBase64) {
+      // Vision path: include the screenshot so Claude can read text/maps in the image
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: `data:image/jpeg;base64,${imageBase64}`,
+              },
+              {
+                type: 'text',
+                text: prompt,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
