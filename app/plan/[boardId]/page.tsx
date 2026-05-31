@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage } from '@/lib/types';
 import { getBoardById, getAllItems } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
+import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
@@ -131,6 +132,22 @@ export default function PlanPage() {
     setSelectedChips(new Set());
     setCustomNotes('');
   }, []);
+
+  // Export is only meaningful for a fully-formed plan (days + activities present).
+  const planIsComplete = (p: Partial<TripPlan> | null): p is TripPlan =>
+    !!p && Array.isArray(p.days) && p.days.length > 0;
+
+  const handleExportPDF = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    await exportPlanToPDF(plan, board.name, board.emoji);
+    track('plan_exported', { format: 'pdf', boardId });
+  }, [plan, board, boardId]);
+
+  const handleExportICS = useCallback(() => {
+    if (!planIsComplete(plan) || !board) return;
+    exportPlanToICS(plan, board.name);
+    track('plan_exported', { format: 'ics', boardId });
+  }, [plan, board, boardId]);
 
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
@@ -362,6 +379,26 @@ export default function PlanPage() {
                   </div>
                 )}
               </div>
+
+              {/* Export actions */}
+              {planIsComplete(plan) && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleExportPDF}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  >
+                    <Download size={14} />
+                    Export PDF
+                  </button>
+                  <button
+                    onClick={handleExportICS}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  >
+                    <CalendarPlus size={14} />
+                    Add to Calendar
+                  </button>
+                </div>
+              )}
 
               {/* Day strip */}
               {plan.days && plan.days.length > 0 && (

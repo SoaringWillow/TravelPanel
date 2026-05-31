@@ -105,7 +105,7 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 - Seed data should showcase the substance layer: each clip has at least 2 substance items
 
 ### A9 — Plan Export (PDF + Calendar)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, new `lib/exportPlan.ts`  
 **What to do**:
 - Add Export button to the plan view

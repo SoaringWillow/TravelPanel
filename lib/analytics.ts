@@ -40,6 +40,7 @@ export type AnalyticsEvent =
   | 'clip_enrich_failed'
   | 'plan_generated'
   | 'plan_limit_hit'
+  | 'plan_exported'
   | 'board_created'
   | 'search_performed'
   | 'substance_viewed';
