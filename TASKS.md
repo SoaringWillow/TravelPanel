@@ -252,7 +252,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a subtle spinner at top during refresh
 
 ### D4 — Item Editing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
 - Add an "Edit" button to the detail card (pencil icon in header)

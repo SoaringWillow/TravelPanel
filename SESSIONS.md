@@ -96,3 +96,10 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-05-31 20:28 | 2b79ac5 | feat(B2): add browser extension for one-click URL clipping
+2026-05-31 20:34 | 0f82734 | feat(B3): Claude Vision for Xiaohongshu via iOS Share Sheet image
+2026-05-31 20:36 | 31f401f | feat(B5): settings page with full JSON data export and backup
+2026-05-31 20:38 | 9dc2d83 | feat(C1): GPS/nearby mode — user location dot + 10km radius filter
+2026-05-31 20:41 | 54d00d8 | feat(C2): post-trip timeline with check-in system
+2026-05-31 20:42 | 8d6da73 | feat(C4): proactive resurfacing — nearby clip alert toast
+2026-05-31 20:44 | e104bef | feat(D1,D2,D7): haptics + skeleton loading + offline indicator

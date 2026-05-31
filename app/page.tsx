@@ -166,6 +166,7 @@ function HomePageInner() {
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
             onCheckIn={handleCheckIn}
+            onSaved={(id) => refreshItem(id)}
           />
         )}
       </AnimatePresence>
