@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    :root {
+      --indigo: #6366f1;
+      --indigo-dark: #4f46e5;
+      --indigo-50: #eef2ff;
+      --indigo-100: #e0e7ff;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --red-50: #fef2f2;
+      --red-600: #dc2626;
+      --green-50: #f0fdf4;
+      --green-700: #15803d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      color: var(--gray-900);
+      background: var(--gray-50);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      color: var(--indigo);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header span {
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--gray-500);
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    .field {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .field input {
+      flex: 1;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 9px;
+      padding: 9px 12px;
+      font-size: 14px;
+      color: var(--gray-900);
+      outline: none;
+      transition: border-color 0.15s;
+      background: #fff;
+    }
+
+    .field input::placeholder {
+      color: var(--gray-400);
+    }
+
+    .field input:focus {
+      border-color: var(--indigo);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .field input.error {
+      border-color: var(--red-600);
+    }
+
+    .btn-save {
+      background: var(--indigo);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 9px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.12s;
+    }
+
+    .btn-save:hover {
+      background: var(--indigo-dark);
+    }
+
+    .feedback {
+      margin-top: 10px;
+      font-size: 13px;
+      padding: 8px 11px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .feedback.success {
+      display: block;
+      background: var(--green-50);
+      color: var(--green-700);
+    }
+
+    .feedback.error {
+      display: block;
+      background: var(--red-50);
+      color: var(--red-600);
+    }
+
+    .shortcut-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .shortcut-item {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-100);
+      border-radius: 9px;
+      padding: 11px 13px;
+    }
+
+    .shortcut-label {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-bottom: 5px;
+    }
+
+    .shortcut-key {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+
+    kbd {
+      background: #fff;
+      border: 1px solid var(--gray-300, #d1d5db);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--gray-700);
+      box-shadow: 0 1px 0 var(--gray-200);
+    }
+
+    .help-link {
+      font-size: 12.5px;
+      color: var(--indigo);
+      text-decoration: none;
+    }
+
+    .help-link:hover { text-decoration: underline; }
+
+    footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--gray-400);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      <h1>TravelPanel <span>Clipper</span></h1>
+    </header>
+
+    <!-- TravelPanel URL -->
+    <div class="card">
+      <p class="card-title">TravelPanel URL</p>
+      <p class="card-desc">
+        Enter the URL where your TravelPanel app is deployed.
+        This is the base URL the extension will use when saving clips.
+      </p>
+      <div class="field">
+        <input
+          type="url"
+          id="url-input"
+          placeholder="https://your-app.vercel.app"
+          spellcheck="false"
+          autocomplete="off"
+        >
+        <button class="btn-save" id="save-btn">Save</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <!-- Keyboard shortcuts -->
+    <div class="card">
+      <p class="card-title">Keyboard Shortcuts</p>
+      <p class="card-desc">Clip the current page without opening the popup.</p>
+      <div class="shortcut-grid">
+        <div class="shortcut-item">
+          <p class="shortcut-label">Mac</p>
+          <div class="shortcut-key">
+            <kbd>⌘</kbd><kbd>⇧</kbd><kbd>S</kbd>
+          </div>
+        </div>
+        <div class="shortcut-item">
+          <p class="shortcut-label">Windows / Linux</p>
+          <div class="shortcut-key">
+            <kbd>Alt</kbd><kbd>Shift</kbd><kbd>S</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help -->
+    <div class="card">
+      <p class="card-title">Need help?</p>
+      <p class="card-desc">
+        Right-click any page or link and choose <strong>Save to TravelPanel</strong>.
+        You can also use the keyboard shortcut above to clip without opening the popup.
+      </p>
+      <a class="help-link" href="https://github.com/soaringwillow/travelpanel" target="_blank" rel="noopener">
+        View TravelPanel on GitHub →
+      </a>
+    </div>
+
+    <footer>TravelPanel Clipper v1.0.0</footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
