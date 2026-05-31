@@ -21,6 +21,7 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const isExtension     = searchParams.get('ref') === 'extension';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -41,13 +42,17 @@ function SharePageInner() {
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (isExtension) {
+          window.close();
+        } else {
+          window.history.back();
+        }
       }, 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [stage]);
+  }, [stage, isExtension]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
@@ -244,13 +249,13 @@ function SharePageInner() {
           </AnimatePresence>
         </div>
 
-        {/* Bottom — return button (ghost) */}
+        {/* Bottom — return / close button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={() => isExtension ? window.close() : window.history.back()}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
-          Return to app
+          {isExtension ? 'Close' : 'Return to app'}
           <ChevronRight size={15} />
         </button>
       </div>
@@ -330,11 +335,15 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (isExtension) {
+            window.close();
+          } else {
+            window.history.back();
+          }
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        {isExtension ? 'Close window →' : 'Return to app →'}
       </button>
     </div>
   );
