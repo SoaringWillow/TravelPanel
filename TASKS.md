@@ -244,7 +244,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use `bg-gray-200 animate-pulse rounded` pattern with Tailwind
 
 ### D3 — Pull-to-Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Add pull-to-refresh gesture on iOS using `@capacitor/haptics` + touch events

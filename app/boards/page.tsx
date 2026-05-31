@@ -9,10 +9,11 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
-  const { items } = useSavedItems();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
+  const { refresh: refreshItems } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
 
@@ -27,6 +28,10 @@ export default function BoardsPage() {
 
   async function handleDelete(id: string) {
     await removeBoard(id);
+  }
+
+  async function handlePullRefresh() {
+    await Promise.all([refreshBoards(), refreshItems()]);
   }
 
   return (
@@ -53,7 +58,7 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <PullToRefresh onRefresh={handlePullRefresh} className="flex-1 px-4 py-4 pb-24">
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -87,7 +92,7 @@ export default function BoardsPage() {
             ))}
           </div>
         )}
-      </div>
+      </PullToRefresh>
 
       {/* Create board modal */}
       <CreateBoardModal

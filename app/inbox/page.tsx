@@ -16,6 +16,7 @@ import InboxCard from '@/components/InboxCard';
 import SkeletonCard from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import PullToRefresh from '@/components/PullToRefresh';
 
 // ─── Filter / sort config ─────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ function readSession<T>(key: string, fallback: T): T {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -140,6 +141,10 @@ export default function InboxPage() {
 
   function handleMoveToBoard(id: string) {
     setMovingItemId(id);
+  }
+
+  async function handlePullRefresh() {
+    await refresh();
   }
 
   const handleBoardSelect = useCallback(
@@ -288,7 +293,8 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24" onClick={() => setShowSort(false)}>
+      <PullToRefresh onRefresh={handlePullRefresh} className="flex-1 px-4 py-4 pb-24">
+        <div onClick={() => setShowSort(false)}>
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -340,7 +346,8 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
-      </div>
+        </div>
+      </PullToRefresh>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>
