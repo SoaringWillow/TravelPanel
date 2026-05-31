@@ -83,3 +83,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 05:56 | 89374c5 | chore: session log auto-entry + regenerated PWA service worker
 2026-05-31 06:17 | 62810e6 | feat: model routing — Haiku for enrichment/clustering, Opus for itinerary
 2026-05-31 06:18 | b2f05be | chore: session log — model routing entry
+2026-05-31 06:54 | 1a931a2 | chore: session log auto-entry
