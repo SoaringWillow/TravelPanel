@@ -298,7 +298,7 @@ demonstrates the moat to users in their first save.
 - Run `npx cap sync ios` to apply
 
 ### D10 — Supabase Sign-In UI Surface
-**Status**: `[ ]` Not started (no-op until keys; pairs with B1)  
+**Status**: `[x]` Done  
 **Files**: `app/settings/page.tsx`, new `components/AuthCard.tsx`  
 **What to do**:
 - In settings page, add a "Cloud Sync" section

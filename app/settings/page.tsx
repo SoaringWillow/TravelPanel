@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { useTheme } from '@/components/ThemeProvider';
+import AuthCard from '@/components/AuthCard';
 import { getAllItems, getAllBoards, getAllTrips, saveItem, saveBoard, saveTrip } from '@/lib/db';
 import { SavedItem, Board, Trip } from '@/lib/types';
 import { track } from '@/lib/analytics';
@@ -392,6 +393,14 @@ export default function SettingsPage() {
               </motion.div>
             )}
           </div>
+        </section>
+
+        {/* Cloud sync section */}
+        <section>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
+            Cloud Sync
+          </p>
+          <AuthCard />
         </section>
 
         {/* Appearance section */}
