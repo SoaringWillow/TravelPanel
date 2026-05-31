@@ -114,3 +114,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 12:58 | 08f016f | E2: Board card cover collage — Pinterest-style 2x2 thumbnail grid
 2026-05-31 12:59 | 263c0c2 | E3: Save success celebration — confetti burst + spring pop checkmark
 2026-05-31 13:00 | 828ee49 | E4: Beautiful empty states for map, inbox, and boards pages
+2026-05-31 13:01 | 4843abe | E5: Trip plan copy-as-text button

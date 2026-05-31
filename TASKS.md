@@ -370,7 +370,7 @@ demonstrates the moat to users in their first save.
 - Include the plan overview at the top and trip tips at the bottom
 
 ### E6 — Swipe Actions on InboxCard (iOS gesture)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Native iOS apps (Mail, Messages) train users to swipe cards for quick actions. Swipe-to-delete is the most expected gesture on a list. Missing it makes the app feel like a web page, not a native app.
 **Files**: `components/InboxCard.tsx`
 **What to do**:
