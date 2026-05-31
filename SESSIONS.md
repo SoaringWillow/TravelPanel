@@ -89,3 +89,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:12 | 51a697b | chore: session log auto-entry
 2026-05-31 07:13 | 8989974 | fix(B1): type onAuthStateChange callback + lockfile entry for supabase-js
 2026-05-31 07:14 | 527aaf1 | fix(B1): sync package-lock.json with @supabase/supabase-js
+2026-05-31 07:16 | ec32ac1 | chore(B1): fold Supabase env vars into existing .env.local.example
