@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <div class="logo">
+        <span class="logo-icon">✈</span>
+        <span class="logo-text">TravelPanel Clipper</span>
+      </div>
+      <p class="subtitle">Extension Settings</p>
+    </header>
+
+    <main class="form">
+      <div class="field">
+        <label for="panel-url" class="label">TravelPanel URL</label>
+        <p class="hint">
+          The URL where your TravelPanel app is deployed. Leave as default
+          if you're using the hosted version.
+        </p>
+        <input
+          id="panel-url"
+          type="url"
+          class="input"
+          placeholder="https://travelpanel.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+
+      <div class="field">
+        <label class="label">Saved URLs</label>
+        <p class="hint">
+          The extension remembers URLs you've clipped to avoid duplicate badges.
+        </p>
+        <div class="stats-row">
+          <span id="saved-count" class="stat-badge">0 saved</span>
+          <button id="clear-btn" class="clear-btn">Clear history</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="save-btn" class="save-btn">Save settings</button>
+        <span id="save-status" class="save-status" style="display:none;"></span>
+      </div>
+    </main>
+
+    <footer class="page-footer">
+      <a href="https://github.com/soaringwillow/travelpanel" target="_blank" rel="noopener" class="footer-link">
+        GitHub
+      </a>
+      &middot;
+      <span>TravelPanel Clipper v1.0.0</span>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
