@@ -76,7 +76,7 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 - **NOTE**: Ask user for `RESEND_API_KEY` to enable email notifications (free tier: 100 emails/day)
 
 ### A6 — Pin Clustering at Low Zoom
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `components/MapView.tsx`  
 **What to do**:
 - Enable MapLibre's built-in cluster layer on the locations source

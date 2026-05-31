@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
+import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
+import { useSupercluster } from '@/hooks/useSupercluster';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -184,6 +187,43 @@ function Pin({ item, locName, onClick }: PinProps) {
   );
 }
 
+// ─── Cluster bubble ──────────────────────────────────────────────────────────
+
+interface ClusterMarkerProps {
+  count: number;
+  total: number;
+  onClick: () => void;
+}
+
+function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
+  // Scale the bubble with how many pins it holds (relative to the largest group).
+  const size = 28 + Math.min(count / total, 1) * 24;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${count} places — zoom in`}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: 'rgba(99,102,241,0.92)',
+        border: '2.5px solid white',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.28)',
+        color: 'white',
+        fontWeight: 700,
+        fontSize: count > 99 ? 12 : 13,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {count}
+    </button>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
@@ -194,6 +234,38 @@ interface MapViewProps {
 
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const { clusters, getExpansionZoom, setView } = useSupercluster(items);
+  const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  // Largest cluster size — used to scale bubble radius proportionally.
+  const maxClusterCount = clusters.reduce(
+    (m, c) => (c.properties.cluster ? Math.max(m, (c.properties.point_count as number) || 0) : m),
+    1,
+  );
+
+  const syncView = useCallback(
+    (map: maplibregl.Map) => {
+      const b = map.getBounds();
+      setView({
+        zoom: map.getZoom(),
+        bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
+      });
+    },
+    [setView],
+  );
+
+  const handleLoad = useCallback(
+    (e: { target: maplibregl.Map }) => {
+      mapInstanceRef.current = e.target;
+      syncView(e.target);
+    },
+    [syncView],
+  );
+
+  const handleMove = useCallback(
+    (e: ViewStateChangeEvent) => syncView(e.target as unknown as maplibregl.Map),
+    [syncView],
+  );
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
@@ -203,41 +275,58 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
+        onLoad={handleLoad}
+        onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
 
         <MapController flyTo={flyTo} />
 
-        {items.flatMap((item) => {
-          if (!item.locations || item.locations.length === 0) return [];
+        {clusters.map((feature) => {
+          const [lng, lat] = feature.geometry.coordinates;
+          if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
 
-          return item.locations
-            .filter(
-              (loc) =>
-                Number.isFinite(loc?.lat) && Number.isFinite(loc?.lng),
-            )
-            .map((loc, locIndex) => (
+          // ── Cluster bubble ──
+          if (feature.properties.cluster) {
+            const clusterId = feature.properties.cluster_id as number;
+            const count = feature.properties.point_count as number;
+            return (
+              <Marker key={`cluster-${clusterId}`} longitude={lng} latitude={lat} anchor="center">
+                <ClusterMarker
+                  count={count}
+                  total={maxClusterCount}
+                  onClick={() => {
+                    const expansionZoom = getExpansionZoom(clusterId);
+                    mapInstanceRef.current?.easeTo({
+                      center: [lng, lat],
+                      zoom: expansionZoom,
+                      duration: 500,
+                    });
+                  }}
+                />
+              </Marker>
+            );
+          }
+
+          // ── Individual pin ──
+          const { item, location } = feature.properties;
+          return (
             <Marker
-              key={`${item.id}-${locIndex}`}
-              longitude={loc.lng}
-              latitude={loc.lat}
+              key={`${item.id}-${location.lat},${location.lng}`}
+              longitude={lng}
+              latitude={lat}
               anchor="bottom"
             >
               <Pin
                 item={item}
-                locName={loc.name}
+                locName={location.name}
                 onClick={() => {
-                  setPopupInfo({
-                    item,
-                    location: loc,
-                    longitude: loc.lng,
-                    latitude:  loc.lat,
-                  });
+                  setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);
                 }}
               />
             </Marker>
-          ));
+          );
         })}
 
         {popupInfo && (
