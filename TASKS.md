@@ -85,7 +85,7 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 - Individual pin color should reflect tag category (food=orange, nature=green, culture=purple, etc.)
 
 ### A7 — Full-Text Search on Clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `components/SearchBar.tsx`, `app/page.tsx` or `app/inbox/page.tsx`  
 **What to do**:
 - Add a search bar to the main board/inbox view

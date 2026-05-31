@@ -10,7 +10,10 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { searchItems } from '@/lib/searchItems';
+import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -34,14 +37,22 @@ export default function InboxPage() {
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+
+  const handleSearch = useCallback((q: string) => {
+    setQuery(q);
+    if (q.trim()) track('search_performed', { length: q.trim().length });
+  }, []);
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
 
-  const filtered =
+  const platformFiltered =
     activePlatform === 'all'
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
+
+  const filtered = searchItems(platformFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -89,12 +100,17 @@ export default function InboxPage() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
+        </div>
+
+        {/* Search */}
+        <div className="mb-3">
+          <SearchBar onSearch={handleSearch} />
         </div>
 
         {/* Platform filter tabs */}
@@ -130,10 +146,14 @@ export default function InboxPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">📥</div>
-            <h3 className="font-semibold text-gray-700 mb-2">Your inbox is empty.</h3>
+            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
+            <h3 className="font-semibold text-gray-700 mb-2">
+              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
+            </h3>
             <p className="text-sm text-gray-500 max-w-xs">
-              {activePlatform === 'all'
+              {query.trim()
+                ? `No clips match "${query.trim()}". Try a different search.`
+                : activePlatform === 'all'
                 ? 'Share content from social apps to get started!'
                 : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
             </p>
