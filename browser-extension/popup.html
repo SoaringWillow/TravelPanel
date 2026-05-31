@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Setup prompt (shown when TravelPanel URL not configured) -->
+    <div id="setup-view" class="hidden">
+      <div class="header">
+        <img src="icons/icon48.png" class="logo" alt="" />
+        <div>
+          <div class="brand">TravelPanel</div>
+          <div class="brand-sub">Clipper</div>
+        </div>
+      </div>
+      <div class="setup-body">
+        <p class="setup-title">Connect to your TravelPanel</p>
+        <p class="setup-desc">Enter your TravelPanel URL to start clipping travel inspiration from any webpage.</p>
+        <input
+          id="setup-url-input"
+          type="url"
+          class="url-input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="setup-save-btn" class="btn-primary" disabled>Connect</button>
+        <a id="setup-default-link" href="#" class="hint-link">Use default URL</a>
+      </div>
+    </div>
+
+    <!-- Main clip view -->
+    <div id="clip-view" class="hidden">
+      <div class="header">
+        <img src="icons/icon48.png" class="logo" alt="" />
+        <div class="header-text">
+          <div class="brand">TravelPanel</div>
+          <div class="brand-sub">Save this page</div>
+        </div>
+        <button id="settings-btn" class="icon-btn" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Page info -->
+      <div class="page-info">
+        <span id="platform-chip" class="platform-chip"></span>
+        <div class="title-row">
+          <input
+            id="title-input"
+            type="text"
+            class="title-input"
+            placeholder="Page title"
+            autocomplete="off"
+          />
+        </div>
+        <div id="url-display" class="url-display"></div>
+      </div>
+
+      <!-- Save button -->
+      <button id="save-btn" class="btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+        Save to TravelPanel
+      </button>
+
+      <div id="unsupported-note" class="hint-text hidden">
+        This page type may not have extractable travel data.
+      </div>
+    </div>
+
+    <!-- Success view -->
+    <div id="success-view" class="hidden">
+      <div class="success-body">
+        <div class="success-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <p class="success-title">Opening TravelPanel…</p>
+        <p class="success-desc">Choose a board in the tab that just opened.</p>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
