@@ -1,14 +1,15 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { takePendingImage } from '@/lib/pendingImage';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,12 +30,41 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [imageBase64, setImageBase64]         = useState<string | undefined>(undefined);
+  const [imageMediaType, setImageMediaType]   = useState<string>('image/jpeg');
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Pick up any image forwarded by the iOS Share Extension via CapacitorBridge
+  useEffect(() => {
+    const img = takePendingImage();
+    if (img) {
+      setImageBase64(img.base64);
+      setImageMediaType(img.mediaType);
+      setImagePreviewUrl(`data:${img.mediaType};base64,${img.base64}`);
+    }
+  }, []);
+
+  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const mediaType = file.type || 'image/jpeg';
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUri = ev.target?.result as string;
+      // Strip the data URI prefix — API wants raw base64
+      const base64 = dataUri.split(',')[1];
+      setImageBase64(base64);
+      setImageMediaType(mediaType);
+      setImagePreviewUrl(dataUri);
+    };
+    reader.readAsDataURL(file);
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +118,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image when available (e.g. Xiaohongshu)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64, imageBase64 ? imageMediaType : undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +194,37 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Image preview or upload (for Xiaohongshu / blocked platforms) */}
+          {imagePreviewUrl ? (
+            <div className="relative mt-2 rounded-xl overflow-hidden max-h-48">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imagePreviewUrl} alt="Share preview" className="w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => { setImageBase64(undefined); setImagePreviewUrl(undefined); }}
+                className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                aria-label="Remove image"
+              >
+                <X size={14} />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
+                <p className="text-xs text-white/90 font-medium">📷 Using image for AI extraction</p>
+              </div>
+            </div>
+          ) : (
+            <label className="mt-2 flex items-center gap-2 text-xs text-gray-400 cursor-pointer hover:text-indigo-500 transition-colors">
+              <ImagePlus size={14} />
+              <span>Add screenshot for better extraction (Xiaohongshu, etc.)</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleImageUpload}
+                disabled={stage === 'saving'}
+              />
+            </label>
           )}
         </div>
 
