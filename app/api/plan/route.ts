@@ -3,6 +3,8 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { getEnrichmentSignals } from '@/lib/enrichSignals';
+import { optimizeRoute, totalRouteDistance } from '@/lib/routeOptimizer';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -49,9 +51,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, startDate: string | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, startDate } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -117,6 +119,51 @@ export async function POST(req: NextRequest) {
 
         step('routing', 'Building optimised route…');
 
+        // ── Step 2.5a: TSP route optimization per day ────────────────────
+        // Re-order each day's locations using nearest-neighbor TSP to minimize
+        // walking/driving distance. Also compute per-day distances for UI.
+        const optimizedClusters = clusters.groups.map((group) => {
+          const dayLocs = resolvedLocs.locations.filter((loc) =>
+            group.locationNames.some((n) => n.toLowerCase() === loc.name.toLowerCase())
+          );
+          if (dayLocs.length <= 2) return { ...group, locationNames: group.locationNames, estDistanceKm: null };
+
+          const points = dayLocs.map((l) => ({ id: l.name, lat: l.lat, lng: l.lng }));
+          const optimized = optimizeRoute(points);
+          const distM = totalRouteDistance(optimized);
+          return {
+            ...group,
+            locationNames: optimized.map((p) => p.id),
+            estDistanceKm: Math.round(distM / 100) / 10,
+          };
+        });
+
+        const daysWithDist = optimizedClusters.filter((g) => g.estDistanceKm !== null);
+        if (daysWithDist.length > 0) {
+          const distSummary = daysWithDist.map((g) => `Day ${g.day}: ~${g.estDistanceKm}km`).join(', ');
+          step('routing', `Route optimized — ${distSummary}`);
+        }
+
+        // ── Step 2.5b: Fetch real-world signals (weather + events) ───────
+        let signalsBlock = '';
+        if (startDate && resolvedLocs.locations.length > 0) {
+          step('searching', 'Fetching weather and local event signals…');
+          const primaryLoc = resolvedLocs.locations[0].name;
+          try {
+            const signals = await getEnrichmentSignals(primaryLoc, startDate, days);
+            const parts: string[] = [];
+            if (signals.weather) parts.push(signals.weather);
+            if (signals.events && !signals.events.includes('unavailable')) {
+              parts.push(`Events/festivals near ${signals.location} (${startDate}):\n${signals.events}`);
+            }
+            if (parts.length > 0) {
+              signalsBlock = '\n\nReal-world context — incorporate this into activity tips where relevant:\n' + parts.join('\n\n');
+            }
+          } catch {
+            // Signals are optional — silently skip if they fail
+          }
+        }
+
         // ── Step 3: Stream full itinerary ────────────────────────────────
         // Include substance (the wisdom layer) so the plan can cite the user's
         // own clips inline — this is the sourced-itinerary moat.
@@ -139,9 +186,9 @@ export async function POST(req: NextRequest) {
           prompt: `Create a detailed ${days}-day travel itinerary.
 
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
-Day clusters: ${JSON.stringify(clusters.groups)}
+Day clusters (route-optimized, follow this order for activities): ${JSON.stringify(optimizedClusters)}
 Saved content: ${JSON.stringify(contentSummary)}
-User preferences: ${preferences || 'None specified'}
+User preferences: ${preferences || 'None specified'}${signalsBlock}
 
 Rules:
 - 2-4 activities per day with realistic timing

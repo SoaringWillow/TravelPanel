@@ -28,13 +28,26 @@ function SharePageInner() {
   const [newBoardName, setNewBoardName]       = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
+  // Vision image: iOS Share Extension writes base64 JPEG to sessionStorage[pendingShareImage]
+  // before routing here. We consume it once then delete.
+  const pendingImageRef = useRef<string | undefined>(undefined);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards and consume any pending screenshot image on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    // iOS bridge stores JPEG base64 here before routing to /share
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        pendingImageRef.current = img;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage unavailable (private browsing, etc.)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +101,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot image when available (Xiaohongshu/anti-scraping)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

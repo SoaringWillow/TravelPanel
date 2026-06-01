@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
@@ -9,12 +9,20 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import { SkeletonBoard } from '@/components/Skeleton';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, reload, createBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { isPulling, isRefreshing, pullY } = usePullToRefresh({
+    containerRef: scrollRef,
+    onRefresh: reload,
+  });
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -30,9 +38,9 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-12 pb-4 z-10 border-b border-transparent dark:border-gray-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid className="text-indigo-600" size={22} />
@@ -53,10 +61,22 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav" ref={scrollRef}>
+        {/* Pull-to-refresh indicator */}
+        {(isPulling || isRefreshing) && (
+          <div
+            className="flex items-center justify-center gap-2 pb-3 text-indigo-500 text-xs font-medium"
+            style={{ opacity: isRefreshing ? 1 : pullY }}
+          >
+            <div className={`w-3.5 h-3.5 border-2 border-indigo-300 border-t-indigo-600 rounded-full ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{ transform: `rotate(${pullY * 360}deg)` }}
+            />
+            {isRefreshing ? 'Refreshing…' : 'Release to refresh'}
+          </div>
+        )}
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => <SkeletonBoard key={i} />)}
           </div>
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">

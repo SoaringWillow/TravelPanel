@@ -86,14 +86,26 @@ interface PinProps {
   item: SavedItem;
   locName: string;
   onClick: () => void;
+  nearby?: boolean;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ item, locName, onClick, nearby = false }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
 
   return (
     <div style={{ position: 'relative' }}>
+      {/* Nearby glow ring */}
+      {nearby && (
+        <div style={{
+          position: 'absolute',
+          inset: -8,
+          borderRadius: 16,
+          border: '2px solid rgba(59,130,246,0.7)',
+          animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite',
+          pointerEvents: 'none',
+        }} />
+      )}
       {/* Hover label */}
       {hovered && (
         <div
@@ -230,12 +242,58 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  externalUserPos?: { lat: number; lng: number } | null;
+  nearbyItemIds?: Set<string>;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
-  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+export default function MapView({ items, onPinClick, flyTo, externalUserPos, nearbyItemIds }: MapViewProps) {
+  const [popupInfo, setPopupInfo]       = useState<PopupInfo | null>(null);
+  const [internalUserPos, setInternalUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating]         = useState(false);
+  const [locError, setLocError]         = useState<string | null>(null);
+
+  const userPos = externalUserPos ?? internalUserPos;
+  const prevExternalPosRef = useRef<typeof externalUserPos>(undefined);
+
+  // Fly to user when trip mode kicks in (first external pos)
+  useEffect(() => {
+    const prev = prevExternalPosRef.current;
+    prevExternalPosRef.current = externalUserPos;
+    if (externalUserPos && !prev && mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo({
+        center: [externalUserPos.lng, externalUserPos.lat],
+        zoom: 14,
+        duration: 1000,
+      });
+    }
+  }, [externalUserPos]);
+
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  function locateMe() {
+    if (!navigator.geolocation) {
+      setLocError('Location not supported by this browser.');
+      return;
+    }
+    setLocating(true);
+    setLocError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setInternalUserPos({ lat, lng });
+        setLocating(false);
+        mapInstanceRef.current?.flyTo({ center: [lng, lat], zoom: 13, duration: 800 });
+      },
+      () => {
+        setLocating(false);
+        setLocError('Location access denied.');
+        setTimeout(() => setLocError(null), 3000);
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  }
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -269,6 +327,32 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {/* Locate-me button — bottom-right, above the NavBar */}
+      <button
+        type="button"
+        onClick={locateMe}
+        disabled={locating}
+        title="Show my location"
+        className="absolute bottom-24 right-3 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60"
+        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}
+      >
+        {locating ? (
+          <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-blue-600">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+        )}
+      </button>
+
+      {/* Location error toast */}
+      {locError && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 bg-gray-800 text-white text-xs px-3 py-2 rounded-full shadow-lg whitespace-nowrap">
+          {locError}
+        </div>
+      )}
+
       <Map
         id="main-map"
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
@@ -320,6 +404,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <Pin
                 item={item}
                 locName={location.name}
+                nearby={nearbyItemIds?.has(item.id) ?? false}
                 onClick={() => {
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);
@@ -328,6 +413,16 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* User location marker — blue pulsing dot */}
+        {userPos && (
+          <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
+            <div className="relative">
+              <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md z-10 relative" />
+              <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-60" />
+            </div>
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup

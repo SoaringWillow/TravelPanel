@@ -41,6 +41,8 @@ export type AnalyticsEvent =
   | 'plan_generated'
   | 'plan_limit_hit'
   | 'plan_exported'
+  | 'plan_shared'
+  | 'board_shared'
   | 'board_created'
   | 'search_performed'
   | 'substance_viewed';

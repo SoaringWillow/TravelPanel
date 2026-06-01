@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, AlertCircle, RefreshCw, Share2, Check } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -13,11 +13,19 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
-type Stage = 'idle' | 'generating' | 'complete';
+type Stage = 'idle' | 'generating' | 'complete' | 'error';
+
+function humanizeStreamError(status: number): string {
+  if (status === 429) return 'The AI service is busy. Please wait a moment and try again.';
+  if (status === 503) return 'Trip planning is temporarily unavailable. Try again shortly.';
+  if (status >= 500) return 'Something went wrong on our end. Please try again.';
+  return 'Plan generation failed. Please try again.';
+}
 
 export default function PlanPage() {
   const params = useParams();
@@ -36,6 +44,10 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const [completedDays, setCompletedDays] = useState(0);
+  const [startDate, setStartDate] = useState('');
+  const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied'>('idle');
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
@@ -66,6 +78,8 @@ export default function PlanPage() {
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
+    setStreamError(null);
+    setCompletedDays(0);
     const limit = checkPlanLimit();
     if (!limit.allowed) {
       setPlanLimitError(
@@ -83,81 +97,111 @@ export default function PlanPage() {
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
-    const res = await fetch('/api/plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: boardItems,
-        days,
-        preferences: [
-          ...Array.from(selectedChips),
-          ...(customNotes.trim() ? [customNotes.trim()] : []),
-        ].join('. '),
-      }),
-    });
+    try {
+      const res = await fetch('/api/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: boardItems,
+          days,
+          preferences: [
+            ...Array.from(selectedChips),
+            ...(customNotes.trim() ? [customNotes.trim()] : []),
+          ].join('. '),
+          ...(startDate ? { startDate } : {}),
+        }),
+      });
 
-    if (!res.ok || !res.body) {
-      setStage('idle');
-      return;
-    }
+      if (!res.ok || !res.body) {
+        setStreamError(humanizeStreamError(res.status));
+        setStage('error');
+        return;
+      }
 
-    const reader = res.body.getReader();
-    let buf = '';
-    let latestPlan: Partial<TripPlan> | null = null;
-    const collectedSteps: AgentStep[] = [];
-    const prefs = [
-      ...Array.from(selectedChips),
-      ...(customNotes.trim() ? [customNotes.trim()] : []),
-    ].join('. ');
+      const reader = res.body.getReader();
+      let buf = '';
+      let latestPlan: Partial<TripPlan> | null = null;
+      const collectedSteps: AgentStep[] = [];
+      const prefs = [
+        ...Array.from(selectedChips),
+        ...(customNotes.trim() ? [customNotes.trim()] : []),
+      ].join('. ');
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += new TextDecoder().decode(value);
-      const lines = buf.split('\n');
-      buf = lines.pop() ?? '';
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const msg = JSON.parse(line) as PlanStreamMessage;
-          if (msg.t === 'step') {
-            collectedSteps.push(msg.step);
-            setSteps((s) => [...s, msg.step]);
-            if (msg.step.type === 'done' || msg.step.type === 'error') {
-              setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += new TextDecoder().decode(value);
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line) as PlanStreamMessage;
+            if (msg.t === 'step') {
+              collectedSteps.push(msg.step);
+              setSteps((s) => [...s, msg.step]);
+              if (msg.step.type === 'done' || msg.step.type === 'error') {
+                if (msg.step.type === 'error') {
+                  setStreamError('Plan generation was interrupted. Please try again.');
+                  setStage('error');
+                } else if (latestPlan?.days && latestPlan.days.length > 0) {
+                  setStage('complete');
+                } else {
+                  setStreamError('The plan came back empty. Please try again.');
+                  setStage('error');
+                }
+              }
+              if (msg.step.type === 'done' && latestPlan?.days?.length) {
+                const trip: Trip = {
+                  id: crypto.randomUUID(),
+                  boardId,
+                  boardName: board?.name ?? '',
+                  name: `Plan ${savedTrips.length + 1}`,
+                  days,
+                  preferences: prefs,
+                  agentSteps: collectedSteps,
+                  plan: latestPlan as TripPlan,
+                  createdAt: Date.now(),
+                };
+                await saveTrip(trip);
+                setSavedTrips((prev) => [...prev, trip]);
+                setCurrentTripId(trip.id);
+              }
             }
-            // Persist the finished plan as a new named variant.
-            if (msg.step.type === 'done' && latestPlan?.days?.length) {
-              const trip: Trip = {
-                id: crypto.randomUUID(),
-                boardId,
-                boardName: board?.name ?? '',
-                name: `Plan ${savedTrips.length + 1}`,
-                days,
-                preferences: prefs,
-                agentSteps: collectedSteps,
-                plan: latestPlan as TripPlan,
-                createdAt: Date.now(),
-              };
-              await saveTrip(trip);
-              setSavedTrips((prev) => [...prev, trip]);
-              setCurrentTripId(trip.id);
+            if (msg.t === 'plan') {
+              latestPlan = msg.plan as Partial<TripPlan>;
+              setPlan(latestPlan);
+              setCompletedDays(latestPlan?.days?.length ?? 0);
             }
+          } catch {
+            // skip malformed lines
           }
-          if (msg.t === 'plan') {
-            latestPlan = msg.plan as Partial<TripPlan>;
-            setPlan(latestPlan);
-          }
-        } catch {
-          // skip bad lines
         }
       }
+
+      // Stream ended without a done/error step — treat as partial failure
+      if (latestPlan === null || !latestPlan.days?.length) {
+        setStreamError('The stream ended before a complete plan arrived. Please try again.');
+        setStage('error');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      const isNetwork = msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch');
+      setStreamError(isNetwork
+        ? 'Network connection lost. Check your connection and try again.'
+        : 'Plan generation failed unexpectedly. Please try again.');
+      setStage('error');
     }
   }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
+    setStreamError(null);
   }, []);
+
+  const handleRetry = useCallback(() => {
+    generatePlan();
+  }, [generatePlan]);
 
   const handleStartOver = useCallback(() => {
     setStage('idle');
@@ -182,6 +226,31 @@ export default function PlanPage() {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
+  }, [plan, board, boardId]);
+
+  const handleSharePlan = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const firstThree = plan.days
+      .slice(0, 3)
+      .flatMap((d) => d.activities.slice(0, 2).map((a) => `• ${a.name} at ${a.location.name}`))
+      .slice(0, 3)
+      .join('\n');
+    const text = `${board.emoji} ${board.name} — ${plan.days.length}-day trip\n\n${firstThree}`;
+    const url = window.location.href;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${board.emoji} ${board.name} Trip Plan`, text, url });
+        setShareState('shared');
+      } else {
+        await navigator.clipboard.writeText(`${text}\n\n${url}`);
+        setShareState('copied');
+      }
+      track('plan_shared', { boardId, days: plan.days.length });
+      setTimeout(() => setShareState('idle'), 2500);
+    } catch {
+      setShareState('idle');
+    }
   }, [plan, board, boardId]);
 
   // Load a previously-saved plan variant into view.
@@ -321,6 +390,23 @@ export default function PlanPage() {
                 </div>
               </div>
 
+              {/* Start date (optional — enables weather + event signals) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Trip start date
+                    <span className="ml-1.5 text-xs font-normal text-gray-400">(optional — enables live weather)</span>
+                  </label>
+                </div>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                />
+              </div>
+
               {/* Preference chips */}
               <div className="space-y-3">
                 <label className="text-sm font-semibold text-gray-700">Travel style</label>
@@ -403,6 +489,14 @@ export default function PlanPage() {
                 <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
               </div>
 
+              {/* Streaming progress */}
+              {completedDays > 0 && (
+                <div className="flex items-center gap-2 bg-indigo-50 rounded-xl px-3 py-2 text-xs text-indigo-700 font-medium">
+                  <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin flex-shrink-0" />
+                  Generating day {completedDays + 1} of {days}…
+                </div>
+              )}
+
               <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
 
               <button
@@ -415,8 +509,58 @@ export default function PlanPage() {
             </div>
           )}
 
+          {/* ── ERROR STATE ── */}
+          {stage === 'error' && (
+            <ErrorBoundary>
+              <div className="space-y-5">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCancel}
+                    className="flex items-center gap-1 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                  >
+                    <ArrowLeft size={16} />
+                    Back
+                  </button>
+                  <span className="text-xl">{board.emoji}</span>
+                  <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-4 py-8 text-center">
+                  <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                    <AlertCircle size={28} className="text-red-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-gray-800">Plan generation failed</h3>
+                    <p className="text-sm text-gray-500 max-w-xs">
+                      {streamError ?? 'An unexpected error occurred. Please try again.'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRetry}
+                    className="flex items-center gap-2 bg-indigo-600 text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
+                  >
+                    <RefreshCw size={15} />
+                    Try again
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="text-sm text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
+                  >
+                    Change preferences
+                  </button>
+                </div>
+              </div>
+            </ErrorBoundary>
+          )}
+
           {/* ── COMPLETE STATE ── */}
           {stage === 'complete' && plan && (
+          <ErrorBoundary fallback={
+            <div className="flex flex-col items-center gap-4 py-8 text-center">
+              <AlertCircle size={28} className="text-red-400" />
+              <p className="text-sm text-gray-500">Failed to render plan. <button onClick={handleStartOver} className="text-indigo-600 font-medium">Start over</button></p>
+            </div>
+          }>
             <div className="space-y-5">
               {/* Board header row */}
               <div className="flex items-center gap-2">
@@ -460,20 +604,31 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex-1 min-w-0 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex-1 min-w-0 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleSharePlan}
+                    className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-xl active:scale-[0.98] transition-all ${
+                      shareState !== 'idle'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {shareState !== 'idle' ? <Check size={14} /> : <Share2 size={14} />}
+                    {shareState === 'shared' ? 'Shared!' : shareState === 'copied' ? 'Copied!' : 'Share'}
                   </button>
                 </div>
               )}
@@ -589,6 +744,7 @@ export default function PlanPage() {
                 Start Over
               </button>
             </div>
+          </ErrorBoundary>
           )}
 
         </div>
