@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <img src="icons/icon48.png" alt="" class="brand-icon" />
+      <span class="brand-name">TravelPanel</span>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Main content -->
+  <main id="mainContent">
+
+    <!-- Page info card -->
+    <div class="page-card" id="pageCard">
+      <div class="page-favicon" id="pageFavicon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </div>
+      <div class="page-info">
+        <div class="page-title" id="pageTitle">Loading…</div>
+        <div class="page-url"  id="pageUrl">—</div>
+      </div>
+    </div>
+
+    <!-- Platform badge -->
+    <div class="platform-row" id="platformRow" style="display:none">
+      <span class="platform-badge" id="platformBadge"></span>
+      <span class="platform-hint">Substance will be extracted automatically</span>
+    </div>
+
+    <!-- Destination hint -->
+    <div class="dest-hint">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+      </svg>
+      Locations &amp; travel wisdom will be extracted by AI
+    </div>
+
+    <!-- Save button -->
+    <button class="save-btn" id="saveBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+      </svg>
+      Save to TravelPanel
+    </button>
+
+    <!-- Not configured state -->
+    <div id="notConfiguredState" style="display:none" class="not-configured">
+      <div class="not-configured-icon">🗺️</div>
+      <p>Set your TravelPanel URL first</p>
+      <button class="config-btn" id="openOptionsBtn">Open Settings</button>
+    </div>
+
+  </main>
+
+  <!-- Success state -->
+  <div id="successState" class="success-state" style="display:none">
+    <div class="success-anim">
+      <div class="check-circle">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+    </div>
+    <p class="success-title">Saved!</p>
+    <p class="success-sub">Opening TravelPanel…</p>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span id="footerText">Substance over Spots — TravelPanel</span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
