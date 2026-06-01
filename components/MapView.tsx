@@ -224,15 +224,44 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── User location dot (GPS mode) ────────────────────────────────────────────
+
+function UserLocationMarker() {
+  return (
+    <div style={{ position: 'relative', width: 20, height: 20 }}>
+      {/* Pulsing halo */}
+      <div
+        className="animate-ping"
+        style={{
+          position: 'absolute',
+          inset: -7,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(59,130,246,0.35)',
+        }}
+      />
+      {/* Solid blue dot */}
+      <div style={{
+        width: 20,
+        height: 20,
+        borderRadius: '50%',
+        backgroundColor: '#3b82f6',
+        border: '3px solid white',
+        boxShadow: '0 2px 8px rgba(59,130,246,0.55)',
+      }} />
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: { lat: number; lng: number } | null;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -281,6 +310,13 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         <NavigationControl position="top-right" />
 
         <MapController flyTo={flyTo} />
+
+        {/* User location dot */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <UserLocationMarker />
+          </Marker>
+        )}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;

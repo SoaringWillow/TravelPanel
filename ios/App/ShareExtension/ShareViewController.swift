@@ -5,11 +5,15 @@ import UniformTypeIdentifiers
 
 // TravelPanel Share Extension
 //
-// Receives a URL (and optional title) from the iOS Share Sheet and opens
-// the main TravelPanel app with the travelpanel://share?url=...&title=...
+// Receives a URL (and optional title + screenshot image) from the iOS Share Sheet
+// and opens the main TravelPanel app with the travelpanel://share?url=...&title=...
 // URL scheme, which the CapacitorBridge component routes to /share.
 //
-// Supported source types: URLs, plain text containing a URL, web pages.
+// When an image is present alongside a URL (common on Xiaohongshu / WeChat which
+// block server-side scraping), it is written to the App Group as base64 JPEG so the
+// main app can pass it to Claude Vision for extraction.
+//
+// Supported source types: URLs, plain text containing a URL, web pages, images.
 
 class ShareViewController: UIViewController {
 
@@ -24,42 +28,80 @@ class ShareViewController: UIViewController {
             return
         }
 
+        // First pass: collect the best URL/text/image provider across all items
+        var urlProvider: (NSItemProvider, NSExtensionItem)?
+        var textProvider: NSItemProvider?
+        var imageProvider: NSItemProvider?
+
         for item in items {
             guard let attachments = item.attachments else { continue }
-
-            // Priority 1: a direct URL attachment
             for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-                    attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { [weak self] data, _ in
-                        guard let self else { return }
-                        if let url = data as? URL {
-                            let title = item.attributedContentText?.string ?? url.host ?? ""
-                            self.openApp(url: url.absoluteString, title: title)
-                        } else {
-                            self.finish()
-                        }
-                    }
-                    return
+                if urlProvider == nil && attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+                    urlProvider = (attachment, item)
                 }
-            }
-
-            // Priority 2: plain text that may contain a URL
-            for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
-                    attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
-                        guard let self else { return }
-                        if let text = data as? String, let url = self.extractURL(from: text) {
-                            self.openApp(url: url, title: text)
-                        } else {
-                            self.finish()
-                        }
-                    }
-                    return
+                if textProvider == nil && attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+                    textProvider = attachment
+                }
+                if imageProvider == nil && attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    imageProvider = attachment
                 }
             }
         }
 
-        finish()
+        // Second pass: load all found providers in parallel, then open the app
+        let group = DispatchGroup()
+        var extractedURL: String?
+        var extractedTitle: String?
+        var extractedImage: UIImage?
+
+        if let (attachment, item) = urlProvider {
+            group.enter()
+            attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { data, _ in
+                if let url = data as? URL {
+                    extractedURL   = url.absoluteString
+                    extractedTitle = item.attributedContentText?.string ?? url.host ?? ""
+                }
+                group.leave()
+            }
+        } else if let attachment = textProvider {
+            group.enter()
+            attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
+                if let text = data as? String, let url = self?.extractURL(from: text) {
+                    extractedURL   = url
+                    extractedTitle = text
+                }
+                group.leave()
+            }
+        }
+
+        // Image extraction runs in parallel with URL extraction
+        if let attachment = imageProvider {
+            group.enter()
+            attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                extractedImage = data as? UIImage
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) { [weak self] in
+            guard let self else { return }
+
+            // Write compressed JPEG to App Group so the main app can pass it to
+            // Claude Vision (especially useful for Xiaohongshu / WeChat anti-scraping).
+            if let image = extractedImage,
+               let jpeg = image.jpegData(compressionQuality: 0.5),
+               jpeg.count < 3_000_000,
+               let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") {
+                defaults.set(jpeg.base64EncodedString(), forKey: "pendingShareImageBase64")
+                defaults.synchronize()
+            }
+
+            if let url = extractedURL {
+                self.openApp(url: url, title: extractedTitle ?? "")
+            } else {
+                self.finish()
+            }
+        }
     }
 
     private func extractURL(from text: String) -> String? {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { detectPlatform } from '@/lib/parse-url';
-import { ImportResult } from '@/lib/types';
+import { ImportResult, Platform } from '@/lib/types';
 import { models } from '@/lib/models';
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
@@ -81,12 +81,25 @@ async function fetchPageData(url: string) {
   }
 }
 
+// Platforms that block server-side URL scraping — image Vision is the only reliable path
+const VISION_PLATFORMS = new Set<Platform>(['xiaohongshu', 'wechat', 'douyin', 'bilibili']);
+
+const SUBSTANCE_EXAMPLES = `- "Arrive before 8am to beat the queue" → tip
+- "The set lunch menu is half the price of dinner" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Skip the official viewpoint — the back alley has the better angle" → recommendation
+- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
+- "It was overrated for the price" → opinion
+- "If you're visiting in August, be aware it's typhoon season" → context
+- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning`;
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,9 +109,57 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Validate image: must be a non-empty base64 string under 4 MB (raw)
+  const hasImage = typeof imageBase64 === 'string' &&
+    imageBase64.length > 0 &&
+    imageBase64.length < 4_000_000;
+
+  // Skip URL scraping for known-blocked platforms when we already have an image
+  const skipScrape = hasImage && VISION_PLATFORMS.has(platform);
+  const page = skipScrape ? null : await fetchPageData(url);
+
+  // Use Vision when: image present AND (blocked platform OR scraping returned nothing)
+  const useVision = hasImage && (VISION_PLATFORMS.has(platform) || !page?.textContent?.trim());
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  try {
+    if (useVision) {
+      // ── Vision path: Claude analyzes the screenshot ──────────────────────────
+      const visionPrompt = `You are analyzing a screenshot from a ${platform} travel post.
+URL: ${url}
+
+Read ALL text visible in this image and extract TWO layers:
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, named locations you can clearly read in the image.
+Only include places you are confident about — provide accurate GPS coordinates.
+Return an empty locations array if no specific places are named.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Extract every tip, warning, opinion, pricing note, timing advice, or insight visible in the post.
+${SUBSTANCE_EXAMPLES}
+
+For list-format posts extract ALL items. A post with no specific location can still have 5–10 substance items.`;
+
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: `data:image/jpeg;base64,${imageBase64}` },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // ── Text path: Claude analyzes scraped page content ──────────────────────
+      const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -114,28 +175,19 @@ Do NOT invent or guess coordinates.
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
-This is what competitors miss. Examples of what to capture:
-- "Arrive before 8am to beat the queue" → tip
-- "The set lunch menu is half the price of dinner" → tip
-- "Cash only, nearest ATM is 10 min walk" → warning
-- "Skip the official viewpoint — the back alley has the better angle" → recommendation
-- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
-- "It was overrated for the price" → opinion
-- "If you're visiting in August, be aware it's typhoon season" → context
-- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
+${SUBSTANCE_EXAMPLES}
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

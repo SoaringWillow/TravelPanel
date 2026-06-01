@@ -1,17 +1,28 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Navigation } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import NearbySheet, { NearbyEntry } from '@/components/NearbySheet';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 // ─── Inner page (needs useSearchParams) ──────────────────────────────────────
 
@@ -22,6 +33,52 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+
+  // GPS / on-trip mode
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsStatus, setGpsStatus]       = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
+  const [showNearby, setShowNearby]     = useState(false);
+
+  const nearbyEntries = useMemo<NearbyEntry[]>(() => {
+    if (!userLocation) return [];
+    return items
+      .filter((item) => item.locations.length > 0)
+      .map((item) => {
+        const dists = item.locations.map((loc) =>
+          haversineKm(userLocation.lat, userLocation.lng, loc.lat, loc.lng),
+        );
+        const minIdx = dists.indexOf(Math.min(...dists));
+        return { item, distance: dists[minIdx], nearestLoc: item.locations[minIdx] };
+      })
+      .filter(({ distance }) => distance < 50)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 25);
+  }, [items, userLocation]);
+
+  function handleGPS() {
+    if (gpsStatus === 'active') {
+      setUserLocation(null);
+      setGpsStatus('idle');
+      setShowNearby(false);
+      return;
+    }
+    if (!navigator.geolocation) { setGpsStatus('denied'); return; }
+    setGpsStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(loc);
+        setGpsStatus('active');
+        setFlyTo({ ...loc, name: 'Your Location' });
+        setShowNearby(true);
+      },
+      () => {
+        setGpsStatus('denied');
+        setTimeout(() => setGpsStatus('idle'), 3000);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,7 +128,7 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} userLocation={userLocation} />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -94,6 +151,28 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
+      {/* GPS FAB */}
+      {!selectedItem && (
+        <button
+          onClick={handleGPS}
+          className={`absolute bottom-24 left-4 z-[1000] rounded-full p-3.5 shadow-xl active:scale-95 transition-all ${
+            gpsStatus === 'active'
+              ? 'bg-blue-500 text-white'
+              : gpsStatus === 'denied'
+              ? 'bg-red-500 text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+          aria-label={gpsStatus === 'active' ? 'Disable GPS mode' : 'Find nearby saves'}
+          title={gpsStatus === 'denied' ? 'Location access denied' : undefined}
+        >
+          <Navigation
+            size={20}
+            className={gpsStatus === 'loading' ? 'animate-pulse' : ''}
+            fill={gpsStatus === 'active' ? 'white' : 'none'}
+          />
+        </button>
+      )}
+
       {/* Import FAB */}
       {!selectedItem && (
         <button
@@ -104,6 +183,21 @@ function HomePageInner() {
           <Plus size={24} />
         </button>
       )}
+
+      {/* Nearby sheet */}
+      <AnimatePresence>
+        {showNearby && (
+          <NearbySheet
+            entries={nearbyEntries}
+            onClose={() => setShowNearby(false)}
+            onSelect={(item, loc) => {
+              setSelectedItem(item);
+              setFlyTo(loc);
+              setShowNearby(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Import Sheet */}
       <ImportSheet

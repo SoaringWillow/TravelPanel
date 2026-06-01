@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, BookOpen, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { encodeBoard } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -22,7 +23,21 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]         = useState<Location | undefined>(undefined);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  async function handleShare() {
+    if (!board) return;
+    const encoded = encodeBoard(board, boardItems);
+    const shareUrl = `${window.location.origin}/shared?data=${encoded}`;
+    if (navigator.share) {
+      await navigator.share({ title: `${board.emoji} ${board.name}`, url: shareUrl }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(shareUrl).catch(() => {});
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
+  }
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -132,35 +147,63 @@ export default function BoardDetailPage() {
         )}
 
         <div className="px-4 py-4">
-          {/* Plan this trip CTA */}
-          <div className="mb-4">
-            {hasLocations ? (
-              <button
-                type="button"
-                onClick={() => router.push(`/plan/${boardId}`)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
-              >
-                <Rocket size={18} />
-                Plan this trip
-              </button>
-            ) : (
-              <div className="relative group">
+          {/* Action buttons row */}
+          <div className="mb-4 flex gap-2">
+            {/* Plan this trip — takes up remaining space */}
+            <div className="flex-1">
+              {hasLocations ? (
                 <button
                   type="button"
-                  disabled
-                  className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                  onClick={() => router.push(`/plan/${boardId}`)}
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
                 >
                   <Rocket size={18} />
-                  Plan this trip
+                  Plan trip
                 </button>
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
-                  <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-                    Add items with identified locations to plan a trip
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+              ) : (
+                <div className="relative group">
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                  >
+                    <Rocket size={18} />
+                    Plan trip
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
+                    <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                      Add items with identified locations to plan a trip
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Timeline button */}
+            <button
+              type="button"
+              onClick={() => router.push(`/boards/${boardId}/timeline`)}
+              className="flex items-center justify-center gap-1.5 bg-white border border-gray-200 text-gray-600 font-semibold py-3.5 px-4 rounded-2xl hover:bg-gray-50 active:scale-[0.98] transition-all shadow-sm"
+              title="Journey timeline"
+            >
+              <BookOpen size={18} />
+            </button>
+
+            {/* Share board button */}
+            {boardItems.length > 0 && (
+              <button
+                type="button"
+                onClick={handleShare}
+                className={`flex items-center justify-center gap-1.5 border font-semibold py-3.5 px-4 rounded-2xl active:scale-[0.98] transition-all shadow-sm ${
+                  shareCopied
+                    ? 'bg-green-50 border-green-200 text-green-600'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+                title={shareCopied ? 'Link copied!' : 'Share board'}
+              >
+                <Share2 size={18} />
+              </button>
             )}
           </div>
 

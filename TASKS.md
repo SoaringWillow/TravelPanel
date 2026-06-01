@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,7 +174,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
@@ -182,16 +182,175 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
+
+---
+
+## PHASE D — Beautiful iOS App (Current Sprint)
+
+> All Phase A–C actionable tasks are complete. Phase D targets a truly polished,
+> premium iOS experience — the kind users trust with months of travel research.
+> Ordered by impact on the North Star metric (weekly clips per active user).
+
+### D1 — iOS Native UX (Haptics + Transitions + Safe Areas)
+**Status**: `[ ]` Not started  
+**Files**: `app/layout.tsx`, `app/share/page.tsx`, `components/NavBar.tsx`, `app/page.tsx`  
+**What to do**:
+- Add Capacitor Haptics plugin (`@capacitor/haptics`) to package.json
+- Create `lib/haptics.ts` wrapper: `taptic(type: 'light'|'medium'|'success'|'warning')` that no-ops outside native context
+- Fire `taptic('success')` on clip save, board create, plan generation complete
+- Fire `taptic('light')` on every NavBar tab switch
+- Audit all `safe-top` / `safe-bottom` CSS classes — ensure every page that sits behind the status bar uses `env(safe-area-inset-top)` padding; same for bottom NavBar
+- Add `transition-all duration-200` to all page navigations (Next.js already has this via framer-motion; ensure NavBar tab switches feel snappy)
+- Add the `status-bar` background color (`#4f46e5`) to the Capacitor status bar config so the iOS status bar matches the app header
+
+### D2 — Clip Editing (Edit Title, Description, Move Board)
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`, possibly new `components/EditClipSheet.tsx`  
+**What to do**:
+- Add an Edit button (pencil icon) to `LocationDetailCard`
+- Create `EditClipSheet.tsx` — a bottom drawer with:
+  - Editable title field (pre-filled from `item.title`)
+  - Editable description textarea
+  - Board selector: list all boards + "Inbox" as options; current board pre-selected
+  - Save button calls `updateItem()` in db.ts
+- Add `updateItem(id, partial)` to `lib/db.ts` (already has `updateItemEnrichment`; add a general update)
+- Moving boards: `removeItemFromBoard(oldBoardId, itemId)` + `addItemToBoard(newBoardId, itemId)`; if Inbox selected, just clear boardId
+- Track `clip_edited` event in analytics
+
+### D3 — Swipe-to-Delete on Clip Cards
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Add swipe-left gesture to reveal a red Delete button (iOS-style)
+- Use `framer-motion` drag on the card: `dragConstraints={{ left: -80, right: 0 }}`, `drag="x"`
+- When dragged past -60px, show a red `Trash2` action revealed underneath
+- On tap of the red zone or release past threshold, call the existing `onDelete` prop
+- Keep existing long-press / menu approach as fallback for non-touch devices
+
+### D4 — Substance Wisdom Tab on Board Detail
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`, possibly new `components/WisdomTab.tsx`  
+**What to do**:
+- Add a tab bar to the board detail page: "Places" | "Wisdom"
+- "Places" tab = the existing grid (current default)
+- "Wisdom" tab aggregates ALL `substance` arrays from all board items into one flat list
+- Group substance by type (tip, warning, opinion, wisdom, context, recommendation) with icons/colors
+- Each entry shows: type icon, content, and the source clip title as a footnote
+- Allow filtering by type (chip row at top)
+- Empty state: "Save and enrich clips to see extracted wisdom here"
+- This surfaces the #1 strategic moat on the board that users already know
+
+### D5 — Pull-to-Refresh + Loading Skeletons
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Add a skeleton placeholder for `InboxCard` while items are loading (use `animate-pulse` gray boxes matching card layout)
+- On `app/inbox/page.tsx` and `app/boards/page.tsx`: when loading=true, show 6 skeleton cards instead of spinner
+- Add pull-to-refresh on the inbox scrollable list:
+  - Use a `touchstart`/`touchmove` handler to detect pull-down gesture
+  - When pulled > 60px, trigger a reload of items from IndexedDB
+  - Show a small spinner with "Refreshing…" during reload
+  - On Capacitor iOS: can use `@capacitor/app`'s `appStateChange` to refresh when app comes to foreground
+
+### D6 — Favorites + Sort/Filter on Clips
+**Status**: `[ ]` Not started  
+**Files**: `lib/types.ts`, `lib/db.ts`, `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Add `isFavorite?: boolean` to `SavedItem` in `lib/types.ts`
+- Add `toggleFavorite(id)` to `lib/db.ts`
+- Add a heart/star button to `InboxCard` (top-right corner) that fires `toggleFavorite`
+- On `app/inbox/page.tsx`, add a sort/filter bar:
+  - Sort: "Newest first" | "Oldest first" | "Favorites first"
+  - Filter: "All" | "★ Favorites" | "Pending enrichment" | platform filter (chips)
+- The filter/sort state persists in `localStorage` so the user's preference is remembered
+
+### D7 — Onboarding Walkthrough for New Users
+**Status**: `[ ]` Not started  
+**Files**: new `components/OnboardingWalkthrough.tsx`, `app/layout.tsx`  
+**What to do**:
+- Create a 3-step animated walkthrough modal shown to first-time users (localStorage key: `onboarding_complete`)
+- Step 1: "Save from any app" — shows the Share button icon, text "Tap Share → TravelPanel in any browser or social app"
+- Step 2: "AI extracts spots + wisdom" — shows a mini clip card with locations and substance badge; "We extract every tip, warning and insight, not just pins"
+- Step 3: "Plan your trip" — shows a mini itinerary preview; "Turn your saves into a day-by-day plan with sourced advice"
+- Navigation: dots indicator at bottom, "Next" and skip buttons
+- Final CTA: "Start saving" → closes and optionally opens the Share sheet or the map view
+- Store `onboarding_complete = true` on finish/skip
+
+### D8 — Enhanced Plan Day View
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
+**What to do**:
+- Add horizontal day-tab navigation at the top of the plan: "Day 1" | "Day 2" | "Day 3" etc. (swipeable)
+- When a day tab is selected, scroll to that day's section AND filter the map to show only that day's locations
+- Add time-estimate per activity (e.g., "~2 hours") — Claude can include this in the plan prompt
+- Add a "Share plan" button that generates a shareable plan text (uses the existing plan data) and opens the system share sheet
+- Add estimated daily walking/transit distance at the top of each day card
+- On the DayStripCard: make sourced tips (`sourcedTips` from A12) visually distinct — show a small clip thumbnail + "from: [title]" citation
+
+---
+
+## PHASE E — Power User Features (Next Sprint)
+
+### E1 — In-App Notes on Clips
+**Status**: `[ ]` Not started  
+**Files**: `lib/types.ts`, `lib/db.ts`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Add `notes?: string` field to `SavedItem`
+- Add a "Notes" section to `LocationDetailCard` — tap-to-edit inline textarea
+- Auto-save on blur with a subtle "Saved" checkmark toast
+- Notes appear in full-text search (extend `lib/searchItems.ts`)
+
+### E2 — iOS Widget (Capacitor + WidgetKit)
+**Status**: `[ ]` Not started  
+**What to do**:
+- Add a WidgetKit extension to the Xcode project
+- Small widget: shows the count of saves this week + a "Clip" deep link button
+- Medium widget: shows the 3 most recent saves with thumbnails and a "Plan" button
+- Requires writing Swift/SwiftUI + sharing data via App Group UserDefaults (already in use for Share Extension)
+- See `ios/App/ShareExtension/XCODE_SETUP.md` for App Group setup reference
+
+### E3 — Real-World Enrichment Signals (Festivals, Weather, Prices)
+**Status**: `[ ]` Not started  
+**Files**: `app/api/plan/route.ts`, possibly `app/api/enrich/route.ts`  
+**What to do**:
+- This is the "trip planner vs real-world context" differentiator from PRODUCT_STRATEGY.md
+- Add a festivals/events knowledge injection to the plan prompt:
+  - Hardcode key annual events with dates (Cherry Blossom ~Apr 1–14 in Tokyo, Golden Week May, etc.)
+  - If the plan mentions a destination + the user's travel dates are within an event window, inject a `⚠️ [Event] overlaps your dates — expect [X] impact`
+- Add weather guidance: encode seasonal weather patterns per major destination into the planner prompt
+- The goal is plans that say "April in Kyoto = cherry blossom peak + 40% price surge" without needing a live API
+
+### E4 — Destination Clustering for Plan Generation
+**Status**: `[ ]` Not started  
+**Files**: `app/api/plan/route.ts`  
+**What to do**:
+- Currently the planner passes all item coordinates to Claude and asks it to cluster
+- For 50+ locations, this produces poor results
+- Implement client-side geographic clustering before sending to Claude:
+  - Group locations by bounding box (within ~100km of each other)
+  - Label each cluster with its dominant city/region name
+  - Pass clusters to the planner, not individual pins
+  - This produces "Kyoto cluster (12 saves)" → "Tokyo cluster (8 saves)" grouping that the planner can route between intelligently
+
+### E5 — Ambient Board Organization (Auto-Tag + Auto-Sort)
+**Status**: `[ ]` Not started  
+**Files**: `lib/db.ts`, `app/boards/page.tsx`, possibly `app/api/organize/route.ts`  
+**What to do**:
+- When a user's inbox hits 10+ items, offer "Let AI organize your inbox into boards"
+- Calls `/api/organize` with all inbox items → Claude clusters them by destination/theme → returns suggested board groupings
+- User sees a preview of the proposed boards ("3 items → Japan", "4 items → Bali", "2 items → Food") with accept/reject
+- On accept: create the boards, move items
+- This is the "ambient organization promise" from PRODUCT_STRATEGY.md: clips organize themselves
 
 ---
 

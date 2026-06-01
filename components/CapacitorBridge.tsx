@@ -3,17 +3,30 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share URL (and optional screenshot image) stored by the iOS
+// Share Extension via App Groups.  The App Group suite name must match the one
+// in ShareViewController.swift.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: imageBase64 }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImageBase64' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImageBase64' }),
+    ]);
+
+    // Stash image in sessionStorage so the /share page can pass it to Claude Vision
+    if (imageBase64) {
+      try { sessionStorage.setItem('pendingShareImage', imageBase64); } catch {}
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -45,7 +58,9 @@ export function CapacitorBridge() {
 
         // Handle URL scheme deep links from the iOS Share Extension.
         // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // Any screenshot image is written to the App Group before the deep link fires,
+        // so we read it here and stash it in sessionStorage for the /share page.
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
@@ -53,6 +68,16 @@ export function CapacitorBridge() {
             const shareTitle = parsed.searchParams.get('title');
 
             if (shareUrl) {
+              // Pick up any image the Share Extension wrote before opening the app
+              try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+                if (imageBase64) {
+                  try { sessionStorage.setItem('pendingShareImage', imageBase64); } catch {}
+                  await Preferences.remove({ key: 'pendingShareImageBase64' });
+                }
+              } catch {}
+
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);
