@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus, Navigation, NavigationOff, MapPin } from 'lucide-react';
+import { hapticLight, hapticMedium, hapticError } from '@/lib/haptics';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
@@ -143,6 +144,7 @@ function HomePageInner() {
         {/* GPS toggle */}
         <button
           onClick={() => {
+            hapticLight();
             toggleGps();
             if (gpsState === 'off' || gpsState === 'error') setFollowMode(true);
           }}

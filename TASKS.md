@@ -212,7 +212,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Track `clip_edited` and `clip_deleted` events via analytics
 
 ### D2 — Haptic Feedback
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect physical feedback. Without it the app feels like a website.  
 **Files**: new `lib/haptics.ts`, call sites throughout the app  
 **What to do**:
