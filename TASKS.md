@@ -183,7 +183,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done — useUserLocation hook (watchPosition), blue dot + accuracy ring on map, follow mode, "X spots nearby" chip, GPS toggle button on home screen
 
 ### C2 — Post-Trip Timeline
 **Status**: `[ ]` Not started

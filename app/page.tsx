@@ -4,12 +4,14 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Navigation, NavigationOff, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { useUserLocation } from '@/hooks/useUserLocation';
+import { haversineMeters } from '@/lib/geo';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,6 +24,18 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [followMode, setFollowMode]     = useState(true);
+
+  const { location: userLocation, state: gpsState, error: gpsError, toggle: toggleGps } = useUserLocation();
+
+  // Count items with a saved location within 1 km of current GPS position
+  const nearbyCount = userLocation
+    ? items.filter((item) =>
+        item.locations.some(
+          (loc) => haversineMeters(userLocation.lat, userLocation.lng, loc.lat, loc.lng) <= 1000
+        )
+      ).length
+    : 0;
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,7 +85,13 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        userLocation={userLocation}
+        followMode={gpsState === 'active' && followMode}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -82,6 +102,43 @@ function HomePageInner() {
             {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
           </div>
         </div>
+      </div>
+
+      {/* GPS toggle button + nearby chip */}
+      <div className="absolute bottom-28 left-4 z-[1000] flex flex-col items-start gap-2">
+        {/* Nearby chip — shows when GPS is active and there are nearby spots */}
+        {gpsState === 'active' && nearbyCount > 0 && (
+          <div className="bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+            <MapPin size={11} />
+            {nearbyCount} spot{nearbyCount !== 1 ? 's' : ''} nearby
+          </div>
+        )}
+
+        {/* Error chip */}
+        {gpsState === 'error' && gpsError && (
+          <div className="bg-red-100 text-red-700 text-xs font-medium px-3 py-1.5 rounded-full shadow-md max-w-[200px] leading-snug">
+            {gpsError}
+          </div>
+        )}
+
+        {/* GPS toggle */}
+        <button
+          onClick={() => {
+            toggleGps();
+            if (gpsState === 'off' || gpsState === 'error') setFollowMode(true);
+          }}
+          className={`p-3 rounded-full shadow-xl transition-all active:scale-95 ${
+            gpsState === 'active'
+              ? 'bg-blue-600 text-white'
+              : gpsState === 'requesting'
+              ? 'bg-blue-100 text-blue-600 animate-pulse'
+              : 'bg-white text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+          }`}
+          aria-label={gpsState === 'active' ? 'Stop GPS tracking' : 'Start GPS tracking'}
+          title={gpsState === 'active' ? 'GPS on — tap to stop' : 'Start On-Trip mode'}
+        >
+          {gpsState === 'active' ? <Navigation size={20} /> : <NavigationOff size={20} />}
+        </button>
       </div>
 
       {/* Selected item detail card */}
