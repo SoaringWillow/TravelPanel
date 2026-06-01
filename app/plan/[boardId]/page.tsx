@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
 import { haptic } from '@/lib/haptics';
+import { incrementPlanCount } from '@/lib/reviewPrompt';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -89,6 +90,7 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     haptic('medium');
     recordPlanGeneration();
+    incrementPlanCount();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
     const res = await fetch('/api/plan', {

@@ -154,7 +154,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Show sync status badge in the Settings panel ("Last synced: 2m ago" or "Sync pending")
 
 ### E2 — Privacy Policy and Terms Pages
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/privacy/page.tsx` (new), `app/terms/page.tsx` (new), `components/SettingsPanel.tsx`
 **What to do**:
 - Create simple, honest privacy policy: data stays local (IndexedDB), URLs sent to Anthropic for extraction (no PII), PostHog analytics (if key present), what data is stored, how to delete it
@@ -179,7 +179,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Save all copy to `docs/app-store/metadata.md`
 
 ### E4 — In-App Review Prompt
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `lib/reviewPrompt.ts` (new), `app/share/page.tsx`
 **What to do**:
 - Create `lib/reviewPrompt.ts` that wraps `@capacitor-community/rate-app` or `SKStoreReviewRequest`
@@ -189,7 +189,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Show after the "Saved to ✅" confirmation in the share page — happy moment
 
 ### E5 — Offline Mode Indicator
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/OfflineBanner.tsx` (new), `app/layout.tsx`
 **What to do**:
 - Create a `OfflineBanner` that subscribes to `navigator.onLine` and the `online`/`offline` events

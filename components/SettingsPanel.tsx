@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Upload, ChevronRight, Check, AlertCircle, Moon, Sun } from 'lucide-react';
 import { exportAllData, importData } from '@/lib/exportData';
@@ -207,6 +208,24 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   AI-powered travel inspiration clipper. Your data lives on your device.
                 </p>
+              </div>
+
+              {/* Legal links */}
+              <div className="flex items-center gap-4 px-1 pt-1">
+                <Link
+                  href="/privacy"
+                  onClick={onClose}
+                  className="text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/terms"
+                  onClick={onClose}
+                  className="text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                >
+                  Terms of Service
+                </Link>
               </div>
             </div>
           </motion.div>

@@ -8,6 +8,7 @@ import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { incrementClipCount, maybeRequestReview } from '@/lib/reviewPrompt';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -87,6 +88,7 @@ function SharePageInner() {
     await saveItem(item);
     haptic('success');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    incrementClipCount();
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
@@ -124,6 +126,8 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    // Trigger review prompt in happy moment (after success stage renders)
+    setTimeout(() => maybeRequestReview(), 2000);
   }
 
   // ── Create new board + save ───────────────────────────────────────────────
