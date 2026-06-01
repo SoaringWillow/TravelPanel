@@ -169,12 +169,13 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
-**Status**: `[ ]` Not started  
+**Status**: `[~]` Scaffolded — dormant until `OPENAI_API_KEY` + Supabase pgvector  
 **Needs**: Supabase pgvector (from B1)  
-**What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
+**What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")  
+**Done**: `app/api/embed/route.ts` (no-ops without `OPENAI_API_KEY`), `lib/semanticSearch.ts` (cosine similarity client-side, falls back to text search if no embeddings), Settings page surfaces "soon" badge.
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
