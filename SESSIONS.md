@@ -96,3 +96,11 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-01 12:25 | 8fd2431 | feat(B2): add Chrome/Safari browser extension for URL clipping
+2026-06-01 12:31 | ed83eb5 | feat(B3): Claude Vision extraction for Xiaohongshu / WeChat anti-scraping
+2026-06-01 12:33 | bcc2607 | feat(B5): settings page with full JSON backup and restore
+2026-06-01 12:36 | 6b8b665 | feat(C1): on-trip GPS mode with nearby saves discovery
+2026-06-01 12:38 | 5e56a96 | feat(C2): post-trip journey timeline per board
+2026-06-01 12:40 | 42d2cfe | feat(C3): shared boards v1 via URL-encoded JSON (no backend required)
+2026-06-01 12:41 | e9f7b66 | feat(C4): proactive resurfacing — smart suggestions on boards page
+2026-06-01 12:43 | f4ec873 | chore: create Phase D + E task queue for beautiful iOS app polish
