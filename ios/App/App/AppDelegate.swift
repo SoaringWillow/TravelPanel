@@ -1,49 +1,68 @@
 import UIKit
 import Capacitor
 
+// Capacitor Preferences plugin stores values as plain strings in UserDefaults.standard
+// with a "cap_prefs_" key prefix. We use that same prefix so CapacitorBridge can
+// read the image via @capacitor/preferences without a custom native plugin.
+private let capPrefsPrefix = "cap_prefs_"
+private let appGroupId     = "group.com.travelpanel.app"
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
         return true
     }
 
-    func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
-    }
-
-    func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
-    }
-
-    func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
-    }
-
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
-    }
-
-    func applicationWillTerminate(_ application: UIApplication) {
-        // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
-    }
+    func applicationWillResignActive(_ application: UIApplication) {}
+    func applicationDidEnterBackground(_ application: UIApplication) {}
+    func applicationWillEnterForeground(_ application: UIApplication) {}
+    func applicationDidBecomeActive(_ application: UIApplication) {}
+    func applicationWillTerminate(_ application: UIApplication) {}
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Called when the app was launched with a url. Feel free to add additional processing here,
-        // but if you want the App API to support tracking app url opens, make sure to keep this call
+        // B3: when the Share Extension wrote an image to the App Group, bridge it
+        // into standard UserDefaults so @capacitor/preferences can read it.
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           components.queryItems?.contains(where: { $0.name == "hasImage" && $0.value == "true" }) == true {
+            bridgeImageFromAppGroup()
+        }
+
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-        // Called when the app was launched with an activity, including Universal Links.
-        // Feel free to add additional processing here, but if you want the App API to support
-        // tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+    // ── App Group → UserDefaults.standard bridge ──────────────────────────────
+
+    // Reads pending image data written by the Share Extension from the App Group
+    // and copies it into UserDefaults.standard with the Capacitor Preferences prefix.
+    // CapacitorBridge then reads it via @capacitor/preferences and clears it.
+    private func bridgeImageFromAppGroup() {
+        guard let appGroup = UserDefaults(suiteName: appGroupId),
+              let base64 = appGroup.string(forKey: "pendingShareImage") else { return }
+
+        let mime     = appGroup.string(forKey: "pendingShareImageMime") ?? "image/jpeg"
+        let imgURL   = appGroup.string(forKey: "pendingShareImageURL")
+        let imgTitle = appGroup.string(forKey: "pendingShareImageTitle")
+
+        // Write to standard UserDefaults with Capacitor prefix so @capacitor/preferences can read them
+        let std = UserDefaults.standard
+        std.set(base64, forKey: capPrefsPrefix + "pendingShareImage")
+        std.set(mime,   forKey: capPrefsPrefix + "pendingShareImageMime")
+        if let u = imgURL   { std.set(u, forKey: capPrefsPrefix + "pendingShareImageURL") }
+        if let t = imgTitle { std.set(t, forKey: capPrefsPrefix + "pendingShareImageTitle") }
+        std.synchronize()
+
+        // Clear from App Group so it isn't replayed on the next launch
+        appGroup.removeObject(forKey: "pendingShareImage")
+        appGroup.removeObject(forKey: "pendingShareImageMime")
+        appGroup.removeObject(forKey: "pendingShareImageURL")
+        appGroup.removeObject(forKey: "pendingShareImageTitle")
+        appGroup.synchronize()
+    }
 }

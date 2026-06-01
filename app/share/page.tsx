@@ -12,7 +12,7 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Stage = 'picking' | 'saving' | 'done';
+type Stage = 'picking' | 'saving' | 'done' | 'vision-extracting';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -20,10 +20,11 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
-  const sharedTitle     = rawTitle || 'New inspiration';
+  const visionMode      = searchParams.get('visionMode') === 'true';
+  const sharedTitle     = rawTitle || (visionMode ? 'Screenshot' : 'New inspiration');
 
   const [boards, setBoards]                   = useState<Board[]>([]);
-  const [stage, setStage]                     = useState<Stage>('picking');
+  const [stage, setStage]                     = useState<Stage>(visionMode ? 'vision-extracting' : 'picking');
   const [savedToName, setSavedToName]         = useState('');
   const [newBoardName, setNewBoardName]       = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
@@ -37,6 +38,38 @@ function SharePageInner() {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
+  // B3: Vision mode — extract from screenshot via Claude Vision, then show picker
+  useEffect(() => {
+    if (!visionMode) return;
+
+    const imageBase64 = sessionStorage.getItem('visionImage');
+    const mimeType    = sessionStorage.getItem('visionMime') ?? 'image/jpeg';
+
+    if (!imageBase64) {
+      // No image in sessionStorage — fall back to URL extraction
+      setStage('picking');
+      return;
+    }
+
+    sessionStorage.removeItem('visionImage');
+    sessionStorage.removeItem('visionMime');
+
+    fetch('/api/vision-import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64, mimeType, url: rawUrl || undefined }),
+    })
+      .then((r) => r.json())
+      .then((data: ImportResult) => {
+        setEnrichedData(data);
+        setStage('picking');
+      })
+      .catch(() => {
+        setStage('picking');
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visionMode]);
+
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
@@ -49,7 +82,10 @@ function SharePageInner() {
     };
   }, [stage]);
 
-  const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
+  // Vision mode: use extracted platform if available, fall back to URL detection
+  const platform: ReturnType<typeof detectPlatform> =
+    (enrichedData?.platform as ReturnType<typeof detectPlatform> | undefined) ??
+    (rawUrl ? detectPlatform(rawUrl) : 'other');
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
 
@@ -67,28 +103,37 @@ function SharePageInner() {
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
-      title: sharedTitle,
+      title: enrichedData?.title || sharedTitle,
       platform,
-      description: '',
-      thumbnail: undefined,
-      locations: [],
-      activities: [],
-      tags: [],
-      substance: [],
+      description: enrichedData?.description ?? '',
+      thumbnail: enrichedData?.thumbnail,
+      locations: enrichedData?.locations ?? [],
+      activities: enrichedData?.activities ?? [],
+      tags: enrichedData?.tags ?? [],
+      substance: enrichedData?.substance ?? [],
       savedAt: Date.now(),
-      enrichmentStatus: 'pending',
+      // If we already have enriched data (vision mode), mark as done immediately
+      enrichmentStatus: enrichedData ? 'done' : 'pending',
       retryCount: 0,
       boardId: selectedBoardId,
     };
 
     await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    track('clip_saved', { platform, toBoard: !!selectedBoardId, visionMode });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — skip if we already have vision data
+    if (enrichedData) {
+      setEnrichedData(enrichedData);
+      setEnrichmentLoading(false);
+      setSavedToName(boardDisplayName ?? 'Inbox');
+      setStage('done');
+      return;
+    }
+
     setEnrichmentLoading(true);
     enrichItem(itemId, rawUrl)
       .then(async (success) => {
@@ -139,6 +184,29 @@ function SharePageInner() {
     await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
   }
 
+  // ── Stage: vision-extracting ──────────────────────────────────────────────
+
+  if (stage === 'vision-extracting') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 p-6 safe-top safe-bottom">
+        <div className="text-4xl animate-bounce">📸</div>
+        <p className="text-lg font-bold text-gray-900 text-center">Reading your screenshot…</p>
+        <p className="text-sm text-gray-400 text-center">
+          Claude AI is extracting locations and tips from the image
+        </p>
+        <div className="flex gap-1.5 mt-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"
+              style={{ animationDelay: `${i * 0.2}s` }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // ── Stage: picking ────────────────────────────────────────────────────────
 
   if (stage === 'picking' || stage === 'saving') {
@@ -158,12 +226,28 @@ function SharePageInner() {
 
           {/* Title */}
           <h1 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2">
-            {sharedTitle}
+            {enrichedData?.title || sharedTitle}
           </h1>
 
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Vision extraction preview — shown immediately after screenshot analysis */}
+          {enrichedData && (enrichedData.locations.length > 0 || enrichedData.substance.length > 0) && (
+            <div className="flex items-center gap-3 bg-indigo-50 rounded-xl px-3 py-2 mt-1">
+              {enrichedData.locations.length > 0 && (
+                <span className="text-xs text-indigo-700 font-medium">
+                  📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''}
+                </span>
+              )}
+              {enrichedData.substance.length > 0 && (
+                <span className="text-xs text-indigo-700 font-medium">
+                  💡 {enrichedData.substance.length} tip{enrichedData.substance.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
