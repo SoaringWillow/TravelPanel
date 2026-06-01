@@ -694,6 +694,45 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* Refine plan modifier */}
+              {planIsComplete(plan) && (
+                <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Refine this plan</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['More relaxed pace', 'Budget-friendly', 'Foodie focus', 'Skip museums', 'More outdoor activities'].map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => setCustomNotes(chip)}
+                        className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customNotes}
+                      onChange={(e) => setCustomNotes(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && customNotes.trim()) generatePlan(); }}
+                      placeholder='e.g. "More free time", "Add a day trip"'
+                      className="flex-1 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                    />
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => { if (customNotes.trim()) { haptic('medium'); generatePlan(); } }}
+                      disabled={!customNotes.trim()}
+                      className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      <RotateCcw size={14} />
+                      Regenerate
+                    </motion.button>
+                  </div>
+                </div>
+              )}
+
               {/* Start Over */}
               <button
                 onClick={handleStartOver}

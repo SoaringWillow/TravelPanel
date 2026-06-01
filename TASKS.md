@@ -354,7 +354,7 @@ Weekly clips per active user. Proxy for habit formation.
 - After plan generation, if any signals were active, show them as dismissible banner cards at the top of the plan output — each as a colored pill (yellow for warning, red for high) with the emoji + title + warning text
 
 ### H4 — Plan Natural Language Modifier
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: "Regenerate with more free time" or "More budget-conscious" turns the planner from a one-shot tool into an iterative collaborator — directly matching the product strategy goal of plan iteration via natural language.
 **Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`
 **What to do**:
