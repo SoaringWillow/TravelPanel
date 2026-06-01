@@ -163,7 +163,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Pages should be static, styled simply (white background, max-w-prose, proper typography)
 
 ### E3 — App Store Metadata and Screenshots
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `docs/app-store/` (new directory)
 **What to do**:
 - Write App Store description (up to 4000 chars): lead with the moat (substance extraction), bullet key features, end with the "your clips become real trips" promise

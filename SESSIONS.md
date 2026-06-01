@@ -112,3 +112,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-01 19:58 | 887e500 | feat(D5): 4-step onboarding flow
 2026-06-01 19:59 | dd93b3a | feat(D6): illustrated empty states with animated entrance
 2026-06-01 20:00 | 2982b90 | feat(D7): safe area and Dynamic Island handling
+2026-06-01 20:03 | 1dd782b | feat(E2/E4/E5): privacy policy, review prompt, offline banner
