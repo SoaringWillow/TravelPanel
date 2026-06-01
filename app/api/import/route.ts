@@ -81,27 +81,91 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Vision extraction (for Xiaohongshu / anti-scraping platforms) ──────────
+
+async function extractFromImage(
+  imageBase64: string,
+  urlHint: string,
+  titleHint: string,
+): Promise<z.infer<typeof importSchema> | null> {
+  const platform = detectPlatform(urlHint);
+  const prompt = `You are a travel content analyzer. The image below is a screenshot from a social media travel post${platform !== 'other' ? ` (${platform})` : ''}.
+URL hint: ${urlHint || '(none)'}
+Title hint: ${titleHint || '(none)'}
+
+Extract TWO layers from what you can see in the image:
+
+## Layer 1 — Spots (geographic skeleton)
+Identify real, named locations visible in the image (map pins, place names, captions, overlaid text).
+Only include places with coordinates you are confident about.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Extract every tip, warning, recommendation, or insight visible in the image text:
+overlaid text, captions, lists, bullet points, sticker annotations, comment excerpts.
+
+Return empty arrays only if nothing relevant is visible.`;
+
+  try {
+    const { generateObject: go } = await import('ai');
+    const { object } = await go({
+      model: models.enrichment,
+      schema: importSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', image: imageBase64, mimeType: 'image/jpeg' as const },
+            { type: 'text', text: prompt },
+          ],
+        },
+      ],
+    });
+    return object;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let titleHint: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, titleHint } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  if ((!url || typeof url !== 'string') && !imageBase64) {
+    return NextResponse.json({ error: 'url or imageBase64 required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const safeUrl = url ?? '';
+  const platform = detectPlatform(safeUrl);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // When we have an image, try vision extraction first (covers anti-scraping platforms)
+  let visionResult: z.infer<typeof importSchema> | null = null;
+  if (imageBase64) {
+    visionResult = await extractFromImage(imageBase64, safeUrl, titleHint ?? '');
+  }
+
+  // Also attempt text extraction from the URL when available
+  const page = safeUrl ? await fetchPageData(safeUrl) : null;
+
+  // Skip text-based Claude call if vision already succeeded with substance,
+  // or if we have nothing useful to feed it
+  const skipTextExtraction =
+    visionResult !== null &&
+    (visionResult.substance.length > 0 || visionResult.locations.length > 0);
+
+  let textResult: z.infer<typeof importSchema> | null = null;
+  if (!skipTextExtraction && safeUrl) {
+    const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
-URL: ${url}
+URL: ${safeUrl}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
@@ -128,27 +192,42 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      textResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
+
+  // Merge: vision result takes precedence; text result fills gaps
+  const merged = visionResult ?? textResult;
+  const substance = [
+    ...(visionResult?.substance ?? []),
+    ...(textResult?.substance ?? []),
+  ].filter(
+    (item, i, arr) => arr.findIndex((o) => o.content === item.content) === i,
+  );
+  const locations = [
+    ...(visionResult?.locations ?? []),
+    ...(textResult?.locations ?? []),
+  ].filter(
+    (loc, i, arr) => arr.findIndex((o) => o.name === loc.name) === i,
+  );
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
+    title: (merged?.title || page?.title || safeUrl).slice(0, 200),
+    description: (merged?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
-    locations: claudeResult?.locations ?? [],
-    activities: claudeResult?.activities ?? [],
-    tags: claudeResult?.tags ?? [],
-    substance: claudeResult?.substance ?? [],
+    locations,
+    activities: merged?.activities ?? [],
+    tags: merged?.tags ?? [],
+    substance,
   };
 
   return NextResponse.json(result);

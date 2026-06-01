@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#6366f1"/>
+      </svg>
+      <h1>TravelPanel Clipper Settings</h1>
+    </div>
+
+    <div class="section">
+      <label class="label" for="appUrl">TravelPanel URL</label>
+      <p class="hint">The URL of your TravelPanel instance. Use the default unless you self-host.</p>
+      <input
+        type="url"
+        id="appUrl"
+        class="input"
+        placeholder="https://travel-panel.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <div class="actions">
+      <button class="save-btn" id="saveBtn">Save Settings</button>
+      <button class="reset-btn" id="resetBtn">Reset to Default</button>
+    </div>
+
+    <div class="toast hidden" id="toast">Settings saved.</div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

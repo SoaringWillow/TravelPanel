@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
+import { takePendingImage } from '@/lib/pendingImage';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -21,6 +22,8 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const fromExtension   = searchParams.get('source') === 'extension';
+  const hasImage        = searchParams.get('hasImage') === '1';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -37,16 +40,23 @@ function SharePageInner() {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
+  const dismiss = () => {
+    if (fromExtension) {
+      window.location.href = '/';
+    } else {
+      window.history.back();
+    }
+  };
+
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
-      dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
-      }, 3000);
+      dismissTimerRef.current = setTimeout(dismiss, 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
@@ -88,9 +98,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — include pending image for vision-based platforms
+    const pendingImg = hasImage ? takePendingImage() : null;
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImg ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -247,10 +258,10 @@ function SharePageInner() {
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={dismiss}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
-          Return to app
+          {fromExtension ? 'Open TravelPanel' : 'Return to app'}
           <ChevronRight size={15} />
         </button>
       </div>
@@ -330,11 +341,11 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          dismiss();
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        {fromExtension ? 'Open TravelPanel →' : 'Return to app →'}
       </button>
     </div>
   );
