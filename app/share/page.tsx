@@ -20,6 +20,8 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const sharedText      = searchParams.get('text') ?? '';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -90,7 +92,13 @@ function SharePageInner() {
 
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    // Retrieve image from sessionStorage if the native bridge stored it there
+    let imageBase64: string | undefined;
+    if (hasImage) {
+      try { imageBase64 = sessionStorage.getItem('pendingShareImageData') ?? undefined; } catch { /* ignore */ }
+      try { sessionStorage.removeItem('pendingShareImageData'); } catch { /* ignore */ }
+    }
+    enrichItem(itemId, rawUrl, { sharedText: sharedText || undefined, imageBase64 })
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

@@ -5,10 +5,14 @@ import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
-export async function enrichItem(id: string, url: string): Promise<boolean> {
+interface EnrichOptions {
+  sharedText?: string;   // post body text forwarded from iOS Share Extension
+  imageBase64?: string;  // JPEG compressed screenshot for Claude Vision
+}
+
+export async function enrichItem(id: string, url: string, options?: EnrichOptions): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
-    // Don't mark as failed — leave as pending so retry queue picks it up later
     if (process.env.NODE_ENV === 'development') {
       console.warn(`[TravelPanel] Enrichment rate limit hit. Resets in ${Math.ceil((limit.resetsAt - Date.now()) / 60000)}m`);
     }
@@ -21,7 +25,7 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
     const res = await fetch('/api/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, sharedText: options?.sharedText, imageBase64: options?.imageBase64 }),
       keepalive: true,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -40,6 +44,7 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
       platform: data.platform,
       locationCount: data.locations.length,
       substanceCount: data.substance?.length ?? 0,
+      hadImage: !!options?.imageBase64,
     });
     return true;
   } catch {
