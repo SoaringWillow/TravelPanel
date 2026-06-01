@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -39,6 +39,8 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(40);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -54,6 +56,23 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+  const visibleItems = filtered.slice(0, visibleCount);
+  const hasMore = filtered.length > visibleCount;
+
+  // Reset visible window when filter/search changes
+  useEffect(() => { setVisibleCount(40); }, [activePlatform, query]);
+
+  // IntersectionObserver sentinel — loads the next 20 when near bottom
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setVisibleCount((n) => n + 20); },
+      { rootMargin: '200px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore]);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -162,7 +181,7 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map((item) => (
+              {visibleItems.map((item) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -181,6 +200,8 @@ export default function InboxPage() {
               ))}
             </AnimatePresence>
           </div>
+          {/* Intersection sentinel — triggers loading the next 20 items */}
+          {hasMore && <div ref={sentinelRef} className="h-1" />}
         )}
       </PullToRefresh>
 

@@ -47,6 +47,12 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- Location permission — used for On-Trip GPS mode (C1) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TravelPanel uses your location to show nearby saved places on the map and surface clips you saved when you get close to them.</string>
+	<!-- Photo library — used if user wants to share a screenshot directly -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TravelPanel reads photos you share to extract travel information from screenshots using AI.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

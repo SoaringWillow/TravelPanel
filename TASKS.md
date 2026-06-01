@@ -311,7 +311,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Falls back to current "open main app" flow if no boards exist
 
 ### E4 — Performance: Virtualised Inbox List
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
 - The current grid renders every card in the DOM — slow at 200+ clips
@@ -319,7 +319,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use `IntersectionObserver` for lazy image loading on thumbnails
 
 ### E5 — App Store Screenshots & Metadata
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Info.plist`, new `marketing/` directory  
 **What to do**:
 - Write App Store description (300 words, highlights substance extraction moat)
