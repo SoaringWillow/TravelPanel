@@ -48,7 +48,7 @@ Weekly clips per active user. Proxy for habit formation.
 ## PHASE D — iOS Beauty Sprint
 
 ### D1 — Skeleton Loading States
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Spinners feel like loading; skeletons feel like the content is almost here. Critical for perceived performance on slow connections.
 **Files**: `components/SkeletonCard.tsx` (new), `app/inbox/page.tsx`, `app/boards/page.tsx`, `components/InboxCard.tsx`
 **What to do**:

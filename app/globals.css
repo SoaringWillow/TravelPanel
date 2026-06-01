@@ -66,6 +66,11 @@
   display: none;
 }
 
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  100% { transform: translateX(200%); }
+}
+
 /* iOS safe area utilities */
 .safe-top    { padding-top:    env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
