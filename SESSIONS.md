@@ -96,3 +96,19 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-01 17:26 | 03d1c89 | feat(B2): browser extension — clip any page to TravelPanel
+2026-06-01 17:32 | e823853 | feat(B3): Xiaohongshu Vision fix — screenshot extraction for anti-scraping platforms
+2026-06-01 17:34 | c4f1092 | feat(B5): Cloud backup export + Settings page
+2026-06-01 17:39 | 2a7804c | feat(D1): safe area CSS + new TASKS.md for beauty sprint
+2026-06-01 17:40 | b5fc613 | feat(D2): loading skeletons replace spinners on inbox + boards
+2026-06-01 17:41 | ce3e320 | feat(D3): swipe-to-delete on inbox cards
+2026-06-01 17:43 | 1f1a14f | feat(D4): pull-to-refresh on inbox + boards
+2026-06-01 17:44 | 72884cf | feat(D5): user location + locate-me button on map
+2026-06-01 17:45 | 266e155 | feat(D6): dark mode support (prefers-color-scheme)
+2026-06-01 17:49 | 88ad330 | D7: PWA + iOS home screen polish
+2026-06-01 17:51 | 5e1decd | D8: Plan retry UI + error boundary
+2026-06-01 17:55 | dc8bc70 | C1: On-trip GPS mode
+2026-06-01 17:58 | 3839aa3 | C3: Shared boards v1 (read-only link)
+2026-06-01 18:00 | bc356a9 | E1: Real-world enrichment signals (weather + events)
+2026-06-01 18:00 | b184e0e | E2: Route optimization (nearest-neighbor TSP)
+2026-06-01 18:02 | f4734b9 | E3: Plan share sheet (Web Share API)
