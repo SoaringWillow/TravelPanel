@@ -219,7 +219,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - Show total estimated walking distance per day in the plan header
 
 ### E3 — Plan Share Sheet (Web Share API)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Add a native share button using the [Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share): `navigator.share({ title, text, url })`

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, AlertCircle, RefreshCw, Share2, Check } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -47,6 +47,7 @@ export default function PlanPage() {
   const [streamError, setStreamError] = useState<string | null>(null);
   const [completedDays, setCompletedDays] = useState(0);
   const [startDate, setStartDate] = useState('');
+  const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied'>('idle');
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
@@ -225,6 +226,31 @@ export default function PlanPage() {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
+  }, [plan, board, boardId]);
+
+  const handleSharePlan = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const firstThree = plan.days
+      .slice(0, 3)
+      .flatMap((d) => d.activities.slice(0, 2).map((a) => `• ${a.name} at ${a.location.name}`))
+      .slice(0, 3)
+      .join('\n');
+    const text = `${board.emoji} ${board.name} — ${plan.days.length}-day trip\n\n${firstThree}`;
+    const url = window.location.href;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${board.emoji} ${board.name} Trip Plan`, text, url });
+        setShareState('shared');
+      } else {
+        await navigator.clipboard.writeText(`${text}\n\n${url}`);
+        setShareState('copied');
+      }
+      track('plan_shared', { boardId, days: plan.days.length });
+      setTimeout(() => setShareState('idle'), 2500);
+    } catch {
+      setShareState('idle');
+    }
   }, [plan, board, boardId]);
 
   // Load a previously-saved plan variant into view.
@@ -578,20 +604,31 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex-1 min-w-0 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex-1 min-w-0 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleSharePlan}
+                    className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-xl active:scale-[0.98] transition-all ${
+                      shareState !== 'idle'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {shareState !== 'idle' ? <Check size={14} /> : <Share2 size={14} />}
+                    {shareState === 'shared' ? 'Shared!' : shareState === 'copied' ? 'Copied!' : 'Share'}
                   </button>
                 </div>
               )}
