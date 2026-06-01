@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import ShareBoardButton from '@/components/ShareBoardButton';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -165,14 +166,17 @@ export default function BoardDetailPage() {
 
             {/* Trip Timeline button (always visible when items exist) */}
             {boardItems.length > 0 && (
-              <button
-                type="button"
-                onClick={() => router.push(`/boards/${boardId}/timeline`)}
-                className="w-full flex items-center justify-center gap-2 border-2 border-indigo-200 text-indigo-700 font-semibold py-3 rounded-2xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
-              >
-                <BookOpen size={16} />
-                View Trip Timeline
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/boards/${boardId}/timeline`)}
+                  className="w-full flex items-center justify-center gap-2 border-2 border-indigo-200 text-indigo-700 font-semibold py-3 rounded-2xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
+                >
+                  <BookOpen size={16} />
+                  View Trip Timeline
+                </button>
+                <ShareBoardButton board={board} items={boardItems} />
+              </>
             )}
           </div>
 
