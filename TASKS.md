@@ -186,7 +186,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Status**: `[x]` Done — useUserLocation hook (watchPosition), blue dot + accuracy ring on map, follow mode, "X spots nearby" chip, GPS toggle button on home screen
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done — /timeline page, chronological groups by month, stats header, "Journey" NavBar tab
 
 ### C3 — Shared Boards v1
 **Status**: `[ ]` Not started
