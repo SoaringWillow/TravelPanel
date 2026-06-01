@@ -250,7 +250,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Update `BoardCard` to show a tall cover image with the board name overlaid
 
 ### D6 — Clip Reorder + Board Sort
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Long-press a clip to enter drag-reorder mode

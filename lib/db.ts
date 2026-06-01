@@ -165,6 +165,13 @@ export async function deleteBoard(id: string): Promise<void> {
   await tx.done;
 }
 
+export async function updateBoardItemOrder(boardId: string, itemIds: string[]): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', boardId);
+  if (!board) return;
+  await db.put('boards', { ...board, itemIds, updatedAt: Date.now() });
+}
+
 export async function addItemToBoard(boardId: string, itemId: string): Promise<void> {
   const db = await getDB();
   const [board, item] = await Promise.all([db.get('boards', boardId), db.get('items', itemId)]);
