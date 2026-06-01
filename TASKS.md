@@ -316,7 +316,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Confirming calls `addItemToBoard(suggestedBoardId, itemId)` and clears the suggestion; dismissing just clears `suggestedBoardId`
 
 ### H2 — Rich Location Detail Drawer from Map
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Tapping a map pin currently shows a minimal popup. A rich drawer that surfaces all clips AND substance tips for that location fulfills the "substance is first-class" principle from the product strategy.
 **Files**: `components/MapView.tsx`, `components/LocationDrawer.tsx` (new)
 **What to do**:

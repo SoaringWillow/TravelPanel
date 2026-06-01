@@ -8,7 +8,7 @@ import { Globe2, Plus, Settings } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
-import LocationDetailCard from '@/components/LocationDetailCard';
+import LocationDrawer from '@/components/LocationDrawer';
 import NavBar from '@/components/NavBar';
 import SettingsPanel from '@/components/SettingsPanel';
 import OnboardingFlow from '@/components/OnboardingFlow';
@@ -22,7 +22,7 @@ function HomePageInner() {
   const { items, loading, addItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
-  const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
+  const [selectedPin, setSelectedPin] = useState<{ item: SavedItem; location: Location } | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -51,7 +51,9 @@ function HomePageInner() {
 
     if (itemIdParam) {
       const found = items.find((i) => i.id === itemIdParam);
-      if (found) setSelectedItem(found);
+      if (found && found.locations.length > 0) {
+        setSelectedPin({ item: found, location: found.locations[0] });
+      }
     }
   // Run once when items are loaded and params are present
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,7 +76,11 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={(item, location) => setSelectedPin({ item, location })}
+        flyTo={flyTo}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] header-safe-top px-4 pb-4">
@@ -96,18 +102,19 @@ function HomePageInner() {
         </div>
       </div>
 
-      {/* Selected item detail card */}
+      {/* Location detail drawer */}
       <AnimatePresence>
-        {selectedItem && (
-          <LocationDetailCard
-            item={selectedItem}
-            onClose={() => setSelectedItem(null)}
+        {selectedPin && (
+          <LocationDrawer
+            location={selectedPin.location}
+            items={items}
+            onClose={() => setSelectedPin(null)}
           />
         )}
       </AnimatePresence>
 
       {/* Import FAB */}
-      {!selectedItem && (
+      {!selectedPin && (
         <button
           onClick={() => setShowImport(true)}
           className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"

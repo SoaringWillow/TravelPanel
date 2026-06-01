@@ -124,8 +124,8 @@ export default function BoardDetailPage() {
           >
             <MapView
               items={boardItems}
-              onPinClick={(item) => {
-                if (item.locations.length > 0) setFlyTo(item.locations[0]);
+              onPinClick={(_item, location) => {
+                setFlyTo(location);
               }}
               flyTo={flyTo}
             />

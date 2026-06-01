@@ -289,7 +289,7 @@ export default function PlanPage() {
         style={{ height: stage === 'idle' ? '45vh' : '45vh' }}
       >
         {stage === 'idle' ? (
-          <MapView items={boardItems} onPinClick={() => {}} />
+          <MapView items={boardItems} onPinClick={(_item, _loc) => {}} />
         ) : (
           <RouteMapView
             items={boardItems}
