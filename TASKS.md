@@ -368,7 +368,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Add `haptic('medium')` on modifier submission
 
 ### H5 — Wisdom Tab on Board Detail Page
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The product strategy calls for a "Wisdom view" as the third primary surface: every board has a tab showing all substance — browsable, searchable, with citation back to source clips. This is the post-200-saves retention feature.
 **Files**: `app/boards/[id]/page.tsx`
 **What to do**:
