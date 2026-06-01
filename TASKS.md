@@ -71,7 +71,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Add `spring` entrance animations to the detail cards (LocationDetailCard, OnTripOverlay)
 
 ### D3 — Dark Mode Support
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: iOS users expect dark mode. Without it the app looks unfinished on OLED iPhones.
 **Files**: `app/globals.css`, `tailwind.config.js`, all component files (audit pass)
 **What to do**:

@@ -106,3 +106,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-01 19:42 | eaca5b1 | feat(C4): proactive resurfacing — 'Rediscover' widget in inbox
 2026-06-01 19:44 | 21de15a | chore: new TASKS.md for Phase D-F — iOS beauty sprint + production
 2026-06-01 19:44 | 2502ad3 | feat(D1): skeleton loading states with shimmer animation
+2026-06-01 19:50 | dc46504 | feat(D2): micro-animations and haptic feedback

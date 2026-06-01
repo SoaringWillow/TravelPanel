@@ -52,18 +52,18 @@ export default function OnTripOverlay({ plan, activeDayIndex, onClose, onFlyToLo
       </AnimatePresence>
 
       {/* Main card */}
-      <div className="bg-white rounded-t-3xl shadow-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl">
         {/* Drag handle + header */}
         <button
           className="w-full flex flex-col items-center pt-3 pb-2 px-5"
           onClick={() => setExpanded((e) => !e)}
           aria-label={expanded ? 'Collapse' : 'Expand'}
         >
-          <div className="w-10 h-1 bg-gray-200 rounded-full mb-3" />
+          <div className="w-10 h-1 bg-gray-200 dark:bg-gray-600 rounded-full mb-3" />
           <div className="w-full flex items-center gap-2">
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full animate-pulse ${position ? 'bg-green-500' : 'bg-gray-300'}`} />
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                 {position ? 'Live GPS' : error ? 'GPS error' : 'Acquiring GPS…'}
               </span>
             </div>
@@ -71,7 +71,7 @@ export default function OnTripOverlay({ plan, activeDayIndex, onClose, onFlyToLo
               {expanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronUp size={16} className="text-gray-400" />}
               <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
-                className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"
+                className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400"
                 aria-label="Exit trip mode"
               >
                 <X size={12} />
@@ -102,7 +102,7 @@ export default function OnTripOverlay({ plan, activeDayIndex, onClose, onFlyToLo
                 {/* Next activity */}
                 {nextActivity && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Next stop</p>
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Next stop</p>
                     <button
                       onClick={() => onFlyToLocation(
                         nextActivity.activity.location.lat,
@@ -154,7 +154,7 @@ export default function OnTripOverlay({ plan, activeDayIndex, onClose, onFlyToLo
                 {/* Today's stops list */}
                 {activeDay && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
                       Day {activeDayIndex + 1} · {activeDay.theme}
                     </p>
                     <div className="space-y-1.5">
@@ -166,19 +166,19 @@ export default function OnTripOverlay({ plan, activeDayIndex, onClose, onFlyToLo
                             onClick={() => onFlyToLocation(act.location.lat, act.location.lng)}
                             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all ${
                               isNext
-                                ? 'bg-indigo-50 border border-indigo-200'
-                                : 'bg-gray-50 border border-transparent hover:border-gray-200'
+                                ? 'bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700'
+                                : 'bg-gray-50 dark:bg-gray-700/50 border border-transparent hover:border-gray-200 dark:hover:border-gray-600'
                             }`}
                           >
                             <MapPin
                               size={13}
-                              className={isNext ? 'text-indigo-600 flex-shrink-0' : 'text-gray-400 flex-shrink-0'}
+                              className={isNext ? 'text-indigo-600 dark:text-indigo-400 flex-shrink-0' : 'text-gray-400 dark:text-gray-500 flex-shrink-0'}
                             />
                             <div className="flex-1 min-w-0">
-                              <p className={`text-xs font-semibold truncate ${isNext ? 'text-indigo-700' : 'text-gray-700'}`}>
+                              <p className={`text-xs font-semibold truncate ${isNext ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300'}`}>
                                 {act.name}
                               </p>
-                              <p className="text-[10px] text-gray-400">{act.time} · {act.location.name}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500">{act.time} · {act.location.name}</p>
                             </div>
                           </button>
                         );
