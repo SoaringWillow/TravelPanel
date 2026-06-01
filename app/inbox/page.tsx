@@ -16,6 +16,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import ResurfacingWidget from '@/components/ResurfacingWidget';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -169,6 +170,19 @@ export default function InboxPage() {
           })}
         </div>
       </div>
+
+      {/* Proactive resurfacing — shown when not searching */}
+      {!loading && !query.trim() && items.length >= 3 && (
+        <div className="py-3">
+          <ResurfacingWidget
+            items={items}
+            onItemClick={(item) => {
+              // Open item detail: navigate to map with item selected
+              router.push(`/?itemId=${item.id}${item.locations.length > 0 ? `&flyTo=${item.locations[0].lat},${item.locations[0].lng}` : ''}`);
+            }}
+          />
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
