@@ -81,12 +81,57 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Vision extraction (Xiaohongshu / WeChat anti-scraping fix) ─────────────
+
+async function extractWithVision(
+  imageData: string,
+  url: string,
+  platform: string
+): Promise<z.infer<typeof importSchema> | null> {
+  const visionPrompt = `You are analyzing a screenshot from a ${platform} travel post.
+URL: ${url}
+
+Read ALL visible text in this image carefully — captions, hashtags, comments, overlays.
+
+## Extract TWO layers:
+
+### Layer 1 — Spots (geographic skeleton)
+Real, identifiable locations with GPS coordinates you are confident about.
+Return empty array if no specific named places appear.
+
+### Layer 2 — Substance (the wisdom — MOST IMPORTANT)
+Every actionable tip, warning, opinion, or insight visible in the post.
+Include all bullet points, numbered lists, and inline advice.
+Aim for 3–10 items; more for list-style posts.`;
+
+  try {
+    const imageBuffer = Buffer.from(imageData, 'base64');
+    const { object } = await generateObject({
+      model: models.visionEnrichment,
+      schema: importSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', image: imageBuffer, mimeType: 'image/jpeg' },
+            { type: 'text', text: visionPrompt },
+          ],
+        },
+      ],
+    });
+    return object;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageData: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageData } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,7 +143,19 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Use vision when: image provided AND (platform is anti-scraped OR page fetch returned empty)
+  const pageIsEmpty = !page?.title && !page?.description && !page?.textContent?.trim();
+  const useVision = !!(imageData && (pageIsEmpty || platform === 'xiaohongshu' || platform === 'wechat'));
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  if (useVision) {
+    claudeResult = await extractWithVision(imageData!, url, platform);
+  }
+
+  // Fall back to text extraction if vision wasn't used or failed
+  if (!claudeResult) {
+    const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -128,16 +185,16 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {
