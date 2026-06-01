@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="popup-body">
+  <div class="header">
+    <div class="logo">
+      <span class="logo-icon">✈️</span>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button id="options-btn" class="icon-btn" title="Settings">⚙️</button>
+  </div>
+
+  <div id="page-info" class="page-info">
+    <div class="page-favicon-wrap">
+      <img id="page-favicon" class="page-favicon" src="" alt="" />
+    </div>
+    <div class="page-meta">
+      <div id="page-title" class="page-title">Loading…</div>
+      <div id="page-url" class="page-url"></div>
+    </div>
+  </div>
+
+  <div id="status-blocked" class="status-msg status-warning hidden">
+    <span>⚠️</span>
+    <span>Can't clip browser pages. Open a travel post to save it.</span>
+  </div>
+
+  <div class="board-section">
+    <label class="board-label" for="board-select">Save to board</label>
+    <div class="board-select-wrap">
+      <select id="board-select" class="board-select">
+        <option value="">📥 Inbox (unsorted)</option>
+        <option value="__new__">＋ New board…</option>
+      </select>
+    </div>
+    <div id="new-board-row" class="new-board-row hidden">
+      <input id="new-board-input" class="new-board-input" type="text" placeholder="Board name…" maxlength="40" />
+    </div>
+  </div>
+
+  <button id="save-btn" class="save-btn">
+    <span id="save-btn-icon">📌</span>
+    <span id="save-btn-text">Save to TravelPanel</span>
+  </button>
+
+  <div id="success-msg" class="status-msg status-success hidden">
+    <span>✅</span>
+    <span>Saved! Opening TravelPanel…</span>
+  </div>
+
+  <div id="error-msg" class="status-msg status-error hidden">
+    <span>❌</span>
+    <span id="error-text">Something went wrong.</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

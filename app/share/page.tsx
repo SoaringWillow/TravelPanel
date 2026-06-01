@@ -21,6 +21,8 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const preselectedBoardName = searchParams.get('board') ?? '';
+  const fromExtension   = searchParams.get('source') === 'browser-extension';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -29,19 +31,36 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const autoSaveAttempted = useRef(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
-    getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    getAllBoards().then((b) => {
+      setBoards(b);
+      // Auto-save when browser extension provides a board name that matches an existing board
+      if (preselectedBoardName && !autoSaveAttempted.current) {
+        const match = b.find(
+          (board) => board.name.toLowerCase() === preselectedBoardName.toLowerCase()
+        );
+        if (match) {
+          autoSaveAttempted.current = true;
+          handleSave(match.id, `${match.emoji} ${match.name}`);
+        }
+      }
+    }).catch(() => setBoards([]));
   }, []);
 
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (fromExtension) {
+          window.close();
+        } else {
+          window.history.back();
+        }
       }, 3000);
     }
     return () => {
@@ -57,6 +76,19 @@ function SharePageInner() {
   const recentBoards = [...boards]
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 5);
+
+  // Pre-fill new board name from extension when no match found
+  useEffect(() => {
+    if (preselectedBoardName && boards.length > 0 && !autoSaveAttempted.current) {
+      const match = boards.find(
+        (b) => b.name.toLowerCase() === preselectedBoardName.toLowerCase()
+      );
+      if (!match) {
+        setNewBoardName(preselectedBoardName);
+        setShowNewBoardInput(true);
+      }
+    }
+  }, [boards, preselectedBoardName]);
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
@@ -247,10 +279,10 @@ function SharePageInner() {
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={() => fromExtension ? window.close() : window.history.back()}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
-          Return to app
+          {fromExtension ? 'Close tab' : 'Return to app'}
           <ChevronRight size={15} />
         </button>
       </div>
@@ -330,11 +362,11 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (fromExtension) window.close(); else window.history.back();
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        {fromExtension ? 'Close tab →' : 'Return to app →'}
       </button>
     </div>
   );
