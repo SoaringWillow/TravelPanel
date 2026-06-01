@@ -8,13 +8,17 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
+import ProactiveCard from '@/components/ProactiveCard';
 import NavBar from '@/components/NavBar';
+import { getSuggestion } from '@/lib/resurfaceLogic';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  const suggestion = boards.length > 0 ? getSuggestion(items, boards) : null;
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -54,6 +58,9 @@ export default function BoardsPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Proactive resurfacing suggestion */}
+        {suggestion && <ProactiveCard suggestion={suggestion} />}
+
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
