@@ -135,7 +135,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - The splash screen should show the brand gradient, not a white blank
 
 ### D8 — Plan Retry UI + Error Boundary
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When the AI plan stream fails (network error, API overload), the user sees a broken half-rendered plan with no way to retry.  
 **Files to change**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
