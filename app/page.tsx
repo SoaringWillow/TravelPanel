@@ -4,12 +4,13 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Settings } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import SettingsPanel from '@/components/SettingsPanel';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,6 +23,7 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -78,8 +80,17 @@ function HomePageInner() {
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-sm text-gray-500">
+              {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+            </span>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+              aria-label="Settings"
+            >
+              <Settings size={15} />
+            </button>
           </div>
         </div>
       </div>
@@ -114,6 +125,8 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+
+      <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
     </main>
   );
 }
