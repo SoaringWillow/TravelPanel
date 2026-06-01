@@ -223,7 +223,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Error: enrichment failed
 
 ### D3 — Pull-to-Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/timeline/page.tsx`  
 **What to do**:
 - Add pull-to-refresh (PTR) to the three list views using CSS `overscroll-behavior` + touch events
