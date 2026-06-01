@@ -79,7 +79,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - InboxCard already has a partial skeleton for enrichment loading — ensure it's consistent with the new `SkeletonCard` style
 
 ### D3 — Swipe-to-Delete on Inbox Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Delete via a small tap icon is hard to hit on mobile. Swipe-left-to-reveal-delete is the standard iOS pattern.  
 **Files to change**: `components/InboxCard.tsx`  
 **What to do**:
