@@ -45,8 +45,10 @@ export default function InboxPage() {
   const [query, setQuery] = useState('');
   const [vibeMode, setVibeMode]         = useState(false);
   const [vibeMood, setVibeMood]         = useState('');
+  const [vibeLoading, setVibeLoading]   = useState(false);
   const [filtered, setFiltered]         = useState<SavedItem[]>([]);
   const searchVersion = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -63,25 +65,39 @@ export default function InboxPage() {
 
   // Run search whenever query, mode, or source items change
   useEffect(() => {
+    // Cancel any in-flight vibe search
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const version = ++searchVersion.current;
 
     if (!query.trim()) {
       setFiltered(platformFiltered);
       setVibeMood('');
+      setVibeLoading(false);
       return;
     }
 
     if (vibeMode) {
       setFiltered(searchItems(platformFiltered, query)); // show keyword results immediately
-      vibeSearch(platformFiltered, query).then(({ items: vibeItems, mood }) => {
+      setVibeLoading(true);
+      vibeSearch(platformFiltered, query, controller.signal).then(({ items: vibeItems, mood }) => {
         if (searchVersion.current !== version) return; // stale
         setFiltered(vibeItems);
         setVibeMood(mood);
+        setVibeLoading(false);
+      }).catch(() => {
+        if (searchVersion.current !== version) return;
+        setVibeLoading(false);
       });
     } else {
       setFiltered(searchItems(platformFiltered, query));
       setVibeMood('');
+      setVibeLoading(false);
     }
+
+    return () => { controller.abort(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, vibeMode, platformFiltered.length, activePlatform]);
 
@@ -144,8 +160,9 @@ export default function InboxPage() {
           <SearchBar
             onSearch={handleSearch}
             vibeMode={vibeMode}
-            onVibeModeToggle={() => { setVibeMode((v) => !v); setVibeMood(''); }}
+            onVibeModeToggle={() => { setVibeMode((v) => !v); setVibeMood(''); setVibeLoading(false); }}
             vibeMood={vibeMood}
+            isLoading={vibeLoading}
           />
         </div>
 

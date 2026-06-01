@@ -6,12 +6,16 @@ import { searchItems } from './searchItems';
 // Cache expansions so repeated searches don't re-call the API
 const expansionCache = new Map<string, { terms: string[]; mood: string }>();
 
-async function expandQuery(query: string): Promise<{ terms: string[]; mood: string }> {
+async function expandQuery(query: string, signal?: AbortSignal): Promise<{ terms: string[]; mood: string }> {
   const key = query.toLowerCase().trim();
   if (expansionCache.has(key)) return expansionCache.get(key)!;
 
   try {
-    const res = await fetch(`/api/search?q=${encodeURIComponent(key)}`, { signal: AbortSignal.timeout(5000) });
+    const timeoutSignal = AbortSignal.timeout(5000);
+    const combined = signal
+      ? AbortSignal.any([signal, timeoutSignal])
+      : timeoutSignal;
+    const res = await fetch(`/api/search?q=${encodeURIComponent(key)}`, { signal: combined });
     if (!res.ok) throw new Error('non-200');
     const data = await res.json();
     const result = { terms: data.terms ?? [], mood: data.mood ?? '' };
@@ -68,7 +72,7 @@ export interface VibeSearchResult {
 
 // Main entry point. Runs Claude query expansion then BM25 scoring.
 // Falls back silently to exact keyword search on any error.
-export async function vibeSearch(items: SavedItem[], query: string): Promise<VibeSearchResult> {
+export async function vibeSearch(items: SavedItem[], query: string, signal?: AbortSignal): Promise<VibeSearchResult> {
   const trimmed = query.trim();
 
   if (!trimmed) {
@@ -83,7 +87,7 @@ export async function vibeSearch(items: SavedItem[], query: string): Promise<Vib
     return { items: keywordResults, mood: '', isVibeSearch: false };
   }
 
-  const { terms, mood } = await expandQuery(trimmed);
+  const { terms, mood } = await expandQuery(trimmed, signal);
 
   if (terms.length === 0) {
     return { items: keywordResults, mood: '', isVibeSearch: false };

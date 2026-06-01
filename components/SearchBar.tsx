@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Sparkles, X } from 'lucide-react';
+import { Search, Sparkles, X, Loader2 } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
   vibeMode?: boolean;
   onVibeModeToggle?: () => void;
   vibeMood?: string;
+  isLoading?: boolean;
   placeholder?: string;
 }
 
@@ -16,6 +17,7 @@ export default function SearchBar({
   vibeMode = false,
   onVibeModeToggle,
   vibeMood = '',
+  isLoading = false,
   placeholder,
 }: SearchBarProps) {
   const [value, setValue] = useState('');
@@ -35,10 +37,17 @@ export default function SearchBar({
       <div className="relative flex items-center gap-2">
         {/* Search input */}
         <div className="relative flex-1">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-          />
+          {isLoading ? (
+            <Loader2
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 animate-spin pointer-events-none"
+            />
+          ) : (
+            <Search
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
+          )}
           <input
             type="text"
             value={value}
@@ -80,12 +89,19 @@ export default function SearchBar({
         )}
       </div>
 
-      {/* Mood label (shows when vibe search returns a match) */}
-      {vibeMode && vibeMood && value && (
-        <p className="text-xs text-violet-600 font-medium px-1 flex items-center gap-1">
-          <Sparkles size={11} />
-          {vibeMood}
-        </p>
+      {/* Mood label or loading label */}
+      {vibeMode && value && (
+        isLoading ? (
+          <p className="text-xs text-violet-400 font-medium px-1 flex items-center gap-1">
+            <Loader2 size={11} className="animate-spin" />
+            Expanding query…
+          </p>
+        ) : vibeMood ? (
+          <p className="text-xs text-violet-600 font-medium px-1 flex items-center gap-1">
+            <Sparkles size={11} />
+            {vibeMood}
+          </p>
+        ) : null
       )}
     </div>
   );

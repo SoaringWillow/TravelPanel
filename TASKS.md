@@ -260,7 +260,7 @@ Weekly clips per active user. Proxy for habit formation.
 - This mirrors the native feel of long-pressing to manage items in iOS apps
 
 ### G3 — Search Performance: Debounce and Cancel
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/inbox/page.tsx`, `lib/vibeSearch.ts`
 **What to do**:
 - Currently the search fires synchronously on every keystroke. Add a proper 300ms debounce using `useRef + setTimeout` (instead of changing query state inline)
