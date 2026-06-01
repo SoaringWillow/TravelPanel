@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <div class="header">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="128" height="128" rx="28" fill="#4F46E5"/>
+          <path d="M64 22C50.7 22 40 32.7 40 46c0 19.5 24 54 24 54s24-34.5 24-54c0-13.3-10.7-24-24-24z" fill="white"/>
+          <circle cx="64" cy="46" r="9" fill="#4F46E5"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Open settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ── Main view ───────────────────────────────────────── -->
+    <div id="main-view">
+
+      <!-- Current page card -->
+      <div class="page-card">
+        <div class="page-card-inner">
+          <img id="favicon" class="favicon" src="" alt="" onerror="this.style.display='none'">
+          <div class="page-text">
+            <div id="page-title" class="page-title">Loading…</div>
+            <div id="page-url" class="page-url">…</div>
+          </div>
+        </div>
+        <div id="platform-badge" class="platform-badge" style="display:none"></div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="actions">
+        <button id="clip-open-btn" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          Clip to TravelPanel
+        </button>
+        <button id="clip-inbox-btn" class="btn-secondary">
+          Save to Inbox
+        </button>
+      </div>
+
+      <!-- Not a travel page hint -->
+      <div id="not-travel-hint" class="hint" style="display:none">
+        <span>💡</span>
+        <span>Works best with Instagram, YouTube, TikTok, and travel blogs.</span>
+      </div>
+
+    </div>
+
+    <!-- ── Success view ────────────────────────────────────── -->
+    <div id="success-view" style="display:none">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Opening TravelPanel…</div>
+      <div id="success-desc" class="success-desc"></div>
+    </div>
+
+    <!-- ── Not-configured view ─────────────────────────────── -->
+    <div id="setup-view" style="display:none">
+      <div class="setup-icon">🗺️</div>
+      <div class="setup-title">Set your TravelPanel URL</div>
+      <div class="setup-desc">Open Settings to enter your TravelPanel app URL before clipping.</div>
+      <button id="open-settings-btn" class="btn-primary" style="margin-top:14px">Open Settings</button>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
