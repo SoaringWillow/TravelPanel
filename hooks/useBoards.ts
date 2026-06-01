@@ -14,6 +14,11 @@ export function useBoards() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const reload = useCallback(async () => {
+    const fetchedBoards = await getAllBoards();
+    setBoards(fetchedBoards);
+  }, []);
+
   useEffect(() => {
     getAllBoards().then((fetchedBoards) => {
       setBoards(fetchedBoards);
@@ -50,5 +55,5 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  return { boards, loading, reload, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
 }

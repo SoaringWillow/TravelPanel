@@ -91,7 +91,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - Animate the card out with `exit={{ x: -400, opacity: 0 }}` via AnimatePresence
 
 ### D4 — Pull-to-Refresh on Inbox and Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect pull-to-refresh on any scrollable list. Currently there's no way to force-reload clips.  
 **Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -17,6 +17,7 @@ import { SkeletonCard } from '@/components/Skeleton';
 import { SwipeToDelete } from '@/components/SwipeToDelete';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -40,6 +41,14 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { isPulling, isRefreshing, pullY } = usePullToRefresh({
+    containerRef: scrollRef,
+    onRefresh: async () => {
+      await refresh();
+    },
+  });
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -141,7 +150,19 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav" ref={scrollRef}>
+        {/* Pull-to-refresh indicator */}
+        {(isPulling || isRefreshing) && (
+          <div
+            className="flex items-center justify-center gap-2 pb-3 text-indigo-500 text-xs font-medium transition-opacity"
+            style={{ opacity: isRefreshing ? 1 : pullY }}
+          >
+            <div className={`w-3.5 h-3.5 border-2 border-indigo-300 border-t-indigo-600 rounded-full ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{ transform: `rotate(${pullY * 360}deg)` }}
+            />
+            {isRefreshing ? 'Refreshing…' : 'Release to refresh'}
+          </div>
+        )}
         {loading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => <SkeletonCard key={i} />)}

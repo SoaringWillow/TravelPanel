@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
@@ -10,12 +10,19 @@ import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { SkeletonBoard } from '@/components/Skeleton';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, reload, createBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { isPulling, isRefreshing, pullY } = usePullToRefresh({
+    containerRef: scrollRef,
+    onRefresh: reload,
+  });
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -54,7 +61,19 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav" ref={scrollRef}>
+        {/* Pull-to-refresh indicator */}
+        {(isPulling || isRefreshing) && (
+          <div
+            className="flex items-center justify-center gap-2 pb-3 text-indigo-500 text-xs font-medium"
+            style={{ opacity: isRefreshing ? 1 : pullY }}
+          >
+            <div className={`w-3.5 h-3.5 border-2 border-indigo-300 border-t-indigo-600 rounded-full ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{ transform: `rotate(${pullY * 360}deg)` }}
+            />
+            {isRefreshing ? 'Refreshing…' : 'Release to refresh'}
+          </div>
+        )}
         {boardsLoading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => <SkeletonBoard key={i} />)}
