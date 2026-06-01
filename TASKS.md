@@ -161,8 +161,9 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
-**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
+**Status**: `[x]` Done  
+**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel  
+**Implemented**: `browser-extension/` — MV3 manifest, popup with dark UI + platform detection, context menu (right-click any page or link), options page for custom URL, pure-Node.js PNG icon generator. Tab reuse: navigates existing TravelPanel tab instead of opening new one. Safari: use Xcode "Convert Web Extension" tool.
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
 **Status**: `[ ]` Not started  
