@@ -70,6 +70,25 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 
 ---
 
+## Session: 2026-06-01 — Phase B begins
+
+**Branch**: `claude/relaxed-tesla-I2FCw`
+
+### Completed
+- **B2** — Browser extension (Chrome Manifest V3):
+  - `browser-extension/manifest.json` — Manifest V3, context menu + storage permissions
+  - `browser-extension/popup.html/css/js` — 320px popup: platform chip, page title, one-tap "Clip to TravelPanel" button; disables on non-clippable pages (chrome://, about:)
+  - `browser-extension/background.js` — right-click context menu "📍 Clip to TravelPanel" on any page or link
+  - `browser-extension/options.html/js` — settings page: TravelPanel URL input with quick-fill chips; saves to chrome.storage.sync
+  - `browser-extension/icons/` — 16/32/48/128px PNG icons (auto-generated)
+  - `npm run ext:zip` script added to package.json for packaging
+  - Extension opens `/share?url=...&title=...` in a new tab, using the existing share flow
+
+### Next session plan
+1. B3 — Xiaohongshu Fix (Claude Vision): Accept image payload from Share Sheet
+2. B4 — Embedding/Vibe Search (Supabase pgvector)
+3. B5 — Cloud Backup Export
+
 *(Future sessions appended below — auto-logged by PostToolUse hook)*
 2026-05-31 05:39 | bcaede1 | feat(A11): surface clip substance in the Wisdom view
 2026-05-31 05:41 | c8cf665 | feat(A12): sourced itineraries — cite clip wisdom inline in trip plans
