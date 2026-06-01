@@ -22,12 +22,19 @@ function SharePageInner() {
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
+  // Pre-extracted data passed by the browser extension (?ext=JSON)
+  const extParam = searchParams.get('ext');
+  const extensionData: ImportResult | null = (() => {
+    if (!extParam) return null;
+    try { return JSON.parse(extParam) as ImportResult; } catch { return null; }
+  })();
+
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
   const [savedToName, setSavedToName]         = useState('');
   const [newBoardName, setNewBoardName]       = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
-  const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
+  const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(extensionData);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,53 +71,57 @@ function SharePageInner() {
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+
+    // When the browser extension pre-extracted data, use it directly (skip enrichment)
+    const fromExtension = !!extensionData;
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
-      title: sharedTitle,
-      platform,
-      description: '',
-      thumbnail: undefined,
-      locations: [],
-      activities: [],
-      tags: [],
-      substance: [],
+      title: extensionData?.title || sharedTitle,
+      platform: extensionData?.platform || platform,
+      description: extensionData?.description || '',
+      thumbnail: extensionData?.thumbnail,
+      locations: extensionData?.locations || [],
+      activities: extensionData?.activities || [],
+      tags: extensionData?.tags || [],
+      substance: extensionData?.substance || [],
       savedAt: Date.now(),
-      enrichmentStatus: 'pending',
+      enrichmentStatus: fromExtension ? 'done' : 'pending',
       retryCount: 0,
       boardId: selectedBoardId,
     };
 
     await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    track('clip_saved', { platform: item.platform, toBoard: !!selectedBoardId, source: fromExtension ? 'extension' : 'share' });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
-    setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
-      .then(async (success) => {
-        if (success) {
-          // Read back the enriched data to show location count in the done UI
-          const { getItemById } = await import('@/lib/db');
-          const updated = await getItemById(itemId);
-          if (updated) {
-            setEnrichedData({
-              platform: updated.platform,
-              title: updated.title,
-              description: updated.description,
-              thumbnail: updated.thumbnail,
-              locations: updated.locations,
-              activities: updated.activities,
-              tags: updated.tags,
-              substance: updated.substance,
-            } as ImportResult);
+    if (!fromExtension) {
+      // Background enrichment only when no pre-extracted data
+      setEnrichmentLoading(true);
+      enrichItem(itemId, rawUrl)
+        .then(async (success) => {
+          if (success) {
+            const { getItemById } = await import('@/lib/db');
+            const updated = await getItemById(itemId);
+            if (updated) {
+              setEnrichedData({
+                platform: updated.platform,
+                title: updated.title,
+                description: updated.description,
+                thumbnail: updated.thumbnail,
+                locations: updated.locations,
+                activities: updated.activities,
+                tags: updated.tags,
+                substance: updated.substance,
+              } as ImportResult);
+            }
           }
-        }
-        setEnrichmentLoading(false);
-      });
+          setEnrichmentLoading(false);
+        });
+    }
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
@@ -296,6 +307,16 @@ function SharePageInner() {
           {enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
               <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+            </div>
+          ) : enrichedData && enrichedData.substance && enrichedData.substance.length > 0 && enrichedData.locations.length > 0 ? (
+            <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
+              <p className="text-sm font-semibold text-indigo-700">
+                📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''}
+                {' '}· 💡 {enrichedData.substance.length} tip{enrichedData.substance.length !== 1 ? 's' : ''}
+              </p>
+              {enrichedData.locations.slice(0, 3).map((loc, i) => (
+                <p key={i} className="text-sm text-indigo-600">{loc.name}</p>
+              ))}
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
             <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">

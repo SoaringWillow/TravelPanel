@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="header">
+    <div class="logo">
+      <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="12" fill="#0F172A"/>
+        <path d="M12 3C8.69 3 6 5.69 6 9c0 4.5 6 12 6 12s6-7.5 6-12c0-3.31-2.69-6-6-6z" fill="#10B981"/>
+        <circle cx="12" cy="9" r="2.3" fill="#0F172A"/>
+      </svg>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button class="icon-btn" id="settingsBtn" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ── State: loading ─────────────────────────────────── -->
+  <div id="s-loading" class="state">
+    <div class="spinner"></div>
+    <p class="muted">Loading…</p>
+  </div>
+
+  <!-- ── State: unconfigured ────────────────────────────── -->
+  <div id="s-unconfigured" class="state hidden">
+    <div class="big-emoji">🗺️</div>
+    <h3 id="unconf-title">Set up TravelPanel</h3>
+    <p id="unconf-msg">Enter your TravelPanel URL to start clipping travel content.</p>
+    <button class="btn btn-primary btn-wide" id="openSettingsBtn">Configure</button>
+  </div>
+
+  <!-- ── State: idle ────────────────────────────────────── -->
+  <div id="s-idle" class="state hidden">
+    <div class="url-box">
+      <span class="url-box-icon">🔗</span>
+      <div class="url-box-text" id="urlText"></div>
+    </div>
+    <button class="btn btn-primary btn-wide" id="clipBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      Extract &amp; Clip
+    </button>
+    <p class="hint">AI extracts locations and travel wisdom</p>
+  </div>
+
+  <!-- ── State: extracting ──────────────────────────────── -->
+  <div id="s-extracting" class="state hidden">
+    <div class="pulse-wrap">
+      <div class="pulse-ring"></div>
+      <span class="pulse-emoji">✨</span>
+    </div>
+    <h3>Extracting wisdom…</h3>
+    <p class="muted">Finding locations and travel tips</p>
+    <div class="progress-track"><div class="progress-bar"></div></div>
+  </div>
+
+  <!-- ── State: preview ─────────────────────────────────── -->
+  <div id="s-preview" class="state hidden">
+
+    <div class="card">
+      <div id="thumb" class="card-thumb hidden">
+        <img id="thumbImg" src="" alt="" />
+      </div>
+      <div class="card-body">
+        <div id="platBadge" class="badge"></div>
+        <div id="prevTitle" class="card-title"></div>
+        <div id="prevDesc" class="card-desc"></div>
+      </div>
+    </div>
+
+    <div id="locsSection" class="section hidden">
+      <div class="section-head">
+        <span class="section-head-icon">📍</span>
+        <span class="section-head-label">Locations</span>
+        <span id="locsCount" class="section-count"></span>
+      </div>
+      <div id="locsList" class="tags"></div>
+    </div>
+
+    <div id="subSection" class="section hidden">
+      <div class="section-head">
+        <span class="section-head-icon">💡</span>
+        <span class="section-head-label">Travel wisdom</span>
+        <span id="subCount" class="section-count"></span>
+      </div>
+      <div id="subList" class="sub-list"></div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn btn-primary btn-wide" id="saveBtn">Save to TravelPanel →</button>
+      <button class="btn btn-ghost btn-sm" id="cancelBtn">Cancel</button>
+    </div>
+
+  </div>
+
+  <!-- ── State: saved ───────────────────────────────────── -->
+  <div id="s-saved" class="state hidden">
+    <div class="success-emoji">✅</div>
+    <h3 class="success-title">Opening TravelPanel…</h3>
+    <p id="savedSummary" class="muted"></p>
+    <button class="btn btn-ghost btn-sm" id="clipAnotherBtn">Clip another page</button>
+  </div>
+
+  <!-- ── State: error ───────────────────────────────────── -->
+  <div id="s-error" class="state hidden">
+    <div class="error-emoji">⚠️</div>
+    <h3>Extraction failed</h3>
+    <p id="errMsg" class="muted"></p>
+    <div class="action-row">
+      <button class="btn btn-primary btn-wide" id="saveUrlBtn">Save URL for later</button>
+      <button class="btn btn-ghost btn-sm" id="retryBtn">Try again</button>
+    </div>
+  </div>
+
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

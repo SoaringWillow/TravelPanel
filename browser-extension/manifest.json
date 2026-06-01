@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "version": "1.0.0",
+  "description": "Clip travel content from any web page into TravelPanel with AI extraction",
+  "permissions": ["activeTab", "storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  }
+}
