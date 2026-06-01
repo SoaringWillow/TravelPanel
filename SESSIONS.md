@@ -96,3 +96,8 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-01 09:24 | 0ab86e9 | feat(B2): browser extension — Chrome/Safari clip-to-TravelPanel
+2026-06-01 09:28 | ce8e4f9 | feat(B3): Claude Vision fallback for Xiaohongshu / anti-scraping platforms
+2026-06-01 09:31 | b79619e | feat(B4): Claude-powered vibe/semantic search
+2026-06-01 09:33 | 304710b | feat(B5): data backup export + settings page
+2026-06-01 09:35 | c483954 | docs: expand TASKS.md with detailed Phase C-E roadmap for iOS app

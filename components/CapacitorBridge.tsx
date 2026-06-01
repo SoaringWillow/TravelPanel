@@ -3,17 +3,26 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share (URL + optional image) from the iOS Share Extension via App Groups.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: image }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImage' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImage' }),
+    ]);
+
+    // Store image for the share page to pick up during enrichment
+    if (image) sessionStorage.setItem('pendingShareImage', image);
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -45,7 +54,7 @@ export function CapacitorBridge() {
 
         // Handle URL scheme deep links from the iOS Share Extension.
         // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
@@ -53,6 +62,18 @@ export function CapacitorBridge() {
             const shareTitle = parsed.searchParams.get('title');
 
             if (shareUrl) {
+              // Pull any pending screenshot written to App Group by the Share Extension
+              try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: image } = await Preferences.get({ key: 'pendingShareImage' });
+                if (image) {
+                  sessionStorage.setItem('pendingShareImage', image);
+                  await Preferences.remove({ key: 'pendingShareImage' });
+                }
+              } catch {
+                // No Preferences plugin — continue without image
+              }
+
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);

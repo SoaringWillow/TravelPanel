@@ -10,8 +10,8 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
-import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { useSearch } from '@/hooks/useSearch';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -52,7 +52,7 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const { results: filtered, isExpanding, isVibeActive, vibeLabel } = useSearch(platformFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -110,7 +110,12 @@ export default function InboxPage() {
 
         {/* Search */}
         <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar
+              onSearch={handleSearch}
+              isVibeSearching={isExpanding}
+              isVibeActive={isVibeActive}
+              vibeLabel={vibeLabel}
+            />
         </div>
 
         {/* Platform filter tabs */}
