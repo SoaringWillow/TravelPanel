@@ -86,14 +86,26 @@ interface PinProps {
   item: SavedItem;
   locName: string;
   onClick: () => void;
+  nearby?: boolean;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ item, locName, onClick, nearby = false }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
 
   return (
     <div style={{ position: 'relative' }}>
+      {/* Nearby glow ring */}
+      {nearby && (
+        <div style={{
+          position: 'absolute',
+          inset: -8,
+          borderRadius: 16,
+          border: '2px solid rgba(59,130,246,0.7)',
+          animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite',
+          pointerEvents: 'none',
+        }} />
+      )}
       {/* Hover label */}
       {hovered && (
         <div
@@ -230,13 +242,32 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  externalUserPos?: { lat: number; lng: number } | null;
+  nearbyItemIds?: Set<string>;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, externalUserPos, nearbyItemIds }: MapViewProps) {
   const [popupInfo, setPopupInfo]       = useState<PopupInfo | null>(null);
-  const [userPos, setUserPos]           = useState<{ lat: number; lng: number } | null>(null);
+  const [internalUserPos, setInternalUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating]         = useState(false);
   const [locError, setLocError]         = useState<string | null>(null);
+
+  const userPos = externalUserPos ?? internalUserPos;
+  const prevExternalPosRef = useRef<typeof externalUserPos>(undefined);
+
+  // Fly to user when trip mode kicks in (first external pos)
+  useEffect(() => {
+    const prev = prevExternalPosRef.current;
+    prevExternalPosRef.current = externalUserPos;
+    if (externalUserPos && !prev && mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo({
+        center: [externalUserPos.lng, externalUserPos.lat],
+        zoom: 14,
+        duration: 1000,
+      });
+    }
+  }, [externalUserPos]);
+
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
@@ -251,7 +282,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        setUserPos({ lat, lng });
+        setInternalUserPos({ lat, lng });
         setLocating(false);
         mapInstanceRef.current?.flyTo({ center: [lng, lat], zoom: 13, duration: 800 });
       },
@@ -373,6 +404,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <Pin
                 item={item}
                 locName={location.name}
+                nearby={nearbyItemIds?.has(item.id) ?? false}
                 onClick={() => {
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);

@@ -152,7 +152,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 ## PHASE C — On-Trip Mode
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - Add a "Start Trip" button to the board view and plan view
 - When activated: switch the map to "trip mode" — continuous location tracking via `watchPosition`, blue user dot with accuracy ring
