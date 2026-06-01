@@ -283,7 +283,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Goal**: Everything required to submit to the iOS App Store with a professional first impression.
 
 ### E1 — App Icon & Splash Screen Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Assets.xcassets/`, `capacitor.config.ts`  
 **What to do**:
 - Design a proper app icon: indigo (#6366f1) background, white map-pin SVG, rounded corners per iOS spec
