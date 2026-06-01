@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="options-body">
+  <div class="options-header">
+    <span style="font-size:22px">✈️</span>
+    <h1 class="options-title">TravelPanel Clipper Settings</h1>
+  </div>
+
+  <div class="options-section">
+    <div class="options-section-title">Connection</div>
+    <div class="options-field">
+      <label for="app-url">TravelPanel App URL</label>
+      <input
+        id="app-url"
+        type="url"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="options-hint">
+        Point this to your deployed TravelPanel instance. Default:
+        <code>https://travelpanel.vercel.app</code>
+      </p>
+    </div>
+  </div>
+
+  <div class="options-section">
+    <div class="options-section-title">Keyboard Shortcut</div>
+    <p style="font-size:13px;color:#374151;line-height:1.5">
+      Use <kbd style="padding:2px 6px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;font-size:12px">Alt+Shift+S</kbd>
+      to clip the current page without opening the popup.
+      Change shortcuts at <code>chrome://extensions/shortcuts</code>.
+    </p>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:0">
+    <button id="save-btn" class="options-save-btn">Save settings</button>
+    <span id="saved-msg" class="options-saved-msg">✓ Saved</span>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
