@@ -166,8 +166,9 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Implemented**: `browser-extension/` — MV3 popup with platform detection (10 travel sites), keyboard shortcut ⌘⇧S, configurable app URL, options page, PNG icon generator
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+**Status**: `[x]` Done  
+**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance  
+**Implemented**: iOS ShareViewController captures image attachment + compresses to ≤200KB JPEG; CapacitorBridge bridges base64 from App Group to sessionStorage; share page reads image and passes to enrichItem; import API takes optional imageBase64 and uses AI SDK vision messages path when present
 
 ### B4 — Embedding/Vibe Search
 **Status**: `[ ]` Not started  

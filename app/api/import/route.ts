@@ -85,8 +85,13 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = typeof body.imageBase64 === 'string' && body.imageBase64.length > 0
+      ? body.imageBase64
+      : undefined;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +101,18 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
+  // Always attempt text fetch — even for Xiaohongshu it may return partial metadata.
+  // The vision path uses both text context AND the image for maximum extraction.
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const basePrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — use the screenshot if provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -128,14 +135,42 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  // Append vision instruction when a screenshot is available
+  const visionNote = imageBase64
+    ? '\n\nA screenshot of the post is attached. This is the primary source — extract everything visible in the image, including text overlays, captions, comments, and any location tags shown.'
+    : '';
+  const finalPrompt = basePrompt + visionNote;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: send screenshot alongside text context for platforms that block scraping
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'image' as const,
+                // Pass as a data URL — no Buffer needed, works in Node.js edge/serverless
+                image: `data:image/jpeg;base64,${imageBase64}`,
+              },
+              { type: 'text' as const, text: finalPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: finalPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
