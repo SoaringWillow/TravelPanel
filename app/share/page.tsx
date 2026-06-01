@@ -30,10 +30,20 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
-  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Holds a base64 JPEG screenshot written by the iOS Share Extension for
+  // Vision-based extraction (Xiaohongshu / WeChat anti-scraping workaround).
+  const pendingImageRef  = useRef<string | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards on mount — also drain the pending screenshot from sessionStorage
   useEffect(() => {
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        pendingImageRef.current = img;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {}
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
@@ -88,9 +98,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot image if available for Vision extraction
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
