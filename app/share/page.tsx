@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl, suggestBoardForItem } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -132,6 +132,10 @@ function SharePageInner() {
               tags: updated.tags,
               substance: updated.substance,
             } as ImportResult);
+          }
+          // Fire-and-forget board suggestion for inbox items
+          if (!selectedBoardId) {
+            suggestBoardForItem(itemId).catch(() => {});
           }
         }
         setEnrichmentLoading(false);

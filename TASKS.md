@@ -27,6 +27,18 @@
   post-trip timeline (journal view per board with personal notes), shared boards
   (URL-encoded, no backend), proactive resurfacing (seasonal + forgotten clips widget).
 
+**Phase D — iOS Beauty Sprint**: All done (D1–D7)
+- Skeleton loading states, micro-animations + haptics, dark mode, app icon + splash,
+  onboarding flow, empty states with illustrations, safe area + Dynamic Island handling.
+
+**Phase E/F — Production Readiness + Advanced iOS**: Largely done
+- Privacy/terms pages, App Store metadata, in-app review prompt, offline indicator,
+  QR board sharing, duplicate clip detection, pull-to-refresh. (E1 Supabase auth and F4 Siri Shortcuts deferred — need env keys / native Xcode.)
+
+**Phase G — Polish and Performance**: All done (G1–G5)
+- Boards pull-to-refresh, InboxCard long-press to move, search debounce + cancel,
+  BoardCard substance badges (location count + tip count), trip planning progress animation.
+
 ### 🎯 North Star Metric
 Weekly clips per active user. Proxy for habit formation.
 
@@ -41,7 +53,7 @@ Weekly clips per active user. Proxy for habit formation.
 
 ## ⭐ Recommended Execution Order
 
-`D1 → D2 → D3 → D4 → D5 → D6 → D7 → E1 → E2 → E3 → E4 → E5 → F1 → F2 → F3`
+`D1 → D2 → D3 → D4 → D5 → D6 → D7 → E1 → E2 → E3 → E4 → E5 → F1 → F2 → F3 → G1 → G2 → G3 → G4 → G5 → H1 → H2 → H3 → H4 → H5 → H6`
 
 ---
 
@@ -287,6 +299,107 @@ Weekly clips per active user. Proxy for habit formation.
 
 ---
 
+## PHASE H — Substance & Intelligence
+
+> Phase H deepens the "Substance over Spots" moat. All tasks are local-first (no Supabase required).
+> Recommended order: H1 → H2 → H3 → H4 → H5 → H6
+
+### H1 — Auto-Sort Suggestion for Inbox Clips
+**Status**: `[x]` Done
+**Why**: The "ambient organization" promise — clips organize themselves without user effort. Currently users must manually move every clip. Auto-sort suggestion makes the promise real.
+**Files**: `app/api/autosort/route.ts` (new), `app/inbox/page.tsx`, `lib/db.ts`
+**What to do**:
+- Create `app/api/autosort/route.ts`: POST endpoint that receives `{ clip: SavedItem, boards: Board[] }` and uses Claude Haiku to return `{ boardId: string | null, confidence: number, reason: string }`. System prompt: "Given this travel clip and the user's boards, which board does it best fit? Return null if none match. Respond with JSON only."
+- In `lib/db.ts`, add `suggestBoardForItem(itemId: string)` that calls this API and stores the suggestion as `item.suggestedBoardId` + `item.suggestedBoardReason` (update `SavedItem` type in `lib/types.ts` to include these optional fields)
+- Call `suggestBoardForItem` automatically in `app/api/import/route.ts` after enrichment completes (fire-and-forget, don't await)
+- In `app/inbox/page.tsx`, add a "Smart Sort" banner at the top of the inbox (when `items.some(i => i.suggestedBoardId && !i.boardId)`): "✨ {N} clips have suggested boards" → tapping opens a sheet showing each unassigned clip with its suggested board + a one-tap ✓ confirm button and ✕ dismiss button
+- Confirming calls `addItemToBoard(suggestedBoardId, itemId)` and clears the suggestion; dismissing just clears `suggestedBoardId`
+
+### H2 — Rich Location Detail Drawer from Map
+**Status**: `[ ]` Not started
+**Why**: Tapping a map pin currently shows a minimal popup. A rich drawer that surfaces all clips AND substance tips for that location fulfills the "substance is first-class" principle from the product strategy.
+**Files**: `components/MapView.tsx`, `components/LocationDrawer.tsx` (new)
+**What to do**:
+- Create `components/LocationDrawer.tsx`: a bottom sheet (similar to the board selector sheet pattern — spring animation from `y: '100%'` to `y: 0`) that receives `{ location: Location, items: SavedItem[] }` as props
+  - Header: location name + address
+  - "From your clips" section: horizontal scroll of thumbnail chips — each chip shows the clip's platform badge + title (truncated to 1 line); tapping a chip navigates to `/?itemId={id}`
+  - "Tips for this spot" section: a scrollable list of all `substance` items from any clip where `substance[i].applies_to` matches this location (or where the clip itself has this location). Use `SubstanceList` component for rendering.
+  - If no substance: show "No specific tips yet — add more clips about this place"
+  - Close button (X) top-right; backdrop tap closes
+- In `components/MapView.tsx`, replace the existing `<Popup>` or pin click handler with a `selectedLocation` state + render `<LocationDrawer>` when a pin is tapped. Pass all `items` as a prop from the parent map page.
+- The map page (`app/page.tsx`) must pass `items` down to `MapView` (check if it already does; if not, add `useSavedItems` hook there)
+
+### H3 — Plan Enrichment Signals (Seasons & Crowds)
+**Status**: `[ ]` Not started
+**Why**: This is the core differentiator from the product strategy: "A plan for Tokyo in late March will recommend an itinerary without flagging Sakura season, 2× accommodation prices, and 3-hour queue wait times." Social media guides can't close this gap; TravelPanel can.
+**Files**: `lib/enrichmentSignals.ts` (new), `app/api/plan/route.ts`, `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Create `lib/enrichmentSignals.ts` with a static JSON array of ~40 major travel enrichment signals. Each entry:
+  ```ts
+  interface EnrichmentSignal {
+    id: string;
+    destinations: string[];  // lowercase city/country names to match against
+    startMonth: number;      // 1-12, inclusive range
+    endMonth: number;
+    title: string;           // e.g., "Cherry Blossom Season"
+    warning: string;         // e.g., "Peak crowds and accommodation 40–60% above average"
+    emoji: string;           // e.g., "🌸"
+    severity: 'info' | 'warning' | 'high';
+  }
+  ```
+  Include signals for: Cherry Blossom (Tokyo/Kyoto/Japan, Mar–Apr), Golden Week (Japan, Apr–May), Typhoon season (Japan/SE Asia, Jul–Sep), Sakura festival, Diwali (India, Oct–Nov), Chinese New Year (China/SE Asia, Jan–Feb), Carnival (Brazil, Feb–Mar), Christmas markets (Germany/Austria/France, Nov–Dec), Monsoon SE Asia (Thailand/Vietnam, Jun–Sep), NYC Thanksgiving parade (Nov), Tokyo Summer Olympics crowds, Songkran water festival (Thailand, Apr), Peak Bali season (Jul–Aug)
+- Export `getSignalsForPlan(destinations: string[], travelMonth: number): EnrichmentSignal[]` — matches by destination substring (case-insensitive) and month range
+- In `app/api/plan/route.ts`: extract destination names from the board's clips' `locations[].address` fields, infer the travel month from the request (pass `month` param from the client or default to current month). Inject the matched signals into the system prompt as: "Active enrichment signals for this trip: {signals.map(s => s.title + ': ' + s.warning).join('; ')}. Reference these inline in the plan as warnings."
+- In `app/plan/[boardId]/page.tsx`: add a `travelMonth` selector (simple 1–12 month picker or "Traveling in: [month dropdown]") above the "Generate Plan" button. Default to current month.
+- After plan generation, if any signals were active, show them as dismissible banner cards at the top of the plan output — each as a colored pill (yellow for warning, red for high) with the emoji + title + warning text
+
+### H4 — Plan Natural Language Modifier
+**Status**: `[ ]` Not started
+**Why**: "Regenerate with more free time" or "More budget-conscious" turns the planner from a one-shot tool into an iterative collaborator — directly matching the product strategy goal of plan iteration via natural language.
+**Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`
+**What to do**:
+- In `app/plan/[boardId]/page.tsx`: after a plan is generated (when plan text exists), show a "Refine this plan" input bar at the bottom of the plan output:
+  - A text input: placeholder "e.g. 'More free time', 'Budget-friendly options', 'Add a day trip'"
+  - A "Regenerate ↻" button (indigo, `whileTap={{ scale: 0.96 }}`)
+  - Quick-tap chips above the input for common modifiers: "More relaxed pace", "Budget-friendly", "Foodie focus", "Skip museums", "Add outdoor activities"
+  - Tapping a chip fills the text input; pressing Regenerate submits
+- In `app/api/plan/route.ts`: accept an optional `modifier?: string` in the request body. If present, prepend to the user message: "User modification request: {modifier}. Adjust the plan accordingly while keeping the same structure."
+- The modifier input should clear after submission. The existing multi-version plan saving (A11) handles storing the new version.
+- Add `haptic('medium')` on modifier submission
+
+### H5 — Wisdom Tab on Board Detail Page
+**Status**: `[ ]` Not started
+**Why**: The product strategy calls for a "Wisdom view" as the third primary surface: every board has a tab showing all substance — browsable, searchable, with citation back to source clips. This is the post-200-saves retention feature.
+**Files**: `app/boards/[id]/page.tsx`
+**What to do**:
+- Add a tab bar to the board detail page with 3 tabs: **Map** (current default view with clips), **Clips** (the InboxCard grid), **Wisdom** (new)
+- The current page already shows a map + cards — reorganize into tabs using a simple tab state variable
+- **Wisdom tab** content:
+  - Filter chips: All / Tips / Warnings / Opinions / Context (maps to `substance[i].type`)  
+  - Filtered list of all `substance` items from all board clips, rendered as cards:
+    - Card: type badge (color-coded: tips=green, warnings=red, opinions=blue, context=gray) + substance content text + "From: {clip.title}" in small gray text + a "→" button that navigates to `/?itemId={clipId}`
+  - Empty state: "No wisdom extracted yet — add more clips with tips, warnings, or opinions"
+  - Count badge on the Wisdom tab: show total substance count as a number pill
+  - Search input at top of Wisdom tab: filters the substance list by text content
+- The `SubstanceList` component is already available — use or extend it
+
+### H6 — Board Cover Auto-Assignment
+**Status**: `[ ]` Not started
+**Why**: BoardCards with cover thumbnails look dramatically better. Currently the `coverThumbnail` field exists in the Board type but is never set automatically. This makes every board look like a plain card instead of a visual collection.
+**Files**: `lib/db.ts`, `hooks/useBoards.ts`
+**What to do**:
+- In `lib/db.ts`, update `addItemToBoard(boardId, itemId)`:
+  - After adding the item, load the board and check if `board.coverThumbnail` is already set
+  - If not set, load the item and check if `item.thumbnail` exists
+  - If both conditions are met, call `updateBoard({ ...board, coverThumbnail: item.thumbnail })`
+- In `lib/db.ts`, update `removeItemFromBoard(boardId, itemId)`:
+  - After removing, check if the removed item's thumbnail was the board's `coverThumbnail`
+  - If so, pick the next item in the board that has a thumbnail as the new cover (or set `coverThumbnail: undefined` if none)
+- In `components/BoardCard.tsx`: the cover thumbnail already renders as a full background with a white/dark overlay. Improve the overlay opacity: use `bg-white/70 dark:bg-gray-800/70` (slightly more opaque) so the thumbnail shows through more clearly. Also add a subtle bottom gradient `from-transparent to-white/90 dark:to-gray-800/90` at the bottom of the card for better text contrast.
+- Add a "Change cover" option: in the board detail page, tapping the board emoji should open a mini sheet with the 4 most recent clip thumbnails as selectable covers plus a "No cover" option.
+
+---
+
 ## Completed Tasks
 
-*(Phases A, B, C, D, and E/F largely complete — see git history for details)*
+*(Phases A, B, C, D, E/F, and G largely complete — see git history for details)*

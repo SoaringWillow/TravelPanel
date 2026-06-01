@@ -211,6 +211,39 @@ export async function saveTrip(trip: Trip): Promise<void> {
   await db.put('trips', trip);
 }
 
+// ─── Auto-Sort ──────────────────────────────────────────────────────────────
+
+export async function suggestBoardForItem(itemId: string): Promise<void> {
+  const db = await getDB();
+  const [item, boards] = await Promise.all([db.get('items', itemId), db.getAll('boards')]);
+  if (!item || boards.length === 0) return;
+  // Only suggest for unassigned items with enough content
+  if (item.boardId || (!item.title && !item.locations.length)) return;
+
+  try {
+    const res = await fetch('/api/autosort', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clip: item, boards }),
+    });
+    if (!res.ok) return;
+    const { boardId, reason } = await res.json();
+    if (boardId) {
+      await db.put('items', { ...item, suggestedBoardId: boardId, suggestedBoardReason: reason });
+    }
+  } catch {
+    // fire-and-forget — silently ignore errors
+  }
+}
+
+export async function clearBoardSuggestion(itemId: string): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', itemId);
+  if (!item) return;
+  const { suggestedBoardId: _a, suggestedBoardReason: _b, ...rest } = item as SavedItem & { suggestedBoardId?: string; suggestedBoardReason?: string };
+  await db.put('items', rest as SavedItem);
+}
+
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);

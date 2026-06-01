@@ -3,12 +3,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Sparkles, Check } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, clearBoardSuggestion } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { vibeSearch } from '@/lib/vibeSearch';
@@ -42,6 +42,7 @@ export default function InboxPage() {
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [showSmartSort, setShowSmartSort] = useState(false);
   const [query, setQuery] = useState('');
   const [vibeMode, setVibeMode]         = useState(false);
   const [vibeMood, setVibeMood]         = useState('');
@@ -191,6 +192,27 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Smart Sort banner */}
+      {(() => {
+        const sortable = inboxItems.filter((i) => i.suggestedBoardId && !i.boardId);
+        if (sortable.length === 0 || query.trim()) return null;
+        return (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => setShowSmartSort(true)}
+            className="mx-4 mt-3 flex items-center gap-2 bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-700 rounded-xl px-3 py-2.5 w-[calc(100%-2rem)] text-left"
+          >
+            <Sparkles size={15} className="text-violet-500 flex-shrink-0" />
+            <span className="text-sm text-violet-700 dark:text-violet-300 font-medium flex-1">
+              ✨ {sortable.length} clip{sortable.length !== 1 ? 's' : ''} ready to sort
+            </span>
+            <span className="text-xs text-violet-500">Review →</span>
+          </motion.button>
+        );
+      })()}
+
       {/* Proactive resurfacing — shown when not searching */}
       {!loading && !query.trim() && items.length >= 3 && (
         <div className="py-3">
@@ -332,6 +354,102 @@ export default function InboxPage() {
             </motion.div>
           </>
         )}
+      </AnimatePresence>
+
+      {/* Smart Sort sheet */}
+      <AnimatePresence>
+        {showSmartSort && (() => {
+          const sortable = inboxItems.filter((i) => i.suggestedBoardId && !i.boardId);
+          return (
+            <>
+              <motion.div
+                key="ss-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[1999] bg-black/40"
+                onClick={() => setShowSmartSort(false)}
+              />
+              <motion.div
+                key="ss-sheet"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+                className="fixed bottom-0 left-0 right-0 z-[2000] bg-white dark:bg-gray-800 rounded-t-3xl"
+                style={{ maxHeight: '80vh' }}
+              >
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 bg-gray-200 dark:bg-gray-600 rounded-full" />
+                </div>
+                <div className="flex items-center justify-between px-5 py-3">
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <Sparkles size={16} className="text-violet-500" />
+                    Smart Sort
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowSmartSort(false)}
+                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="overflow-y-auto px-5 pb-10" style={{ maxHeight: 'calc(80vh - 100px)' }}>
+                  {sortable.length === 0 ? (
+                    <p className="text-sm text-gray-400 py-4 text-center">All caught up!</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {sortable.map((item) => {
+                        const board = boards.find((b) => b.id === item.suggestedBoardId);
+                        if (!board) return null;
+                        return (
+                          <div key={item.id} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-100 line-clamp-1">{item.title}</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                → {board.emoji} {board.name}
+                                {item.suggestedBoardReason && (
+                                  <span className="italic"> · {item.suggestedBoardReason}</span>
+                                )}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <motion.button
+                                type="button"
+                                whileTap={{ scale: 0.92 }}
+                                onClick={async () => {
+                                  await addItemToBoard(board.id, item.id);
+                                  await clearBoardSuggestion(item.id);
+                                  router.refresh();
+                                }}
+                                className="p-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                                aria-label="Confirm"
+                              >
+                                <Check size={14} />
+                              </motion.button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await clearBoardSuggestion(item.id);
+                                  router.refresh();
+                                }}
+                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                aria-label="Dismiss"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </>
+          );
+        })()}
       </AnimatePresence>
 
       <NavBar active="inbox" />

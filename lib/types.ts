@@ -51,6 +51,8 @@ export interface SavedItem {
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
   isDemo?: boolean; // onboarding seed content — removable in one tap
+  suggestedBoardId?: string;   // auto-sort suggestion from AI
+  suggestedBoardReason?: string;
 }
 
 // ─── Board / Collection ─────────────────────────────────────────────────────
