@@ -108,3 +108,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-01 19:44 | 2502ad3 | feat(D1): skeleton loading states with shimmer animation
 2026-06-01 19:50 | dc46504 | feat(D2): micro-animations and haptic feedback
 2026-06-01 19:55 | e32a31e | feat(D3): dark mode support
+2026-06-01 19:56 | 19329e7 | feat(D4): polished app icon and splash screen

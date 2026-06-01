@@ -11,6 +11,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import SettingsPanel from '@/components/SettingsPanel';
+import OnboardingFlow from '@/components/OnboardingFlow';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -127,6 +128,9 @@ function HomePageInner() {
       <NavBar active="home" />
 
       <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
+
+      {/* Onboarding — shown once on first launch */}
+      <OnboardingFlow />
     </main>
   );
 }

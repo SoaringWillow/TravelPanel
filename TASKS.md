@@ -97,7 +97,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Add splash screen colors to `capacitor.config.ts`
 
 ### D5 — Onboarding Flow
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: New users who see an empty map have no idea what to do. The onboarding seed boards (A8) help but a proper walkthrough converts much better.
 **Files**: `components/OnboardingFlow.tsx` (new), `app/layout.tsx` or `app/page.tsx`
 **What to do**:
