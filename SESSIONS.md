@@ -96,3 +96,20 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-01 16:24 | 7fde46a | feat(B2): add Chrome/Safari browser extension for one-click clipping
+2026-06-01 16:30 | 5807544 | feat(B3): Xiaohongshu / WeChat vision fix — screenshot → Claude Vision
+2026-06-01 16:32 | e0c53c0 | feat(B4/B5): cloud backup export + semantic search scaffold
+2026-06-01 16:36 | 5ad21d7 | feat(C1): on-trip GPS mode — live location dot + nearby-spots counter
+2026-06-01 16:38 | 5460294 | feat(C2): post-trip timeline — chronological journey view
+2026-06-01 16:40 | 6410817 | feat(C3/C4): shared boards + proactive location resurfacing
+2026-06-01 16:43 | 66c61bd | feat(D1): edit & delete clips — inline title editing, notes, swipe-to-delete
+2026-06-01 16:44 | c740a6c | feat(D2): haptic feedback — native iOS feel on key actions
+2026-06-01 16:45 | 5ff26cf | feat(D3): pull-to-refresh on inbox list
+2026-06-01 16:53 | e71837b | D4: dark mode across all main pages and cards
+2026-06-01 16:54 | 3cf29ce | D5: board cover art with tall card design and gradient fallback
+2026-06-01 16:55 | 90efe56 | D6: clip drag-reorder within boards using framer-motion Reorder
+2026-06-01 16:57 | af3256c | D7: map filter chips for food/beach/mountain/nature/culture
+2026-06-01 16:58 | b0a5a54 | D8: full-screen 3-slide onboarding flow on first launch
+2026-06-01 17:05 | 9569851 | E1: app icon all sizes + branded splash screen
+2026-06-01 17:08 | ce95229 | E2+E3: privacy manifest + native board picker in Share Extension
+2026-06-01 17:09 | 0e39726 | E4+E5: virtualised inbox + App Store metadata
