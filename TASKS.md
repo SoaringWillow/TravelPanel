@@ -176,8 +176,9 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
-**What to do**: "Download all my data" as JSON from the account settings page
+**Status**: `[x]` Done  
+**What to do**: "Download all my data" as JSON from the account settings page  
+**Implemented**: `app/settings/page.tsx` — settings page with data stats, JSON export (clips+boards+trips), danger-zone clear-all with confirmation; `lib/exportData.ts` export utility; `lib/db.ts` + `getAllTrips()` + `deleteDatabase()`; NavBar gains Settings tab
 
 ---
 

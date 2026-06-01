@@ -191,6 +191,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {
     const db = await getDB();
@@ -208,4 +217,20 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+// ─── Nuclear option ─────────────────────────────────────────────────────────
+
+export async function deleteDatabase(): Promise<void> {
+  if (dbPromise) {
+    const db = await dbPromise;
+    db.close();
+    dbPromise = null;
+  }
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.deleteDatabase('travel-panel');
+    req.onsuccess = () => resolve();
+    req.onerror   = () => reject(req.error);
+    req.onblocked = () => resolve(); // proceed even if another tab has it open
+  });
 }
