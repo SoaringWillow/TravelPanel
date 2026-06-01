@@ -11,7 +11,8 @@
     "ios:build": "next build && npx cap sync ios",
     "ios:open": "npx cap open ios",
     "ios:sync": "npx cap sync ios",
-    "ios:run": "npx cap run ios"
+    "ios:run": "npx cap run ios",
+    "ext:zip": "cd browser-extension && zip -r ../travelpanel-extension.zip . --exclude '*.DS_Store'"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.76",
