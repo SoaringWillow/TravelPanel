@@ -66,8 +66,28 @@
   display: none;
 }
 
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  100% { transform: translateX(200%); }
+}
+
 /* iOS safe area utilities */
 .safe-top    { padding-top:    env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Dynamic Island / notch-aware page header */
+.header-safe-top {
+  padding-top: calc(16px + env(safe-area-inset-top));
+}
+
+/* NavBar: adds home-bar clearance below icons */
+.navbar-safe-bottom {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* Dark mode map tile inversion (OpenFreeMap has no native dark style) */
+.dark .maplibregl-canvas {
+  filter: invert(90%) hue-rotate(180deg);
+}

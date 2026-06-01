@@ -96,3 +96,31 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-01 19:23 | c8be2ea | feat(B2): add Chrome/Safari browser extension for one-click clipping
+2026-06-01 19:30 | 8a49838 | feat(B3): Xiaohongshu fix — Claude Vision + shared text forwarding
+2026-06-01 19:31 | d2e726a | feat(B5): data export/import + settings panel
+2026-06-01 19:34 | 4cce439 | feat(B4): vibe/semantic search via Claude query expansion
+2026-06-01 19:37 | a631fdc | feat(C1): on-trip GPS mode with live navigation overlay
+2026-06-01 19:39 | 83a5065 | feat(C2): post-trip timeline — visual journal view per board
+2026-06-01 19:40 | f88787b | feat(C3): shared boards — URL-encoded share links with import flow
+2026-06-01 19:42 | eaca5b1 | feat(C4): proactive resurfacing — 'Rediscover' widget in inbox
+2026-06-01 19:44 | 21de15a | chore: new TASKS.md for Phase D-F — iOS beauty sprint + production
+2026-06-01 19:44 | 2502ad3 | feat(D1): skeleton loading states with shimmer animation
+2026-06-01 19:50 | dc46504 | feat(D2): micro-animations and haptic feedback
+2026-06-01 19:55 | e32a31e | feat(D3): dark mode support
+2026-06-01 19:56 | 19329e7 | feat(D4): polished app icon and splash screen
+2026-06-01 19:58 | 887e500 | feat(D5): 4-step onboarding flow
+2026-06-01 19:59 | dd93b3a | feat(D6): illustrated empty states with animated entrance
+2026-06-01 20:00 | 2982b90 | feat(D7): safe area and Dynamic Island handling
+2026-06-01 20:03 | 1dd782b | feat(E2/E4/E5): privacy policy, review prompt, offline banner
+2026-06-01 20:04 | e2cdbb3 | feat(E3): App Store metadata and screenshot captions
+2026-06-01 20:08 | d15de37 | feat(F1/F2/F3): QR board sharing, duplicate detection, pull-to-refresh
+2026-06-01 20:09 | 19aa36f | feat(G1/G5): boards pull-to-refresh + planner progress animation
+2026-06-01 20:13 | e84497c | G2 + G4: InboxCard long-press to move, BoardCard substance badges
+2026-06-01 20:15 | 1f1e22c | G3: Search debounce + cancel in-flight vibe requests + loading indicator
+2026-06-01 20:21 | 4ee9133 | H1: Auto-sort suggestion — AI suggests boards for inbox clips
+2026-06-01 20:23 | 9143b43 | H2: Rich Location Detail Drawer — aggregates clips + substance per pin
+2026-06-01 20:27 | 0613dc8 | H3: Plan enrichment signals — seasons, crowds, events injected into itinerary
+2026-06-01 20:28 | 3fd9e03 | H4: Plan natural language modifier — refine plans with one-tap chips or text
+2026-06-01 20:29 | d2772a7 | H5: Wisdom tab on board detail — browse all substance with filters + search
+2026-06-01 20:30 | 690fbea | H6: Board cover auto-assignment + manual cover picker

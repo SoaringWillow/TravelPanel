@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { getSignalsForPlan, EnrichmentSignal } from '@/lib/enrichmentSignals';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -49,12 +50,16 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, travelMonth: number;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, travelMonth } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
+  // Default to current month if not provided
+  const resolvedMonth = (typeof travelMonth === 'number' && travelMonth >= 1 && travelMonth <= 12)
+    ? travelMonth
+    : new Date().getMonth() + 1;
 
   if (!Array.isArray(items) || items.length === 0) {
     return new Response('No items provided', { status: 400 });
@@ -117,6 +122,16 @@ export async function POST(req: NextRequest) {
 
         step('routing', 'Building optimised route…');
 
+        // ── Enrichment signals (emit before streaming plan) ──────────────
+        const signals: EnrichmentSignal[] = getSignalsForPlan(resolvedLocs.locations, resolvedMonth);
+        const signalText = signals.length > 0
+          ? `\n\nActive enrichment signals (real-world context for these dates):\n${signals.map((s) => `- ${s.emoji} ${s.title}: ${s.warning}`).join('\n')}\n\nFor each active signal, include an inline warning in the relevant day(s) of the itinerary — surface it as a practical advisory, not generic filler.`
+          : '';
+
+        if (signals.length > 0) {
+          emit({ t: 'signals', signals });
+        }
+
         // ── Step 3: Stream full itinerary ────────────────────────────────
         // Include substance (the wisdom layer) so the plan can cite the user's
         // own clips inline — this is the sourced-itinerary moat.
@@ -141,7 +156,7 @@ export async function POST(req: NextRequest) {
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
-User preferences: ${preferences || 'None specified'}
+User preferences: ${preferences || 'None specified'}${signalText}
 
 Rules:
 - 2-4 activities per day with realistic timing

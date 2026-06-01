@@ -30,14 +30,17 @@ interface RouteMapViewProps {
   items: SavedItem[];
   plan: Partial<TripPlan> | null;
   activeDayIndex: number;
+  userPosition?: { lat: number; lng: number } | null;
+  flyTo?: { lat: number; lng: number; id: number } | null; // id change triggers fly
 }
 
 interface BoundsControllerProps {
   plan: Partial<TripPlan> | null;
   items: SavedItem[];
+  flyTo?: { lat: number; lng: number; id: number } | null;
 }
 
-function BoundsController({ plan, items }: BoundsControllerProps) {
+function BoundsController({ plan, items, flyTo }: BoundsControllerProps) {
   const { current: mapRef } = useMap();
 
   useEffect(() => {
@@ -82,10 +85,18 @@ function BoundsController({ plan, items }: BoundsControllerProps) {
     );
   }, [plan, items, mapRef]);
 
+  // Programmatic flyTo triggered by on-trip navigation
+  useEffect(() => {
+    if (!mapRef || !flyTo) return;
+    mapRef.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 16, duration: 800 });
+  // flyTo.id changing is the trigger — lat/lng are baked in
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flyTo?.id, mapRef]);
+
   return null;
 }
 
-export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapViewProps) {
+export default function RouteMapView({ items, plan, activeDayIndex, userPosition, flyTo }: RouteMapViewProps) {
   const days = plan?.days ?? [];
 
   const allItemLocations = useMemo(
@@ -108,7 +119,7 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
     >
       <NavigationControl position="top-right" />
 
-      <BoundsController plan={plan} items={items} />
+      <BoundsController plan={plan} items={items} flyTo={flyTo} />
 
       {/* No-plan markers: platform-colored dots */}
       {days.length === 0 &&
@@ -215,6 +226,27 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
             </Marker>
           ));
         })}
+      {/* User GPS position marker */}
+      {userPosition && isValidLoc(userPosition) && (
+        <Marker longitude={userPosition.lng} latitude={userPosition.lat} anchor="center">
+          <div style={{ position: 'relative', width: 20, height: 20 }}>
+            {/* Pulsing accuracy ring */}
+            <div style={{
+              position: 'absolute', inset: -8,
+              borderRadius: '50%',
+              backgroundColor: 'rgba(59,130,246,0.2)',
+              animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite',
+            }} />
+            {/* Blue dot */}
+            <div style={{
+              width: 20, height: 20, borderRadius: '50%',
+              backgroundColor: '#3b82f6',
+              border: '3px solid white',
+              boxShadow: '0 2px 8px rgba(59,130,246,0.5)',
+            }} />
+          </div>
+        </Marker>
+      )}
     </Map>
   );
 }

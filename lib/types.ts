@@ -51,6 +51,8 @@ export interface SavedItem {
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
   isDemo?: boolean; // onboarding seed content — removable in one tap
+  suggestedBoardId?: string;   // auto-sort suggestion from AI
+  suggestedBoardReason?: string;
 }
 
 // ─── Board / Collection ─────────────────────────────────────────────────────
@@ -142,4 +144,5 @@ export interface ImportResult {
 // NDJSON messages streamed from /api/plan
 export type PlanStreamMessage =
   | { t: 'step'; step: AgentStep }
-  | { t: 'plan'; plan: Partial<TripPlan> };
+  | { t: 'plan'; plan: Partial<TripPlan> }
+  | { t: 'signals'; signals: import('./enrichmentSignals').EnrichmentSignal[] };

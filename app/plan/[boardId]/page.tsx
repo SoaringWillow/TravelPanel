@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, AlertTriangle, Info } from 'lucide-react';
+import EmptyState from '@/components/EmptyState';
+import { haptic } from '@/lib/haptics';
+import { incrementPlanCount } from '@/lib/reviewPrompt';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { EnrichmentSignal } from '@/lib/enrichmentSignals';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
@@ -13,6 +18,7 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import OnTripOverlay from '@/components/OnTripOverlay';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -38,6 +44,12 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [onTripMode, setOnTripMode] = useState(false);
+  const [mapFlyTo, setMapFlyTo] = useState<{ lat: number; lng: number; id: number } | null>(null);
+  const flyToIdRef = useRef(0);
+  const [travelMonth, setTravelMonth] = useState<number>(new Date().getMonth() + 1);
+  const [enrichmentSignals, setEnrichmentSignals] = useState<EnrichmentSignal[]>([]);
+  const [dismissedSignals, setDismissedSignals] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -80,7 +92,11 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    setEnrichmentSignals([]);
+    setDismissedSignals(new Set());
+    haptic('medium');
     recordPlanGeneration();
+    incrementPlanCount();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
     const res = await fetch('/api/plan', {
@@ -89,6 +105,7 @@ export default function PlanPage() {
       body: JSON.stringify({
         items: boardItems,
         days,
+        travelMonth,
         preferences: [
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
@@ -144,6 +161,9 @@ export default function PlanPage() {
               setCurrentTripId(trip.id);
             }
           }
+          if (msg.t === 'signals') {
+            setEnrichmentSignals(msg.signals);
+          }
           if (msg.t === 'plan') {
             latestPlan = msg.plan as Partial<TripPlan>;
             setPlan(latestPlan);
@@ -153,7 +173,7 @@ export default function PlanPage() {
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, travelMonth, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -235,6 +255,20 @@ export default function PlanPage() {
 
   const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
 
+  const handleFlyToLocation = useCallback((lat: number, lng: number) => {
+    setMapFlyTo({ lat, lng, id: ++flyToIdRef.current });
+  }, []);
+
+  function EmptyStatePlan() {
+    return (
+      <EmptyState
+        type="plan"
+        headline="No clips with locations"
+        description="Clip posts with identifiable locations to generate a trip plan for this board."
+      />
+    );
+  }
+
   if (loadingBoard) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -265,12 +299,13 @@ export default function PlanPage() {
         style={{ height: stage === 'idle' ? '45vh' : '45vh' }}
       >
         {stage === 'idle' ? (
-          <MapView items={boardItems} onPinClick={() => {}} />
+          <MapView items={boardItems} onPinClick={(_item, _loc) => {}} />
         ) : (
           <RouteMapView
             items={boardItems}
             plan={plan}
             activeDayIndex={activeDayIndex}
+            flyTo={mapFlyTo}
           />
         )}
       </div>
@@ -321,6 +356,24 @@ export default function PlanPage() {
                 </div>
               </div>
 
+              {/* Travel month picker */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Calendar size={15} className="text-indigo-500" />
+                  Traveling in
+                </label>
+                <select
+                  value={travelMonth}
+                  onChange={(e) => setTravelMonth(Number(e.target.value))}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                >
+                  {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                    <option key={m} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400">Used to surface season and crowd warnings for your destination.</p>
+              </div>
+
               {/* Preference chips */}
               <div className="space-y-3">
                 <label className="text-sm font-semibold text-gray-700">Travel style</label>
@@ -358,10 +411,15 @@ export default function PlanPage() {
               </div>
 
               {/* Warning if no locations */}
-              {!hasLocations && (
+              {!hasLocations && boardItems.length > 0 && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
                   <MapPin size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>Add items with identified locations to plan a trip.</span>
+                  <span>Your clips don&apos;t have identified locations yet — enrichment may still be running.</span>
+                </div>
+              )}
+              {!hasLocations && boardItems.length === 0 && (
+                <div className="py-4">
+                  <EmptyStatePlan />
                 </div>
               )}
 
@@ -384,13 +442,14 @@ export default function PlanPage() {
               />
 
               {/* Generate button */}
-              <button
+              <motion.button
                 onClick={generatePlan}
                 disabled={!hasLocations}
-                className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                whileTap={{ scale: 0.96 }}
+                className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ✨ Begin planning
-              </button>
+              </motion.button>
             </div>
           )}
 
@@ -431,6 +490,48 @@ export default function PlanPage() {
                 <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
               </div>
 
+              {/* Enrichment signals */}
+              {enrichmentSignals.filter((s) => !dismissedSignals.has(s.id)).length > 0 && (
+                <div className="space-y-2">
+                  {enrichmentSignals
+                    .filter((s) => !dismissedSignals.has(s.id))
+                    .map((signal) => (
+                      <div
+                        key={signal.id}
+                        className={`flex items-start gap-2.5 rounded-xl px-3 py-2.5 ${
+                          signal.severity === 'high'
+                            ? 'bg-red-50 border border-red-200'
+                            : signal.severity === 'warning'
+                            ? 'bg-amber-50 border border-amber-200'
+                            : 'bg-blue-50 border border-blue-200'
+                        }`}
+                      >
+                        <span className="text-lg flex-shrink-0">{signal.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-bold ${
+                            signal.severity === 'high' ? 'text-red-700' : signal.severity === 'warning' ? 'text-amber-700' : 'text-blue-700'
+                          }`}>
+                            {signal.title}
+                          </p>
+                          <p className={`text-xs leading-relaxed mt-0.5 ${
+                            signal.severity === 'high' ? 'text-red-600' : signal.severity === 'warning' ? 'text-amber-600' : 'text-blue-600'
+                          }`}>
+                            {signal.warning}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDismissedSignals((prev) => new Set(Array.from(prev).concat(signal.id)))}
+                          className="flex-shrink-0 p-0.5 text-gray-300 hover:text-gray-500 transition-colors"
+                          aria-label="Dismiss"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+
               {/* Overview */}
               {plan.overview && (
                 <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
@@ -458,23 +559,36 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Export actions */}
+              {/* Action buttons */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                <div className="space-y-2">
+                  {/* Start Trip (GPS mode) */}
+                  <motion.button
+                    onClick={() => { setOnTripMode(true); track('trip_started', { boardId }); }}
+                    whileTap={{ scale: 0.96 }}
+                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-3 rounded-xl shadow-sm hover:bg-indigo-700 transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
-                  </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
+                    <Navigation size={15} />
+                    Start Trip — Live GPS
+                  </motion.button>
+
+                  {/* Export row */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -580,6 +694,45 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* Refine plan modifier */}
+              {planIsComplete(plan) && (
+                <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Refine this plan</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['More relaxed pace', 'Budget-friendly', 'Foodie focus', 'Skip museums', 'More outdoor activities'].map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => setCustomNotes(chip)}
+                        className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customNotes}
+                      onChange={(e) => setCustomNotes(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && customNotes.trim()) generatePlan(); }}
+                      placeholder='e.g. "More free time", "Add a day trip"'
+                      className="flex-1 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                    />
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => { if (customNotes.trim()) { haptic('medium'); generatePlan(); } }}
+                      disabled={!customNotes.trim()}
+                      className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      <RotateCcw size={14} />
+                      Regenerate
+                    </motion.button>
+                  </div>
+                </div>
+              )}
+
               {/* Start Over */}
               <button
                 onClick={handleStartOver}
@@ -593,6 +746,18 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {/* On-Trip GPS overlay — renders above the whole screen */}
+      <AnimatePresence>
+        {onTripMode && planIsComplete(plan) && (
+          <OnTripOverlay
+            plan={plan}
+            activeDayIndex={activeDayIndex}
+            onClose={() => setOnTripMode(false)}
+            onFlyToLocation={handleFlyToLocation}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

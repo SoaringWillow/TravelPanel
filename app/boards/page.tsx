@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -9,9 +10,12 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import { BoardsSkeleton } from '@/components/SkeletonCard';
+import EmptyState from '@/components/EmptyState';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -19,6 +23,18 @@ export default function BoardsPage() {
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
     return board ? board.itemIds.length : 0;
+  }
+
+  function getLocationCount(boardId: string): number {
+    return items
+      .filter((item) => item.boardId === boardId)
+      .reduce((sum, item) => sum + item.locations.length, 0);
+  }
+
+  function getTipCount(boardId: string): number {
+    return items
+      .filter((item) => item.boardId === boardId)
+      .reduce((sum, item) => sum + (item.substance?.length ?? 0), 0);
   }
 
   async function handleCreate(name: string, emoji: string) {
@@ -30,50 +46,41 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-800 shadow-sm px-4 pb-4 z-10 header-safe-top">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LayoutGrid className="text-indigo-600" size={22} />
-            <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
+            <LayoutGrid className="text-indigo-600 dark:text-indigo-400" size={22} />
+            <h1 className="text-xl font-bold text-gray-800 dark:text-white">My Boards</h1>
           </div>
-          <button
+          <motion.button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            whileTap={{ scale: 0.96 }}
+            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 transition-all"
           >
             <Plus size={16} />
             <span>New Board</span>
-          </button>
+          </motion.button>
         </div>
       </div>
 
       {/* First-launch demo seed banner */}
       <OnboardingSeed />
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      {/* Content with pull-to-refresh */}
+      <PullToRefresh onRefresh={refresh} className="flex-1">
+      <div className="px-4 py-4 pb-24">
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-          </div>
+          <BoardsSkeleton />
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
-            >
-              <Plus size={16} />
-              Create a Board
-            </button>
-          </div>
+          <EmptyState
+            type="boards"
+            headline="No boards yet"
+            description="Create a board for each destination — a collection of clips, ready to plan from."
+            action={{ label: '+ Create a Board', onClick: () => setShowCreate(true) }}
+          />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {boards.map((board) => (
@@ -81,6 +88,8 @@ export default function BoardsPage() {
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
+                locationCount={getLocationCount(board.id)}
+                tipCount={getTipCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
               />
@@ -88,6 +97,7 @@ export default function BoardsPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Create board modal */}
       <CreateBoardModal

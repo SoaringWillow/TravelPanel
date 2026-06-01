@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { detectPlatform } from '@/lib/parse-url';
 import { ImportResult } from '@/lib/types';
@@ -14,8 +15,6 @@ const locationSchema = z.object({
   address: z.string().optional(),
 });
 
-// Substance schema: the wisdom layer — tips, warnings, opinions extracted from
-// the post content itself, not just the location pins.
 const substanceSchema = z.object({
   type: z.enum(['tip', 'warning', 'opinion', 'wisdom', 'context', 'recommendation']),
   content: z.string().describe('The insight in 1–2 sentences, in your own words'),
@@ -40,6 +39,9 @@ const importSchema = z.object({
 // ─── Page fetcher ────────────────────────────────────────────────────────────
 
 async function fetchPageData(url: string) {
+  // Skip fetch for vision-only clips (shared as screenshot with no real URL)
+  if (url.startsWith('travelpanel://')) return null;
+
   try {
     const res = await fetch(url, {
       headers: {
@@ -85,8 +87,11 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let sharedText: string | undefined;
+  let imageBase64: string | undefined;
+
   try {
-    ({ url } = await req.json());
+    ({ url, sharedText, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,14 +103,22 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Merge scraped content with native-captured text (sharedText wins on Chinese platforms
+  // where web scraping is blocked by anti-bot measures)
+  const effectiveTitle = page?.title || '';
+  const effectiveDescription = page?.description || '';
+  const effectiveText = sharedText
+    ? `${sharedText}\n\n${page?.textContent ?? ''}`.trim()
+    : (page?.textContent ?? '');
+
+  const basePrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+Title: ${effectiveTitle || '(unavailable)'}
+Description: ${effectiveDescription || '(unavailable)'}
+Post content:
+${effectiveText || '(could not fetch page)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -129,21 +142,48 @@ A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
+
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: include the screenshot so Claude can read text/images the scraper can't reach
+      const { object } = await generateObject({
+        model: anthropic('claude-haiku-4-5-20251001'),
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageBase64,
+                mimeType: 'image/jpeg',
+              },
+              {
+                type: 'text',
+                text: `${basePrompt}\n\nIMPORTANT: The image above is a screenshot of this post. Use both the image content AND the text above to extract locations and substance. The image may contain Chinese text, maps, or visual content not captured by web scraping.`,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text-only path (existing behaviour)
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: basePrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
+    title: (claudeResult?.title || effectiveTitle || url).slice(0, 200),
+    description: (claudeResult?.description || effectiveDescription || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],
     activities: claudeResult?.activities ?? [],

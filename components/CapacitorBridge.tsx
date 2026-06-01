@@ -12,11 +12,14 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: sharedText } = await Preferences.get({ key: 'pendingShareText' });
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareText' });
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
+    if (sharedText) qs.set('text', sharedText);
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
@@ -51,10 +54,18 @@ export function CapacitorBridge() {
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const sharedText = parsed.searchParams.get('text');
+            const imageData = parsed.searchParams.get('imageData');
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              if (sharedText) qs.set('text', sharedText);
+              // Store large image payload in sessionStorage to avoid URL length limits
+              if (imageData) {
+                try { sessionStorage.setItem('pendingShareImageData', imageData); } catch { /* ignore */ }
+                qs.set('hasImage', '1');
+              }
               router.push(`/share?${qs.toString()}`);
             }
           } catch {

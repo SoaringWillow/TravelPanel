@@ -228,12 +228,12 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
 
 interface MapViewProps {
   items: SavedItem[];
-  onPinClick: (item: SavedItem) => void;
+  onPinClick: (item: SavedItem, location: Location) => void;
   flyTo?: Location;
 }
 
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
-  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null); // kept for cluster expand UX
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
@@ -321,34 +321,14 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
                 item={item}
                 locName={location.name}
                 onClick={() => {
-                  setPopupInfo({ item, location, longitude: lng, latitude: lat });
-                  onPinClick(item);
+                  setPopupInfo(null);
+                  onPinClick(item, location);
                 }}
               />
             </Marker>
           );
         })}
 
-        {popupInfo && (
-          <Popup
-            longitude={popupInfo.longitude}
-            latitude={popupInfo.latitude}
-            anchor="top"
-            onClose={() => setPopupInfo(null)}
-            closeButton
-            closeOnClick={false}
-            offset={[0, -6] as [number, number]}
-          >
-            <div className="max-w-[200px] px-1 py-0.5">
-              <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1">
-                {popupInfo.location.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
-                {popupInfo.item.title}
-              </p>
-            </div>
-          </Popup>
-        )}
       </Map>
     </div>
   );
