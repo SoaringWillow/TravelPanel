@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
+import { haptic } from '@/lib/haptics';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -85,6 +86,7 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    haptic('medium');
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
@@ -394,13 +396,14 @@ export default function PlanPage() {
               />
 
               {/* Generate button */}
-              <button
+              <motion.button
                 onClick={generatePlan}
                 disabled={!hasLocations}
-                className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                whileTap={{ scale: 0.96 }}
+                className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ✨ Begin planning
-              </button>
+              </motion.button>
             </div>
           )}
 
@@ -472,13 +475,14 @@ export default function PlanPage() {
               {planIsComplete(plan) && (
                 <div className="space-y-2">
                   {/* Start Trip (GPS mode) */}
-                  <button
+                  <motion.button
                     onClick={() => { setOnTripMode(true); track('trip_started', { boardId }); }}
-                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all"
+                    whileTap={{ scale: 0.96 }}
+                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-3 rounded-xl shadow-sm hover:bg-indigo-700 transition-all"
                   >
                     <Navigation size={15} />
                     Start Trip — Live GPS
-                  </button>
+                  </motion.button>
 
                   {/* Export row */}
                   <div className="flex gap-2">

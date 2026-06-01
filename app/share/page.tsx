@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { haptic } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -84,6 +85,7 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    haptic('success');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
@@ -182,37 +184,40 @@ function SharePageInner() {
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
             {/* Inbox chip */}
-            <button
+            <motion.button
               type="button"
               disabled={stage === 'saving'}
               onClick={() => handleSave(undefined, 'Inbox')}
-              className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
+              whileTap={{ scale: 0.96 }}
+              className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 transition-all disabled:opacity-50"
             >
               Inbox
-            </button>
+            </motion.button>
 
             {/* Recent board chips */}
             {recentBoards.map((board) => (
-              <button
+              <motion.button
                 key={board.id}
                 type="button"
                 disabled={stage === 'saving'}
                 onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                whileTap={{ scale: 0.96 }}
+                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}
-              </button>
+              </motion.button>
             ))}
 
             {/* + New chip */}
-            <button
+            <motion.button
               type="button"
               disabled={stage === 'saving'}
               onClick={() => setShowNewBoardInput((v) => !v)}
-              className="flex-shrink-0 border-2 border-dashed border-gray-300 text-gray-500 text-sm font-medium px-4 py-2 rounded-full hover:border-gray-400 hover:text-gray-600 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+              whileTap={{ scale: 0.96 }}
+              className="flex-shrink-0 border-2 border-dashed border-gray-300 text-gray-500 text-sm font-medium px-4 py-2 rounded-full hover:border-gray-400 hover:text-gray-600 transition-all disabled:opacity-50 whitespace-nowrap"
             >
               + New
-            </button>
+            </motion.button>
           </div>
 
           {/* New board input */}
@@ -238,14 +243,15 @@ function SharePageInner() {
                     autoFocus
                     className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none transition-colors"
                   />
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleNewBoardSave}
                     disabled={!newBoardName.trim() || stage === 'saving'}
+                    whileTap={{ scale: 0.96 }}
                     className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40 transition-colors"
                   >
                     Create
-                  </button>
+                  </motion.button>
                 </div>
               </motion.div>
             )}

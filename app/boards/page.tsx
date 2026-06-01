@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -39,14 +40,15 @@ export default function BoardsPage() {
             <LayoutGrid className="text-indigo-600" size={22} />
             <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
           </div>
-          <button
+          <motion.button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            whileTap={{ scale: 0.96 }}
+            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 transition-all"
           >
             <Plus size={16} />
             <span>New Board</span>
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -64,14 +66,15 @@ export default function BoardsPage() {
             <p className="text-sm text-gray-500 max-w-xs mb-6">
               Create your first board to organise your travel ideas.
             </p>
-            <button
+            <motion.button
               type="button"
               onClick={() => setShowCreate(true)}
+              whileTap={{ scale: 0.96 }}
               className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
             >
               <Plus size={16} />
               Create a Board
-            </button>
+            </motion.button>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

@@ -58,7 +58,7 @@ Weekly clips per active user. Proxy for habit formation.
 - The shimmer should use a left-to-right gradient animation for a premium feel
 
 ### D2 — Micro-animations and Haptic Feedback
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Animations make the app feel alive. Haptics make it feel native on iPhone.
 **Files**: `components/InboxCard.tsx`, `components/NavBar.tsx`, `app/share/page.tsx`, `lib/haptics.ts` (new)
 **What to do**:

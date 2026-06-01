@@ -96,3 +96,13 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-01 19:23 | c8be2ea | feat(B2): add Chrome/Safari browser extension for one-click clipping
+2026-06-01 19:30 | 8a49838 | feat(B3): Xiaohongshu fix — Claude Vision + shared text forwarding
+2026-06-01 19:31 | d2e726a | feat(B5): data export/import + settings panel
+2026-06-01 19:34 | 4cce439 | feat(B4): vibe/semantic search via Claude query expansion
+2026-06-01 19:37 | a631fdc | feat(C1): on-trip GPS mode with live navigation overlay
+2026-06-01 19:39 | 83a5065 | feat(C2): post-trip timeline — visual journal view per board
+2026-06-01 19:40 | f88787b | feat(C3): shared boards — URL-encoded share links with import flow
+2026-06-01 19:42 | eaca5b1 | feat(C4): proactive resurfacing — 'Rediscover' widget in inbox
+2026-06-01 19:44 | 21de15a | chore: new TASKS.md for Phase D-F — iOS beauty sprint + production
+2026-06-01 19:44 | 2502ad3 | feat(D1): skeleton loading states with shimmer animation
