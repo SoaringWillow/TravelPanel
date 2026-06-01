@@ -101,7 +101,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - The indicator should have a soft bounce animation and auto-dismiss after 400ms
 
 ### D5 — User Location on Map ("Near Me" button)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: A travel app's map with no "where am I" button feels broken. This is table-stakes for any mapping app.  
 **Files to change**: `components/MapView.tsx`  
 **What to do**:

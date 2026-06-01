@@ -233,9 +233,36 @@ interface MapViewProps {
 }
 
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
-  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [popupInfo, setPopupInfo]       = useState<PopupInfo | null>(null);
+  const [userPos, setUserPos]           = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating]         = useState(false);
+  const [locError, setLocError]         = useState<string | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  function locateMe() {
+    if (!navigator.geolocation) {
+      setLocError('Location not supported by this browser.');
+      return;
+    }
+    setLocating(true);
+    setLocError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserPos({ lat, lng });
+        setLocating(false);
+        mapInstanceRef.current?.flyTo({ center: [lng, lat], zoom: 13, duration: 800 });
+      },
+      () => {
+        setLocating(false);
+        setLocError('Location access denied.');
+        setTimeout(() => setLocError(null), 3000);
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  }
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -269,6 +296,32 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {/* Locate-me button — bottom-right, above the NavBar */}
+      <button
+        type="button"
+        onClick={locateMe}
+        disabled={locating}
+        title="Show my location"
+        className="absolute bottom-24 right-3 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60"
+        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}
+      >
+        {locating ? (
+          <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-blue-600">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+        )}
+      </button>
+
+      {/* Location error toast */}
+      {locError && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 bg-gray-800 text-white text-xs px-3 py-2 rounded-full shadow-lg whitespace-nowrap">
+          {locError}
+        </div>
+      )}
+
       <Map
         id="main-map"
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
@@ -328,6 +381,16 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* User location marker — blue pulsing dot */}
+        {userPos && (
+          <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
+            <div className="relative">
+              <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md z-10 relative" />
+              <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-60" />
+            </div>
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
