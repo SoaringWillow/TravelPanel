@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { detectPlatform } from '@/lib/parse-url';
 import { ImportResult } from '@/lib/types';
@@ -39,13 +40,20 @@ const importSchema = z.object({
 
 // ─── Page fetcher ────────────────────────────────────────────────────────────
 
+const XHS_MOBILE_UA =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.0 MiniProgramEnv/iOS';
+
 async function fetchPageData(url: string) {
+  const isXhs = url.includes('xiaohongshu.com') || url.includes('xhslink.com') || url.includes('xhs.link');
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; TravelPanel/1.0)',
+        'User-Agent': isXhs
+          ? XHS_MOBILE_UA
+          : 'Mozilla/5.0 (compatible; TravelPanel/1.0)',
         Accept: 'text/html,application/xhtml+xml',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        ...(isXhs ? { Referer: 'https://www.xiaohongshu.com/' } : {}),
       },
       signal: AbortSignal.timeout(8000),
     });
@@ -81,12 +89,72 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Claude Vision extractor ──────────────────────────────────────────────────
+
+type VisionImageSource =
+  | { type: 'base64'; data: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' }
+  | { type: 'url'; url: string };
+
+async function extractWithVision(
+  imageSource: VisionImageSource,
+  url: string,
+  platform: string,
+  title: string,
+): Promise<z.infer<typeof importSchema> | null> {
+  const visionPrompt = `You are a travel content analyzer. This is a screenshot or image from a ${platform} travel post.
+URL: ${url}
+${title ? `Title: ${title}` : ''}
+
+Analyze the image and extract TWO layers:
+
+## Layer 1 — Spots
+Extract real, identifiable locations with GPS coordinates. Only include places you can clearly identify.
+
+## Layer 2 — Substance (MOST IMPORTANT)
+Extract every visible tip, warning, opinion, recommendation, or piece of travel wisdom shown in the image.
+Read any visible text (captions, overlays, comments, watermarks) carefully. Capture everything actionable.`;
+
+  const imageContentPart =
+    imageSource.type === 'base64'
+      ? { type: 'image' as const, image: imageSource.data, mimeType: imageSource.mediaType }
+      : { type: 'image' as const, image: new URL(imageSource.url) };
+
+  try {
+    const { object } = await generateObject({
+      model: anthropic('claude-sonnet-4-6'),
+      schema: importSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            imageContentPart,
+            { type: 'text', text: visionPrompt },
+          ],
+        },
+      ],
+    });
+    return object;
+  } catch {
+    return null;
+  }
+}
+
+// Returns true when the page scrape yielded too little content to be useful
+function isScrapeEmpty(page: Awaited<ReturnType<typeof fetchPageData>>): boolean {
+  if (!page) return true;
+  const combined = (page.title + page.description + page.textContent).trim();
+  return combined.length < 80;
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' | undefined;
+  let imageUrl: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType, imageUrl } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -97,6 +165,19 @@ export async function POST(req: NextRequest) {
 
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
+
+  // When an image is provided AND the text scrape was empty (anti-scraping platform),
+  // use Claude Vision for richer extraction instead of the text-only path.
+  const hasImage = !!imageBase64 || !!imageUrl;
+  const scrapeEmpty = isScrapeEmpty(page);
+
+  let visionResult: z.infer<typeof importSchema> | null = null;
+  if (hasImage && scrapeEmpty) {
+    const source: VisionImageSource = imageBase64
+      ? { type: 'base64', data: imageBase64, mediaType: imageMimeType ?? 'image/jpeg' }
+      : { type: 'url', url: imageUrl! };
+    visionResult = await extractWithVision(source, url, platform, page?.title ?? '');
+  }
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
@@ -128,16 +209,19 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+  // Use vision result directly when scrape was empty; otherwise run text extraction
+  let claudeResult: z.infer<typeof importSchema> | null = visionResult;
+  if (!claudeResult) {
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {

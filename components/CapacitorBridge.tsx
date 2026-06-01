@@ -3,6 +3,25 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+// Reads image data stored by the iOS Share Extension in App Group storage.
+// Returns a base64 string (without the data: prefix) or null.
+// NOTE: @capacitor/preferences reads from UserDefaults via the App Group suite
+// when configured in ios/App/App/AppDelegate.swift to use group.com.travelpanel.app.
+// Binary data stored by Swift as NSData comes back as a base64-encoded string.
+async function readPendingImage(): Promise<{ imageBase64: string; imageMimeType: string } | null> {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value: imageData } = await Preferences.get({ key: 'pendingShareImageData' });
+    if (!imageData) return null;
+    const { value: mime } = await Preferences.get({ key: 'pendingShareImageMime' });
+    await Preferences.remove({ key: 'pendingShareImageData' });
+    await Preferences.remove({ key: 'pendingShareImageMime' });
+    return { imageBase64: imageData, imageMimeType: mime || 'image/jpeg' };
+  } catch {
+    return null;
+  }
+}
+
 // Reads a pending share URL stored by the iOS Share Extension via App Groups.
 // The App Group suite name must match the one in ShareViewController.swift.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
@@ -12,11 +31,14 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: hasImageStr } = await Preferences.get({ key: 'pendingShareHasImage' });
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareHasImage' });
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
+    if (hasImageStr === '1' || hasImageStr === 'true') qs.set('hasImage', '1');
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
@@ -51,10 +73,12 @@ export function CapacitorBridge() {
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage = parsed.searchParams.get('hasImage');
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              if (hasImage === '1') qs.set('hasImage', '1');
               router.push(`/share?${qs.toString()}`);
             }
           } catch {

@@ -23,6 +23,7 @@ function SharePageInner() {
   const sharedTitle     = rawTitle || 'New inspiration';
   const preselectedBoardName = searchParams.get('board') ?? '';
   const fromExtension   = searchParams.get('source') === 'browser-extension';
+  const hasImage        = searchParams.get('hasImage') === '1';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -120,9 +121,27 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
+    // If the iOS Share Extension captured an image, read it from App Group storage
+    // and forward to enrichment so Claude Vision can extract from anti-scraping platforms.
+    let imageOpts: { imageBase64?: string; imageMimeType?: string } = {};
+    if (hasImage) {
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value: imageData } = await Preferences.get({ key: 'pendingShareImageData' });
+        if (imageData) {
+          const { value: mime } = await Preferences.get({ key: 'pendingShareImageMime' });
+          await Preferences.remove({ key: 'pendingShareImageData' });
+          await Preferences.remove({ key: 'pendingShareImageMime' });
+          imageOpts = { imageBase64: imageData, imageMimeType: mime ?? 'image/jpeg' };
+        }
+      } catch {
+        // Not in native context or plugin unavailable — proceed without image
+      }
+    }
+
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageOpts)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
