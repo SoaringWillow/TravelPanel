@@ -186,10 +186,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   const db = await getDB();
   const [board, item] = await Promise.all([db.get('boards', boardId), db.get('items', itemId)]);
   if (!board || !item) return;
+  const remainingIds = board.itemIds.filter((id) => id !== itemId);
+  // Recalculate cover from remaining items
+  const remainingItems = await Promise.all(remainingIds.map((id) => db.get('items', id)));
+  const newCover = remainingItems.find((i) => i?.thumbnail)?.thumbnail ?? undefined;
   const tx = db.transaction(['boards', 'items'], 'readwrite');
   await tx.objectStore('boards').put({
     ...board,
-    itemIds: board.itemIds.filter((id) => id !== itemId),
+    itemIds: remainingIds,
+    coverThumbnail: newCover,
     updatedAt: Date.now(),
   });
   await tx.objectStore('items').put({ ...item, boardId: undefined });

@@ -231,7 +231,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a subtle spinner at the top while refreshing
 
 ### D4 — Dark Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/globals.css`, all pages and components (Tailwind `dark:` variants)  
 **What to do**:
 - Enable `darkMode: 'media'` in `tailwind.config.js`
@@ -241,7 +241,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test on iOS with Dark Mode enabled in system settings
 
 ### D5 — Board Cover Art & Visual Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/BoardCard.tsx`, `hooks/useBoards.ts`  
 **What to do**:
 - Use the first clip's thumbnail as the board's cover image (stored as `coverThumbnail` on the `Board` type)
