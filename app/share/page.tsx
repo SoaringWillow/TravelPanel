@@ -88,9 +88,12 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — include pending screenshot for anti-scraping platforms
+    const pendingImage = sessionStorage.getItem('pendingShareImage') ?? undefined;
+    if (pendingImage) sessionStorage.removeItem('pendingShareImage');
+
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImage)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
