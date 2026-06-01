@@ -86,6 +86,13 @@ export async function deleteItem(id: string): Promise<void> {
   await db.delete('items', id);
 }
 
+export async function updateItem(id: string, patch: Partial<Pick<SavedItem, 'title' | 'notes' | 'tags'>>): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...patch });
+}
+
 export async function getItemsByPlatform(platform: string): Promise<SavedItem[]> {
   const db = await getDB();
   return db.getAllFromIndex('items', 'by-platform', platform);
@@ -158,6 +165,13 @@ export async function deleteBoard(id: string): Promise<void> {
   await tx.done;
 }
 
+export async function updateBoardItemOrder(boardId: string, itemIds: string[]): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', boardId);
+  if (!board) return;
+  await db.put('boards', { ...board, itemIds, updatedAt: Date.now() });
+}
+
 export async function addItemToBoard(boardId: string, itemId: string): Promise<void> {
   const db = await getDB();
   const [board, item] = await Promise.all([db.get('boards', boardId), db.get('items', itemId)]);
@@ -179,10 +193,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   const db = await getDB();
   const [board, item] = await Promise.all([db.get('boards', boardId), db.get('items', itemId)]);
   if (!board || !item) return;
+  const remainingIds = board.itemIds.filter((id) => id !== itemId);
+  // Recalculate cover from remaining items
+  const remainingItems = await Promise.all(remainingIds.map((id) => db.get('items', id)));
+  const newCover = remainingItems.find((i) => i?.thumbnail)?.thumbnail ?? undefined;
   const tx = db.transaction(['boards', 'items'], 'readwrite');
   await tx.objectStore('boards').put({
     ...board,
-    itemIds: board.itemIds.filter((id) => id !== itemId),
+    itemIds: remainingIds,
+    coverThumbnail: newCover,
     updatedAt: Date.now(),
   });
   await tx.objectStore('items').put({ ...item, boardId: undefined });

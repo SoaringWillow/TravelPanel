@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import type { UserLocation } from '@/hooks/useUserLocation';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -48,14 +49,58 @@ interface PopupInfo {
 
 interface MapControllerProps {
   flyTo?: Location;
+  userLocation?: UserLocation | null;
+  followMode?: boolean;
+}
+
+// ─── User location blue dot ───────────────────────────────────────────────────
+
+function UserLocationMarker({ accuracy }: { accuracy: number }) {
+  const ringSize = Math.min(Math.max(accuracy / 2, 28), 120);
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Accuracy ring */}
+      <div style={{
+        position:     'absolute',
+        width:        ringSize,
+        height:       ringSize,
+        borderRadius: '50%',
+        background:   'rgba(59,130,246,0.12)',
+        border:       '1.5px solid rgba(59,130,246,0.35)',
+        animation:    'tp-pulse 2s ease-in-out infinite',
+      }} />
+      {/* White halo */}
+      <div style={{
+        width:      20,
+        height:     20,
+        borderRadius: '50%',
+        background: 'white',
+        boxShadow:  '0 1px 6px rgba(0,0,0,0.28)',
+        display:    'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        {/* Blue core */}
+        <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} />
+      </div>
+      <style>{`
+        @keyframes tp-pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50%       { transform: scale(1.15); opacity: 0.7; }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 // ─── MapController: flies to location when flyTo prop changes ────────────────
 
-function MapController({ flyTo }: MapControllerProps) {
+function MapController({ flyTo, userLocation, followMode }: MapControllerProps) {
   const { current: mapRef } = useMap();
-  const prevFlyToRef = useRef<Location | undefined>(undefined);
+  const prevFlyToRef  = useRef<Location | undefined>(undefined);
+  const prevLocRef    = useRef<UserLocation | null | undefined>(undefined);
 
+  // Fly to explicit flyTo target
   useEffect(() => {
     if (!flyTo || !mapRef) return;
     if (!Number.isFinite(flyTo.lat) || !Number.isFinite(flyTo.lng)) return;
@@ -70,12 +115,17 @@ function MapController({ flyTo }: MapControllerProps) {
     if (isSame) return;
 
     prevFlyToRef.current = flyTo;
-    mapRef.flyTo({
-      center: [flyTo.lng, flyTo.lat],
-      zoom: 13,
-      duration: 1500,
-    });
+    mapRef.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 13, duration: 1500 });
   }, [flyTo, mapRef]);
+
+  // Follow user location when in GPS mode
+  useEffect(() => {
+    if (!followMode || !userLocation || !mapRef) return;
+    const prev = prevLocRef.current;
+    if (prev && prev.lat === userLocation.lat && prev.lng === userLocation.lng) return;
+    prevLocRef.current = userLocation;
+    mapRef.easeTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(mapRef.getZoom(), 14), duration: 800 });
+  }, [followMode, userLocation, mapRef]);
 
   return null;
 }
@@ -230,9 +280,11 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: UserLocation | null;
+  followMode?: boolean;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation, followMode }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -280,7 +332,14 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
       >
         <NavigationControl position="top-right" />
 
-        <MapController flyTo={flyTo} />
+        <MapController flyTo={flyTo} userLocation={userLocation} followMode={followMode} />
+
+        {/* User location blue dot */}
+        {userLocation && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <UserLocationMarker accuracy={userLocation.accuracy} />
+          </Marker>
+        )}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;
