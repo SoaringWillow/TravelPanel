@@ -29,7 +29,10 @@ export default function BoardCard({ board, itemCount, locationCount, tipCount, o
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80" />
+          {/* Lighter overlay so the thumbnail shows through more */}
+          <div className="absolute inset-0 bg-white/65 dark:bg-gray-800/70" />
+          {/* Bottom gradient for text contrast */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/90 dark:from-gray-800/90 to-transparent" />
         </>
       )}
 

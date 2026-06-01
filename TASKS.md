@@ -384,7 +384,7 @@ Weekly clips per active user. Proxy for habit formation.
 - The `SubstanceList` component is already available — use or extend it
 
 ### H6 — Board Cover Auto-Assignment
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: BoardCards with cover thumbnails look dramatically better. Currently the `coverThumbnail` field exists in the Board type but is never set automatically. This makes every board look like a plain card instead of a visual collection.
 **Files**: `lib/db.ts`, `hooks/useBoards.ts`
 **What to do**:

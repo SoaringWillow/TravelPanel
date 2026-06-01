@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, BookOpen, Lightbulb, Search, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, BookOpen, Lightbulb, Search, ChevronRight, X, ImageIcon } from 'lucide-react';
 import SubstanceList from '@/components/SubstanceList';
-import { SubstanceType, SubstanceItem } from '@/lib/types';
+import { SubstanceType } from '@/lib/types';
+import { saveBoard } from '@/lib/db';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -29,6 +31,7 @@ export default function BoardDetailPage() {
   const [activeTab, setActiveTab] = useState<'clips' | 'wisdom'>('clips');
   const [wisdomFilter, setWisdomFilter] = useState<SubstanceType | 'all'>('all');
   const [wisdomSearch, setWisdomSearch] = useState('');
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -105,7 +108,14 @@ export default function BoardDetailPage() {
             <ArrowLeft size={20} />
           </button>
 
-          <span className="text-2xl leading-none">{board.emoji}</span>
+          <button
+            type="button"
+            onClick={() => setShowCoverPicker(true)}
+            title="Change cover photo"
+            className="text-2xl leading-none hover:opacity-80 transition-opacity"
+          >
+            {board.emoji}
+          </button>
 
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-gray-800 leading-tight truncate">
@@ -338,6 +348,92 @@ export default function BoardDetailPage() {
           })()
         )}
       </div>
+
+      {/* Cover photo picker */}
+      <AnimatePresence>
+        {showCoverPicker && (
+          <>
+            <motion.div
+              key="cp-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1999] bg-black/40"
+              onClick={() => setShowCoverPicker(false)}
+            />
+            <motion.div
+              key="cp-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white dark:bg-gray-800 rounded-t-3xl pb-10"
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-600 rounded-full" />
+              </div>
+              <div className="flex items-center justify-between px-5 py-3">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                  <ImageIcon size={16} className="text-indigo-500" />
+                  Board cover
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCoverPicker(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="px-5 pb-3">
+                <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+                  {/* No cover option */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await saveBoard({ ...board, coverThumbnail: undefined, updatedAt: Date.now() });
+                      setShowCoverPicker(false);
+                    }}
+                    className={`flex-shrink-0 w-20 h-20 rounded-xl border-2 flex items-center justify-center transition-colors ${
+                      !board.coverThumbnail
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
+                        : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-indigo-300'
+                    }`}
+                  >
+                    <span className="text-xs text-gray-500 dark:text-gray-400 text-center leading-tight">No cover</span>
+                  </button>
+
+                  {/* Thumbnails from clips */}
+                  {boardItems
+                    .filter((i) => i.thumbnail)
+                    .slice(0, 6)
+                    .map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={async () => {
+                          await saveBoard({ ...board, coverThumbnail: item.thumbnail, updatedAt: Date.now() });
+                          setShowCoverPicker(false);
+                        }}
+                        className={`flex-shrink-0 w-20 h-20 rounded-xl border-2 overflow-hidden transition-all ${
+                          board.coverThumbnail === item.thumbnail
+                            ? 'border-indigo-500 ring-2 ring-indigo-400'
+                            : 'border-transparent hover:border-indigo-300'
+                        }`}
+                      >
+                        <img
+                          src={item.thumbnail}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <NavBar active="boards" />
     </div>
