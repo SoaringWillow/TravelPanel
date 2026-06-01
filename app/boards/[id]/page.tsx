@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Rocket, MapPin, Navigation, Square } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Navigation, Square, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useTripMode } from '@/hooks/useTripMode';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { encodeSharedBoard } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
 import NearbyCard from '@/components/NearbyCard';
 import NavBar from '@/components/NavBar';
@@ -27,6 +28,8 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [showNearby, setShowNearby] = useState(true);
+  const [shareState, setShareState] = useState<'idle' | 'copying' | 'copied' | 'error'>('idle');
+  const [shareError, setShareError] = useState<string | null>(null);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -54,8 +57,33 @@ export default function BoardDetailPage() {
     await removeItem(id);
   }
 
-  async function handleMoveToBoard(id: string) {
+  async function handleMoveToBoard(_id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShare() {
+    if (!board) return;
+    setShareState('copying');
+    setShareError(null);
+    const result = await encodeSharedBoard(board, boardItems);
+    if ('error' in result) {
+      setShareError(result.error);
+      setShareState('error');
+      setTimeout(() => setShareState('idle'), 4000);
+      return;
+    }
+    const url = `${window.location.origin}/view?d=${result.encoded}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${board.emoji} ${board.name}`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+      }
+      setShareState('copied');
+      setTimeout(() => setShareState('idle'), 2500);
+    } catch {
+      setShareState('idle');
+    }
   }
 
   if (loading) {
@@ -117,7 +145,30 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {/* Share button */}
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={shareState === 'copying' || boardItems.length === 0}
+            className={`flex-shrink-0 p-2 rounded-xl transition-all active:scale-95 disabled:opacity-40 ${
+              shareState === 'copied'
+                ? 'bg-green-100 text-green-600'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+            aria-label="Share board"
+          >
+            {shareState === 'copied' ? <Check size={18} /> : <Share2 size={18} />}
+          </button>
         </div>
+
+        {/* Share error */}
+        {shareState === 'error' && shareError && (
+          <p className="text-xs text-red-500 mt-1">{shareError}</p>
+        )}
+        {shareState === 'copied' && (
+          <p className="text-xs text-green-600 mt-1">Link copied!</p>
+        )}
       </div>
 
       {/* Scrollable content below header */}

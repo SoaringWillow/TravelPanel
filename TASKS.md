@@ -171,7 +171,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - Export as a shareable PDF (extend the existing PDF export in `lib/exportPlan.ts`)
 
 ### C3 — Shared Boards v1 (Read-Only Link)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - Add a "Share" button to the board detail view (`app/boards/[id]/page.tsx`)
 - Encode the board + its clip metadata as a compressed URL-safe JSON string (use `pako` for gzip + base64)
