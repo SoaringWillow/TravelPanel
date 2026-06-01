@@ -195,7 +195,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 ## PHASE E — Production Readiness
 
 ### E1 — Real-World Enrichment Signals
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The strategic promise is plans that know about festivals, weather, and price surges. Currently plans are entirely based on clip data.  
 **Files to change**: `app/api/plan/route.ts`, new `app/api/enrich/signals/route.ts`  
 **What to do**:

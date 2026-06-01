@@ -46,6 +46,7 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [completedDays, setCompletedDays] = useState(0);
+  const [startDate, setStartDate] = useState('');
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
@@ -106,6 +107,7 @@ export default function PlanPage() {
             ...Array.from(selectedChips),
             ...(customNotes.trim() ? [customNotes.trim()] : []),
           ].join('. '),
+          ...(startDate ? { startDate } : {}),
         }),
       });
 
@@ -360,6 +362,23 @@ export default function PlanPage() {
                   <span>1 day</span>
                   <span>14 days</span>
                 </div>
+              </div>
+
+              {/* Start date (optional — enables weather + event signals) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Trip start date
+                    <span className="ml-1.5 text-xs font-normal text-gray-400">(optional — enables live weather)</span>
+                  </label>
+                </div>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                />
               </div>
 
               {/* Preference chips */}
