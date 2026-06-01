@@ -241,6 +241,52 @@ Weekly clips per active user. Proxy for habit formation.
 
 ---
 
+## PHASE G — Polish and Performance
+
+### G1 — Boards Page Pull-to-Refresh
+**Status**: `[x]` Done
+**Files**: `app/boards/page.tsx`
+**What to do**:
+- Integrate `PullToRefresh` component (created in F3) into `app/boards/page.tsx` content area
+- Pass `useBoards().refresh` as the onRefresh handler
+- Ensure `useBoards` hook exposes a `refresh()` function (add it if missing)
+
+### G2 — InboxCard Long-press to Move
+**Status**: `[ ]` Not started
+**Files**: `components/InboxCard.tsx`
+**What to do**:
+- Add a long-press handler (500ms hold) to the full InboxCard in done state
+- On long-press: trigger `haptic('medium')` and call `onMoveToBoard(item.id)`
+- This mirrors the native feel of long-pressing to manage items in iOS apps
+
+### G3 — Search Performance: Debounce and Cancel
+**Status**: `[ ]` Not started
+**Files**: `app/inbox/page.tsx`, `lib/vibeSearch.ts`
+**What to do**:
+- Currently the search fires synchronously on every keystroke. Add a proper 300ms debounce using `useRef + setTimeout` (instead of changing query state inline)
+- Cancel in-flight vibe search requests when a new query arrives (use an AbortController or the existing searchVersion ref approach)
+- Add a loading indicator (spinner or subtle dot) while vibe search is in flight
+
+### G4 — Clip Count Badge on Board Cards
+**Status**: `[ ]` Not started
+**Files**: `components/BoardCard.tsx`
+**What to do**:
+- Currently BoardCard shows item count as plain text
+- Add a subtle badge: indigo pill with location pin icon + count, and a lightbulb icon + tip count if any items in the board have substance
+- This surfaces the "substance density" of each board at a glance
+
+### G5 — Trip Planning Progress Animation
+**Status**: `[x]` Done
+**Files**: `components/PlannerAgent.tsx`
+**What to do**:
+- The PlannerAgent shows agent steps as they stream. Add animated step-by-step progress:
+  - Each step fades in from below as it arrives
+  - Show a pulsing indigo dot for the current "thinking" step
+  - Completed steps get a green check mark
+  - Add estimated time display ("Usually takes 15–30 seconds")
+
+---
+
 ## Completed Tasks
 
-*(Phases A, B, and C are fully complete — see git history for details)*
+*(Phases A, B, C, D, and E/F largely complete — see git history for details)*

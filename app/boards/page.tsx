@@ -12,9 +12,10 @@ import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { BoardsSkeleton } from '@/components/SkeletonCard';
 import EmptyState from '@/components/EmptyState';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -56,8 +57,9 @@ export default function BoardsPage() {
       {/* First-launch demo seed banner */}
       <OnboardingSeed />
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      {/* Content with pull-to-refresh */}
+      <PullToRefresh onRefresh={refresh} className="flex-1">
+      <div className="px-4 py-4 pb-24">
         {boardsLoading ? (
           <BoardsSkeleton />
         ) : boards.length === 0 ? (
@@ -81,6 +83,7 @@ export default function BoardsPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Create board modal */}
       <CreateBoardModal
