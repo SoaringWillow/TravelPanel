@@ -10,6 +10,8 @@ import UniformTypeIdentifiers
 // URL scheme, which the CapacitorBridge component routes to /share.
 //
 // Supported source types: URLs, plain text containing a URL, web pages.
+// Priority 3: image attachments (Xiaohongshu, screenshots) — compressed
+// JPEG stored in App Group for Claude Vision extraction.
 
 class ShareViewController: UIViewController {
 
@@ -57,9 +59,61 @@ class ShareViewController: UIViewController {
                     return
                 }
             }
+
+            // Priority 3: image attachment (Xiaohongshu screenshots, etc.)
+            // Compresses to 512px JPEG and stores in App Group for Claude Vision.
+            for attachment in attachments {
+                let imageType = UTType.image.identifier
+                if attachment.hasItemConformingToTypeIdentifier(imageType) {
+                    attachment.loadItem(forTypeIdentifier: imageType) { [weak self] data, _ in
+                        guard let self else { return }
+                        let image: UIImage?
+                        if let img = data as? UIImage {
+                            image = img
+                        } else if let url = data as? URL, let img = UIImage(contentsOfFile: url.path) {
+                            image = img
+                        } else if let d = data as? Data, let img = UIImage(data: d) {
+                            image = img
+                        } else {
+                            image = nil
+                        }
+
+                        if let img = image, let b64 = self.compressImage(img) {
+                            self.savePendingImageToAppGroup(base64: b64)
+                            // Use title from item attribute text, URL is unknown for images
+                            let title = item.attributedContentText?.string ?? "Travel content"
+                            self.openApp(url: "", title: title, hasImage: true)
+                        } else {
+                            self.finish()
+                        }
+                    }
+                    return
+                }
+            }
         }
 
         finish()
+    }
+
+    // Compress UIImage to max 512px JPEG @ 65% quality → base64 string
+    private func compressImage(_ image: UIImage) -> String? {
+        let maxDim: CGFloat = 512
+        let scale = min(maxDim / image.size.width, maxDim / image.size.height, 1.0)
+        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let resized = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        guard let jpeg = resized?.jpegData(compressionQuality: 0.65) else { return nil }
+        return jpeg.base64EncodedString()
+    }
+
+    private func savePendingImageToAppGroup(base64: String) {
+        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+        defaults.set(base64, forKey: "pendingShareImage")
+        defaults.synchronize()
     }
 
     private func extractURL(from text: String) -> String? {
@@ -68,14 +122,18 @@ class ShareViewController: UIViewController {
         return matches?.first.flatMap { $0.url?.absoluteString }
     }
 
-    private func openApp(url: String, title: String) {
+    private func openApp(url: String, title: String, hasImage: Bool = false) {
         var components = URLComponents()
         components.scheme = "travelpanel"
         components.host = "share"
-        components.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "url", value: url),
             URLQueryItem(name: "title", value: title),
         ]
+        if hasImage {
+            queryItems.append(URLQueryItem(name: "hasImage", value: "1"))
+        }
+        components.queryItems = queryItems
 
         guard let deepLink = components.url else {
             finish()
@@ -97,6 +155,7 @@ class ShareViewController: UIViewController {
 
         // Fallback: write to App Group and let the main app pick it up on next launch
         savePendingShareToAppGroup(url: url, title: title)
+        // pendingShareImage is already written separately via savePendingImageToAppGroup
         finish()
     }
 
