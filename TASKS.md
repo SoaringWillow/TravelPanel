@@ -124,7 +124,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - Test both modes: open in iOS Simulator, toggle dark mode in Settings
 
 ### D7 — PWA + iOS Home Screen Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `app/layout.tsx`, `public/` (add icons), `public/manifest.json`  
 **What to do**:
 - Add `apple-touch-icon` meta tags pointing to a 180×180 PNG icon (use the browser extension's icon generator approach, scaled up)
