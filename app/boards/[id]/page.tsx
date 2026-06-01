@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, CheckCircle2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -22,7 +22,8 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]         = useState<Location | undefined>(undefined);
+  const [shareState, setShareState] = useState<'idle' | 'sharing' | 'done'>('idle');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -49,6 +50,33 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShare() {
+    if (!board) return;
+    setShareState('sharing');
+    try {
+      const { TravelPanelBackup } = await import('@/lib/exportData');
+      const backup = { version: 2 as const, exportedAt: new Date().toISOString(), items: boardItems, boards: [board] };
+      const json   = JSON.stringify(backup, null, 2);
+      const file   = new File([json], `${board.name.replace(/\s+/g, '-')}.json`, { type: 'application/json' });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${board.emoji} ${board.name}`, text: `${board.name} — ${boardItems.length} places saved in TravelPanel` });
+      } else if (navigator.share) {
+        await navigator.share({ title: `${board.emoji} ${board.name}`, text: `${board.name} — ${boardItems.length} places saved in TravelPanel` });
+      } else {
+        // Fallback: trigger download
+        const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+        const a   = Object.assign(document.createElement('a'), { href: url, download: file.name });
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+      setShareState('done');
+      setTimeout(() => setShareState('idle'), 2500);
+    } catch {
+      setShareState('idle');
+    }
   }
 
   if (loading) {
@@ -110,6 +138,21 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {/* Share button */}
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={shareState === 'sharing' || boardItems.length === 0}
+            className={`p-2 rounded-xl transition-all flex-shrink-0 ${
+              shareState === 'done'
+                ? 'text-green-600 bg-green-50'
+                : 'text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'
+            }`}
+            aria-label="Share board"
+          >
+            {shareState === 'done' ? <CheckCircle2 size={20} /> : <Share2 size={20} />}
+          </button>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus, Navigation, NavigationOff, MapPin } from 'lucide-react';
@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import NearbyAlert from '@/components/NearbyAlert';
 import NavBar from '@/components/NavBar';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { haversineMeters } from '@/lib/geo';
@@ -24,9 +25,27 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
-  const [followMode, setFollowMode]     = useState(true);
+  const [followMode, setFollowMode]             = useState(true);
+  const [dismissedAlertId, setDismissedAlertId] = useState<string | null>(null);
 
   const { location: userLocation, state: gpsState, error: gpsError, toggle: toggleGps } = useUserLocation();
+
+  // Find the closest saved location within 300 m (C4 — proactive resurfacing)
+  const nearbyAlert = useMemo(() => {
+    if (!userLocation || gpsState !== 'active') return null;
+    let best: { item: SavedItem; locationName: string; distance: number } | null = null;
+    for (const item of items) {
+      for (const loc of item.locations) {
+        const d = haversineMeters(userLocation.lat, userLocation.lng, loc.lat, loc.lng);
+        if (d <= 300 && (!best || d < best.distance)) {
+          best = { item, locationName: loc.name, distance: d };
+        }
+      }
+    }
+    return best;
+  }, [userLocation, gpsState, items]);
+
+  const showAlert = nearbyAlert && nearbyAlert.item.id !== dismissedAlertId;
 
   // Count items with a saved location within 1 km of current GPS position
   const nearbyCount = userLocation
@@ -169,6 +188,19 @@ function HomePageInner() {
         onSaved={handleItemSaved}
         initialUrl={prefilledUrl}
       />
+
+      {/* C4 — Proactive resurfacing: nearby clip alert (within 300 m) */}
+      <AnimatePresence>
+        {showAlert && nearbyAlert && (
+          <NearbyAlert
+            item={nearbyAlert.item}
+            locationName={nearbyAlert.locationName}
+            distanceMeters={nearbyAlert.distance}
+            onTap={() => { setSelectedItem(nearbyAlert.item); setDismissedAlertId(nearbyAlert.item.id); }}
+            onDismiss={() => setDismissedAlertId(nearbyAlert.item.id)}
+          />
+        )}
+      </AnimatePresence>
 
       <NavBar active="home" />
     </main>

@@ -189,10 +189,10 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Status**: `[x]` Done — /timeline page, chronological groups by month, stats header, "Journey" NavBar tab
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done — Share button on board detail page; uses Web Share API (files) on iOS, falls back to JSON download; recipient imports via Settings → Import backup
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done — NearbyAlert component; when GPS mode is active and a saved location is within 300 m, a slide-up alert shows location name, distance, and source clip title; dismissible per item
 
 ---
 
