@@ -116,3 +116,11 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-01 20:04 | e2cdbb3 | feat(E3): App Store metadata and screenshot captions
 2026-06-01 20:08 | d15de37 | feat(F1/F2/F3): QR board sharing, duplicate detection, pull-to-refresh
 2026-06-01 20:09 | 19aa36f | feat(G1/G5): boards pull-to-refresh + planner progress animation
+2026-06-01 20:13 | e84497c | G2 + G4: InboxCard long-press to move, BoardCard substance badges
+2026-06-01 20:15 | 1f1e22c | G3: Search debounce + cancel in-flight vibe requests + loading indicator
+2026-06-01 20:21 | 4ee9133 | H1: Auto-sort suggestion — AI suggests boards for inbox clips
+2026-06-01 20:23 | 9143b43 | H2: Rich Location Detail Drawer — aggregates clips + substance per pin
+2026-06-01 20:27 | 0613dc8 | H3: Plan enrichment signals — seasons, crowds, events injected into itinerary
+2026-06-01 20:28 | 3fd9e03 | H4: Plan natural language modifier — refine plans with one-tap chips or text
+2026-06-01 20:29 | d2772a7 | H5: Wisdom tab on board detail — browse all substance with filters + search
+2026-06-01 20:30 | 690fbea | H6: Board cover auto-assignment + manual cover picker
