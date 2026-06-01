@@ -68,7 +68,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - Test visually: the NavBar bottom edge should sit above the home indicator bar
 
 ### D2 — Loading Skeletons (Replace Spinners)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Spinners look cheap on iOS. Skeleton screens feel native and reduce perceived load time.  
 **Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`, new `components/Skeleton.tsx`  
 **What to do**:
