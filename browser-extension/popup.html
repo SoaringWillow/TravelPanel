@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #ffffff;
+      color: #111827;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .logo-icon {
+      width: 26px;
+      height: 26px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .logo-text {
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.3px;
+    }
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .settings-btn:hover { background: #f3f4f6; color: #6b7280; }
+
+    /* ── Platform chip ── */
+    .meta {
+      padding: 12px 16px 0;
+    }
+    .platform-chip {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 100px;
+      margin-bottom: 6px;
+    }
+
+    /* ── Page title ── */
+    .page-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .page-url {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── No URL state ── */
+    .no-url {
+      padding: 24px 16px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .no-url .emoji { font-size: 32px; display: block; margin-bottom: 8px; }
+
+    /* ── Setup required state ── */
+    .setup-required {
+      padding: 16px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      margin: 12px 16px 0;
+    }
+    .setup-required p {
+      font-size: 12px;
+      color: #92400e;
+      line-height: 1.5;
+    }
+    .setup-required strong { font-weight: 600; }
+
+    /* ── Primary action button ── */
+    .actions {
+      padding: 14px 16px 16px;
+    }
+    .clip-btn {
+      width: 100%;
+      padding: 12px 0;
+      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      letter-spacing: -0.1px;
+      transition: opacity 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+    }
+    .clip-btn:hover { opacity: 0.92; }
+    .clip-btn:active { transform: scale(0.98); }
+    .clip-btn:disabled {
+      background: #d1d5db;
+      box-shadow: none;
+      cursor: default;
+    }
+
+    /* ── Footer hint ── */
+    .footer {
+      padding: 0 16px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hint {
+      font-size: 11px;
+      color: #d1d5db;
+    }
+    .open-app-link {
+      font-size: 11px;
+      color: #6366f1;
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    .open-app-link:hover { text-decoration: underline; }
+
+    /* ── Clipped state ── */
+    .clipped-state {
+      padding: 28px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+    }
+    .clipped-state .check { font-size: 44px; }
+    .clipped-state h2 { font-size: 16px; font-weight: 700; }
+    .clipped-state p { font-size: 12px; color: #6b7280; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">✈️</div>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Main content area — populated by popup.js -->
+  <div id="main"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
