@@ -84,7 +84,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Store the user's preference in `localStorage` with a manual override toggle in the Settings panel
 
 ### D4 — App Icon and Splash Screen Design
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The app currently has placeholder indigo squares. A real icon is required for App Store submission and makes the app feel premium on the home screen.
 **Files**: `browser-extension/generate-icons.js`, `public/manifest.json`, `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
 **What to do**:
