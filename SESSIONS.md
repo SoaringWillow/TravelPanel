@@ -97,3 +97,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
 2026-06-01 20:25 | 9e6754c | feat: add Chrome/Safari browser extension (B2)
+2026-06-01 20:29 | 7912c99 | feat: cloud backup export + settings modal (B5)
