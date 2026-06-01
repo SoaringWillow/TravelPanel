@@ -206,7 +206,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - The planner should reference these signals in activity tips: "🌸 Peak cherry blossom — expect crowds at Ueno Park, book restaurants in advance"
 
 ### E2 — Route Optimization in Plans
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Plans currently order activities by Claude's judgment, which is not geographically optimal. A 50-pin plan produces visibly inefficient routes.  
 **Files to change**: `app/api/plan/route.ts`, new `lib/routeOptimizer.ts`  
 **What to do**:
