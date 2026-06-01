@@ -266,7 +266,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Active chip gets indigo background; "All" always shows full map
 
 ### D8 — Better Onboarding Flow
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/OnboardingSeed.tsx`, `app/page.tsx`  
 **What to do**:
 - Replace the current banner with a full-screen first-launch welcome (3 swipeable cards):

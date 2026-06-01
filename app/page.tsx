@@ -12,6 +12,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NearbyAlert from '@/components/NearbyAlert';
 import NavBar from '@/components/NavBar';
+import OnboardingFlow, { hasSeenOnboarding } from '@/components/OnboardingFlow';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { haversineMeters } from '@/lib/geo';
 
@@ -54,6 +55,7 @@ function HomePageInner() {
   const [followMode, setFollowMode]             = useState(true);
   const [dismissedAlertId, setDismissedAlertId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
 
   const { location: userLocation, state: gpsState, error: gpsError, toggle: toggleGps } = useUserLocation();
 
@@ -263,6 +265,13 @@ function HomePageInner() {
       </AnimatePresence>
 
       <NavBar active="home" />
+
+      {/* D8 — First-launch onboarding */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingFlow onDone={() => setShowOnboarding(false)} />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
