@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="popup">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">🗺️</span>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <div class="header-actions">
+        <a href="options.html" target="_blank" class="icon-btn" title="Settings">⚙️</a>
+      </div>
+    </header>
+
+    <!-- ── IDLE STATE ─────────────────────────────────────────────────── -->
+    <div id="idleState" class="state">
+      <!-- Current page card -->
+      <div class="page-card">
+        <div id="faviconContainer" class="page-favicon-placeholder">🌐</div>
+        <div class="page-info">
+          <div class="page-title" id="pageTitle">Loading…</div>
+          <div class="page-url" id="pageUrl"></div>
+        </div>
+      </div>
+
+      <!-- Primary CTA -->
+      <button class="btn btn-primary" id="clipBtn">
+        ✂️ &nbsp;Clip This Page
+      </button>
+
+      <!-- Divider -->
+      <div class="divider"><span>or paste a different URL</span></div>
+
+      <!-- Custom URL input -->
+      <div class="url-input-group">
+        <input
+          type="url"
+          id="customUrl"
+          class="url-input"
+          placeholder="https://instagram.com/…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="btn btn-secondary" id="clipCustomBtn">Clip</button>
+      </div>
+
+      <!-- Session count + open app -->
+      <div id="sessionCountWrap" class="session-count" style="display:none">
+        Clipped <span id="sessionCount">0</span> times this session
+      </div>
+      <a href="#" id="openAppBtn" class="open-app-link">Open TravelPanel →</a>
+    </div>
+
+    <!-- ── LOADING STATE ──────────────────────────────────────────────── -->
+    <div id="loadingState" class="state hidden">
+      <div class="loading-icon">✈️</div>
+      <div class="loading-title">Extracting travel wisdom…</div>
+      <div class="loading-sub">Claude AI is reading the page</div>
+      <div class="loading-progress">
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+      </div>
+    </div>
+
+    <!-- ── PREVIEW STATE ──────────────────────────────────────────────── -->
+    <div id="previewState" class="state hidden">
+      <div class="preview-header">
+        <div class="preview-title" id="previewTitle"></div>
+        <div id="previewPlatform" class="preview-platform"></div>
+      </div>
+
+      <div class="preview-stats">
+        <div class="stat" id="locationsStat">
+          <span class="stat-icon">📍</span>
+          <span id="locationsLabel">0 locations</span>
+        </div>
+        <div class="stat" id="substanceStat">
+          <span class="stat-icon">💡</span>
+          <span id="substanceLabel">0 tips</span>
+        </div>
+      </div>
+
+      <!-- Location list (up to 4) -->
+      <div id="locationsList" class="preview-locations"></div>
+
+      <!-- Substance preview (first tip/warning) -->
+      <div id="substancePreview" class="substance-preview" style="display:none">
+        <div class="substance-preview-icon" id="substancePreviewIcon">💡</div>
+        <div class="substance-preview-text" id="substancePreviewText"></div>
+      </div>
+
+      <button class="btn btn-primary" id="saveBtn">
+        ✅ &nbsp;Save to TravelPanel
+      </button>
+      <button class="btn btn-ghost" id="cancelBtn">← Back</button>
+    </div>
+
+    <!-- ── DONE STATE ─────────────────────────────────────────────────── -->
+    <div id="doneState" class="state hidden">
+      <div class="done-icon">✅</div>
+      <div class="done-title">Saved!</div>
+      <div class="done-sub" id="doneSub">Opening TravelPanel…</div>
+      <div class="done-stats" id="doneStats" style="display:none">
+        <span class="done-stat" id="doneLocations"></span>
+        <span class="done-stat" id="doneSubstance"></span>
+      </div>
+      <button class="btn btn-ghost" id="doneCloseBtn">Close</button>
+    </div>
+
+    <!-- ── ERROR STATE ────────────────────────────────────────────────── -->
+    <div id="errorState" class="state hidden">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">Something went wrong</div>
+      <div class="error-sub" id="errorSub">Could not connect to TravelPanel. Check your settings and try again.</div>
+      <button class="btn btn-secondary" id="retryBtn">Try Again</button>
+      <button class="btn btn-ghost" id="errorCancelBtn">← Back</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
