@@ -16,4 +16,7 @@ export const models = {
 
   // Final itinerary stream — complex reasoning, sourced wisdom citation, route optimisation
   planItinerary: anthropic('claude-opus-4-8'),
+
+  // Vision extraction — screenshot-based import for anti-scraped platforms (Xiaohongshu, WeChat)
+  vision: anthropic('claude-haiku-4-5-20251001'),
 } as const;

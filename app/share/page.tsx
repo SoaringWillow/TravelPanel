@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
-import { enrichItem } from '@/lib/enrichItem';
+import { enrichItem, enrichItemWithImage } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -29,13 +29,28 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImage, setPendingImage]       = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hasImageParam = searchParams.get('hasImage');
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read image stashed in sessionStorage by CapacitorBridge (native Share Sheet path)
+  useEffect(() => {
+    if (!hasImageParam) return;
+    try {
+      const img = sessionStorage.getItem('tp_pending_image');
+      if (img) {
+        setPendingImage(img);
+        sessionStorage.removeItem('tp_pending_image');
+      }
+    } catch { /* private browsing */ }
+  }, [hasImageParam]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +103,12 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — use vision path if we have a screenshot
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const enrichPromise = pendingImage
+      ? enrichItemWithImage(itemId, rawUrl, pendingImage)
+      : enrichItem(itemId, rawUrl);
+    enrichPromise
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -166,6 +184,44 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Screenshot upload — shown for anti-scraped platforms */}
+        {(platform === 'xiaohongshu' || platform === 'wechat') && (
+          <div className="mt-3">
+            {pendingImage ? (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                <span className="text-green-600 text-xs font-semibold">📸 Screenshot ready — AI will read it</span>
+                <button
+                  type="button"
+                  onClick={() => setPendingImage(null)}
+                  className="ml-auto text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 border-2 border-dashed border-indigo-200 rounded-xl px-3 py-2 cursor-pointer hover:border-indigo-400 transition-colors">
+                <span className="text-indigo-500">📸</span>
+                <span className="text-xs text-indigo-600 font-medium">Add screenshot for better extraction</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const result = reader.result as string;
+                      setPendingImage(result);
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
