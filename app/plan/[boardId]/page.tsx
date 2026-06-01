@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, AlertTriangle, Info } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
 import { haptic } from '@/lib/haptics';
 import { incrementPlanCount } from '@/lib/reviewPrompt';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { EnrichmentSignal } from '@/lib/enrichmentSignals';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
@@ -46,6 +47,9 @@ export default function PlanPage() {
   const [onTripMode, setOnTripMode] = useState(false);
   const [mapFlyTo, setMapFlyTo] = useState<{ lat: number; lng: number; id: number } | null>(null);
   const flyToIdRef = useRef(0);
+  const [travelMonth, setTravelMonth] = useState<number>(new Date().getMonth() + 1);
+  const [enrichmentSignals, setEnrichmentSignals] = useState<EnrichmentSignal[]>([]);
+  const [dismissedSignals, setDismissedSignals] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -88,6 +92,8 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    setEnrichmentSignals([]);
+    setDismissedSignals(new Set());
     haptic('medium');
     recordPlanGeneration();
     incrementPlanCount();
@@ -99,6 +105,7 @@ export default function PlanPage() {
       body: JSON.stringify({
         items: boardItems,
         days,
+        travelMonth,
         preferences: [
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
@@ -154,6 +161,9 @@ export default function PlanPage() {
               setCurrentTripId(trip.id);
             }
           }
+          if (msg.t === 'signals') {
+            setEnrichmentSignals(msg.signals);
+          }
           if (msg.t === 'plan') {
             latestPlan = msg.plan as Partial<TripPlan>;
             setPlan(latestPlan);
@@ -163,7 +173,7 @@ export default function PlanPage() {
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, travelMonth, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -346,6 +356,24 @@ export default function PlanPage() {
                 </div>
               </div>
 
+              {/* Travel month picker */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Calendar size={15} className="text-indigo-500" />
+                  Traveling in
+                </label>
+                <select
+                  value={travelMonth}
+                  onChange={(e) => setTravelMonth(Number(e.target.value))}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                >
+                  {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                    <option key={m} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400">Used to surface season and crowd warnings for your destination.</p>
+              </div>
+
               {/* Preference chips */}
               <div className="space-y-3">
                 <label className="text-sm font-semibold text-gray-700">Travel style</label>
@@ -461,6 +489,48 @@ export default function PlanPage() {
                 <span className="text-xl">{board.emoji}</span>
                 <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
               </div>
+
+              {/* Enrichment signals */}
+              {enrichmentSignals.filter((s) => !dismissedSignals.has(s.id)).length > 0 && (
+                <div className="space-y-2">
+                  {enrichmentSignals
+                    .filter((s) => !dismissedSignals.has(s.id))
+                    .map((signal) => (
+                      <div
+                        key={signal.id}
+                        className={`flex items-start gap-2.5 rounded-xl px-3 py-2.5 ${
+                          signal.severity === 'high'
+                            ? 'bg-red-50 border border-red-200'
+                            : signal.severity === 'warning'
+                            ? 'bg-amber-50 border border-amber-200'
+                            : 'bg-blue-50 border border-blue-200'
+                        }`}
+                      >
+                        <span className="text-lg flex-shrink-0">{signal.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-bold ${
+                            signal.severity === 'high' ? 'text-red-700' : signal.severity === 'warning' ? 'text-amber-700' : 'text-blue-700'
+                          }`}>
+                            {signal.title}
+                          </p>
+                          <p className={`text-xs leading-relaxed mt-0.5 ${
+                            signal.severity === 'high' ? 'text-red-600' : signal.severity === 'warning' ? 'text-amber-600' : 'text-blue-600'
+                          }`}>
+                            {signal.warning}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDismissedSignals((prev) => new Set(Array.from(prev).concat(signal.id)))}
+                          className="flex-shrink-0 p-0.5 text-gray-300 hover:text-gray-500 transition-colors"
+                          aria-label="Dismiss"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
 
               {/* Overview */}
               {plan.overview && (

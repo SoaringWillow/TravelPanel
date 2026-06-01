@@ -330,7 +330,7 @@ Weekly clips per active user. Proxy for habit formation.
 - The map page (`app/page.tsx`) must pass `items` down to `MapView` (check if it already does; if not, add `useSavedItems` hook there)
 
 ### H3 — Plan Enrichment Signals (Seasons & Crowds)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: This is the core differentiator from the product strategy: "A plan for Tokyo in late March will recommend an itinerary without flagging Sakura season, 2× accommodation prices, and 3-hour queue wait times." Social media guides can't close this gap; TravelPanel can.
 **Files**: `lib/enrichmentSignals.ts` (new), `app/api/plan/route.ts`, `app/plan/[boardId]/page.tsx`
 **What to do**:
