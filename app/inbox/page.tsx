@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
+import { vibeSearch } from '@/lib/vibeSearch';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
@@ -38,11 +39,15 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [vibeMode, setVibeMode]         = useState(false);
+  const [vibeMood, setVibeMood]         = useState('');
+  const [filtered, setFiltered]         = useState<SavedItem[]>([]);
+  const searchVersion = useRef(0);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
-    if (q.trim()) track('search_performed', { length: q.trim().length });
-  }, []);
+    if (q.trim()) track('search_performed', { length: q.trim().length, vibe: vibeMode });
+  }, [vibeMode]);
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
@@ -52,7 +57,29 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  // Run search whenever query, mode, or source items change
+  useEffect(() => {
+    const version = ++searchVersion.current;
+
+    if (!query.trim()) {
+      setFiltered(platformFiltered);
+      setVibeMood('');
+      return;
+    }
+
+    if (vibeMode) {
+      setFiltered(searchItems(platformFiltered, query)); // show keyword results immediately
+      vibeSearch(platformFiltered, query).then(({ items: vibeItems, mood }) => {
+        if (searchVersion.current !== version) return; // stale
+        setFiltered(vibeItems);
+        setVibeMood(mood);
+      });
+    } else {
+      setFiltered(searchItems(platformFiltered, query));
+      setVibeMood('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, vibeMode, platformFiltered.length, activePlatform]);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -110,7 +137,12 @@ export default function InboxPage() {
 
         {/* Search */}
         <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar
+            onSearch={handleSearch}
+            vibeMode={vibeMode}
+            onVibeModeToggle={() => { setVibeMode((v) => !v); setVibeMood(''); }}
+            vibeMood={vibeMood}
+          />
         </div>
 
         {/* Platform filter tabs */}
