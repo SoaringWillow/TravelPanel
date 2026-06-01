@@ -258,7 +258,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Persist new `itemIds` order to IndexedDB
 
 ### D7 — Map Filter Chips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, `components/MapView.tsx`  
 **What to do**:
 - Horizontal chip row above the FAB: All / 🍜 Food / 🏖 Beach / 🏔 Mountain / 🌿 Nature / 🏛 Culture
