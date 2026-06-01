@@ -11,6 +11,7 @@ import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { BoardsSkeleton } from '@/components/SkeletonCard';
+import EmptyState from '@/components/EmptyState';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
@@ -60,22 +61,12 @@ export default function BoardsPage() {
         {boardsLoading ? (
           <BoardsSkeleton />
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
-            </p>
-            <motion.button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              whileTap={{ scale: 0.96 }}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
-            >
-              <Plus size={16} />
-              Create a Board
-            </motion.button>
-          </div>
+          <EmptyState
+            type="boards"
+            headline="No boards yet"
+            description="Create a board for each destination — a collection of clips, ready to plan from."
+            action={{ label: '+ Create a Board', onClick: () => setShowCreate(true) }}
+          />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {boards.map((board) => (

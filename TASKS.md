@@ -112,7 +112,7 @@ Weekly clips per active user. Proxy for habit formation.
 - After dismissal, seed the demo boards (A8) if the user clicks "Get Started", or go straight to the empty app if they skip
 
 ### D6 — Better Empty States with Illustrations
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Plain text empty states look unpolished. SVG illustrations add personality and guide users.
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:

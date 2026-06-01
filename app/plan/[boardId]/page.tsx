@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
+import EmptyState from '@/components/EmptyState';
 import { haptic } from '@/lib/haptics';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
@@ -246,6 +247,16 @@ export default function PlanPage() {
     setMapFlyTo({ lat, lng, id: ++flyToIdRef.current });
   }, []);
 
+  function EmptyStatePlan() {
+    return (
+      <EmptyState
+        type="plan"
+        headline="No clips with locations"
+        description="Clip posts with identifiable locations to generate a trip plan for this board."
+      />
+    );
+  }
+
   if (loadingBoard) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -370,10 +381,15 @@ export default function PlanPage() {
               </div>
 
               {/* Warning if no locations */}
-              {!hasLocations && (
+              {!hasLocations && boardItems.length > 0 && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
                   <MapPin size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>Add items with identified locations to plan a trip.</span>
+                  <span>Your clips don&apos;t have identified locations yet — enrichment may still be running.</span>
+                </div>
+              )}
+              {!hasLocations && boardItems.length === 0 && (
+                <div className="py-4">
+                  <EmptyStatePlan />
                 </div>
               )}
 
