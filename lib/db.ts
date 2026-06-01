@@ -86,6 +86,12 @@ export async function deleteItem(id: string): Promise<void> {
   await db.delete('items', id);
 }
 
+export async function getItemByUrl(url: string): Promise<SavedItem | undefined> {
+  const db = await getDB();
+  const all = await db.getAll('items');
+  return all.find((item) => item.url === url);
+}
+
 export async function getItemsByPlatform(platform: string): Promise<SavedItem[]> {
   const db = await getDB();
   return db.getAllFromIndex('items', 'by-platform', platform);

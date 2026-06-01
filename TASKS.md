@@ -203,7 +203,7 @@ Weekly clips per active user. Proxy for habit formation.
 ## PHASE F — Advanced iOS Features
 
 ### F1 — QR Code for Board Sharing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/ShareBoardButton.tsx`, new `components/QRModal.tsx`
 **What to do**:
 - Install `qrcode` npm package (pure JS, no canvas needed — outputs SVG string)
@@ -213,7 +213,7 @@ Weekly clips per active user. Proxy for habit formation.
 - The QR modal has a "Download QR" button that saves the SVG as PNG
 
 ### F2 — Duplicate Clip Detection
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/share/page.tsx`, `lib/db.ts`
 **What to do**:
 - Before saving a new clip in `/share`, check if an item with the same URL already exists (query IndexedDB by URL)
@@ -222,7 +222,7 @@ Weekly clips per active user. Proxy for habit formation.
 - This prevents the common frustration of saving the same post twice
 
 ### F3 — Pull-to-Refresh on Inbox and Boards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`
 **What to do**:
 - Add pull-to-refresh gesture on iOS (using `@capacitor/haptics` + a custom drag handler)

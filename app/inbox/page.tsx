@@ -19,6 +19,7 @@ import NavBar from '@/components/NavBar';
 import ResurfacingWidget from '@/components/ResurfacingWidget';
 import { InboxSkeleton } from '@/components/SkeletonCard';
 import EmptyState from '@/components/EmptyState';
+import PullToRefresh from '@/components/PullToRefresh';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -186,8 +187,9 @@ export default function InboxPage() {
         </div>
       )}
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      {/* Content with pull-to-refresh */}
+      <PullToRefresh onRefresh={refresh} className="flex-1">
+      <div className="px-4 py-4 pb-24">
         {loading ? (
           <InboxSkeleton />
         ) : filtered.length === 0 ? (
@@ -234,6 +236,7 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>

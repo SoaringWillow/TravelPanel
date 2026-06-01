@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -14,7 +14,7 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Stage = 'picking' | 'saving' | 'done';
+type Stage = 'picking' | 'saving' | 'done' | 'duplicate';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -33,8 +33,10 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
 
-  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef   = useRef<{ boardId?: string; boardName?: string } | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
@@ -64,7 +66,18 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDuplicateCheck = false) {
+    // Duplicate URL check — warn but allow override
+    if (!skipDuplicateCheck && rawUrl) {
+      const existing = await getItemByUrl(rawUrl);
+      if (existing) {
+        setDuplicateItem(existing);
+        pendingSaveRef.current = { boardId: selectedBoardId, boardName: boardDisplayName };
+        setStage('duplicate');
+        return;
+      }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -151,6 +164,50 @@ function SharePageInner() {
     setNewBoardName('');
     setShowNewBoardInput(false);
     await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
+  }
+
+  // ── Stage: duplicate ─────────────────────────────────────────────────────
+
+  if (stage === 'duplicate' && duplicateItem) {
+    const existingBoard = boards.find((b) => b.id === duplicateItem.boardId);
+    const existingLocation = existingBoard
+      ? `${existingBoard.emoji} ${existingBoard.name}`
+      : 'Inbox';
+
+    return (
+      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+        <div className="flex-1 flex flex-col items-center justify-center gap-5 text-center">
+          <div className="text-5xl">🔁</div>
+          <div className="space-y-2">
+            <h2 className="text-lg font-bold text-gray-900">Already saved!</h2>
+            <p className="text-sm text-gray-500">
+              This clip is in <strong>{existingLocation}</strong>.
+            </p>
+            <p className="text-sm text-gray-500">Save it again anyway?</p>
+          </div>
+          <div className="w-full space-y-3">
+            <motion.button
+              type="button"
+              onClick={() => {
+                const p = pendingSaveRef.current ?? {};
+                handleSave(p.boardId, p.boardName, true);
+              }}
+              whileTap={{ scale: 0.96 }}
+              className="w-full bg-indigo-600 text-white text-sm font-semibold py-3 rounded-xl"
+            >
+              Save again
+            </motion.button>
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="w-full border-2 border-gray-200 text-sm font-medium text-gray-500 py-3 rounded-xl"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── Stage: picking ────────────────────────────────────────────────────────
