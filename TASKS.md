@@ -196,6 +196,144 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & UX Excellence
+
+**Goal**: Every interaction should feel native-iOS. This phase turns the functional app into a *beautiful* app that users love to open.
+
+### D1 — Edit & Delete Clips 🔴 HIGH PRIORITY
+**Status**: `[x]` Done  
+**Why**: Users have no way to fix a mis-saved clip title, delete old clips, or add personal notes. This is a basic CRUD gap that erodes trust.  
+**Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Swipe-to-delete gesture on InboxCard (CSS touch + `transform` reveal with red delete zone)
+- Confirmation bottom sheet before delete ("Delete this clip?")
+- Edit mode in LocationDetailCard: tap title to edit inline, tap a tag to remove it, "+ Add note" textarea
+- `updateItem(id, patch)` function in `lib/db.ts`
+- Track `clip_edited` and `clip_deleted` events via analytics
+
+### D2 — Haptic Feedback
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect physical feedback. Without it the app feels like a website.  
+**Files**: new `lib/haptics.ts`, call sites throughout the app  
+**What to do**:
+- Create `lib/haptics.ts` wrapping `@capacitor/haptics` with a no-op fallback for web
+- Light impact: save, select, toggle
+- Medium impact: board create, plan generate start
+- Heavy + notification success: clip saved to board (the "moat moment")
+- Error: enrichment failed
+
+### D3 — Pull-to-Refresh
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/timeline/page.tsx`  
+**What to do**:
+- Add pull-to-refresh (PTR) to the three list views using CSS `overscroll-behavior` + touch events
+- On refresh: re-fetch all items from IndexedDB and re-run enrichment retry queue
+- Show a subtle spinner at the top while refreshing
+
+### D4 — Dark Mode
+**Status**: `[ ]` Not started  
+**Files**: `app/globals.css`, all pages and components (Tailwind `dark:` variants)  
+**What to do**:
+- Enable `darkMode: 'media'` in `tailwind.config.js`
+- Audit every hardcoded `bg-white`, `text-gray-800` etc. and add `dark:` counterparts
+- Update NavBar, cards, modals, map controls for dark backgrounds
+- Map style: switch to a dark MapLibre style when in dark mode
+- Test on iOS with Dark Mode enabled in system settings
+
+### D5 — Board Cover Art & Visual Refresh
+**Status**: `[ ]` Not started  
+**Files**: `components/BoardCard.tsx`, `hooks/useBoards.ts`  
+**What to do**:
+- Use the first clip's thumbnail as the board's cover image (stored as `coverThumbnail` on the `Board` type)
+- Auto-update `coverThumbnail` when new items with thumbnails are added
+- Animated gradient fallback (use board emoji + platform color palette) when no thumbnail
+- Update `BoardCard` to show a tall cover image with the board name overlaid
+
+### D6 — Clip Reorder + Board Sort
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Long-press a clip to enter drag-reorder mode
+- Drag to reorder clips within a board
+- Persist new `itemIds` order to IndexedDB
+
+### D7 — Map Filter Chips
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`, `components/MapView.tsx`  
+**What to do**:
+- Horizontal chip row above the FAB: All / 🍜 Food / 🏖 Beach / 🏔 Mountain / 🌿 Nature / 🏛 Culture
+- Filtering hides non-matching pins on the map (client-side, instant)
+- Active chip gets indigo background; "All" always shows full map
+
+### D8 — Better Onboarding Flow
+**Status**: `[ ]` Not started  
+**Files**: `components/OnboardingSeed.tsx`, `app/page.tsx`  
+**What to do**:
+- Replace the current banner with a full-screen first-launch welcome (3 swipeable cards):
+  1. "Clip anything" — tap the + button to save from any URL
+  2. "Extract the wisdom" — show a substance card example
+  3. "Plan your trip" — show a plan preview
+- "Get started" CTA dismisses and creates a seed board
+- Show only once (persisted in localStorage)
+
+---
+
+## PHASE E — App Store Launch Readiness
+
+**Goal**: Everything required to submit to the iOS App Store with a professional first impression.
+
+### E1 — App Icon & Splash Screen Polish
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/Assets.xcassets/`, `capacitor.config.ts`  
+**What to do**:
+- Design a proper app icon: indigo (#6366f1) background, white map-pin SVG, rounded corners per iOS spec
+- Generate all required iOS icon sizes (1024, 512, 256, etc.) using a script
+- Update the Capacitor SplashScreen config for a clean branded launch screen
+- Remove the generic Capacitor default icon/splash
+
+### E2 — Privacy Manifest (iOS 17+)
+**Status**: `[ ]` Not started  
+**Files**: new `ios/App/App/PrivacyInfo.xcprivacy`  
+**What to do**:
+- Create `PrivacyInfo.xcprivacy` documenting API usage:
+  - `NSPrivacyAccessedAPICategoryLocation` — GPS for on-trip mode
+  - `NSPrivacyAccessedAPICategoryUserDefaults` — App Group share handoff
+- List collected data categories in the manifest
+- Required for App Store submission since iOS 17
+
+### E3 — Share Extension Native Board Picker
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/ShareExtension/ShareViewController.swift`  
+**What to do**:
+- Show a minimal board-picker UI directly in the Share Extension (no app launch needed)
+- Fetch board names from App Group UserDefaults
+- User picks a board, saves URL + boardId to App Group; main app syncs on next open
+- Falls back to current "open main app" flow if no boards exist
+
+### E4 — Performance: Virtualised Inbox List
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- The current grid renders every card in the DOM — slow at 200+ clips
+- Implement windowed rendering: only render cards in/near the viewport
+- Use `IntersectionObserver` for lazy image loading on thumbnails
+
+### E5 — App Store Screenshots & Metadata
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/Info.plist`, new `marketing/` directory  
+**What to do**:
+- Write App Store description (300 words, highlights substance extraction moat)
+- Keywords: travel planner, trip planner, travel inspiration, xiaohongshu, travel clips
+- Plan 6 iPhone screenshots at 1290×2796 px:
+  1. Map view with pins
+  2. Clip save flow (Share Sheet)
+  3. Substance/wisdom card
+  4. Trip planner output
+  5. Timeline/Journey view
+  6. Board with clips
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*

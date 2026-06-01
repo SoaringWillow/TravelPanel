@@ -86,6 +86,13 @@ export async function deleteItem(id: string): Promise<void> {
   await db.delete('items', id);
 }
 
+export async function updateItem(id: string, patch: Partial<Pick<SavedItem, 'title' | 'notes' | 'tags'>>): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...patch });
+}
+
 export async function getItemsByPlatform(platform: string): Promise<SavedItem[]> {
   const db = await getDB();
   return db.getAllFromIndex('items', 'by-platform', platform);
