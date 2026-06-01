@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 24px rgba(0,0,0,0.06);
+      padding: 32px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .header-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .header-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .header-text p {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .section { margin-bottom: 24px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .input-group { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .hint {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+    input[type="text"], input[type="url"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #1e293b;
+      background: #fff;
+      transition: border-color 0.12s;
+      outline: none;
+    }
+    input[type="text"]:focus,
+    input[type="url"]:focus { border-color: #4f46e5; }
+
+    .preset-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .preset-chip {
+      padding: 4px 12px;
+      background: #f1f5f9;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.1s;
+      font-family: inherit;
+    }
+    .preset-chip:hover {
+      background: #e0e7ff;
+      border-color: #a5b4fc;
+      color: #4338ca;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #f1f5f9;
+      margin: 24px 0;
+    }
+
+    /* Save button */
+    .btn-save {
+      width: 100%;
+      padding: 11px;
+      background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity 0.12s;
+    }
+    .btn-save:hover { opacity: 0.88; }
+
+    /* Status message */
+    .status {
+      margin-top: 12px;
+      font-size: 13px;
+      text-align: center;
+      display: none;
+    }
+    .status.success { color: #15803d; }
+    .status.error   { color: #dc2626; }
+
+    /* Shortcut display */
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .shortcut-label { color: #374151; }
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .key {
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: #334155;
+    }
+
+    .about-link {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+      width: 100%;
+      text-decoration: none;
+    }
+    .about-link:hover { color: #4f46e5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo">✈️</div>
+      <div class="header-text">
+        <h1>TravelPanel Clipper</h1>
+        <p>Extension settings</p>
+      </div>
+    </div>
+
+    <!-- App URL -->
+    <div class="section">
+      <div class="section-title">TravelPanel URL</div>
+      <div class="input-group">
+        <label for="appUrl">Your TravelPanel instance</label>
+        <input
+          type="url"
+          id="appUrl"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <p class="hint">The extension opens your app's /share page when clipping.</p>
+        <div class="preset-row">
+          <button class="preset-chip" data-url="http://localhost:3000">localhost:3000</button>
+          <button class="preset-chip" data-url="http://localhost:3001">localhost:3001</button>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Keyboard shortcut info -->
+    <div class="section">
+      <div class="section-title">Keyboard Shortcut</div>
+      <div class="shortcut-row">
+        <span class="shortcut-label">Clip current page</span>
+        <span class="kbd" id="shortcutDisplay">
+          <span class="key" id="modKey">⌘ Cmd</span>
+          <span class="key">⇧ Shift</span>
+          <span class="key">S</span>
+        </span>
+      </div>
+      <p class="hint" style="margin-top:8px;">
+        To change the shortcut, go to
+        <strong>chrome://extensions/shortcuts</strong> in your browser.
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Save -->
+    <button id="saveBtn" class="btn-save">Save Settings</button>
+    <div id="statusMsg" class="status"></div>
+
+    <a class="about-link" href="https://github.com/soaringwillow/travelpanel" target="_blank" rel="noopener">
+      TravelPanel on GitHub ↗
+    </a>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
