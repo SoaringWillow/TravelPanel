@@ -115,3 +115,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-01 20:03 | 1dd782b | feat(E2/E4/E5): privacy policy, review prompt, offline banner
 2026-06-01 20:04 | e2cdbb3 | feat(E3): App Store metadata and screenshot captions
 2026-06-01 20:08 | d15de37 | feat(F1/F2/F3): QR board sharing, duplicate detection, pull-to-refresh
+2026-06-01 20:09 | 19aa36f | feat(G1/G5): boards pull-to-refresh + planner progress animation

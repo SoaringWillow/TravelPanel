@@ -252,7 +252,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Ensure `useBoards` hook exposes a `refresh()` function (add it if missing)
 
 ### G2 — InboxCard Long-press to Move
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/InboxCard.tsx`
 **What to do**:
 - Add a long-press handler (500ms hold) to the full InboxCard in done state
@@ -268,7 +268,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Add a loading indicator (spinner or subtle dot) while vibe search is in flight
 
 ### G4 — Clip Count Badge on Board Cards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/BoardCard.tsx`
 **What to do**:
 - Currently BoardCard shows item count as plain text

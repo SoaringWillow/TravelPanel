@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef, useCallback } from 'react';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { haptic } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +42,19 @@ export default function InboxCard({
   onRetry,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
+
+  // Long-press to open board picker (500ms hold)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onTouchStart = useCallback(() => {
+    if (!onMoveToBoard) return;
+    longPressTimer.current = setTimeout(() => {
+      haptic('medium');
+      onMoveToBoard(item.id);
+    }, 500);
+  }, [onMoveToBoard, item.id]);
+  const onTouchEnd = useCallback(() => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
 
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
@@ -189,7 +204,12 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div
+      className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+    >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img

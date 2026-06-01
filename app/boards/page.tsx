@@ -25,6 +25,18 @@ export default function BoardsPage() {
     return board ? board.itemIds.length : 0;
   }
 
+  function getLocationCount(boardId: string): number {
+    return items
+      .filter((item) => item.boardId === boardId)
+      .reduce((sum, item) => sum + item.locations.length, 0);
+  }
+
+  function getTipCount(boardId: string): number {
+    return items
+      .filter((item) => item.boardId === boardId)
+      .reduce((sum, item) => sum + (item.substance?.length ?? 0), 0);
+  }
+
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
   }
@@ -76,6 +88,8 @@ export default function BoardsPage() {
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
+                locationCount={getLocationCount(board.id)}
+                tipCount={getTipCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
               />
