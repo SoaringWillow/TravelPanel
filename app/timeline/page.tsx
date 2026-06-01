@@ -46,7 +46,7 @@ function TimelineCard({ item, onSelect }: { item: SavedItem; onSelect: () => voi
       transition={{ duration: 0.2 }}
       className="w-full text-left"
     >
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md active:scale-[0.98] transition-all duration-150">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden hover:shadow-md active:scale-[0.98] transition-all duration-150">
         {/* Thumbnail strip */}
         {item.thumbnail && (
           <div className="w-full h-28 overflow-hidden">
@@ -67,11 +67,11 @@ function TimelineCard({ item, onSelect }: { item: SavedItem; onSelect: () => voi
             >
               {PLATFORM_LABELS[item.platform]}
             </span>
-            <span className="text-[10px] text-gray-400">{formatDay(item.savedAt)}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500">{formatDay(item.savedAt)}</span>
           </div>
 
           {/* Title */}
-          <h3 className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 mb-2">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-snug line-clamp-2 mb-2">
             {item.title || item.url}
           </h3>
 
@@ -109,10 +109,10 @@ function MonthSection({ label, items, onSelect }: {
   return (
     <div className="relative pl-10">
       {/* Timeline vertical line */}
-      <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-200" />
+      <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
 
       {/* Month dot */}
-      <div className="absolute left-2.5 top-2 w-3 h-3 rounded-full bg-indigo-500 ring-4 ring-white shadow-sm" />
+      <div className="absolute left-2.5 top-2 w-3 h-3 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-gray-950 shadow-sm" />
 
       {/* Month label */}
       <h2 className="text-sm font-bold text-indigo-600 mb-3 mt-0.5">{label}</h2>
@@ -122,7 +122,7 @@ function MonthSection({ label, items, onSelect }: {
         {items.map((item, i) => (
           <div key={item.id} className="relative">
             {/* Item dot */}
-            <div className="absolute -left-[26px] top-5 w-2 h-2 rounded-full bg-gray-300 ring-2 ring-white" />
+            <div className="absolute -left-[26px] top-5 w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 ring-2 ring-white dark:ring-gray-950" />
             <TimelineCard item={item} onSelect={() => onSelect(item)} />
           </div>
         ))}
@@ -144,26 +144,26 @@ export default function TimelinePage() {
   const totalTips      = items.reduce((s, i) => s + (i.substance?.length ?? 0), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
         <div className="px-5 pt-safe pt-5 pb-4">
           <div className="flex items-center gap-2 mb-1">
             <Clock size={18} className="text-indigo-600" />
-            <h1 className="text-xl font-bold text-gray-900">My Journey</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">My Journey</h1>
           </div>
 
           {/* Stats strip */}
           {!loading && items.length > 0 && (
-            <div className="flex gap-4 text-xs text-gray-500">
+            <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
               <span>
-                <span className="font-bold text-gray-800">{items.filter((i) => !i.isDemo).length}</span> clips
+                <span className="font-bold text-gray-800 dark:text-gray-200">{items.filter((i) => !i.isDemo).length}</span> clips
               </span>
               <span>
-                <span className="font-bold text-gray-800">{totalLocations}</span> locations
+                <span className="font-bold text-gray-800 dark:text-gray-200">{totalLocations}</span> locations
               </span>
               <span>
-                <span className="font-bold text-gray-800">{totalTips}</span> tips saved
+                <span className="font-bold text-gray-800 dark:text-gray-200">{totalTips}</span> tips saved
               </span>
             </div>
           )}
@@ -175,18 +175,18 @@ export default function TimelinePage() {
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-gray-400">Loading your journey…</span>
+            <span className="text-sm text-gray-400 dark:text-gray-500">Loading your journey…</span>
           </div>
         )}
 
         {!loading && groups.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center px-6">
-            <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
               <Globe2 size={28} className="text-indigo-400" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-800 mb-1">No clips yet</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-1">No clips yet</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
                 Start saving travel inspiration from YouTube, Xiaohongshu, or any travel site.
                 They&apos;ll appear here in chronological order.
               </p>

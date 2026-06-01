@@ -19,7 +19,7 @@ import NavBar from '@/components/NavBar';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2 mt-6">
+    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 mb-2 mt-6">
       {children}
     </p>
   );
@@ -39,20 +39,20 @@ function SettingsRow({
   badge?: 'pro' | 'soon';
 }) {
   return (
-    <div className="flex items-center gap-3 bg-white px-4 py-3.5 border-b border-gray-100 last:border-0">
-      <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+    <div className="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-3.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
+      <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
         <Icon size={16} className="text-indigo-600" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-900">{label}</span>
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{label}</span>
           {badge === 'soon' && (
             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
               SOON
             </span>
           )}
         </div>
-        {description && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{description}</p>}
+        {description && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-relaxed">{description}</p>}
       </div>
       <div className="flex-shrink-0">{action}</div>
     </div>
@@ -109,23 +109,23 @@ export default function SettingsPage() {
     importState === 'error'            ? 'Failed'     : 'Import backup';
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
         <div className="flex items-center gap-3 px-4 py-4 pt-safe">
           <button
             onClick={() => router.back()}
-            className="p-1.5 -ml-1 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 -ml-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <ChevronLeft size={22} />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Settings</h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Settings</h1>
         </div>
       </div>
 
       {/* Data section */}
       <SectionHeader>Your data</SectionHeader>
-      <div className="rounded-2xl overflow-hidden mx-3 border border-gray-200">
+      <div className="rounded-2xl overflow-hidden mx-3 border border-gray-200 dark:border-gray-700">
         <SettingsRow
           icon={Download}
           label="Export backup"
@@ -193,7 +193,7 @@ export default function SettingsPage() {
 
       {/* Cloud section */}
       <SectionHeader>Cloud sync</SectionHeader>
-      <div className="rounded-2xl overflow-hidden mx-3 border border-gray-200">
+      <div className="rounded-2xl overflow-hidden mx-3 border border-gray-200 dark:border-gray-700">
         <SettingsRow
           icon={Cloud}
           label="Sync across devices"
@@ -216,7 +216,7 @@ export default function SettingsPage() {
 
       {/* Storage section */}
       <SectionHeader>About</SectionHeader>
-      <div className="rounded-2xl overflow-hidden mx-3 border border-gray-200">
+      <div className="rounded-2xl overflow-hidden mx-3 border border-gray-200 dark:border-gray-700">
         <SettingsRow
           icon={Database}
           label="Local storage"
@@ -225,7 +225,7 @@ export default function SettingsPage() {
         />
       </div>
 
-      <NavBar active="home" />
+      <NavBar active="settings" />
     </div>
   );
 }
