@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    .header-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #6366f1;
+    }
+
+    .header-text p {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .label-hint {
+      font-size: 12px;
+      font-weight: 400;
+      color: #9ca3af;
+      margin-left: 6px;
+    }
+
+    input[type="url"] {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #111827;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input[type="url"]:focus {
+      border-color: #6366f1;
+    }
+
+    input[type="url"]::placeholder {
+      color: #d1d5db;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.5;
+    }
+
+    .save-btn {
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      align-self: flex-start;
+      transition: background 0.15s;
+    }
+
+    .save-btn:hover { background: #4f46e5; }
+    .save-btn:active { background: #4338ca; }
+
+    .status {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .status.success {
+      display: block;
+      background: #f0fdf4;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+    }
+
+    .status.error {
+      display: block;
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .shortcut-info {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.6;
+    }
+
+    kbd {
+      display: inline-block;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <img src="icons/icon.svg" alt="" class="header-icon">
+      <div class="header-text">
+        <h1>TravelPanel Clipper</h1>
+        <p>Extension settings</p>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field">
+      <label for="app-url">
+        TravelPanel App URL
+        <span class="label-hint">required</span>
+      </label>
+      <input
+        type="url"
+        id="app-url"
+        placeholder="https://your-app.vercel.app"
+        spellcheck="false"
+        autocomplete="off"
+      >
+      <p class="hint">
+        The URL of your deployed TravelPanel app. The clipper will open
+        <code>your-url/share?url=…</code> when you clip a page.
+      </p>
+    </div>
+
+    <div>
+      <button class="save-btn" id="save-btn">Save settings</button>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <hr class="divider">
+
+    <div class="shortcut-info">
+      <strong>Keyboard shortcut</strong><br>
+      Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> (or <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> on Mac)
+      to clip the current page without opening the popup.<br><br>
+      To customize the shortcut, visit <code>chrome://extensions/shortcuts</code>.
+    </div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
