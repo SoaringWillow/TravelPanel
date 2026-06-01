@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, BookOpen } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, BookOpen, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { encodeBoard } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -22,7 +23,21 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]         = useState<Location | undefined>(undefined);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  async function handleShare() {
+    if (!board) return;
+    const encoded = encodeBoard(board, boardItems);
+    const shareUrl = `${window.location.origin}/shared?data=${encoded}`;
+    if (navigator.share) {
+      await navigator.share({ title: `${board.emoji} ${board.name}`, url: shareUrl }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(shareUrl).catch(() => {});
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
+  }
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -174,6 +189,22 @@ export default function BoardDetailPage() {
             >
               <BookOpen size={18} />
             </button>
+
+            {/* Share board button */}
+            {boardItems.length > 0 && (
+              <button
+                type="button"
+                onClick={handleShare}
+                className={`flex items-center justify-center gap-1.5 border font-semibold py-3.5 px-4 rounded-2xl active:scale-[0.98] transition-all shadow-sm ${
+                  shareCopied
+                    ? 'bg-green-50 border-green-200 text-green-600'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+                title={shareCopied ? 'Link copied!' : 'Share board'}
+              >
+                <Share2 size={18} />
+              </button>
+            )}
           </div>
 
           {/* Items grid */}
