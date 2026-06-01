@@ -5,95 +5,153 @@ import UniformTypeIdentifiers
 
 // TravelPanel Share Extension
 //
-// Receives a shared item from the iOS Share Sheet and opens the main TravelPanel
-// app with the travelpanel://share?url=...&title=... URL scheme.
+// Receives a shared item from the iOS Share Sheet, extracts URL + optional image,
+// then shows a native board-picker action sheet so the user can route the clip
+// directly to a board without opening the full app.
 //
-// For Xiaohongshu / WeChat (which block server-side scraping), it also captures
-// the shared image/screenshot and stores it as a compressed base64 JPEG in the
-// App Group shared UserDefaults under "pendingShareImageData". The web app reads
-// this key via @capacitor/preferences and passes it to /api/import for Claude Vision
-// extraction instead of the blocked HTML scrape.
+// Board data is read from the App Group shared UserDefaults ("savedBoards" key)
+// which the main app mirrors via @capacitor/preferences after each board change.
 //
-// Supported source types: URLs, plain text containing a URL, images/screenshots.
+// If no boards exist yet, falls back to opening the main app directly.
 
 class ShareViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        extractAndShare()
+        view.backgroundColor = .systemBackground
+        extractAndShowPicker()
     }
 
-    private func extractAndShare() {
+    // ── Entry point ────────────────────────────────────────────────────────────
+
+    private func extractAndShowPicker() {
         guard let items = extensionContext?.inputItems as? [NSExtensionItem] else {
-            finish()
-            return
+            finish(); return
         }
 
         for item in items {
             guard let attachments = item.attachments else { continue }
 
-            // Priority 1: a direct URL attachment
+            // Priority 1: direct URL attachment
             for attachment in attachments {
                 if attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
                     attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { [weak self] data, _ in
                         guard let self else { return }
                         if let url = data as? URL {
                             let title = item.attributedContentText?.string ?? url.host ?? ""
-                            // Also look for an image sibling in the same item
                             self.captureImageIfPresent(from: attachments) { imageBase64 in
-                                self.openApp(url: url.absoluteString, title: title, imageBase64: imageBase64)
+                                self.showBoardPicker(url: url.absoluteString, title: title, imageBase64: imageBase64)
                             }
-                        } else {
-                            self.finish()
-                        }
+                        } else { self.finish() }
                     }
                     return
                 }
             }
 
-            // Priority 2: plain text that may contain a URL
+            // Priority 2: plain text containing a URL
             for attachment in attachments {
                 if attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
                     attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
                         guard let self else { return }
                         if let text = data as? String, let url = self.extractURL(from: text) {
                             self.captureImageIfPresent(from: attachments) { imageBase64 in
-                                self.openApp(url: url, title: text, imageBase64: imageBase64)
+                                self.showBoardPicker(url: url, title: text, imageBase64: imageBase64)
                             }
-                        } else {
-                            self.finish()
-                        }
+                        } else { self.finish() }
                     }
                     return
                 }
             }
 
-            // Priority 3: image / screenshot only (no URL found — common for Xiaohongshu
-            // screenshots saved to camera roll, then shared into TravelPanel)
+            // Priority 3: image only
             for attachment in attachments {
                 if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
                     attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { [weak self] data, _ in
                         guard let self else { return }
-                        let image = self.imageFromLoadedItem(data)
-                        guard let img = image else { self.finish(); return }
+                        guard let img = self.imageFromLoadedItem(data) else { self.finish(); return }
                         let base64 = self.compressImage(img)
                         let title  = item.attributedTitle?.string ?? item.attributedContentText?.string ?? ""
                         self.saveImageToAppGroup(base64)
-                        // Open app with a placeholder URL so the share page loads.
-                        self.openApp(url: "travelpanel://image-clip", title: title, imageBase64: nil)
+                        self.showBoardPicker(url: "travelpanel://image-clip", title: title, imageBase64: nil)
                     }
                     return
                 }
             }
         }
-
         finish()
+    }
+
+    // ── Board picker ───────────────────────────────────────────────────────────
+
+    private func showBoardPicker(url: String, title: String, imageBase64: String?) {
+        let boards = loadBoardsFromAppGroup()
+
+        // No boards yet — skip picker and open app directly
+        if boards.isEmpty {
+            savePendingShare(url: url, title: title, boardId: nil)
+            openApp(url: url, title: title, imageBase64: imageBase64)
+            return
+        }
+
+        DispatchQueue.main.async {
+            let displayTitle = title.count > 70 ? String(title.prefix(70)) + "…" : title
+            let alert = UIAlertController(
+                title: "Save to TravelPanel",
+                message: displayTitle.isEmpty ? nil : displayTitle,
+                preferredStyle: .actionSheet
+            )
+
+            // Inbox (no board)
+            alert.addAction(UIAlertAction(title: "📥  Inbox", style: .default) { [weak self] _ in
+                self?.savePendingShare(url: url, title: title, boardId: nil)
+                self?.openApp(url: url, title: title, imageBase64: imageBase64)
+            })
+
+            // One action per board
+            for board in boards {
+                let emoji = board["emoji"] ?? "🗺"
+                let name  = board["name"]  ?? "Board"
+                let id    = board["id"]    ?? ""
+                alert.addAction(UIAlertAction(title: "\(emoji)  \(name)", style: .default) { [weak self] _ in
+                    self?.savePendingShare(url: url, title: title, boardId: id)
+                    self?.openApp(url: url, title: title, imageBase64: imageBase64)
+                })
+            }
+
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+                self?.finish()
+            })
+
+            self.present(alert, animated: true)
+        }
+    }
+
+    private func loadBoardsFromAppGroup() -> [[String: String]] {
+        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app"),
+              let json  = defaults.string(forKey: "savedBoards"),
+              let data  = json.data(using: .utf8),
+              let array = try? JSONSerialization.jsonObject(with: data) as? [[String: String]]
+        else { return [] }
+        return array
+    }
+
+    // ── Persist pending share ──────────────────────────────────────────────────
+
+    private func savePendingShare(url: String, title: String, boardId: String?) {
+        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+        defaults.set(url,   forKey: "pendingShareURL")
+        defaults.set(title, forKey: "pendingShareTitle")
+        if let boardId {
+            defaults.set(boardId, forKey: "pendingShareBoardId")
+        } else {
+            defaults.removeObject(forKey: "pendingShareBoardId")
+        }
+        defaults.set(Date(), forKey: "pendingShareDate")
+        defaults.synchronize()
     }
 
     // ── Image helpers ──────────────────────────────────────────────────────────
 
-    /// Look for an image attachment in the list and return it as a compressed base64 JPEG,
-    /// without blocking the main continuation — calls completion on the main queue.
     private func captureImageIfPresent(
         from attachments: [NSItemProvider],
         completion: @escaping (String?) -> Void
@@ -105,9 +163,7 @@ class ShareViewController: UIViewController {
                     let base64 = self.compressImage(img)
                     self.saveImageToAppGroup(base64)
                     completion(base64)
-                } else {
-                    completion(nil)
-                }
+                } else { completion(nil) }
             }
             return
         }
@@ -121,13 +177,11 @@ class ShareViewController: UIViewController {
         return nil
     }
 
-    /// Resize to max 800px on longest side, compress to JPEG 0.65, return base64.
     private func compressImage(_ image: UIImage) -> String {
         let maxDim: CGFloat = 800
         let scale   = min(maxDim / image.size.width, maxDim / image.size.height, 1.0)
         let newSize = CGSize(width: floor(image.size.width * scale),
                              height: floor(image.size.height * scale))
-
         let renderer = UIGraphicsImageRenderer(size: newSize)
         let resized  = renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
         let data     = resized.jpegData(compressionQuality: 0.65) ?? Data()
@@ -158,7 +212,6 @@ class ShareViewController: UIViewController {
             URLQueryItem(name: "url",   value: url),
             URLQueryItem(name: "title", value: title),
         ]
-
         guard let deepLink = components.url else { finish(); return }
 
         var responder: UIResponder? = self
@@ -169,18 +222,7 @@ class ShareViewController: UIViewController {
             }
             responder = r.next
         }
-
-        // Fallback: write to App Group so the main app picks it up on next launch
-        savePendingShareToAppGroup(url: url, title: title)
         finish()
-    }
-
-    private func savePendingShareToAppGroup(url: String, title: String) {
-        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
-        defaults.set(url,   forKey: "pendingShareURL")
-        defaults.set(title, forKey: "pendingShareTitle")
-        defaults.set(Date(), forKey: "pendingShareDate")
-        defaults.synchronize()
     }
 
     private func finish() {

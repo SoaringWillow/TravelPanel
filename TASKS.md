@@ -292,7 +292,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Remove the generic Capacitor default icon/splash
 
 ### E2 — Privacy Manifest (iOS 17+)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `ios/App/App/PrivacyInfo.xcprivacy`  
 **What to do**:
 - Create `PrivacyInfo.xcprivacy` documenting API usage:
@@ -302,7 +302,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Required for App Store submission since iOS 17
 
 ### E3 — Share Extension Native Board Picker
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/ShareExtension/ShareViewController.swift`  
 **What to do**:
 - Show a minimal board-picker UI directly in the Share Extension (no app launch needed)

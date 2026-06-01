@@ -10,6 +10,17 @@ import {
 } from '@/lib/db';
 import { track } from '@/lib/analytics';
 
+// Mirror board summaries to App Group so the iOS Share Extension can show a picker
+async function mirrorBoardsToAppGroup(boards: Board[]) {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const summaries = boards.map((b) => ({ id: b.id, name: b.name, emoji: b.emoji }));
+    await Preferences.set({ key: 'savedBoards', value: JSON.stringify(summaries) });
+  } catch {
+    // Not on native — no-op
+  }
+}
+
 export function useBoards() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +29,7 @@ export function useBoards() {
     getAllBoards().then((fetchedBoards) => {
       setBoards(fetchedBoards);
       setLoading(false);
+      mirrorBoardsToAppGroup(fetchedBoards);
     });
   }, []);
 
@@ -33,13 +45,21 @@ export function useBoards() {
     };
     await saveBoard(board);
     track('board_created');
-    setBoards((prev) => [board, ...prev]);
+    setBoards((prev) => {
+      const next = [board, ...prev];
+      mirrorBoardsToAppGroup(next);
+      return next;
+    });
     return board;
   }, []);
 
   const removeBoard = useCallback(async (id: string): Promise<void> => {
     await deleteBoard(id);
-    setBoards((prev) => prev.filter((b) => b.id !== id));
+    setBoards((prev) => {
+      const next = prev.filter((b) => b.id !== id);
+      mirrorBoardsToAppGroup(next);
+      return next;
+    });
   }, []);
 
   const moveItemToBoard = useCallback(async (boardId: string, itemId: string): Promise<void> => {

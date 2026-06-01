@@ -21,6 +21,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const preselectedBoardId = searchParams.get('boardId') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -35,9 +36,16 @@ function SharePageInner() {
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards and check for a pending screenshot from the native Share Extension
+  // Load boards, check for a pending screenshot, and auto-save if boardId was pre-selected
   useEffect(() => {
-    getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    getAllBoards().then((b) => {
+      setBoards(b);
+      // If the Share Extension pre-selected a board, skip the picking UI and save immediately
+      if (preselectedBoardId && rawUrl) {
+        const board = b.find((brd) => brd.id === preselectedBoardId);
+        handleSave(preselectedBoardId, board ? `${board.emoji} ${board.name}` : 'Board');
+      }
+    }).catch(() => setBoards([]));
     try {
       const img = sessionStorage.getItem('pendingShareImageData');
       if (img) {
@@ -45,6 +53,7 @@ function SharePageInner() {
         sessionStorage.removeItem('pendingShareImageData');
       }
     } catch { /* sessionStorage unavailable */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-dismiss when done

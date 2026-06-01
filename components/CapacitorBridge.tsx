@@ -11,21 +11,22 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title }     = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: title }   = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: boardId } = await Preferences.get({ key: 'pendingShareBoardId' });
     const { value: imageData } = await Preferences.get({ key: 'pendingShareImageData' });
 
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareBoardId' });
     await Preferences.remove({ key: 'pendingShareImageData' });
 
-    // Image is too large for URL params — relay via sessionStorage so the share
-    // page can pick it up and pass it to the enrichment API as vision input.
     if (imageData) {
       try { sessionStorage.setItem('pendingShareImageData', imageData); } catch { /* quota */ }
     }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
+    if (boardId) qs.set('boardId', boardId);
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
