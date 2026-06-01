@@ -35,7 +35,7 @@ export default function BoardsPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-800 shadow-sm px-4 pb-4 z-10 header-safe-top">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid className="text-indigo-600 dark:text-indigo-400" size={22} />

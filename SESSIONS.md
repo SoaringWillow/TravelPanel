@@ -110,3 +110,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-01 19:55 | e32a31e | feat(D3): dark mode support
 2026-06-01 19:56 | 19329e7 | feat(D4): polished app icon and splash screen
 2026-06-01 19:58 | 887e500 | feat(D5): 4-step onboarding flow
+2026-06-01 19:59 | dd93b3a | feat(D6): illustrated empty states with animated entrance

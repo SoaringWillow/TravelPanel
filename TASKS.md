@@ -124,7 +124,7 @@ Weekly clips per active user. Proxy for habit formation.
 - Animations: fade-in the illustration, then slide-up the text (50ms stagger)
 
 ### D7 — Safe Area and Dynamic Island Handling
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: iPhone 14/15 Pro models have the Dynamic Island at the top. Without proper safe-area insets the top bar is obscured.
 **Files**: `app/globals.css`, `app/layout.tsx`, all page headers
 **What to do**:
