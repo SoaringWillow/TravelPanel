@@ -20,7 +20,7 @@ export default function NavBar({ active }: NavBarProps) {
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
       style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
     >
-      <div className="flex items-stretch">
+      <div className="flex items-stretch nav-safe-bottom">
         {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {
           const isActive = active === key;
           return (

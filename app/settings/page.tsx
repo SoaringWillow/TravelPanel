@@ -73,7 +73,7 @@ export default function SettingsPage() {
         <p className="text-sm text-gray-400 mt-0.5">Manage your TravelPanel data</p>
       </div>
 
-      <div className="px-4 py-5 space-y-4 pb-24">
+      <div className="px-4 py-5 space-y-4 pb-nav">
 
         {/* Storage stats */}
         <section>

@@ -66,8 +66,14 @@
   display: none;
 }
 
-/* iOS safe area utilities */
-.safe-top    { padding-top:    env(safe-area-inset-top); }
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+/* iOS safe area utilities — use max() so minimum padding is always preserved */
+.safe-top    { padding-top:    max(0.75rem, env(safe-area-inset-top)); }
+.safe-bottom { padding-bottom: max(0.5rem,  env(safe-area-inset-bottom)); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Page scroll containers with a bottom NavBar — matches pb-24 + home indicator clearance */
+.pb-nav { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+
+/* Fixed NavBar inner div — lifts tab items above the iOS home indicator */
+.nav-safe-bottom { padding-bottom: max(0.25rem, env(safe-area-inset-bottom)); }
