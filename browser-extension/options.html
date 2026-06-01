@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelPanel Extension — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      color: #111827;
+      background: #fff;
+      max-width: 520px;
+      margin: 40px auto;
+      padding: 0 24px 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #E5E7EB;
+    }
+
+    .header svg { flex-shrink: 0; }
+
+    .header-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .header-text p {
+      font-size: 12px;
+      color: #6B7280;
+      margin-top: 2px;
+    }
+
+    .field {
+      margin-bottom: 22px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .field-desc {
+      font-size: 12px;
+      color: #6B7280;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      border: 1.5px solid #D1D5DB;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #111827;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus {
+      border-color: #4F46E5;
+    }
+
+    .example {
+      font-size: 11px;
+      color: #9CA3AF;
+      margin-top: 5px;
+    }
+
+    .btn-save {
+      background: #4F46E5;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 22px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn-save:hover { background: #4338CA; }
+    .btn-save:active { transform: scale(0.98); }
+
+    .save-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #save-status {
+      font-size: 12px;
+      font-weight: 600;
+      color: #10B981;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    #save-status.visible { opacity: 1; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #E5E7EB;
+      margin: 24px 0;
+    }
+
+    .info-section h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 10px;
+    }
+
+    .step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .step-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.5;
+    }
+
+    .step-num {
+      background: #EEF2FF;
+      color: #4F46E5;
+      font-weight: 700;
+      font-size: 11px;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    code {
+      background: #F3F4F6;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <svg width="36" height="36" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="128" height="128" rx="28" fill="#4F46E5"/>
+      <path d="M64 22C50.7 22 40 32.7 40 46c0 19.5 24 54 24 54s24-34.5 24-54c0-13.3-10.7-24-24-24z" fill="white"/>
+      <circle cx="64" cy="46" r="9" fill="#4F46E5"/>
+    </svg>
+    <div class="header-text">
+      <h1>TravelPanel Clipper</h1>
+      <p>Extension settings</p>
+    </div>
+  </div>
+
+  <!-- Settings form -->
+  <div class="field">
+    <label for="app-url">Your TravelPanel URL</label>
+    <div class="field-desc">
+      Enter the URL where your TravelPanel app is deployed. The clipper will open this URL to save clips.
+    </div>
+    <input
+      type="url"
+      id="app-url"
+      placeholder="https://your-app.vercel.app"
+      autocomplete="off"
+      spellcheck="false"
+    >
+    <div class="example">Examples: <code>https://travelpanel.vercel.app</code> or <code>http://localhost:3000</code></div>
+  </div>
+
+  <div class="save-row">
+    <button class="btn-save" id="save-btn">Save</button>
+    <span id="save-status">✓ Saved!</span>
+  </div>
+
+  <hr class="divider">
+
+  <!-- How to install section -->
+  <div class="info-section">
+    <h2>How to install (Chrome)</h2>
+    <ol class="step-list">
+      <li>
+        <div class="step-num">1</div>
+        <div>Open Chrome and go to <code>chrome://extensions</code></div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div>Enable <strong>Developer mode</strong> (top-right toggle)</div>
+      </li>
+      <li>
+        <div class="step-num">3</div>
+        <div>Click <strong>Load unpacked</strong> and select the <code>browser-extension/</code> folder from the TravelPanel project</div>
+      </li>
+      <li>
+        <div class="step-num">4</div>
+        <div>Click the TravelPanel icon in your toolbar, open Settings, and paste your app URL above</div>
+      </li>
+    </ol>
+
+    <br>
+    <h2>How to install (Safari)</h2>
+    <ol class="step-list">
+      <li>
+        <div class="step-num">1</div>
+        <div>Install Xcode command line tools: <code>xcode-select --install</code></div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div>Convert this extension: <code>xcrun safari-web-extension-converter browser-extension/</code></div>
+      </li>
+      <li>
+        <div class="step-num">3</div>
+        <div>Build and run the generated Xcode project, then enable the extension in Safari → Settings → Extensions</div>
+      </li>
+    </ol>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
