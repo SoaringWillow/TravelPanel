@@ -66,7 +66,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-5 py-4 pt-safe">
         <h1 className="text-xl font-bold text-gray-900">Settings</h1>

@@ -113,7 +113,7 @@ Settings page with JSON export (all clips/boards/plans), data stats, danger-zone
 - On native (Capacitor), the geolocation API works as-is; no plugin needed
 
 ### D6 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS 13+ defaults to system dark mode. An app with no dark mode looks outdated and strains eyes at night. ~60% of travel planning happens in evenings.  
 **Files to change**: `tailwind.config.js`, `app/globals.css`, key components  
 **What to do**:
