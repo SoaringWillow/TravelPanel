@@ -113,3 +113,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-01 17:05 | 9569851 | E1: app icon all sizes + branded splash screen
 2026-06-01 17:08 | ce95229 | E2+E3: privacy manifest + native board picker in Share Extension
 2026-06-01 17:09 | 0e39726 | E4+E5: virtualised inbox + App Store metadata
+2026-06-01 17:10 | 6377826 | chore: regenerated icon PNGs with final render quality
