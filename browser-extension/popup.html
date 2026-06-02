@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="11" fill="white" fill-opacity="0.2"/>
+          <path d="M21 3L3 10.5L10.5 13.5L13.5 21L21 3Z" fill="white" stroke="white" stroke-width="0.5" stroke-linejoin="round"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="main">
+      <div id="loading-state" class="state">
+        <div class="spinner"></div>
+        <p class="state-label">Loading page info…</p>
+      </div>
+
+      <div id="content-state" class="state hidden">
+        <div class="page-card">
+          <img id="page-favicon" class="favicon" src="" alt="" />
+          <div class="page-details">
+            <div id="page-title" class="page-title"></div>
+            <div id="page-url" class="page-url"></div>
+          </div>
+        </div>
+
+        <button id="clip-btn" class="clip-btn">
+          <svg viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+          </svg>
+          Clip this page
+        </button>
+      </div>
+
+      <div id="unsupported-state" class="state hidden">
+        <div class="state-icon unsupported">🚫</div>
+        <p class="state-label">This page can't be clipped.</p>
+        <p class="state-sub">Navigate to a travel website to clip it.</p>
+      </div>
+
+      <div id="success-state" class="state hidden">
+        <div class="state-icon success">✅</div>
+        <p class="state-label">TravelPanel is opening…</p>
+        <p class="state-sub">Save this page to a board.</p>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <span id="app-url-display" class="footer-url"></span>
+      <span class="footer-sep">·</span>
+      <button id="change-url-btn" class="footer-link">Change</button>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
