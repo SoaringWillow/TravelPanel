@@ -3,6 +3,7 @@
 import { useMotionValue, motion, useTransform } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import { ReactNode } from 'react';
+import { warning as hapticWarning } from '@/lib/haptics';
 
 interface SwipeToDeleteProps {
   children: ReactNode;
@@ -38,6 +39,7 @@ export default function SwipeToDelete({ children, onDelete }: SwipeToDeleteProps
         dragElastic={{ left: 0.12, right: 0 }}
         onDragEnd={(_, info) => {
           if (info.offset.x < DELETE_THRESHOLD) {
+            hapticWarning();
             onDelete();
           }
         }}

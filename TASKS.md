@@ -196,7 +196,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On iOS, the momentum from the swipe should feel natural (no artificial dampening)
 
 ### D2 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `app/inbox/page.tsx`, `app/plan/[boardId]/page.tsx`, new `lib/haptics.ts`  
 **What to do**:
 - Install `@capacitor/haptics` if not present (check package.json first — add if missing)
