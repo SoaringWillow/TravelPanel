@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, CheckCircle2, Wand2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, CheckCircle2, Wand2, WifiOff, BookmarkCheck } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, Activity } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -40,6 +40,23 @@ export default function PlanPage() {
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
+  // ── Offline detection ─────────────────────────────────────────────────────
+  const [isOnline, setIsOnline] = useState(true);
+  const [planSavedOffline, setPlanSavedOffline] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   // ── Refinement ────────────────────────────────────────────────────────────
   const [showRefinement, setShowRefinement] = useState(false);
   const [refinementText, setRefinementText] = useState('');
@@ -65,7 +82,20 @@ export default function PlanPage() {
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
         }
-        setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
+        const sorted = trips.sort((a, b) => a.createdAt - b.createdAt);
+        setSavedTrips(sorted);
+
+        // Offline: auto-load the most recent saved trip
+        if (!navigator.onLine && sorted.length > 0) {
+          const latest = sorted[sorted.length - 1];
+          if (latest.plan) {
+            setPlan(latest.plan);
+            setSteps(latest.agentSteps ?? []);
+            setDays(latest.days);
+            setCurrentTripId(latest.id);
+            setStage('complete');
+          }
+        }
       } finally {
         setLoadingBoard(false);
       }
@@ -549,10 +579,18 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
+              {/* Offline warning */}
+              {!isOnline && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+                  <WifiOff size={14} className="flex-shrink-0" />
+                  <span>You're offline. Connect to generate a new plan.</span>
+                </div>
+              )}
+
               {/* Generate button */}
               <button
                 onClick={generatePlan}
-                disabled={!hasLocations}
+                disabled={!hasLocations || !isOnline}
                 className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ✨ Begin planning
@@ -584,6 +622,14 @@ export default function PlanPage() {
           {/* ── COMPLETE STATE ── */}
           {stage === 'complete' && plan && (
             <div className="space-y-5">
+              {/* Offline banner */}
+              {!isOnline && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+                  <WifiOff size={14} className="flex-shrink-0" />
+                  <span>Offline mode — showing last saved plan</span>
+                </div>
+              )}
+
               {/* Board header row */}
               <div className="flex items-center gap-2">
                 <button
@@ -788,6 +834,21 @@ export default function PlanPage() {
                   className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-amber-100 active:scale-[0.98] transition-all border border-amber-100"
                 >
                   📖 View Trip Journal
+                </button>
+              )}
+
+              {/* Save for offline (confirmation — plan is already in IndexedDB) */}
+              {isOnline && currentTripId && (
+                <button
+                  onClick={() => setPlanSavedOffline(true)}
+                  className={`flex items-center justify-center gap-2 w-full text-sm font-semibold py-2.5 rounded-xl border transition-all active:scale-[0.98] ${
+                    planSavedOffline
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <BookmarkCheck size={15} />
+                  {planSavedOffline ? 'Saved for offline ✓' : 'Save for offline'}
                 </button>
               )}
 

@@ -265,7 +265,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add subtle spring animations to all interactive buttons (already using Framer Motion)
 
 ### D6 — Offline Plan Caching
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users on planes need their itinerary. PRODUCT_STRATEGY.md Phase C includes "offline plan: full itinerary cached for offline use before departure date." The PWA already has a service worker; we need to cache the plan data.  
 **Files to change**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`, `sw.js` (or a new cache manager)  
 **What to do**:
