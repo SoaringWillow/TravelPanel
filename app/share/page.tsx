@@ -29,12 +29,21 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image from iOS Share Sheet (Xiaohongshu / WeChat screenshot for Claude Vision)
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards and consume any pending image stored by CapacitorBridge.
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        pendingImageRef.current = stored;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {}
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +97,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot image for Vision-based platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

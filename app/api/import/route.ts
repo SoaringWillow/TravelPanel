@@ -83,10 +83,16 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+// Platforms that block server-side scraping — always prefer Vision when an image is present.
+const VISION_PREFERRED_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin', 'weibo']);
+
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url         = body.url;
+    imageBase64 = body.imageBase64 || undefined;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +102,21 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // For Vision-preferred platforms, skip HTML fetch if we already have an image —
+  // the scrape would return empty anyway (anti-bot protection).
+  const preferVision = !!imageBase64 && VISION_PREFERRED_PLATFORMS.has(platform);
+  const page = preferVision ? null : await fetchPageData(url);
+
+  const promptText = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
+${imageBase64 ? 'Note: A screenshot of the post is attached — use it as the primary content source.' : ''}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — extract from the screenshot if provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,12 +141,31 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: include the screenshot so Claude can read the post visually.
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBase64, mimeType: 'image/jpeg' },
+              { type: 'text',  text: promptText },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text-only path (no screenshot available).
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: promptText,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
