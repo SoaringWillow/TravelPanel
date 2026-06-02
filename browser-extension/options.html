@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="page-header">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="white"/>
+        </svg>
+        TravelPanel Clipper
+      </div>
+      <span class="header-sub">Settings</span>
+    </header>
+
+    <main class="page-body">
+
+      <section class="card">
+        <h2 class="card-title">App URL</h2>
+        <p class="card-hint">
+          Paste the URL of your TravelPanel deployment. This is where clips are sent when you save a page.
+        </p>
+        <div class="field">
+          <input
+            id="appUrl"
+            type="url"
+            placeholder="https://your-app.vercel.app"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <div class="actions">
+          <button id="saveBtn" class="btn-primary">Save</button>
+          <span id="savedMsg" class="saved-msg hidden">✓ Saved</span>
+        </div>
+      </section>
+
+      <section class="card info-card">
+        <h2 class="card-title">How to use</h2>
+        <ol class="steps">
+          <li>Browse to any travel-inspiration page (Instagram, YouTube, Xiaohongshu, etc.)</li>
+          <li>Click the TravelPanel icon in your toolbar</li>
+          <li>Hit <strong>Save to TravelPanel</strong> — the clip opens in a new tab so you can pick a board</li>
+          <li>Right-click any page or link and choose <strong>Save to TravelPanel</strong> for a faster shortcut</li>
+        </ol>
+      </section>
+
+    </main>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
