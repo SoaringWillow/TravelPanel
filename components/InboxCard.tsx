@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
-import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,41 @@ function truncateUrl(url: string, maxLen = 40): string {
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
+
+function ThumbnailArea({ item }: { item: SavedItem }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  const platformColor = PLATFORM_COLORS[item.platform] ?? '#6366f1';
+
+  if (item.thumbnail && !errored) {
+    return (
+      <div className="w-full h-32 relative overflow-hidden bg-gray-100">
+        {/* Skeleton shimmer while loading */}
+        {!loaded && (
+          <div className="absolute inset-0 animate-pulse bg-gray-200" />
+        )}
+        <img
+          src={item.thumbnail}
+          alt={item.title}
+          loading="lazy"
+          className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setLoaded(true)}
+          onError={() => setErrored(true)}
+        />
+      </div>
+    );
+  }
+
+  // No thumbnail or load error — platform-colored gradient placeholder
+  return (
+    <div
+      className="w-full h-20 flex items-center justify-center"
+      style={{ background: `linear-gradient(135deg, ${platformColor}22, ${platformColor}11)` }}
+    >
+      <Globe size={28} style={{ color: platformColor, opacity: 0.35 }} />
+    </div>
+  );
+}
 
 export default function InboxCard({
   item,
@@ -190,21 +226,7 @@ export default function InboxCard({
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
-        </div>
-      )}
+      <ThumbnailArea item={item} />
 
       <div className="p-4">
         {/* Platform badge */}
