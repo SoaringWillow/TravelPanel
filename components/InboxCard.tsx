@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import * as haptics from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ export default function InboxCard({
               </a>
               <button
                 type="button"
-                onClick={() => onDelete(item.id)}
+                onClick={() => { haptics.heavy(); onDelete(item.id); }}
                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 aria-label="Delete"
               >
@@ -161,7 +162,7 @@ export default function InboxCard({
             {!isRetrying && onRetry && (
               <button
                 type="button"
-                onClick={() => onRetry(item.id, item.url)}
+                onClick={() => { haptics.tap(); onRetry(item.id, item.url); }}
                 className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
               >
                 Retry
@@ -169,7 +170,7 @@ export default function InboxCard({
             )}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              onClick={() => { haptics.heavy(); onDelete(item.id); }}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               aria-label="Delete"
             >
@@ -270,7 +271,7 @@ export default function InboxCard({
             {/* View on Map */}
             <button
               type="button"
-              onClick={() => onViewOnMap(item.id)}
+              onClick={() => { haptics.tap(); onViewOnMap(item.id); }}
               className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
             >
               Map
@@ -291,7 +292,7 @@ export default function InboxCard({
             {onMoveToBoard && (
               <button
                 type="button"
-                onClick={() => onMoveToBoard(item.id)}
+                onClick={() => { haptics.tap(); onMoveToBoard(item.id); }}
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 aria-label="Move to collection"
               >
@@ -302,7 +303,7 @@ export default function InboxCard({
             {/* Delete */}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              onClick={() => { haptics.heavy(); onDelete(item.id); }}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               aria-label="Delete"
             >

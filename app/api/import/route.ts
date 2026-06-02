@@ -83,31 +83,9 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+// ─── Shared extraction prompt text ───────────────────────────────────────────
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
-## Layer 1 — Spots (geographic skeleton)
+const EXTRACTION_INSTRUCTIONS = `## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
 Do NOT invent or guess coordinates.
@@ -128,16 +106,85 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    ({ url, imageBase64 } = await req.json());
   } catch {
-    // Fall through to defaults
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // Vision path: image provided (Xiaohongshu screenshot) OR URL fetch would fail
+  const useVision = !!imageBase64;
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  if (useVision && imageBase64) {
+    // ── Vision extraction (Xiaohongshu + any screenshot share) ───────────────
+    const visionPrompt = `You are a travel content analyzer. The user shared a screenshot of a travel post (likely from Xiaohongshu / 小红书 or similar). Extract TWO layers from what you see in the image.
+
+URL context: ${url}
+Platform: ${platform}
+
+${EXTRACTION_INSTRUCTIONS}
+
+Read all visible text in the image carefully — captions, overlaid text, comments, and any location tags shown.`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: visionPrompt },
+              { type: 'image', image: imageBase64, mimeType: 'image/jpeg' as const },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to URL-based extraction as fallback
+    }
+  }
+
+  // ── URL-based extraction (standard path or vision fallback) ───────────────
+  const page = await fetchPageData(url);
+
+  if (!claudeResult) {
+    const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page — anti-scraping active, extract what you can from URL and title)'}
+
+${EXTRACTION_INSTRUCTIONS}`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {

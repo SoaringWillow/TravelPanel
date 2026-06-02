@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import * as haptics from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -20,6 +21,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const imageData       = searchParams.get('imageData') ?? undefined; // base64 JPEG from iOS Share Extension
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -61,6 +63,7 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    haptics.tap();
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -88,11 +91,12 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass imageData for Xiaohongshu vision extraction
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
-      .then(async (success) => {
-        if (success) {
+    enrichItem(itemId, rawUrl, imageData)
+      .then(async (enrichSuccess) => {
+        if (enrichSuccess) {
+          haptics.success();
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
@@ -108,6 +112,8 @@ function SharePageInner() {
               substance: updated.substance,
             } as ImportResult);
           }
+        } else {
+          haptics.error();
         }
         setEnrichmentLoading(false);
       });
