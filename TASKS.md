@@ -256,7 +256,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Smooth skeleton loading state while thumbnails fetch
 
 ### D8 — Offline Banner
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When the user is offline, clip enrichment silently fails. A subtle banner tells them why.  
 **Files**: new `components/OfflineBanner.tsx`, `app/layout.tsx`  
 **What to do**:
