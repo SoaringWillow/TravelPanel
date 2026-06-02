@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const imageKey        = searchParams.get('imageKey') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -88,9 +89,20 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
+    // Read image data from sessionStorage if the Share Extension provided one.
+    // This is the Xiaohongshu / WeChat fix: when scraping is blocked, Claude Vision
+    // uses the shared screenshot instead.
+    let imageDataUri: string | undefined;
+    if (imageKey) {
+      try {
+        imageDataUri = sessionStorage.getItem(imageKey) ?? undefined;
+        if (imageDataUri) sessionStorage.removeItem(imageKey);
+      } catch { /* sessionStorage unavailable */ }
+    }
+
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageDataUri)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

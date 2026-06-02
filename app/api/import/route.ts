@@ -85,14 +85,20 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageDataUri: string | undefined; // optional base64 image from iOS Share Sheet
   try {
-    ({ url } = await req.json());
+    ({ url, imageDataUri } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
   if (!url || typeof url !== 'string') {
     return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  // Validate image data URI length to prevent oversized payloads (~2MB max for a compressed JPEG)
+  if (imageDataUri && imageDataUri.length > 3_000_000) {
+    imageDataUri = undefined;
   }
 
   const platform = detectPlatform(url);
@@ -130,12 +136,31 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageDataUri) {
+      // Vision path: image payload from iOS Share Sheet (used for Xiaohongshu / WeChat
+      // where HTML scraping is blocked by anti-bot measures).
+      const { object } = await generateObject({
+        model: models.enrichmentVision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image', image: imageDataUri },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
