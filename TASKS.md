@@ -235,7 +235,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Saves as a new trip variant (same as current "generate" flow)
 
 ### D4 — Festival & Weather Enrichment Signals
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: PRODUCT_STRATEGY.md identifies enrichment as the key differentiator from chatbot travel apps. "A plan for Tokyo in late March will recommend an itinerary without flagging Sakura season." This closes that gap.  
 **Files to change**: `app/api/plan/route.ts`, new `lib/enrichmentSignals.ts`  
 **What to do**:

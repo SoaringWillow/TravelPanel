@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { getActiveEvents, buildEnrichmentPromptBlock } from '@/lib/enrichmentSignals';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -50,9 +51,10 @@ const tripPlanSchema = z.object({
 
 export async function POST(req: NextRequest) {
   let items: SavedItem[], days: number, preferences: string,
-    existingPlan: object | undefined, refinement: string | undefined;
+    existingPlan: object | undefined, refinement: string | undefined,
+    travelMonth: number | undefined, travelDay: number | undefined;
   try {
-    ({ items, days, preferences, existingPlan, refinement } = await req.json());
+    ({ items, days, preferences, existingPlan, refinement, travelMonth, travelDay } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -180,6 +182,19 @@ Rules:
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
+        // Enrichment signals: festival/weather warnings for the destination + travel window
+        const now = new Date();
+        const sm = travelMonth ?? (now.getMonth() + 1);
+        const sd = travelDay ?? now.getDate();
+        const em = sm + Math.ceil(days / 30); // rough end month
+        const allLocationNames = resolvedLocs.locations.map((l) => l.name);
+        const activeEvents = getActiveEvents(allLocationNames, sm, sd, em > 12 ? 12 : em, 31);
+        const enrichmentBlock = buildEnrichmentPromptBlock(activeEvents);
+
+        if (activeEvents.length > 0) {
+          step('found', `⚠️ Detected ${activeEvents.length} event${activeEvents.length !== 1 ? 's' : ''} that may affect your trip`);
+        }
+
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
@@ -189,7 +204,7 @@ Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
-
+${enrichmentBlock}
 Rules:
 - 2-4 activities per day with realistic timing
 - Cluster geographically nearby places each day

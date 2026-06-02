@@ -171,6 +171,7 @@ export default function PlanPage() {
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
+    const now = new Date();
     const res = await fetch('/api/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -181,6 +182,8 @@ export default function PlanPage() {
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
         ].join('. '),
+        travelMonth: now.getMonth() + 1,
+        travelDay: now.getDate(),
       }),
     });
 
