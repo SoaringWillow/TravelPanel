@@ -49,9 +49,10 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string,
+    existingPlan: object | undefined, refinement: string | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, existingPlan, refinement } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -73,6 +74,52 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        // ── Refinement mode: revise existing plan with a natural-language instruction ──
+        if (existingPlan && refinement) {
+          step('searching', `Refining your plan: "${refinement}"…`);
+
+          const contentSummary = items.map((i) => ({
+            title: i.title,
+            activities: i.activities,
+            tags: i.tags,
+            substance: (i.substance ?? []).map((s) => ({
+              type: s.type,
+              content: s.content,
+              applies_to: s.applies_to,
+            })),
+          }));
+
+          const planStream = streamObject({
+            model: models.planItinerary,
+            schema: tripPlanSchema,
+            prompt: `You are revising an existing ${days}-day travel itinerary based on a user refinement request.
+
+Current plan:
+${JSON.stringify(existingPlan, null, 2)}
+
+User's refinement instruction: "${refinement}"
+
+Original saved content (for sourced wisdom):
+${JSON.stringify(contentSummary)}
+User preferences: ${preferences || 'None specified'}
+
+Rules:
+- Apply the refinement instruction to the existing plan
+- Keep the same destination and general structure unless the instruction says otherwise
+- Maintain sourced tips where still relevant
+- Return a complete revised plan (all days, all activities)
+- Do NOT fabricate sourced tips; only cite substance that actually appears in the saved content`,
+          });
+
+          for await (const partial of planStream.partialObjectStream) {
+            emit({ t: 'plan', plan: partial });
+          }
+
+          step('validating', 'Finalising your revised itinerary…');
+          step('done', `Refined ${days}-day plan is ready!`);
+          return;
+        }
+
         // ── Step 1: Resolve locations ────────────────────────────────────
         step('searching', 'Collecting locations from your saved items…');
 

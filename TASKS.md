@@ -224,7 +224,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Track the duplicate detection event via PostHog
 
 ### D3 — Natural Language Plan Refinement
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: PRODUCT_STRATEGY.md lists "plan iteration via natural language" as a key v2 UX upgrade. Currently users must regenerate a completely new plan. They should be able to say "more free time" or "remove Day 2" and get an updated plan.  
 **Files to change**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`  
 **What to do**:

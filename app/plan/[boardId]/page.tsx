@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, CheckCircle2, Wand2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, Activity } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -39,6 +39,10 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+
+  // ── Refinement ────────────────────────────────────────────────────────────
+  const [showRefinement, setShowRefinement] = useState(false);
+  const [refinementText, setRefinementText] = useState('');
 
   // ── On-trip mode ──────────────────────────────────────────────────────────
   const [onTripMode, setOnTripMode] = useState(false);
@@ -238,6 +242,81 @@ export default function PlanPage() {
       }
     }
   }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+
+  const refinePlan = useCallback(async () => {
+    if (!plan || !refinementText.trim()) return;
+    const instruction = refinementText.trim();
+    setRefinementText('');
+    setShowRefinement(false);
+
+    setStage('generating');
+    setSteps([]);
+    const prefs = [
+      ...Array.from(selectedChips),
+      ...(customNotes.trim() ? [customNotes.trim()] : []),
+    ].join('. ');
+    track('plan_refined', { boardId });
+
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: boardItems,
+        days,
+        preferences: prefs,
+        existingPlan: plan,
+        refinement: instruction,
+      }),
+    });
+
+    if (!res.ok || !res.body) { setStage('complete'); return; }
+
+    const reader = res.body.getReader();
+    let buf = '';
+    let latestPlan: Partial<TripPlan> | null = null;
+    const collectedSteps: AgentStep[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += new TextDecoder().decode(value);
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line) as PlanStreamMessage;
+          if (msg.t === 'step') {
+            collectedSteps.push(msg.step);
+            setSteps((s) => [...s, msg.step]);
+            if (msg.step.type === 'done' || msg.step.type === 'error') {
+              setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+            }
+            if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              const trip: Trip = {
+                id: crypto.randomUUID(),
+                boardId,
+                boardName: board?.name ?? '',
+                name: `Plan ${savedTrips.length + 1} (refined)`,
+                days,
+                preferences: prefs,
+                agentSteps: collectedSteps,
+                plan: latestPlan as TripPlan,
+                createdAt: Date.now(),
+              };
+              await saveTrip(trip);
+              setSavedTrips((prev) => [...prev, trip]);
+              setCurrentTripId(trip.id);
+            }
+          }
+          if (msg.t === 'plan') {
+            latestPlan = msg.plan as Partial<TripPlan>;
+            setPlan(latestPlan);
+          }
+        } catch { /* skip */ }
+      }
+    }
+  }, [plan, refinementText, boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -707,6 +786,44 @@ export default function PlanPage() {
                 >
                   📖 View Trip Journal
                 </button>
+              )}
+
+              {/* Refine this plan */}
+              {!showRefinement ? (
+                <button
+                  onClick={() => setShowRefinement(true)}
+                  className="flex items-center justify-center gap-2 w-full bg-violet-50 text-violet-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-violet-100 active:scale-[0.98] transition-all border border-violet-100"
+                >
+                  <Wand2 size={15} />
+                  Refine this plan…
+                </button>
+              ) : (
+                <div className="bg-violet-50 rounded-2xl p-3 border border-violet-100 space-y-2">
+                  <p className="text-xs font-semibold text-violet-700">Refine this plan</p>
+                  <textarea
+                    value={refinementText}
+                    onChange={(e) => setRefinementText(e.target.value)}
+                    placeholder={`e.g. "more free time", "remove Day 2 museums", "add a beach day", "make it more budget-friendly"`}
+                    rows={2}
+                    autoFocus
+                    className="w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={refinePlan}
+                      disabled={!refinementText.trim()}
+                      className="flex-1 bg-violet-600 text-white text-sm font-semibold py-2 rounded-xl hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                    >
+                      ✨ Apply refinement
+                    </button>
+                    <button
+                      onClick={() => { setShowRefinement(false); setRefinementText(''); }}
+                      className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Start Over */}
