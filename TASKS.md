@@ -252,7 +252,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `importBundle(bundle)` function to `lib/exportData.ts`
 
 ### D6 — Hero Thumbnail in Location Detail Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`  
 **What to do**:
 - When `item.thumbnail` is set, show it as a full-width hero image at the top (height: 200px, object-cover)
