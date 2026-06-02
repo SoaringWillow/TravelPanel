@@ -20,7 +20,13 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const imageRef        = searchParams.get('imageRef') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+
+  // Image data passed from CapacitorBridge (Xiaohongshu/WeChat vision extraction)
+  const imageData = imageRef && typeof window !== 'undefined'
+    ? sessionStorage.getItem(`shareImage_${imageRef}`) ?? undefined
+    : undefined;
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -64,9 +70,12 @@ function SharePageInner() {
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    // For image-only shares (Xiaohongshu screenshot with no URL), use a placeholder
+    const effectiveUrl = rawUrl || (imageData ? `image://screenshot/${itemId}` : '');
+
     const item: SavedItem = {
       id: itemId,
-      url: rawUrl,
+      url: effectiveUrl,
       title: sharedTitle,
       platform,
       description: '',
@@ -88,9 +97,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image for vision extraction on Xiaohongshu/WeChat
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, effectiveUrl, imageData)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
