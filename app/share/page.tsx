@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -29,12 +29,29 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image payload for Vision-backed extraction (Xiaohongshu / WeChat screenshots)
+  const [pendingImage, setPendingImage]       = useState<{ base64: string; mediaType: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Consume any screenshot the CapacitorBridge stored in sessionStorage
+  useEffect(() => {
+    try {
+      const base64 = sessionStorage.getItem('pendingShareImage');
+      const mediaType = sessionStorage.getItem('pendingShareImageType') ?? 'image/jpeg';
+      if (base64) {
+        sessionStorage.removeItem('pendingShareImage');
+        sessionStorage.removeItem('pendingShareImageType');
+        setPendingImage({ base64, mediaType });
+      }
+    } catch {
+      // sessionStorage not available
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -57,6 +74,30 @@ function SharePageInner() {
   const recentBoards = [...boards]
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 5);
+
+  // ── Screenshot paste handler ──────────────────────────────────────────────
+
+  const handleImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      // Strip the data:image/...;base64, prefix to get raw base64
+      const base64 = dataUrl.split(',')[1];
+      if (base64) setPendingImage({ base64, mediaType: file.type });
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Global paste listener for clipboard screenshots (Cmd+V / Ctrl+V)
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'));
+      if (item) handleImageFile(item.getAsFile()!);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [handleImageFile]);
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
@@ -88,9 +129,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available for Vision extraction
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImage?.base64, pendingImage?.mediaType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +205,47 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot upload for anti-scraping platforms */}
+          {(platform === 'xiaohongshu' || platform === 'wechat') && (
+            <div className="mt-3">
+              {pendingImage ? (
+                <div className="flex items-center gap-2 bg-indigo-50 rounded-xl px-3 py-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`data:${pendingImage.mediaType};base64,${pendingImage.base64}`}
+                    alt="Screenshot preview"
+                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-indigo-700">Screenshot attached</p>
+                    <p className="text-xs text-indigo-500">AI will read it for richer extraction</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingImage(null)}
+                    className="text-indigo-400 hover:text-indigo-600 flex-shrink-0"
+                    aria-label="Remove screenshot"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 text-xs text-indigo-500 cursor-pointer group">
+                  <div className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-xl px-3 py-2 transition-colors">
+                    <ImagePlus size={14} />
+                    <span>Add screenshot for better AI extraction</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }}
+                  />
+                </label>
+              )}
+            </div>
           )}
         </div>
 
