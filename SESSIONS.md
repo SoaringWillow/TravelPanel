@@ -99,3 +99,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-02 23:26 | 2d2d095 | feat(B2): Chrome/Safari browser extension for one-click URL clipping
 2026-06-02 23:32 | 67832ec | feat(B3): Claude Vision extraction for Xiaohongshu/WeChat screenshots
 2026-06-02 23:34 | 6135ae1 | feat(B5): data export + Settings page with 4-tab nav
+2026-06-02 23:38 | 14b816e | feat(C1): haptic feedback on clip save, delete, and plan generate/complete
