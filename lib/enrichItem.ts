@@ -5,6 +5,50 @@ import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
+export async function enrichItemFromImage(
+  id: string,
+  imageBase64: string,
+  mimeType: string,
+  url?: string,
+  title?: string,
+): Promise<boolean> {
+  const limit = checkEnrichmentLimit();
+  if (!limit.allowed) return false;
+
+  await updateItemEnrichment(id, 'processing');
+  recordEnrichment();
+  try {
+    const res = await fetch('/api/import/vision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64, mimeType, url, title }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as ImportResult;
+    await updateItemEnrichment(id, 'done', {
+      title: data.title,
+      description: data.description,
+      thumbnail: data.thumbnail,
+      locations: data.locations,
+      activities: data.activities,
+      tags: data.tags,
+      substance: data.substance,
+      platform: data.platform,
+    });
+    track('clip_enriched', {
+      platform: data.platform,
+      locationCount: data.locations.length,
+      substanceCount: data.substance?.length ?? 0,
+      source: 'vision',
+    });
+    return true;
+  } catch {
+    await updateItemEnrichment(id, 'failed');
+    track('clip_enrich_failed', { url: 'image-upload' });
+    return false;
+  }
+}
+
 export async function enrichItem(id: string, url: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {

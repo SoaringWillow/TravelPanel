@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #ffffff;
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 14px 11px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .logo-icon {
+      width: 26px;
+      height: 26px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 7px;
+      color: #9ca3af;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .icon-btn:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    /* ── Page info ──────────────────────────────────────────── */
+    .page-info {
+      padding: 12px 14px 14px;
+    }
+
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 9px;
+      border-radius: 100px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 7px;
+      letter-spacing: 0.1px;
+      text-transform: uppercase;
+    }
+
+    .page-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.45;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Divider ────────────────────────────────────────────── */
+    .divider { height: 1px; background: #f1f5f9; }
+
+    /* ── Save button ────────────────────────────────────────── */
+    .save-section { padding: 12px 14px 14px; }
+
+    .save-btn {
+      width: 100%;
+      padding: 11px 16px;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: white;
+      border: none;
+      border-radius: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: opacity 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    }
+
+    .save-btn:hover { opacity: 0.92; }
+    .save-btn:active { transform: scale(0.98); }
+    .save-btn:disabled {
+      background: #c7d2fe;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .save-btn .btn-icon { font-size: 16px; }
+
+    /* ── Settings panel ─────────────────────────────────────── */
+    .settings-panel {
+      display: none;
+      padding: 0 14px 14px;
+    }
+
+    .settings-panel.visible { display: block; }
+
+    .settings-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 12px 0 5px;
+    }
+
+    .settings-input {
+      width: 100%;
+      padding: 8px 11px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 12.5px;
+      color: #374151;
+      outline: none;
+      transition: border-color 0.15s;
+      background: #fafafa;
+    }
+
+    .settings-input:focus { border-color: #6366f1; background: #fff; }
+
+    .settings-hint {
+      font-size: 10.5px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .settings-save-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 9px;
+      background: #f3f4f6;
+      color: #374151;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .settings-save-btn:hover { background: #e5e7eb; }
+    .settings-save-btn.saved { background: #dcfce7; color: #16a34a; }
+
+    /* ── Success state ──────────────────────────────────────── */
+    .success-state {
+      display: none;
+      padding: 28px 20px 24px;
+      text-align: center;
+    }
+
+    .success-state.visible { display: block; }
+
+    .success-icon { font-size: 46px; margin-bottom: 11px; }
+
+    .success-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 5px;
+    }
+
+    .success-sub { font-size: 12px; color: #6b7280; line-height: 1.5; }
+
+    /* ── Config warning ─────────────────────────────────────── */
+    .config-warning {
+      display: none;
+      margin: 0 14px 12px;
+      padding: 9px 12px;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      font-size: 11.5px;
+      color: #92400e;
+      line-height: 1.4;
+    }
+
+    .config-warning.visible { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">✈️</div>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="settingsToggle" title="Settings">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div id="mainContent">
+    <!-- Config warning (shown if URL not set) -->
+    <div class="config-warning" id="configWarning">
+      ⚠️ Set your TravelPanel URL in Settings (⚙️) before clipping.
+    </div>
+
+    <!-- Page info -->
+    <div class="page-info">
+      <div class="platform-badge" id="platformBadge" style="background:#6366f1">Web Page</div>
+      <div class="page-title" id="pageTitle">Loading…</div>
+      <div class="page-url" id="pageUrl"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Save button -->
+    <div class="save-section">
+      <button class="save-btn" id="saveBtn">
+        <span class="btn-icon">📌</span>
+        <span>Save to TravelPanel</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Success state -->
+  <div class="success-state" id="successState">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Clip saved!</div>
+    <div class="success-sub" id="successSub">TravelPanel is extracting locations and tips…</div>
+  </div>
+
+  <!-- Settings panel -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-label">TravelPanel URL</div>
+    <input
+      type="url"
+      class="settings-input"
+      id="travelPanelUrlInput"
+      placeholder="https://your-app.vercel.app"
+      spellcheck="false"
+    />
+    <div class="settings-hint">Your deployed TravelPanel URL (no trailing slash)</div>
+    <button class="settings-save-btn" id="saveSettingsBtn">Save</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
