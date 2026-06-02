@@ -205,7 +205,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep the existing action row (map / move / delete buttons) for non-touch contexts
 
 ### D3 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS auto-switches to dark mode; the app currently shows blinding white in dark mode.  
 **Files**: `app/globals.css`, `tailwind.config.js`, all page/component files with hardcoded `bg-white` / `text-gray-900`  
 **What to do**:

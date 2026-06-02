@@ -34,24 +34,24 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-5 py-4 safe-top">
-        <h1 className="text-xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your data and preferences</p>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-5 py-4 safe-top">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your data and preferences</p>
       </div>
 
       <div className="px-4 py-5 space-y-4">
 
         {/* Data summary card */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center">
               <Database size={18} className="text-indigo-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-900 text-sm">Your Data</h2>
-              <p className="text-xs text-gray-500">Stored locally on this device</p>
+              <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Your Data</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Stored locally on this device</p>
             </div>
           </div>
 
@@ -61,8 +61,8 @@ export default function SettingsPage() {
               { label: 'Collections', value: stats.boards },
               { label: 'Plans',       value: stats.trips  },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-gray-50 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-gray-900">{value}</p>
+              <div key={label} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{label}</p>
               </div>
             ))}
@@ -70,18 +70,18 @@ export default function SettingsPage() {
         </div>
 
         {/* Export card */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center">
               <Download size={18} className="text-green-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-900 text-sm">Export All Data</h2>
-              <p className="text-xs text-gray-500">Download a backup as JSON</p>
+              <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Export All Data</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Download a backup as JSON</p>
             </div>
           </div>
 
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Exports all your clips, collections, and trip plans as a single JSON file.
             Keep it as a backup or use it to migrate to a new device.
           </p>
