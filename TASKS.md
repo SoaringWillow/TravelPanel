@@ -263,7 +263,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a subtle drag handle at the very top of the sheet (4×40px gray pill)
 
 ### D7 — Trip Plan UI Overhaul
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/DayStripCard.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Redesign `DayStripCard` to use a vertical timeline layout:
