@@ -22,6 +22,12 @@ const config: CapacitorConfig = {
     limitsNavigationsToAppBoundDomains: false,
   },
   plugins: {
+    // App Group suite so @capacitor/preferences bridges to the same UserDefaults
+    // namespace that the iOS Share Extension writes to — enabling URL + image
+    // passthrough without a custom native plugin.
+    Preferences: {
+      group: 'group.com.travelpanel.app',
+    },
     SplashScreen: {
       launchShowDuration: 800,
       backgroundColor: '#f9fafb',
