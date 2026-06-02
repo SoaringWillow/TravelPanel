@@ -235,7 +235,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep the motion subtle: a small circular spinner that drops in at the top
 
 ### D6 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Haptics make the app feel native on iOS. Saving a clip, creating a board, and completing a plan should all feel satisfying.  
 **Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
