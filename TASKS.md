@@ -276,7 +276,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show "Copied to clipboard!" toast on fallback
 
 ### D10 — Map Style Toggle (Satellite / Standard)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Satellite view is invaluable for nature spots and remote hikes. One tap to toggle.  
 **Files**: `components/MapView.tsx`  
 **What to do**:
