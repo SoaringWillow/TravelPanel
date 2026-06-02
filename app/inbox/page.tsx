@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SwipeToDelete from '@/components/SwipeToDelete';
 import EmptyState from '@/components/EmptyState';
+import PageTransition from '@/components/PageTransition';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
@@ -99,6 +100,7 @@ export default function InboxPage() {
   );
 
   return (
+    <PageTransition>
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
@@ -275,5 +277,6 @@ export default function InboxPage() {
 
       <NavBar active="inbox" />
     </div>
+    </PageTransition>
   );
 }

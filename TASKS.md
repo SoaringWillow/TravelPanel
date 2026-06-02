@@ -286,7 +286,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Board card aspect ratio: 3:4 (portrait, like an album cover)
 
 ### D9 — Smooth Page Transitions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/layout.tsx`, any page that navigates between views  
 **What to do**:
 - Wrap page content in a framer-motion `AnimatePresence` with `mode="wait"`

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Download, Upload, CheckCircle2, AlertCircle, Database } from 'lucide-react';
 import { buildExportBundle, downloadJSON, importBundle } from '@/lib/exportData';
 import { getAllItems, getAllBoards } from '@/lib/db';
+import PageTransition from '@/components/PageTransition';
 import NavBar from '@/components/NavBar';
 
 type AsyncState = 'idle' | 'loading' | 'done' | 'error';
@@ -73,6 +74,7 @@ export default function SettingsPage() {
   const exportColor = exportState === 'done' ? 'bg-green-600' : exportState === 'error' ? 'bg-red-600' : 'bg-indigo-600 hover:bg-indigo-700';
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
@@ -162,5 +164,6 @@ export default function SettingsPage() {
 
       <NavBar active="settings" />
     </div>
+    </PageTransition>
   );
 }

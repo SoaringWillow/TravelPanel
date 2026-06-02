@@ -8,6 +8,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import EmptyState from '@/components/EmptyState';
+import PageTransition from '@/components/PageTransition';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
@@ -31,6 +32,7 @@ export default function BoardsPage() {
   }
 
   return (
+    <PageTransition>
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
@@ -90,5 +92,6 @@ export default function BoardsPage() {
 
       <NavBar active="boards" />
     </div>
+    </PageTransition>
   );
 }
