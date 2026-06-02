@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { ProactiveSuggestions } from '@/components/ProactiveSuggestions';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -137,6 +138,9 @@ export default function InboxPage() {
           })}
         </div>
       </div>
+
+      {/* Proactive suggestions — shown above the clip grid */}
+      <ProactiveSuggestions />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
