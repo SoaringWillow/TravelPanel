@@ -214,7 +214,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Empty state: "Save clips to this board to see extracted tips and wisdom here"
 
 ### D2 — Duplicate Detection on Save
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Saving the same URL twice creates duplicates that pollute boards. PRODUCT_STRATEGY.md Phase A lists this as required. Users who re-share the same post from different devices will encounter this.  
 **Files to change**: `app/share/page.tsx`, `lib/db.ts`  
 **What to do**:

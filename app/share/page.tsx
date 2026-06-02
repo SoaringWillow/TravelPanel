@@ -1,10 +1,10 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { CheckCircle2, ChevronRight, Copy } from 'lucide-react';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -12,12 +12,13 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Stage = 'picking' | 'saving' | 'done';
+type Stage = 'picking' | 'saving' | 'done' | 'duplicate';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function SharePageInner() {
   const searchParams    = useSearchParams();
+  const router          = useRouter();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const hasImage        = searchParams.get('hasImage') === 'true';
@@ -43,6 +44,8 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
+  const pendingSaveRef = useRef<{ boardId?: string; boardName?: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -74,7 +77,19 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDuplicateCheck = false) {
+    if (!skipDuplicateCheck && rawUrl) {
+      const existing = await getAllItems();
+      const dup = existing.find((i) => i.url === rawUrl && !i.isDemo);
+      if (dup) {
+        setDuplicateItem(dup);
+        pendingSaveRef.current = { boardId: selectedBoardId, boardName: boardDisplayName };
+        track('duplicate_detected', { platform });
+        setStage('duplicate');
+        return;
+      }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -150,7 +165,74 @@ function SharePageInner() {
     setBoards((prev) => [newBoard, ...prev]);
     setNewBoardName('');
     setShowNewBoardInput(false);
-    await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
+    await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`, false);
+  }
+
+  // ── Stage: duplicate ─────────────────────────────────────────────────────
+
+  if (stage === 'duplicate' && duplicateItem) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+        <div className="flex-1 flex flex-col items-center justify-center gap-5 py-10">
+          <div className="text-5xl">🔁</div>
+          <div className="text-center space-y-1">
+            <p className="text-lg font-bold text-gray-900">Already saved!</p>
+            <p className="text-sm text-gray-500 max-w-xs">
+              You already have this clip in your TravelPanel.
+            </p>
+          </div>
+
+          <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-1">
+            <p className="text-sm font-semibold text-gray-800 line-clamp-2">{duplicateItem.title || sharedTitle}</p>
+            {duplicateItem.boardId && (
+              <p className="text-xs text-gray-500">
+                Saved to board
+              </p>
+            )}
+            {duplicateItem.locations.length > 0 && (
+              <p className="text-xs text-indigo-600">
+                📍 {duplicateItem.locations.length} location{duplicateItem.locations.length !== 1 ? 's' : ''} extracted
+              </p>
+            )}
+          </div>
+
+          <div className="w-full space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                const loc = duplicateItem.locations[0];
+                if (loc) {
+                  router.push(`/?flyTo=${loc.lat},${loc.lng}&itemId=${duplicateItem.id}`);
+                } else {
+                  router.push('/inbox');
+                }
+              }}
+              className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-semibold hover:bg-indigo-700 active:scale-[0.98] transition-all"
+            >
+              View existing clip →
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const { boardId, boardName } = pendingSaveRef.current ?? {};
+                handleSave(boardId, boardName, true);
+              }}
+              className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Copy size={14} />
+              Save again anyway
+            </button>
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── Stage: picking ────────────────────────────────────────────────────────
