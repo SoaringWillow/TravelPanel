@@ -246,7 +246,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No-op gracefully outside Capacitor (browser does nothing, no errors)
 
 ### D7 — Richer Board Cards (clip count + thumbnails mosaic)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Board cards show only the board name + emoji. A 2×2 thumbnail mosaic from the first 4 clips gives boards visual identity and makes the collections view look like a polished travel app.  
 **Files**: `components/BoardCard.tsx`  
 **What to do**:
