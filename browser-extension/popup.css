@@ -1,0 +1,262 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 300px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: #fff;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid #f0f4f3;
+  background: linear-gradient(135deg, rgba(14,159,142,0.06) 0%, #fff 60%);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.brand {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0E9F8E;
+  flex: 1;
+  letter-spacing: -0.3px;
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 5px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.settings-btn:hover {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ── Content sections ────────────────────────────────── */
+.content {
+  padding: 14px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ── URL preview card ─────────────────────────────────── */
+.url-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #f0f4f3;
+  margin-bottom: 12px;
+  min-height: 54px;
+}
+
+.favicon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-top: 1px;
+}
+
+.favicon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+.url-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.35;
+  margin-bottom: 3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.page-url {
+  font-size: 11px;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Primary clip button ─────────────────────────────── */
+.clip-btn {
+  width: 100%;
+  padding: 11px 18px;
+  background: linear-gradient(135deg, #0E9F8E 0%, #0a8a7a 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  letter-spacing: -0.2px;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s;
+  box-shadow: 0 2px 8px rgba(14, 159, 142, 0.28);
+}
+
+.clip-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(14, 159, 142, 0.38);
+}
+
+.clip-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(14, 159, 142, 0.2);
+}
+
+.clip-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── State screens (success / error / setup) ─────────── */
+.state-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px auto 12px;
+}
+
+.state-success { background: #ecfdf5; }
+.state-warn    { background: #fffbeb; }
+
+.state-title {
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  color: #111827;
+  margin-bottom: 5px;
+}
+
+.state-sub {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.secondary-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.secondary-btn:hover {
+  background: #e5e7eb;
+}
+
+/* ── Setup screen ────────────────────────────────────── */
+.setup-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.setup-header svg {
+  margin-bottom: 8px;
+}
+
+.setup-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.setup-sub {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+  margin-bottom: 14px;
+}
+
+.url-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #111827;
+  background: #fff;
+  margin-bottom: 10px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.url-input:focus {
+  border-color: #0E9F8E;
+  box-shadow: 0 0 0 3px rgba(14,159,142,0.1);
+}
+
+.url-input::placeholder {
+  color: #9ca3af;
+}
+
+.setup-error {
+  font-size: 11.5px;
+  color: #ef4444;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background: #fef2f2;
+  border-radius: 6px;
+}
