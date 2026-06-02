@@ -240,7 +240,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Pins should be 12×12px filled circles with a 2px white stroke and 1px drop shadow
 
 ### D5 — Import JSON Backup (pair with B5 export)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/settings/page.tsx`, `lib/exportData.ts`  
 **What to do**:
 - Add "Import from backup" button below the export button in Settings
