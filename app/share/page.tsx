@@ -20,7 +20,21 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImage        = searchParams.get('hasImage') === 'true';
   const sharedTitle     = rawTitle || 'New inspiration';
+
+  // Retrieve image data written by CapacitorBridge from the native share payload.
+  // The image is stored as a base64 JPEG data URL in sessionStorage so it doesn't
+  // bloat the URL. We read it once and clear it to avoid stale data.
+  const [sharedImageUrl, setSharedImageUrl] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!hasImage) return;
+    const stored = typeof window !== 'undefined' ? sessionStorage.getItem('pendingShareImage') : null;
+    if (stored) {
+      setSharedImageUrl(stored);
+      sessionStorage.removeItem('pendingShareImage');
+    }
+  }, [hasImage]);
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -88,9 +102,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image URL for vision extraction (Xiaohongshu etc.)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, sharedImageUrl)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
