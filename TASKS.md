@@ -195,6 +195,134 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Beauty + Functional Completeness (Current Sprint)
+
+> All Phase A–C tasks are done. Phase D is the push to a truly beautiful,
+> production-quality iOS app that earns a 5-star App Store rating.
+> Ordered by impact on UX and the core product promise.
+
+### D1 — Wisdom Tab on Boards (per-board substance library)
+**Status**: `[ ]` Not started  
+**Why**: PRODUCT_STRATEGY.md identifies this as the "third primary surface" beyond Map and Plan. Every board should have a "Wisdom" tab showing all substance items extracted from its clips — browsable, grouped by type, searchable. This turns the clip corpus into a personal knowledge base.  
+**Files to change**: `app/boards/[id]/page.tsx`, new `components/WisdomTab.tsx`  
+**What to do**:
+- Add a tab bar to the board detail page: "Places" | "Wisdom" | "Plans"
+- WisdomTab shows all `substance` items from all clips in the board
+- Group by type: 💡 Tips · ⚠️ Warnings · 💬 Opinions · 🧠 Wisdom · 🌍 Context · ⭐ Recommendations
+- Each substance item shows its type icon, content, optional `applies_to`, and `source_quote`
+- Attribution: tap a substance item to see which clip it came from
+- Empty state: "Save clips to this board to see extracted tips and wisdom here"
+
+### D2 — Duplicate Detection on Save
+**Status**: `[ ]` Not started  
+**Why**: Saving the same URL twice creates duplicates that pollute boards. PRODUCT_STRATEGY.md Phase A lists this as required. Users who re-share the same post from different devices will encounter this.  
+**Files to change**: `app/share/page.tsx`, `lib/db.ts`  
+**What to do**:
+- In `handleSave`, before creating the item: check if an item with the same URL already exists in IndexedDB
+- If duplicate found: show a sheet — "You already saved this! View it or save to a different board?"
+- Options: "Go to existing clip" (router.push to map with flyTo), "Save again anyway", "Cancel"
+- Track the duplicate detection event via PostHog
+
+### D3 — Natural Language Plan Refinement
+**Status**: `[ ]` Not started  
+**Why**: PRODUCT_STRATEGY.md lists "plan iteration via natural language" as a key v2 UX upgrade. Currently users must regenerate a completely new plan. They should be able to say "more free time" or "remove Day 2" and get an updated plan.  
+**Files to change**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`  
+**What to do**:
+- In the complete state, add a text input: "Refine this plan…" with placeholder examples ("more relaxed pace", "remove museums", "add a beach day")
+- On submit: stream a new plan, passing the current plan AND the refinement instruction to the API
+- Update `/api/plan/route.ts` to accept an optional `existingPlan` and `refinement` field
+- The prompt should show the current plan and ask Claude to revise it per the instruction
+- Saves as a new trip variant (same as current "generate" flow)
+
+### D4 — Festival & Weather Enrichment Signals
+**Status**: `[ ]` Not started  
+**Why**: PRODUCT_STRATEGY.md identifies enrichment as the key differentiator from chatbot travel apps. "A plan for Tokyo in late March will recommend an itinerary without flagging Sakura season." This closes that gap.  
+**Files to change**: `app/api/plan/route.ts`, new `lib/enrichmentSignals.ts`  
+**What to do**:
+- Create `lib/enrichmentSignals.ts` with a static dataset of major annual events:
+  - Cherry Blossom (Tokyo/Kyoto, late March–early April, crowd: high, price: +40%)
+  - Golden Week Japan (late April–early May, crowd: very high, price: +50%)
+  - Songkran Thailand (April 13–15, crowd: high)
+  - Diwali India (Oct/Nov, dates vary)
+  - Lunar New Year (Jan/Feb, affects China/Vietnam/Korea)
+  - Christmas Markets Europe (Dec 1–24)
+  - Coachella (April, Palm Springs area, price: very high)
+  - 20 more major events with location, dates, crowd level, price surge
+- Detect which events overlap with the planner's destination and date range
+- Inject as warnings into the plan prompt: "⚠️ Cherry Blossom peak Apr 1–14 in Tokyo: accommodation typically 40% above average, plan 2hr queues at popular spots"
+- Show enrichment warnings as a styled `EnrichmentWarnings` section at the top of the plan
+
+### D5 — iOS Haptic Feedback + Native UX Patterns
+**Status**: `[ ]` Not started  
+**Why**: A beautiful iOS app must feel native. Haptics on save, swipe-to-delete patterns, and momentum scrolling make the difference between a "web app" and an "iOS app" in user perception.  
+**Files to change**: `app/share/page.tsx`, `components/InboxCard.tsx`, `lib/haptics.ts`  
+**What to do**:
+- Create `lib/haptics.ts`: wraps `@capacitor/haptics` (already in package) with a no-op fallback for web. Expose `impact()`, `success()`, `warning()`, `error()` helpers.
+- Fire `success()` haptic when a clip is saved (in share page handleSave)
+- Fire `impact()` haptic when board chip is selected in share page
+- Fire `warning()` haptic when enrichment fails
+- InboxCard: add swipe-to-delete gesture using CSS/touch events with haptic on confirm
+- Add subtle spring animations to all interactive buttons (already using Framer Motion)
+
+### D6 — Offline Plan Caching
+**Status**: `[ ]` Not started  
+**Why**: Users on planes need their itinerary. PRODUCT_STRATEGY.md Phase C includes "offline plan: full itinerary cached for offline use before departure date." The PWA already has a service worker; we need to cache the plan data.  
+**Files to change**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`, `sw.js` (or a new cache manager)  
+**What to do**:
+- When a plan is viewed in `complete` stage, cache it to IndexedDB under a `cachedPlan` key
+- Add a "Save for offline" button in the plan complete state
+- When offline (detect via `navigator.onLine`), load the cached plan from IndexedDB instead of trying to regenerate
+- Show an "Offline mode — showing last saved plan" banner when offline
+- The plan JSON, map tiles for the plan's bounding box (via MapLibre's offline API), and trip data are all cached
+
+### D7 — AI Auto-Organize Inbox (Cluster Clips by Destination)
+**Status**: `[ ]` Not started  
+**Why**: PRODUCT_STRATEGY.md's "ambient organization promise" — users save to Inbox and clips organize themselves. The killer demo is opening the app after 3 months and finding clips already sorted.  
+**Files to change**: `app/inbox/page.tsx`, new `app/api/organize/route.ts`, `lib/db.ts`  
+**What to do**:
+- Add a "Auto-organize" button to the Inbox page (shown when ≥5 unassigned clips exist)
+- New API endpoint `POST /api/organize` accepts the list of unassigned items
+- Claude clusters them by destination/theme and suggests board assignments:
+  `[{ boardName: "Tokyo 2026", emoji: "🗼", itemIds: [...] }]`
+- Stream the response — show progress: "Grouping your 23 saves by destination…"
+- User sees a preview of suggested boards with a "Create all boards" action and individual board edit/skip controls
+- On confirm: create boards and move items atomically
+
+### D8 — App Icon, Splash Screen & PWA Manifest Polish
+**Status**: `[ ]` Not started  
+**Why**: The iOS home screen icon and splash screen are the first impression. The current manifest has placeholder values. Before any public launch, the app needs a proper icon, splash, and PWA identity.  
+**Files to change**: `public/manifest.json`, `app/layout.tsx`, `public/` (icon files), `ios/App/App/Assets.xcassets`  
+**What to do**:
+- Design a proper TravelPanel app icon: indigo (#4F46E5) background, white ✈ plane icon, rounded corners. Generate PNG at 512×512 (PWA) and all iOS sizes (20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024px)
+- Update `public/manifest.json`: name, short_name, theme_color, background_color, icons array pointing to the new files
+- Add iOS-specific meta tags in `app/layout.tsx`: `apple-touch-icon`, `apple-mobile-web-app-title`, `apple-mobile-web-app-status-bar-style`
+- Create a proper splash screen (1290×2796 for iPhone 14 Pro Max) with centered icon + app name
+- Update `ios/App/App/Assets.xcassets/AppIcon.appiconset/` with proper icons
+
+### D9 — Smart Board Cover Photos
+**Status**: `[ ]` Not started  
+**Why**: Boards currently show a generic color or the first item's thumbnail. Rich cover photos with gradient overlays, clip count, and destination name make boards feel like a polished travel magazine.  
+**Files to change**: `components/BoardCard.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- BoardCard: if `board.coverThumbnail` exists, show as full-bleed background with a gradient overlay (bottom 40% dark-to-transparent)
+- Overlay: board name (white, bold), emoji, clip count badge, location count badge
+- If no thumbnail: show a map-style gradient placeholder using the board's dominant location (from item coordinates) as a color key — e.g. Japan boards get cherry-blossom pink, Thailand gets warm orange
+- On long-press: "Change cover photo" option (let user pick from saved thumbnails in the board)
+- Board grid: 2-column layout, each card is 16:9 aspect ratio
+
+### D10 — Pull-to-Refresh + Live Enrichment Progress
+**Status**: `[ ]` Not started  
+**Why**: Currently, the inbox has no way to trigger a manual refresh. Pull-to-refresh is a universal iOS pattern users expect. Also, enrichment progress (items being processed) is not visually distinctive enough.  
+**Files to change**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Add pull-to-refresh to the inbox scroll area using touch events or a React library
+- On pull: re-run the enrichment retry queue, refresh items from IndexedDB, show a spinner
+- InboxCard: when `enrichmentStatus === 'processing'`, show an animated gradient shimmer overlay on the card (skeleton loading style) instead of just a spinner — makes it feel alive
+- InboxCard: when `enrichmentStatus === 'failed'`, show a red dot badge + "Tap to retry" text overlay
+- Track `manual_refresh` event
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
