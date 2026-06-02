@@ -195,7 +195,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep the existing enrichment-pending skeleton state unchanged
 
 ### D2 — Swipe-to-Delete on InboxCard
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect swipe-left to reveal delete. The current tap-then-confirm flow is two steps more than necessary.  
 **Files**: `components/InboxCard.tsx`, possibly a new `components/SwipeableCard.tsx`  
 **What to do**:
