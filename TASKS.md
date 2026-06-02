@@ -195,6 +195,184 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & Native Feel 🍎
+
+> Goal: make the app feel genuinely native and delightful on iPhone. These are all web-layer changes (Tailwind/React) that the Capacitor shell renders as a native app. Work top-to-bottom.
+
+### D1 — Haptic Feedback on Key Actions
+**Status**: `[ ]` Not started  
+**Files**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `components/ImportSheet.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` wrapper: `tap()`, `success()`, `error()`, `heavy()` — calls `@capacitor/haptics` on native, no-ops in browser
+- `tap()` on every button press in share flow and inbox cards
+- `success()` after a clip is saved and after plan is generated  
+- `error()` on enrichment failure or rate-limit hit
+- Install `@capacitor/haptics` (already in package.json likely — check first; if not, add to imports)
+
+### D2 — Pull-to-Refresh on Inbox & Boards
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, new `components/PullToRefresh.tsx`  
+**What to do**:
+- Create `PullToRefresh` component: detect overscroll-up gesture (touchstart/touchmove delta), show a spinner at top, call `onRefresh()` when dragged far enough, release with spring animation
+- On `onRefresh` in inbox: re-run the retry queue for failed items + reload items from IndexedDB
+- On `onRefresh` in boards: re-read boards from IndexedDB (pick up any changes)
+- Respect `safe-top` inset so spinner appears below the status bar
+
+### D3 — Swipe-to-Delete on Inbox Cards
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Wrap InboxCard in a swipe gesture handler using `framer-motion` `drag="x"` with constraints `{ right: 0 }`
+- As the user drags left > 60px, reveal a red delete background with a trash icon
+- On release > 100px, animate the card height to 0 and delete from IndexedDB
+- On release < 100px, spring back to origin
+- On iOS, trigger `tap()` haptic when reveal threshold is crossed and `heavy()` on delete confirm
+
+### D4 — Skeleton Loading Screens
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Replace the raw `loading ? 'Loading…' : <content>` pattern with animated skeleton screens
+- Create a `SkeletonCard` component: grey shimmer rectangles matching the InboxCard shape (thumbnail placeholder, 2 text line placeholders)
+- In inbox: show 4 SkeletonCards while `loading` is true
+- In boards: show 3 skeleton board tiles
+- Shimmer animation: CSS `@keyframes shimmer` with `background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)` moving left-to-right
+
+### D5 — Dark Mode Support
+**Status**: `[ ]` Not started  
+**Files**: `app/globals.css`, `app/layout.tsx`, all page components  
+**What to do**:
+- Enable Tailwind dark mode: add `darkMode: 'media'` to `tailwind.config.js`
+- Replace hard-coded `bg-white`, `text-gray-900` etc. with dark-mode-aware variants: `bg-white dark:bg-gray-900`, `text-gray-900 dark:text-gray-100`
+- Pages to update: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/settings/page.tsx`, `app/share/page.tsx`
+- Components to update: `NavBar`, `InboxCard`, `LocationDetailCard`, `ImportSheet`
+- Map: MapLibre supports dark style — swap to `dark` tile URL when `prefers-color-scheme: dark`
+- Test with `@media (prefers-color-scheme: dark)` in browser devtools
+
+### D6 — iOS App Icon (Proper Branding)
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/` + a new `scripts/generate-app-icons.py`  
+**What to do**:
+- Write a Python script `scripts/generate-app-icons.py` that generates all required iOS app icon sizes (20, 29, 40, 60, 76, 83.5, 1024 px) as PNG using only stdlib (same approach as browser-extension icons)
+- Icon design: deep indigo (#4F46E5) background, white map-pin shape centered, small white dot inside pin head
+- Run the script and verify all 12 required icon sizes are generated in the Xcode asset folder
+- Update `Contents.json` in the appiconset to reference the generated files
+- Add the script to `package.json` scripts as `"icons": "python3 scripts/generate-app-icons.py"`
+
+---
+
+## PHASE E — Content Management
+
+> Fill the "crud gap" — users need to manage their clips and boards.
+
+### E1 — Delete & Archive Clips
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Add a "Delete clip" button (trash icon) to `LocationDetailCard` — tapping shows a confirmation (`confirm()` dialog or an inline "Are you sure?" animation)
+- On confirm: delete from IndexedDB, remove from board's `itemIds`, emit an `itemDeleted` event via a custom DOM event so the map and inbox re-render
+- The swipe-to-delete on InboxCard (D3) covers the inbox surface; this covers the detail card surface
+- After deletion: close the detail card, fly the map back to full view, show brief toast "Clip deleted"
+
+### E2 — Edit Board (Rename, Emoji, Delete)
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx`, `app/boards/[id]/page.tsx`  
+**What to do**:
+- On boards list page: long-press (or tap a "…" menu icon) on a board card to show options: Rename, Change emoji, Delete
+- Rename: inline editable input (tap to edit, blur to save to IndexedDB)
+- Change emoji: emoji picker (a grid of 20 common travel emojis: 🗺🏔🏖🌃🍜🎭🛕🌅🏕🏛🎨🏄🌊🌸🍣🗼🎋🛶🏯🌋)
+- Delete: confirmation → delete board and all its `itemIds` mappings (clips remain in inbox)
+- On board detail page (`[id]`): show a "Edit board" button in the header that navigates to inline edit mode
+
+### E3 — Move Clip Between Boards
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Already partially exists in inbox (the "Move to board" sheet) — extend it to work from `LocationDetailCard` too
+- Add a "Move to…" action in the detail card's action row (join an existing row of icon-buttons)
+- Open a bottom sheet listing all boards + "Remove from board" option
+- On select: update `item.boardId`, update old board's `itemIds` (remove), update new board's `itemIds` (add)
+
+### E4 — Re-Enrich (Refresh) Clip
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, `lib/enrichItem.ts`  
+**What to do**:
+- Add a "Re-extract" / refresh icon button to `LocationDetailCard` (small circular arrow icon, bottom of card)
+- Tapping resets `enrichmentStatus` to `'pending'` and calls `enrichItem(id, url)` again
+- Show a loading spinner inside the button while enrichment runs
+- On success: re-read item from IndexedDB and update the card's displayed data (substance, locations, etc.)
+- Useful when a clip was clipped before the page was fully loaded, or after Xiaohongshu images are available
+
+---
+
+## PHASE F — Discovery & Plan UX
+
+> Surface clips better and make trip plans more useful.
+
+### F1 — Tag/Category Filter on Map
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add a horizontal scrollable tag-filter row below the top bar on the home page
+- Tags: All | 🍜 Food | 🌿 Nature | 🏛 Culture | 📸 Photo | 🎭 Art | 🏖 Beach | 🏔 Mountain
+- Active filter: highlighted chip (indigo background)
+- Filter the `items` passed to `MapView` based on `item.tags`; non-matching pins fade to 30% opacity
+- "All" clears the filter; tag is stored in local state only (no URL param needed)
+
+### F2 — Plan Sharing (Copy as Text)
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Add a "Share" button in the plan view toolbar (next to Export)
+- "Share as text" generates a markdown-formatted trip itinerary string with day headers, time slots, activity names, and sourced tips
+- On native (Capacitor): use `@capacitor/share` to open the iOS share sheet with the text
+- On web (browser fallback): copy to clipboard and show "Copied!" toast
+- Format example:
+  ```
+  🗺 Tokyo Weekend — 2 Days
+  
+  **Day 1 — Arrival & Culture**
+  🕘 9:00 AM — Senso-ji Temple
+  💡 From your clip "Tokyo Hidden Gems": Go at 7am to beat crowds
+  🕒 2:00 PM — Ueno Park
+  ...
+  ```
+
+### F3 — Substance Highlights on Map Pins
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- On pin tap (before the full `LocationDetailCard` opens), show a compact "peek" tooltip above the pin
+- Tooltip shows: clip title (1 line) + the first substance item's content (1 line, truncated) + "X more tips" badge
+- This surfaces the substance layer passively while browsing the map
+- Tooltip dismisses on next tap or after 3 seconds; tapping the tooltip opens the full detail card
+- Implement as an absolutely-positioned div anchored to the pin's map coordinates (use MapLibre's `LngLat` to pixel conversion)
+
+### F4 — Activity Icon System in Plan View
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx` (or equivalent)  
+**What to do**:
+- Map activity names to emoji icons: food/restaurant/eat → 🍽, temple/shrine/church → 🛕, museum/gallery → 🏛, market/shop → 🛍, park/garden/nature → 🌿, beach/sea/ocean → 🏖, viewpoint/vista/view → 📸, bar/nightlife/club → 🌃, hotel/sleep/rest → 🏨, transport/train/bus → 🚃, activity/sport/hike → 🥾
+- Match by keyword presence in `activity.name.toLowerCase()`
+- Show the icon before the activity name in the plan UI
+- Fallback icon: 📍 (generic pin)
+
+---
+
+## PHASE G — Cloud Sync Activation (Needs Supabase Keys)
+
+### G1 — Supabase Project Bootstrap  
+**Status**: `[ ]` Blocked on keys  
+**Needs**: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`  
+**What to do**: Once keys are provided — run `supabase/schema.sql`, wire `syncNow()` on auth change + app focus, add sign-in surface to settings page
+
+### G2 — Embedding Search (Vibe Search)
+**Status**: `[ ]` Blocked on G1  
+**Needs**: Supabase pgvector enabled  
+**What to do**: (was B4) Embed clip substance text via `text-embedding-3-small`, store in pgvector, add semantic search bar
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
