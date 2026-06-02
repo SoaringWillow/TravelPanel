@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<div class="container" id="app">
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">✈️</div>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="settings-btn" title="Settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Main content (swapped by JS) ──────────────── -->
+  <div id="content">
+
+    <!-- Default: clip view -->
+    <div id="clip-view">
+      <!-- Page preview -->
+      <div class="page-preview">
+        <img id="favicon" class="page-favicon" src="" alt="" style="display:none">
+        <div id="favicon-placeholder" class="page-favicon-placeholder">🌐</div>
+        <div class="page-info">
+          <div class="page-title" id="page-title">Loading…</div>
+          <div class="page-url" id="page-url"></div>
+        </div>
+      </div>
+
+      <!-- Platform badge -->
+      <div class="platform-row" id="platform-row" style="display:none">
+        <span class="platform-badge" id="platform-badge"></span>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn btn-primary" id="save-inbox-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="8 17 12 21 16 17"/>
+            <line x1="12" y1="3" x2="12" y2="21"/>
+          </svg>
+          Save to Inbox
+        </button>
+        <button class="btn btn-secondary" id="open-travelpanel-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Choose Board in TravelPanel
+        </button>
+      </div>
+
+      <div id="error-msg" class="error-msg" style="display:none"></div>
+    </div>
+
+    <!-- Success view -->
+    <div id="success-view" style="display:none">
+      <div class="success-screen">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Saved to Inbox!</div>
+        <div class="success-subtitle" id="success-subtitle">AI is extracting spots &amp; wisdom…</div>
+        <div class="success-meta" id="success-meta" style="display:none">
+          <span class="meta-chip" id="meta-locations"></span>
+          <span class="meta-chip" id="meta-substance"></span>
+        </div>
+        <button class="btn btn-secondary" id="open-app-btn" style="margin-top:4px">
+          Open TravelPanel →
+        </button>
+      </div>
+    </div>
+
+    <!-- Setup view (no URL configured) -->
+    <div id="setup-view" style="display:none">
+      <div class="setup-screen">
+        <div class="setup-icon">⚙️</div>
+        <div class="setup-title">Set your TravelPanel URL</div>
+        <div class="setup-subtitle">Enter the URL of your TravelPanel app to start saving clips.</div>
+        <button class="btn btn-primary" id="go-settings-btn" style="margin-top:8px">
+          Open Settings
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
