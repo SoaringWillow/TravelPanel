@@ -85,9 +85,9 @@ export default function InboxCard({
 
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
-      // Full skeleton — no content yet
+      // Full shimmer skeleton with animated gradient overlay
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
           <div className="w-full h-32 bg-gray-200" />
           <div className="p-4 space-y-3">
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
@@ -96,6 +96,10 @@ export default function InboxCard({
               <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
             </div>
+          </div>
+          {/* Shimmer overlay */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
           </div>
         </div>
       );
@@ -153,7 +157,15 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+      <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-4 space-y-3 relative">
+        {/* Red dot badge for failed state */}
+        {enrichmentStatus === 'failed' && !isRetrying && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-500 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+            Failed
+          </div>
+        )}
+
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Sparkles, Check } from 'lucide-react';
+import { X, Sparkles, Check, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform, SavedItem, Board } from '@/lib/types';
@@ -39,7 +39,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -48,6 +48,38 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // ── Pull-to-refresh ───────────────────────────────────────────────────────
+  const touchStartY = useRef<number | null>(null);
+  const [pullY, setPullY] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const PULL_THRESHOLD = 70;
+
+  function onScrollTouchStart(e: React.TouchEvent) {
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function onScrollTouchMove(e: React.TouchEvent) {
+    if (touchStartY.current === null || isRefreshing) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) setPullY(Math.min(dy, PULL_THRESHOLD + 20));
+  }
+
+  async function onScrollTouchEnd() {
+    if (pullY >= PULL_THRESHOLD && !isRefreshing) {
+      setIsRefreshing(true);
+      setPullY(0);
+      try {
+        await refresh();
+        track('manual_refresh');
+      } finally {
+        setIsRefreshing(false);
+      }
+    } else {
+      setPullY(0);
+    }
+    touchStartY.current = null;
+  }
 
   // ── Auto-organize ─────────────────────────────────────────────────────────
   const [organizing, setOrganizing] = useState(false);
@@ -275,7 +307,24 @@ export default function InboxPage() {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        onTouchStart={onScrollTouchStart}
+        onTouchMove={onScrollTouchMove}
+        onTouchEnd={onScrollTouchEnd}
+      >
+        {/* Pull-to-refresh indicator */}
+        <div
+          className="flex items-center justify-center overflow-hidden transition-all duration-200"
+          style={{ height: isRefreshing ? 44 : Math.max(0, pullY * 0.6), opacity: isRefreshing || pullY > 20 ? 1 : 0 }}
+        >
+          <div className={`flex items-center gap-2 text-xs text-indigo-600 font-medium ${isRefreshing ? 'animate-pulse' : ''}`}>
+            <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+            {isRefreshing ? 'Refreshing…' : pullY >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+          </div>
+        </div>
+
+        <div className="py-4">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -317,6 +366,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
+        </div>
       </div>
 
       {/* Board selector bottom sheet */}

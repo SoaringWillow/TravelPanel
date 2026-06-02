@@ -311,7 +311,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Board grid: 2-column layout, each card is 16:9 aspect ratio
 
 ### D10 — Pull-to-Refresh + Live Enrichment Progress
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Currently, the inbox has no way to trigger a manual refresh. Pull-to-refresh is a universal iOS pattern users expect. Also, enrichment progress (items being processed) is not visually distinctive enough.  
 **Files to change**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:
