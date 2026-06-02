@@ -85,23 +85,33 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let base64Image: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, base64Image } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  // Either a URL or an image must be provided (image-only for Xiaohongshu screenshots)
+  if ((!url || typeof url !== 'string') && !base64Image) {
+    return NextResponse.json({ error: 'URL or image required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const safeUrl = url || '';
+  const platform = detectPlatform(safeUrl);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Skip URL fetch for image-only shares or known anti-scraping platforms when image provided
+  const isImageOnly = !safeUrl || safeUrl.startsWith('image://');
+  const skipFetch = isImageOnly || (!!base64Image && (platform === 'xiaohongshu' || platform === 'wechat'));
+  const page = skipFetch ? null : await fetchPageData(safeUrl);
 
+  const imageContext = base64Image
+    ? `\nNOTE: A screenshot of this post is attached as an image. Use it as the PRIMARY source — the URL may be unavailable due to platform anti-scraping. Read all visible text, locations, and advice from the image.\n`
+    : '';
+
+  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.${imageContext}
 Platform: ${platform}
-URL: ${url}
+URL: ${safeUrl || '(image-only share)'}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
@@ -130,19 +140,35 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (base64Image) {
+      // Vision extraction: image block + text prompt as a messages array
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', image: `data:image/jpeg;base64,${base64Image}` },
+            { type: 'text', text: prompt },
+          ],
+        }],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
+    title: (claudeResult?.title || page?.title || safeUrl).slice(0, 200),
     description: (claudeResult?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],

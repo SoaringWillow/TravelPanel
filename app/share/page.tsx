@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { impactHaptic, notificationHaptic } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -20,7 +21,13 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const imageRef        = searchParams.get('imageRef') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+
+  // Image data passed from CapacitorBridge (Xiaohongshu/WeChat vision extraction)
+  const imageData = imageRef && typeof window !== 'undefined'
+    ? sessionStorage.getItem(`shareImage_${imageRef}`) ?? undefined
+    : undefined;
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -61,12 +68,16 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    impactHaptic('medium');
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    // For image-only shares (Xiaohongshu screenshot with no URL), use a placeholder
+    const effectiveUrl = rawUrl || (imageData ? `image://screenshot/${itemId}` : '');
+
     const item: SavedItem = {
       id: itemId,
-      url: rawUrl,
+      url: effectiveUrl,
       title: sharedTitle,
       platform,
       description: '',
@@ -88,9 +99,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image for vision extraction on Xiaohongshu/WeChat
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, effectiveUrl, imageData)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -114,6 +125,7 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    notificationHaptic('success');
   }
 
   // ── Create new board + save ───────────────────────────────────────────────
