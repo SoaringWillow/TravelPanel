@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 360px;
+      padding: 24px;
+      background: #0F172A;
+      color: #F1F5F9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 14px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #1E293B;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #2563EB, #1D4ED8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #F1F5F9;
+      letter-spacing: -0.01em;
+    }
+
+    h1 span {
+      font-weight: 400;
+      color: #64748B;
+      font-size: 13px;
+    }
+
+    .field { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #F1F5F9;
+      font-size: 13.5px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus { border-color: #2563EB; }
+    input::placeholder { color: #475569; }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 11.5px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 11px;
+      background: linear-gradient(135deg, #2563EB, #1D4ED8);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+    }
+
+    .save-btn:hover { opacity: 0.9; }
+    .save-btn:active { transform: scale(0.98); }
+
+    .toast {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast.success {
+      background: #052E16;
+      color: #4ADE80;
+      border: 1px solid rgba(34,197,94,0.2);
+      display: flex;
+    }
+
+    .toast.error {
+      background: #2D0A0A;
+      color: #FCA5A5;
+      border: 1px solid rgba(239,68,68,0.2);
+      display: flex;
+    }
+
+    .divider {
+      height: 1px;
+      background: #1E293B;
+      margin: 20px 0;
+    }
+
+    .about {
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .about a {
+      color: #2563EB;
+      text-decoration: none;
+    }
+
+    .about a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo-icon">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+        <path d="M7 0.875C4.17 0.875 1.875 3.17 1.875 6C1.875 10.03 7 13.125 7 13.125C7 13.125 12.125 10.03 12.125 6C12.125 3.17 9.83 0.875 7 0.875ZM7 8C5.9 8 5 7.1 5 6C5 4.9 5.9 4 7 4C8.1 4 9 4.9 9 6C9 7.1 8.1 8 7 8Z" fill="white"/>
+      </svg>
+    </div>
+    <h1>TravelPanel <span>Settings</span></h1>
+  </div>
+
+  <form id="settingsForm">
+    <div class="field">
+      <label for="baseUrl">TravelPanel URL</label>
+      <input
+        type="url"
+        id="baseUrl"
+        name="baseUrl"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="hint">
+        The URL where your TravelPanel app is deployed.<br>
+        Use <code style="color:#94A3B8">http://localhost:3000</code> for local development.
+      </p>
+    </div>
+
+    <button type="submit" class="save-btn">Save Settings</button>
+  </form>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="divider"></div>
+
+  <div class="about">
+    <strong style="color:#64748B">TravelPanel Clipper v1.0</strong><br>
+    Clips travel inspiration from any web page into your TravelPanel boards.
+    Works with Instagram, YouTube, TikTok, Xiaohongshu, and any travel website.
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
