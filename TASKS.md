@@ -276,7 +276,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Plan version selector (PlanVersionBar) should be styled as a segmented control
 
 ### D8 — Boards View Grid Layout
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx`, `components/BoardCard.tsx`  
 **What to do**:
 - Switch boards list from single-column cards to a 2-column grid on mobile

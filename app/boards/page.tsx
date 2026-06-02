@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
-import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import EmptyState from '@/components/EmptyState';
@@ -12,11 +11,14 @@ import PageTransition from '@/components/PageTransition';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
+const LONG_PRESS_MS = 500;
+
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
-  const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -31,9 +33,23 @@ export default function BoardsPage() {
     await removeBoard(id);
   }
 
+  const startPressTimer = useCallback(() => {
+    pressTimerRef.current = setTimeout(() => setEditMode(true), LONG_PRESS_MS);
+  }, []);
+
+  const clearPressTimer = useCallback(() => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  }, []);
+
   return (
     <PageTransition>
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div
+      className="flex flex-col h-screen bg-gray-50"
+      onClick={editMode ? () => setEditMode(false) : undefined}
+    >
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
         <div className="flex items-center justify-between">
@@ -41,14 +57,24 @@ export default function BoardsPage() {
             <LayoutGrid className="text-indigo-600" size={22} />
             <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            <Plus size={16} />
-            <span>New Board</span>
-          </button>
+          {editMode ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setEditMode(false); }}
+              className="text-indigo-600 text-sm font-semibold px-3 py-2"
+            >
+              Done
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+              <Plus size={16} />
+              <span>New Board</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -69,7 +95,13 @@ export default function BoardsPage() {
             action={{ label: '+ Create a board', onClick: () => setShowCreate(true) }}
           />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div
+            className="grid grid-cols-2 md:grid-cols-3 gap-3"
+            onPointerDown={(e) => { e.stopPropagation(); startPressTimer(); }}
+            onPointerUp={clearPressTimer}
+            onPointerLeave={clearPressTimer}
+            onPointerCancel={clearPressTimer}
+          >
             {boards.map((board) => (
               <BoardCard
                 key={board.id}
@@ -77,8 +109,23 @@ export default function BoardsPage() {
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
+                editMode={editMode}
               />
             ))}
+
+            {/* "New board" trailing cell */}
+            {!editMode && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowCreate(true); }}
+                className="relative rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors"
+                style={{ aspectRatio: '3/4' }}
+                aria-label="Create new board"
+              >
+                <Plus size={28} className="mb-1" />
+                <span className="text-xs font-medium">New board</span>
+              </button>
+            )}
           </div>
         )}
       </div>
