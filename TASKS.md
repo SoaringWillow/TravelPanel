@@ -276,7 +276,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The plan JSON, map tiles for the plan's bounding box (via MapLibre's offline API), and trip data are all cached
 
 ### D7 — AI Auto-Organize Inbox (Cluster Clips by Destination)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: PRODUCT_STRATEGY.md's "ambient organization promise" — users save to Inbox and clips organize themselves. The killer demo is opening the app after 3 months and finding clips already sorted.  
 **Files to change**: `app/inbox/page.tsx`, new `app/api/organize/route.ts`, `lib/db.ts`  
 **What to do**:
