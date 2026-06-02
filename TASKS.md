@@ -212,7 +212,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - All wrappers must be async and swallow errors silently
 
 ### D3 — Empty States with Character
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/page.tsx`  
 **What to do**:
 - Inbox empty state: replace plain text with a card showing:
