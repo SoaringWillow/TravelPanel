@@ -3,10 +3,12 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import { ExtensionBridge } from '@/components/ExtensionBridge';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
   description: 'Map-centric travel app where AI extracts locations from social media links and helps you plan routes',
+  applicationName: 'TravelPanel',
 };
 
 export default function RootLayout({
@@ -26,6 +28,7 @@ export default function RootLayout({
       <body>
         <CapacitorBridge />
         <AnalyticsProvider />
+        <ExtensionBridge />
         <ResourceBanner />
         <div className="min-h-screen">
           {children}
