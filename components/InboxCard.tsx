@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { hapticImpact, hapticWarning } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +34,8 @@ function truncateUrl(url: string, maxLen = 40): string {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
+const SWIPE_THRESHOLD = 80;
+
 export default function InboxCard({
   item,
   onDelete,
@@ -40,6 +44,39 @@ export default function InboxCard({
   onRetry,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
+
+  // ── Swipe-to-delete ──────────────────────────────────────────────────────
+  const touchStartX = useRef<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swiped, setSwiped] = useState(false); // true = delete action revealed
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    setSwiped(false);
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    if (dx < 0) setSwipeOffset(Math.max(dx, -SWIPE_THRESHOLD - 20));
+  }
+
+  function onTouchEnd() {
+    if (swipeOffset < -SWIPE_THRESHOLD) {
+      hapticImpact();
+      setSwiped(true);
+      setSwipeOffset(-SWIPE_THRESHOLD);
+    } else {
+      setSwiped(false);
+      setSwipeOffset(0);
+    }
+    touchStartX.current = null;
+  }
+
+  function handleSwipeDelete() {
+    hapticWarning();
+    onDelete(item.id);
+  }
 
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
@@ -189,7 +226,25 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* Delete reveal behind the card */}
+      {swiped && (
+        <button
+          type="button"
+          onClick={handleSwipeDelete}
+          className="absolute inset-y-0 right-0 flex items-center justify-center w-20 bg-red-500 text-white text-xs font-semibold rounded-r-2xl"
+          aria-label="Delete"
+        >
+          <Trash2 size={18} />
+        </button>
+      )}
+    <div
+      className="bg-white shadow-sm border border-gray-100 overflow-hidden rounded-2xl transition-transform"
+      style={{ transform: `translateX(${swipeOffset}px)` }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -310,6 +365,7 @@ export default function InboxCard({
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { hapticSuccess, hapticImpact, hapticWarning } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -121,6 +122,7 @@ function SharePageInner() {
     setEnrichmentLoading(true);
     enrichItem(itemId, rawUrl, sharedImageUrl)
       .then(async (success) => {
+        if (!success) hapticWarning();
         if (success) {
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
@@ -141,6 +143,7 @@ function SharePageInner() {
         setEnrichmentLoading(false);
       });
 
+    hapticSuccess();
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
   }
@@ -273,7 +276,7 @@ function SharePageInner() {
             <button
               type="button"
               disabled={stage === 'saving'}
-              onClick={() => handleSave(undefined, 'Inbox')}
+              onClick={() => { hapticImpact(); handleSave(undefined, 'Inbox'); }}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox
@@ -285,7 +288,7 @@ function SharePageInner() {
                 key={board.id}
                 type="button"
                 disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                onClick={() => { hapticImpact(); handleSave(board.id, `${board.emoji} ${board.name}`); }}
                 className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}

@@ -253,7 +253,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show enrichment warnings as a styled `EnrichmentWarnings` section at the top of the plan
 
 ### D5 — iOS Haptic Feedback + Native UX Patterns
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: A beautiful iOS app must feel native. Haptics on save, swipe-to-delete patterns, and momentum scrolling make the difference between a "web app" and an "iOS app" in user perception.  
 **Files to change**: `app/share/page.tsx`, `components/InboxCard.tsx`, `lib/haptics.ts`  
 **What to do**:
