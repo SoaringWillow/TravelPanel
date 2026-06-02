@@ -296,7 +296,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - NavBar should NOT animate (stays fixed); only the page content animates
 
 ### D10 — In-App "Quick Add" URL Entry
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, `components/ImportSheet.tsx`  
 **What to do**:
 - The existing ImportSheet is a modal — improve the trigger UX:

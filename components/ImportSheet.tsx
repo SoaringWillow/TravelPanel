@@ -34,16 +34,32 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]             = useState(initialUrl);
+  const [notes, setNotes]         = useState('');
+  const [stage, setStage]         = useState<Stage>('idle');
+  const [preview, setPreview]     = useState<ImportResult | null>(null);
+  const [error, setError]         = useState('');
+  const [clipboardUrl, setClipboardUrl] = useState('');
+  const abortRef                  = useRef<AbortController | null>(null);
+  const inputRef                  = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
+
+  // Auto-focus URL input and check clipboard when sheet opens
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 120);
+    // Clipboard read (requires permission, gracefully skipped if denied)
+    navigator.clipboard?.readText().then((text) => {
+      const trimmed = text.trim();
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        setClipboardUrl(trimmed);
+      }
+    }).catch(() => {});
+    return () => clearTimeout(t);
+  }, [open]);
 
   const trimmedUrl       = url.trim();
   const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
@@ -141,6 +157,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setClipboardUrl('');
   }
 
   function handleClose() {
@@ -181,6 +198,19 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             ))}
           </div>
 
+          {/* ── Clipboard paste chip (shown when clipboard has a URL) ───── */}
+          {clipboardUrl && !url && stage === 'idle' && (
+            <button
+              type="button"
+              onClick={() => { setUrl(clipboardUrl); setClipboardUrl(''); }}
+              className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium px-3 py-2 rounded-xl hover:bg-indigo-100 transition-colors w-full"
+            >
+              <Link2 size={12} />
+              <span className="truncate flex-1 text-left">{clipboardUrl}</span>
+              <span className="flex-shrink-0 text-indigo-500">Paste ↵</span>
+            </button>
+          )}
+
           {/* ── URL input ────────────────────────────────────────────────── */}
           <div className="relative">
             <Link2
@@ -188,6 +218,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
             />
             <input
+              ref={inputRef}
               type="url"
               value={url}
               onChange={(e) => {

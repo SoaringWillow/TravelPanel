@@ -1,10 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, CheckCircle2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
@@ -22,6 +22,8 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [fabSaved, setFabSaved]         = useState(false);
+  const fabTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -58,9 +60,11 @@ function HomePageInner() {
     addItem(item);
     setShowImport(false);
     setPrefilledUrl('');
-    if (item.locations.length > 0) {
-      setFlyTo(item.locations[0]);
-    }
+    if (item.locations.length > 0) setFlyTo(item.locations[0]);
+    // FAB success pulse
+    setFabSaved(true);
+    if (fabTimerRef.current) clearTimeout(fabTimerRef.current);
+    fabTimerRef.current = setTimeout(() => setFabSaved(false), 2200);
   }
 
   function handleImportClose() {
@@ -96,13 +100,28 @@ function HomePageInner() {
 
       {/* Import FAB */}
       {!selectedItem && (
-        <button
-          onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+        <motion.button
+          onClick={() => { if (!fabSaved) setShowImport(true); }}
+          animate={fabSaved ? { scale: [1, 1.15, 1], backgroundColor: ['#4f46e5', '#16a34a', '#16a34a'] } : { scale: 1, backgroundColor: '#4f46e5' }}
+          transition={{ duration: 0.3 }}
+          className="absolute bottom-24 right-4 z-[1000] text-white rounded-full p-4 shadow-xl"
+          style={{ backgroundColor: '#4f46e5' }}
           aria-label="Clip inspiration"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          <Plus size={24} />
-        </button>
+          <AnimatePresence mode="wait">
+            {fabSaved ? (
+              <motion.span key="check" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }}>
+                <CheckCircle2 size={24} />
+              </motion.span>
+            ) : (
+              <motion.span key="plus" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                <Plus size={24} />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       )}
 
       {/* Import Sheet */}
