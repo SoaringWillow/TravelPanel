@@ -43,7 +43,8 @@ export default function PlanPage() {
   // ── On-trip mode ──────────────────────────────────────────────────────────
   const [onTripMode, setOnTripMode] = useState(false);
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [checkedActivities, setCheckedActivities] = useState<Set<string>>(new Set());
+  // Map from "dayIdx-actIdx" → check-in timestamp (ms). Stored in localStorage.
+  const [checkedActivities, setCheckedActivities] = useState<Record<string, number>>({});
   const posWatchRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -71,9 +72,20 @@ export default function PlanPage() {
   // Load saved check-ins when the active trip changes
   useEffect(() => {
     if (!currentTripId) return;
+    setCheckedActivities({});
     try {
       const stored = localStorage.getItem(`trip-checkins-${currentTripId}`);
-      if (stored) setCheckedActivities(new Set(JSON.parse(stored) as string[]));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Support both old format (string[]) and new format (Record<string,number>)
+        if (Array.isArray(parsed)) {
+          const asRecord: Record<string, number> = {};
+          parsed.forEach((k: string) => { asRecord[k] = Date.now(); });
+          setCheckedActivities(asRecord);
+        } else {
+          setCheckedActivities(parsed as Record<string, number>);
+        }
+      }
     } catch { /* ignore */ }
   }, [currentTripId]);
 
@@ -111,10 +123,10 @@ export default function PlanPage() {
   function checkInActivity(dayIdx: number, actIdx: number) {
     const key = `${dayIdx}-${actIdx}`;
     setCheckedActivities((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
+      const next = { ...prev };
+      if (key in next) delete next[key]; else next[key] = Date.now();
       if (currentTripId) {
-        localStorage.setItem(`trip-checkins-${currentTripId}`, JSON.stringify([...next]));
+        localStorage.setItem(`trip-checkins-${currentTripId}`, JSON.stringify(next));
       }
       track('activity_checked_in', { boardId, dayIdx, actIdx });
       return next;
@@ -126,7 +138,7 @@ export default function PlanPage() {
     for (let d = activeDayIndex; d < plan.days.length; d++) {
       const day = plan.days[d];
       for (let a = 0; a < day.activities.length; a++) {
-        if (!checkedActivities.has(`${d}-${a}`)) {
+        if (!(`${d}-${a}` in checkedActivities)) {
           return { activity: day.activities[a], dayIdx: d, actIdx: a };
         }
       }
@@ -601,7 +613,7 @@ export default function PlanPage() {
 
                   {activeDayPlan.activities.map((activity, aIdx) => {
                     const actKey = `${activeDayIndex}-${aIdx}`;
-                    const isChecked = checkedActivities.has(actKey);
+                    const isChecked = actKey in checkedActivities;
                     return (
                       <div
                         key={aIdx}
@@ -685,6 +697,16 @@ export default function PlanPage() {
                     ))}
                   </ul>
                 </div>
+              )}
+
+              {/* Post-trip timeline link (shown when at least one check-in exists) */}
+              {currentTripId && Object.keys(checkedActivities).length > 0 && (
+                <button
+                  onClick={() => router.push(`/trip/${currentTripId}?boardId=${boardId}`)}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-amber-100 active:scale-[0.98] transition-all border border-amber-100"
+                >
+                  📖 View Trip Journal
+                </button>
               )}
 
               {/* Start Over */}
