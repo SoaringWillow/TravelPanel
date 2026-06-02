@@ -225,7 +225,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - All empty states should be centered, generous whitespace, never feel like an error
 
 ### D4 — Custom Map Markers by Category Tag
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`  
 **What to do**:
 - Replace the single default pin color with per-category colors based on the item's first tag:

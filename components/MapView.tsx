@@ -6,7 +6,6 @@ import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
-import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
@@ -28,6 +27,43 @@ const TAG_EMOJI: Record<string, string> = {
   architecture: '🏗',
   rural:        '🌾',
 };
+
+// ─── Tag → category color ─────────────────────────────────────────────────────
+
+const TAG_COLOR: Record<string, string> = {
+  food:         '#f97316',
+  restaurant:   '#f97316',
+  cafe:         '#f97316',
+  nature:       '#22c55e',
+  mountain:     '#22c55e',
+  rural:        '#22c55e',
+  park:         '#22c55e',
+  culture:      '#a855f7',
+  history:      '#a855f7',
+  art:          '#a855f7',
+  architecture: '#a855f7',
+  museum:       '#a855f7',
+  temple:       '#a855f7',
+  adventure:    '#ef4444',
+  hiking:       '#ef4444',
+  sports:       '#ef4444',
+  beach:        '#06b6d4',
+  ocean:        '#06b6d4',
+  island:       '#06b6d4',
+  city:         '#6366f1',
+  shopping:     '#6366f1',
+  nightlife:    '#6366f1',
+};
+
+const DEFAULT_PIN_COLOR = '#6366f1';
+
+function getTagColor(tags: string[]): string {
+  for (const tag of tags) {
+    const color = TAG_COLOR[tag.toLowerCase()];
+    if (color) return color;
+  }
+  return DEFAULT_PIN_COLOR;
+}
 
 function getPinEmoji(tags: string[]): string | null {
   for (const tag of tags) {
@@ -91,6 +127,7 @@ interface PinProps {
 function Pin({ item, locName, onClick }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
+  const categoryColor = getTagColor(item.tags);
 
   return (
     <div style={{ position: 'relative' }}>
@@ -167,9 +204,11 @@ function Pin({ item, locName, onClick }: PinProps) {
             width:           emoji ? 34 : 26,
             height:          emoji ? 34 : 26,
             borderRadius:    '50%',
-            backgroundColor: emoji ? 'white' : PLATFORM_COLORS[item.platform],
-            border:          `2.5px solid ${emoji ? PLATFORM_COLORS[item.platform] : 'white'}`,
-            boxShadow:       hovered ? '0 4px 12px rgba(0,0,0,0.30)' : '0 2px 8px rgba(0,0,0,0.22)',
+            backgroundColor: emoji ? 'white' : categoryColor,
+            border:          `2.5px solid ${emoji ? categoryColor : 'white'}`,
+            boxShadow:       hovered
+              ? `0 4px 12px rgba(0,0,0,0.30), 0 0 0 3px ${categoryColor}40`
+              : '0 2px 8px rgba(0,0,0,0.22)',
             cursor:          'pointer',
             padding:         0,
             display:         'flex',
