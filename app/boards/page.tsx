@@ -2,19 +2,33 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Download } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import { triggerExport } from '@/lib/exportData';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [exporting, setExporting]   = useState(false);
+  const [exportedStats, setExportedStats] = useState<{ items: number; boards: number; trips: number } | null>(null);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const stats = await triggerExport();
+      setExportedStats(stats);
+      setTimeout(() => setExportedStats(null), 4000);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -38,16 +52,37 @@ export default function BoardsPage() {
             <LayoutGrid className="text-indigo-600" size={22} />
             <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            <Plus size={16} />
-            <span>New Board</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting}
+              title="Download all data as JSON"
+              className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-sm font-medium px-3 py-2 rounded-xl hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <Download size={15} />
+              <span className="hidden sm:inline">
+                {exporting ? 'Exporting…' : 'Export'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+              <Plus size={16} />
+              <span>New Board</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Export success toast */}
+      {exportedStats && (
+        <div className="mx-4 mt-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700 font-medium flex items-center gap-2">
+          ✅ Downloaded — {exportedStats.items} clip{exportedStats.items !== 1 ? 's' : ''}, {exportedStats.boards} board{exportedStats.boards !== 1 ? 's' : ''}, {exportedStats.trips} plan{exportedStats.trips !== 1 ? 's' : ''}
+        </div>
+      )}
 
       {/* First-launch demo seed banner */}
       <OnboardingSeed />
