@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "description": "Save travel inspiration to TravelPanel with one click. Claude extracts locations & wisdom from any page.",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon.svg",
+      "48": "icons/icon.svg",
+      "128": "icons/icon.svg"
+    },
+    "default_title": "Save to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "icons": {
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  },
+  "permissions": ["activeTab", "contextMenus", "storage"]
+}
