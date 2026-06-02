@@ -209,3 +209,23 @@ export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
 }
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
+export async function importAllData(data: { items: SavedItem[]; boards: Board[]; trips: Trip[] }): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(['items', 'boards', 'trips'], 'readwrite');
+  await Promise.all([
+    ...data.items.map((item) => tx.objectStore('items').put(item)),
+    ...data.boards.map((board) => tx.objectStore('boards').put(board)),
+    ...data.trips.map((trip) => tx.objectStore('trips').put(trip)),
+  ]);
+  await tx.done;
+}
