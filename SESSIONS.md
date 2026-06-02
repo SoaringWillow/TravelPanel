@@ -96,3 +96,7 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-02 13:26 | 04a9560 | feat(B2): add browser extension (Chrome/Safari clipper)
+2026-06-02 13:33 | 2fe0afd | feat(B3): Claude Vision fallback for Xiaohongshu + image-mode share flow
+2026-06-02 13:35 | 55adbba | feat(B5): one-click JSON backup export from My Boards
+2026-06-02 13:38 | 7e78445 | feat(C1): clipboard URL import banner + new Phase C/D task roadmap
