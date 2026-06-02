@@ -81,12 +81,16 @@ async function fetchPageData(url: string) {
   }
 }
 
+// Platforms that block URL scraping — image from Share Sheet is the primary source.
+const ANTI_SCRAPING_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +100,27 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const hasImage = typeof imageBase64 === 'string' && imageBase64.length > 0;
+
+  // Skip URL scraping for anti-scraping platforms when we have an image —
+  // the page returns empty or login walls anyway.
+  const page = (ANTI_SCRAPING_PLATFORMS.has(platform) && hasImage)
+    ? null
+    : await fetchPageData(url);
+
+  const imageNote = hasImage
+    ? 'A screenshot of the post is also provided as an image. Use it as the primary source for content on platforms that block scraping.'
+    : '';
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+${imageNote}
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+Title: ${page?.title ?? '(unavailable — anti-scraping platform, use the image)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch — extract everything from the screenshot above)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,10 +145,29 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
+    // When an image is available, include it as a vision input alongside the text prompt.
+    const claudeInput = hasImage
+      ? {
+          messages: [
+            {
+              role: 'user' as const,
+              content: [
+                {
+                  type: 'image' as const,
+                  image: Buffer.from(imageBase64!, 'base64'),
+                  mimeType: 'image/jpeg' as const,
+                },
+                { type: 'text' as const, text: prompt },
+              ],
+            },
+          ],
+        }
+      : { prompt };
+
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      ...claudeInput,
     });
     claudeResult = object;
   } catch {
