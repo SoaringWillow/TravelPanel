@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="logo-wrap">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#0E9F8E"/>
+          <circle cx="12" cy="9" r="2.5" fill="white"/>
+        </svg>
+      </div>
+      <div>
+        <h1>TravelPanel Clipper</h1>
+        <p>Browser Extension Settings</p>
+      </div>
+    </div>
+
+    <!-- App URL setting -->
+    <div class="card">
+      <div class="card-title">TravelPanel App URL</div>
+      <p class="card-hint">
+        Your deployed TravelPanel URL. The extension opens this app whenever you clip a page.
+      </p>
+      <input
+        type="url"
+        id="appUrl"
+        class="input"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <div class="status hidden" id="status"></div>
+      <div class="row">
+        <button class="btn-primary" id="saveBtn">Save</button>
+        <button class="btn-secondary" id="testBtn">Test connection</button>
+      </div>
+    </div>
+
+    <!-- How to use -->
+    <div class="card">
+      <div class="card-title">How to clip</div>
+      <ol class="how-list">
+        <li>Browse to any travel inspiration page (Instagram, YouTube, blogs…)</li>
+        <li>Click the <strong>TravelPanel pin icon</strong> in your toolbar</li>
+        <li>Hit <strong>Save to TravelPanel</strong> — a new tab opens in your app</li>
+        <li>Claude AI extracts <strong>locations</strong> and <strong>wisdom</strong> from the page</li>
+      </ol>
+      <div class="tip-box">
+        <strong>Right-click shortcut:</strong> Right-click any page or link → <em>Clip to TravelPanel</em><br>
+        <strong>Keyboard shortcut:</strong> <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
+        (customize at <code>chrome://extensions/shortcuts</code>)
+      </div>
+    </div>
+
+    <!-- Safari instructions -->
+    <div class="card">
+      <div class="card-title">Using in Safari</div>
+      <p class="card-hint">
+        Safari supports the same WebExtension standard. Convert this extension with Apple's CLI tool:
+      </p>
+      <div class="code-block">xcrun safari-web-extension-converter /path/to/browser-extension \<br>
+&nbsp;&nbsp;--project-location ../ios/App \<br>
+&nbsp;&nbsp;--app-name TravelPanelClipper</div>
+      <p class="card-hint" style="margin-top:10px">
+        Open the generated Xcode project, build, then enable the extension in
+        <strong>Safari → Settings → Extensions</strong>.
+      </p>
+    </div>
+
+    <!-- Load unpacked instructions -->
+    <div class="card">
+      <div class="card-title">Installing in Chrome / Edge</div>
+      <ol class="how-list">
+        <li>Go to <code>chrome://extensions</code></li>
+        <li>Enable <strong>Developer mode</strong> (top right toggle)</li>
+        <li>Click <strong>Load unpacked</strong> and select the <code>browser-extension/</code> folder</li>
+        <li>Pin the TravelPanel icon to your toolbar</li>
+      </ol>
+    </div>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

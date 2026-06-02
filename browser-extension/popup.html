@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#0E9F8E"/>
+          <circle cx="12" cy="9" r="2.5" fill="white"/>
+        </svg>
+      </div>
+      <span class="brand">TravelPanel</span>
+      <button class="settings-btn" id="settingsBtn" title="Settings" aria-label="Open settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Main: clip current page -->
+    <div class="content" id="mainContent">
+      <div class="url-section">
+        <div class="favicon" id="favicon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+        <div class="url-info">
+          <div class="page-title" id="pageTitle">Loading…</div>
+          <div class="page-url" id="pageUrl"></div>
+        </div>
+      </div>
+
+      <button class="clip-btn" id="clipBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+        Save to TravelPanel
+      </button>
+    </div>
+
+    <!-- Success -->
+    <div class="content hidden" id="successContent">
+      <div class="state-icon state-success">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0E9F8E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="state-title">Clip saved!</div>
+      <div class="state-sub">TravelPanel is extracting locations &amp; wisdom…</div>
+    </div>
+
+    <!-- Error: unsupported page -->
+    <div class="content hidden" id="errorContent">
+      <div class="state-icon state-warn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="state-title">Can't clip this page</div>
+      <div class="state-sub" id="errorMessage">Browser system pages can't be clipped.</div>
+      <button class="secondary-btn" id="retryBtn">Go back</button>
+    </div>
+
+    <!-- Setup: no app URL configured -->
+    <div class="content hidden" id="setupContent">
+      <div class="setup-header">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#0E9F8E" opacity="0.2"/>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="#0E9F8E" stroke-width="2" fill="none"/>
+          <circle cx="12" cy="9" r="2.5" fill="#0E9F8E"/>
+        </svg>
+        <div class="setup-title">Connect TravelPanel</div>
+        <div class="setup-sub">Enter your app URL to start clipping</div>
+      </div>
+      <input type="url" class="url-input" id="setupUrl" placeholder="https://your-app.vercel.app" autocomplete="off">
+      <div class="setup-error hidden" id="setupError"></div>
+      <button class="clip-btn" id="saveSetupBtn">Connect &amp; Continue</button>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

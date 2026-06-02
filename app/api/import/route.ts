@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageData: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageData } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,7 +99,49 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Use Vision when an image is provided AND text scraping returned no usable content.
+  // Xiaohongshu/WeChat block scrapers, so page will be null or have empty title/description.
+  const pageIsEmpty = !page || (!page.title && !page.description && !page.textContent?.trim());
+  const useVision = !!imageData && pageIsEmpty;
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  try {
+    if (useVision) {
+      const visionPrompt = `You are analyzing a screenshot from a ${platform} social media post to extract travel inspiration.
+
+URL: ${url}
+${page?.title ? `Scraped title: ${page.title}` : '(text scraping blocked — image is the only source)'}
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with accurate GPS coordinates.
+Only include places you are confident about from what is visible. Return [] if unsure.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Extract every piece of actionable insight visible in the post text, captions, or overlays:
+- Tips and practical advice ("arrive before 8am", "cash only", "book 3 weeks ahead")
+- Warnings ("typhoon season in August", "tourist trap, skip it")
+- Opinions and honest takes
+- Seasonal or timing advice
+- Price signals
+If this is a list post ("35 mistakes to avoid"), extract ALL visible items.
+
+Return a descriptive title and 2–3 sentence summary of what travel content is shown.`;
+
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', image: `data:image/jpeg;base64,${imageData}` },
+            { type: 'text', text: visionPrompt },
+          ],
+        }],
+      });
+      claudeResult = object;
+    } else {
+      const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -128,14 +171,13 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
