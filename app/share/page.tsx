@@ -88,9 +88,12 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pick up any image stored by CapacitorBridge
+    const imageBase64 = sessionStorage.getItem('pendingShareImage') ?? undefined;
+    if (imageBase64) sessionStorage.removeItem('pendingShareImage');
+
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
