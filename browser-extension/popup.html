@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">
+      <div class="header-logo-icon">✈</div>
+      TravelPanel
+    </div>
+    <button class="header-settings" id="settingsBtn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Save flow (default view) -->
+  <div id="saveView">
+    <!-- Current page info -->
+    <div class="page-info">
+      <div class="platform-badge" id="platformBadge">Web</div>
+      <div class="page-title" id="pageTitle">Loading...</div>
+      <div class="page-url" id="pageUrl"></div>
+    </div>
+
+    <!-- Board selector + Save button -->
+    <div class="save-section">
+      <div class="save-label">Save to</div>
+      <div class="board-grid" id="boardGrid">
+        <button class="board-btn inbox selected" data-board-id="__inbox__">📥 Inbox</button>
+      </div>
+      <button class="save-btn" id="saveBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Save Clip
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <button class="footer-link" id="openAppBtn">Open TravelPanel →</button>
+      <span class="footer-link" id="configuredUrl" style="opacity:0.6"></span>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="status" id="loadingView">
+    <div class="status-icon loading">✈</div>
+    <div class="status-title">Saving clip…</div>
+    <div class="status-msg">Extracting locations &amp; insights from this page</div>
+  </div>
+
+  <!-- Success state -->
+  <div class="status" id="successView">
+    <div class="status-icon success">✅</div>
+    <div class="status-title">Clip saved!</div>
+    <div class="status-msg" id="successMsg">Added to your TravelPanel</div>
+    <div class="status-meta" id="successMeta" style="display:none">
+      <div class="status-meta-item">
+        <div class="status-meta-num" id="locationCount">0</div>
+        <div class="status-meta-label">Locations</div>
+      </div>
+      <div style="width:1px;height:32px;background:#E5E7EB"></div>
+      <div class="status-meta-item">
+        <div class="status-meta-num" id="substanceCount">0</div>
+        <div class="status-meta-label">Tips &amp; Insights</div>
+      </div>
+    </div>
+    <div class="status-links">
+      <button class="status-link-btn" id="saveAnotherBtn">Save another</button>
+      <button class="status-link-btn primary" id="viewInAppBtn">View in app →</button>
+    </div>
+  </div>
+
+  <!-- Error state -->
+  <div class="status" id="errorView">
+    <div class="status-icon error">⚠️</div>
+    <div class="status-title">Couldn't save</div>
+    <div class="status-msg" id="errorMsg">Something went wrong. Check your TravelPanel URL in settings.</div>
+    <div class="status-links">
+      <button class="status-link-btn" id="retryBtn">Try again</button>
+      <button class="status-link-btn" id="openSettingsBtn">Settings</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

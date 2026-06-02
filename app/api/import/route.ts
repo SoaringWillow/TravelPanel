@@ -81,24 +81,29 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Image helpers ────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+// Parse a data: URL or https: URL into something the AI SDK can consume.
+// Returns { imageData, mimeType } or null if unusable.
+function parseImageParam(imageUrl: string): { imageData: string; mimeType: string } | null {
+  if (imageUrl.startsWith('data:')) {
+    // data:image/jpeg;base64,<data>
+    const match = /^data:(image\/[a-z]+);base64,(.+)$/.exec(imageUrl);
+    if (!match) return null;
+    return { imageData: match[2], mimeType: match[1] };
   }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  if (imageUrl.startsWith('https://') || imageUrl.startsWith('http://')) {
+    // Regular URL — return as-is (AI SDK handles URL images directly)
+    return { imageData: imageUrl, mimeType: 'url' };
   }
+  // Assume raw base64 JPEG
+  return { imageData: imageUrl, mimeType: 'image/jpeg' };
+}
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+// ─── Prompt builders ──────────────────────────────────────────────────────────
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -127,17 +132,94 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  return `You are a travel content analyzer. The image below is a screenshot from a ${platform} travel post (URL: ${url}).
+
+Extract TWO layers from the visible content in this image:
+
+## Layer 1 — Spots (geographic skeleton)
+Identify any real, named locations visible in the image (place names, captions, overlaid text, map pins).
+Only include places you are confident about with accurate GPS coordinates.
+If no specific locations are visible, return an empty array.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Extract every tip, warning, opinion, recommendation, or insight visible in the image:
+- Text overlays, captions, numbered lists
+- Any written advice, ratings, or commentary
+- Context clues about best time to visit, pricing, queues, etc.
+Aim for 2–8 items (more for list-format posts).
+
+Also infer a descriptive title and 2–3 sentence description from the image content.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageUrl: string | undefined;
+  try {
+    ({ url, imageUrl } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+
+  // Determine whether to use vision:
+  // - Always use vision when an image is provided
+  // - Also use vision for Xiaohongshu when page content is empty (anti-scraping)
+  const parsedImage = imageUrl ? parseImageParam(imageUrl) : null;
+  const pageEmpty = !page?.textContent?.trim() || page.textContent.trim().length < 50;
+  const useVision = parsedImage !== null || (platform === 'xiaohongshu' && pageEmpty);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+
+  if (useVision && parsedImage) {
+    // Vision path: use the image for extraction
+    try {
+      const imageContent =
+        parsedImage.mimeType === 'url'
+          ? ({ type: 'image' as const, image: new URL(parsedImage.imageData) })
+          : ({ type: 'image' as const, image: parsedImage.imageData, mimeType: parsedImage.mimeType as `image/${string}` });
+
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              imageContent,
+              { type: 'text', text: buildVisionPrompt(platform, url) },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to text extraction
+    }
+  }
+
+  // Text path: run if vision wasn't used or failed
+  if (!claudeResult) {
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(platform, url, page),
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {

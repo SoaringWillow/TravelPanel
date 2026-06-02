@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, CheckCircle2, Wand2, WifiOff, BookmarkCheck } from 'lucide-react';
+import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, Activity } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
@@ -13,6 +13,7 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import { OnTripNextStop } from '@/components/OnTripNextStop';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -39,6 +40,34 @@ export default function PlanPage() {
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
+  // ── Offline detection ─────────────────────────────────────────────────────
+  const [isOnline, setIsOnline] = useState(true);
+  const [planSavedOffline, setPlanSavedOffline] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // ── Refinement ────────────────────────────────────────────────────────────
+  const [showRefinement, setShowRefinement] = useState(false);
+  const [refinementText, setRefinementText] = useState('');
+
+  // ── On-trip mode ──────────────────────────────────────────────────────────
+  const [onTripMode, setOnTripMode] = useState(false);
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
+  // Map from "dayIdx-actIdx" → check-in timestamp (ms). Stored in localStorage.
+  const [checkedActivities, setCheckedActivities] = useState<Record<string, number>>({});
+  const posWatchRef = useRef<number | null>(null);
+
   useEffect(() => {
     async function load() {
       setLoadingBoard(true);
@@ -53,7 +82,20 @@ export default function PlanPage() {
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
         }
-        setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
+        const sorted = trips.sort((a, b) => a.createdAt - b.createdAt);
+        setSavedTrips(sorted);
+
+        // Offline: auto-load the most recent saved trip
+        if (!navigator.onLine && sorted.length > 0) {
+          const latest = sorted[sorted.length - 1];
+          if (latest.plan) {
+            setPlan(latest.plan);
+            setSteps(latest.agentSteps ?? []);
+            setDays(latest.days);
+            setCurrentTripId(latest.id);
+            setStage('complete');
+          }
+        }
       } finally {
         setLoadingBoard(false);
       }
@@ -61,8 +103,84 @@ export default function PlanPage() {
     load();
   }, [boardId]);
 
+  // Load saved check-ins when the active trip changes
+  useEffect(() => {
+    if (!currentTripId) return;
+    setCheckedActivities({});
+    try {
+      const stored = localStorage.getItem(`trip-checkins-${currentTripId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Support both old format (string[]) and new format (Record<string,number>)
+        if (Array.isArray(parsed)) {
+          const asRecord: Record<string, number> = {};
+          parsed.forEach((k: string) => { asRecord[k] = Date.now(); });
+          setCheckedActivities(asRecord);
+        } else {
+          setCheckedActivities(parsed as Record<string, number>);
+        }
+      }
+    } catch { /* ignore */ }
+  }, [currentTripId]);
+
+  // Start/stop GPS watch when on-trip mode changes
+  useEffect(() => {
+    if (onTripMode && 'geolocation' in navigator) {
+      posWatchRef.current = navigator.geolocation.watchPosition(
+        (pos) => setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {},
+        { enableHighAccuracy: true, timeout: 15000 },
+      );
+    } else {
+      if (posWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(posWatchRef.current);
+        posWatchRef.current = null;
+      }
+    }
+    return () => {
+      if (posWatchRef.current !== null) navigator.geolocation.clearWatch(posWatchRef.current);
+    };
+  }, [onTripMode]);
+
   const itemsWithLocations = boardItems.filter((item) => item.locations.length > 0);
   const hasLocations = itemsWithLocations.length > 0;
+
+  // ── On-trip helpers ───────────────────────────────────────────────────────
+
+  function toggleOnTripMode() {
+    setOnTripMode((v) => {
+      if (!v) track('on_trip_mode_started', { boardId });
+      return !v;
+    });
+  }
+
+  function checkInActivity(dayIdx: number, actIdx: number) {
+    const key = `${dayIdx}-${actIdx}`;
+    setCheckedActivities((prev) => {
+      const next = { ...prev };
+      if (key in next) delete next[key]; else next[key] = Date.now();
+      if (currentTripId) {
+        localStorage.setItem(`trip-checkins-${currentTripId}`, JSON.stringify(next));
+      }
+      track('activity_checked_in', { boardId, dayIdx, actIdx });
+      return next;
+    });
+  }
+
+  function getNextStop(): { activity: Activity; dayIdx: number; actIdx: number } | null {
+    if (!plan?.days) return null;
+    for (let d = activeDayIndex; d < plan.days.length; d++) {
+      const day = plan.days[d];
+      for (let a = 0; a < day.activities.length; a++) {
+        if (!(`${d}-${a}` in checkedActivities)) {
+          return { activity: day.activities[a], dayIdx: d, actIdx: a };
+        }
+      }
+    }
+    return null;
+  }
+
+  const nextStop = onTripMode ? getNextStop() : null;
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
@@ -83,6 +201,7 @@ export default function PlanPage() {
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
+    const now = new Date();
     const res = await fetch('/api/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,6 +212,8 @@ export default function PlanPage() {
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
         ].join('. '),
+        travelMonth: now.getMonth() + 1,
+        travelDay: now.getDate(),
       }),
     });
 
@@ -154,6 +275,81 @@ export default function PlanPage() {
       }
     }
   }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+
+  const refinePlan = useCallback(async () => {
+    if (!plan || !refinementText.trim()) return;
+    const instruction = refinementText.trim();
+    setRefinementText('');
+    setShowRefinement(false);
+
+    setStage('generating');
+    setSteps([]);
+    const prefs = [
+      ...Array.from(selectedChips),
+      ...(customNotes.trim() ? [customNotes.trim()] : []),
+    ].join('. ');
+    track('plan_refined', { boardId });
+
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: boardItems,
+        days,
+        preferences: prefs,
+        existingPlan: plan,
+        refinement: instruction,
+      }),
+    });
+
+    if (!res.ok || !res.body) { setStage('complete'); return; }
+
+    const reader = res.body.getReader();
+    let buf = '';
+    let latestPlan: Partial<TripPlan> | null = null;
+    const collectedSteps: AgentStep[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += new TextDecoder().decode(value);
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line) as PlanStreamMessage;
+          if (msg.t === 'step') {
+            collectedSteps.push(msg.step);
+            setSteps((s) => [...s, msg.step]);
+            if (msg.step.type === 'done' || msg.step.type === 'error') {
+              setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+            }
+            if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              const trip: Trip = {
+                id: crypto.randomUUID(),
+                boardId,
+                boardName: board?.name ?? '',
+                name: `Plan ${savedTrips.length + 1} (refined)`,
+                days,
+                preferences: prefs,
+                agentSteps: collectedSteps,
+                plan: latestPlan as TripPlan,
+                createdAt: Date.now(),
+              };
+              await saveTrip(trip);
+              setSavedTrips((prev) => [...prev, trip]);
+              setCurrentTripId(trip.id);
+            }
+          }
+          if (msg.t === 'plan') {
+            latestPlan = msg.plan as Partial<TripPlan>;
+            setPlan(latestPlan);
+          }
+        } catch { /* skip */ }
+      }
+    }
+  }, [plan, refinementText, boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -383,10 +579,18 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
+              {/* Offline warning */}
+              {!isOnline && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+                  <WifiOff size={14} className="flex-shrink-0" />
+                  <span>You're offline. Connect to generate a new plan.</span>
+                </div>
+              )}
+
               {/* Generate button */}
               <button
                 onClick={generatePlan}
-                disabled={!hasLocations}
+                disabled={!hasLocations || !isOnline}
                 className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ✨ Begin planning
@@ -418,6 +622,14 @@ export default function PlanPage() {
           {/* ── COMPLETE STATE ── */}
           {stage === 'complete' && plan && (
             <div className="space-y-5">
+              {/* Offline banner */}
+              {!isOnline && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+                  <WifiOff size={14} className="flex-shrink-0" />
+                  <span>Offline mode — showing last saved plan</span>
+                </div>
+              )}
+
               {/* Board header row */}
               <div className="flex items-center gap-2">
                 <button
@@ -458,23 +670,38 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Export actions */}
+              {/* Export actions + On-trip mode */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="space-y-2">
+                  {/* On-trip mode toggle */}
                   <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    onClick={toggleOnTripMode}
+                    className={`w-full flex items-center justify-center gap-2 font-semibold text-sm py-2.5 rounded-xl active:scale-[0.98] transition-all ${
+                      onTripMode
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    }`}
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Navigation size={15} />
+                    {onTripMode ? '🧭 On-trip mode active — tap to exit' : '🚀 Start On-Trip Mode'}
                   </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -512,54 +739,74 @@ export default function PlanPage() {
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const actKey = `${activeDayIndex}-${aIdx}`;
+                    const isChecked = actKey in checkedActivities;
+                    return (
+                      <div
+                        key={aIdx}
+                        className={`bg-white rounded-2xl p-3 shadow-sm border space-y-1 transition-all ${
+                          isChecked ? 'border-green-200 opacity-60' : 'border-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.time}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium truncate ${isChecked ? 'text-green-600 line-through' : 'text-indigo-600'}`}>
+                              {activity.location.name}
+                            </p>
+                            <p className={`text-sm ${isChecked ? 'text-gray-400' : 'text-gray-800'}`}>{activity.name}</p>
+                          </div>
+                          {onTripMode ? (
+                            <button
+                              onClick={() => checkInActivity(activeDayIndex, aIdx)}
+                              className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                                isChecked
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-500 hover:bg-green-50 hover:text-green-600'
+                              }`}
                             >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
+                              <CheckCircle2 size={11} />
+                              {isChecked ? 'Done' : 'Check in'}
+                            </button>
+                          ) : (
+                            <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                              {activity.duration}
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {!isChecked && activity.tips.length > 0 && (
+                          <ul className="space-y-0.5 pl-1">
+                            {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                              <li key={tIdx} className="text-xs text-gray-500 leading-snug">
+                                · {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {/* Sourced tips — wisdom cited from the user's own clips */}
+                        {!isChecked && activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                          <div className="space-y-1 pt-1">
+                            {activity.sourcedTips.map((st, sIdx) => (
+                              <div
+                                key={sIdx}
+                                className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                              >
+                                <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
+                                <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
+                                  from your clip: {st.sourceTitle}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -580,6 +827,69 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* Post-trip timeline link (shown when at least one check-in exists) */}
+              {currentTripId && Object.keys(checkedActivities).length > 0 && (
+                <button
+                  onClick={() => router.push(`/trip/${currentTripId}?boardId=${boardId}`)}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-amber-100 active:scale-[0.98] transition-all border border-amber-100"
+                >
+                  📖 View Trip Journal
+                </button>
+              )}
+
+              {/* Save for offline (confirmation — plan is already in IndexedDB) */}
+              {isOnline && currentTripId && (
+                <button
+                  onClick={() => setPlanSavedOffline(true)}
+                  className={`flex items-center justify-center gap-2 w-full text-sm font-semibold py-2.5 rounded-xl border transition-all active:scale-[0.98] ${
+                    planSavedOffline
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <BookmarkCheck size={15} />
+                  {planSavedOffline ? 'Saved for offline ✓' : 'Save for offline'}
+                </button>
+              )}
+
+              {/* Refine this plan */}
+              {!showRefinement ? (
+                <button
+                  onClick={() => setShowRefinement(true)}
+                  className="flex items-center justify-center gap-2 w-full bg-violet-50 text-violet-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-violet-100 active:scale-[0.98] transition-all border border-violet-100"
+                >
+                  <Wand2 size={15} />
+                  Refine this plan…
+                </button>
+              ) : (
+                <div className="bg-violet-50 rounded-2xl p-3 border border-violet-100 space-y-2">
+                  <p className="text-xs font-semibold text-violet-700">Refine this plan</p>
+                  <textarea
+                    value={refinementText}
+                    onChange={(e) => setRefinementText(e.target.value)}
+                    placeholder={`e.g. "more free time", "remove Day 2 museums", "add a beach day", "make it more budget-friendly"`}
+                    rows={2}
+                    autoFocus
+                    className="w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={refinePlan}
+                      disabled={!refinementText.trim()}
+                      className="flex-1 bg-violet-600 text-white text-sm font-semibold py-2 rounded-xl hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                    >
+                      ✨ Apply refinement
+                    </button>
+                    <button
+                      onClick={() => { setShowRefinement(false); setRefinementText(''); }}
+                      className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Start Over */}
               <button
                 onClick={handleStartOver}
@@ -593,6 +903,18 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {/* On-trip sticky "Next Stop" banner */}
+      {onTripMode && plan && (
+        <OnTripNextStop
+          activity={nextStop?.activity ?? activeDayPlan?.activities[0]!}
+          dayIdx={nextStop?.dayIdx ?? activeDayIndex}
+          actIdx={nextStop?.actIdx ?? 0}
+          userPosition={userPosition}
+          isChecked={!nextStop}
+          onCheckIn={() => nextStop && checkInActivity(nextStop.dayIdx, nextStop.actIdx)}
+        />
+      )}
     </div>
   );
 }

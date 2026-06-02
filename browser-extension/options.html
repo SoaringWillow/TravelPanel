@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <div class="logo-icon">✈</div>
+      <div>
+        <div class="logo-text">TravelPanel Clipper</div>
+        <div class="logo-sub">Extension Settings</div>
+      </div>
+    </div>
+
+    <!-- App URL config -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">TravelPanel URL</div>
+        <div class="card-desc">Point the extension to your running TravelPanel instance.</div>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label for="appUrl">App URL</label>
+          <input type="url" id="appUrl" placeholder="http://localhost:3000">
+          <div class="field-hint">The base URL of your TravelPanel app (no trailing slash)</div>
+          <div class="presets">
+            <button class="preset-btn" data-url="http://localhost:3000">localhost:3000</button>
+            <button class="preset-btn" data-url="http://localhost:3001">localhost:3001</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="saveBtn">Save Settings</button>
+          <button class="btn btn-secondary" id="testBtn">Test Connection</button>
+          <span class="status-msg" id="statusMsg"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage instructions -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">How to use</div>
+      </div>
+      <div class="card-body">
+        <ul class="info-list">
+          <li data-icon="🌐">Navigate to any travel inspiration page (YouTube, Instagram, blogs, etc.)</li>
+          <li data-icon="🔖">Click the TravelPanel icon in your browser toolbar</li>
+          <li data-icon="📥">Select a board (or save to Inbox), then click <strong>Save Clip</strong></li>
+          <li data-icon="🤖">Claude AI will automatically extract locations and travel insights</li>
+          <li data-icon="🖱️">Right-click any link → <strong>Save to TravelPanel</strong> to clip without visiting</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">About</div>
+      </div>
+      <div class="card-body">
+        <ul class="info-list">
+          <li data-icon="ℹ️">Version 1.0.0 — TravelPanel Browser Extension</li>
+          <li data-icon="🔒">No data is sent to third parties. All clips go directly to your TravelPanel instance.</li>
+          <li data-icon="📦">Extension source is part of the TravelPanel open-source codebase at <code>browser-extension/</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { getActiveEvents, buildEnrichmentPromptBlock } from '@/lib/enrichmentSignals';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -49,9 +50,11 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string,
+    existingPlan: object | undefined, refinement: string | undefined,
+    travelMonth: number | undefined, travelDay: number | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, existingPlan, refinement, travelMonth, travelDay } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -73,6 +76,52 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        // ── Refinement mode: revise existing plan with a natural-language instruction ──
+        if (existingPlan && refinement) {
+          step('searching', `Refining your plan: "${refinement}"…`);
+
+          const contentSummary = items.map((i) => ({
+            title: i.title,
+            activities: i.activities,
+            tags: i.tags,
+            substance: (i.substance ?? []).map((s) => ({
+              type: s.type,
+              content: s.content,
+              applies_to: s.applies_to,
+            })),
+          }));
+
+          const planStream = streamObject({
+            model: models.planItinerary,
+            schema: tripPlanSchema,
+            prompt: `You are revising an existing ${days}-day travel itinerary based on a user refinement request.
+
+Current plan:
+${JSON.stringify(existingPlan, null, 2)}
+
+User's refinement instruction: "${refinement}"
+
+Original saved content (for sourced wisdom):
+${JSON.stringify(contentSummary)}
+User preferences: ${preferences || 'None specified'}
+
+Rules:
+- Apply the refinement instruction to the existing plan
+- Keep the same destination and general structure unless the instruction says otherwise
+- Maintain sourced tips where still relevant
+- Return a complete revised plan (all days, all activities)
+- Do NOT fabricate sourced tips; only cite substance that actually appears in the saved content`,
+          });
+
+          for await (const partial of planStream.partialObjectStream) {
+            emit({ t: 'plan', plan: partial });
+          }
+
+          step('validating', 'Finalising your revised itinerary…');
+          step('done', `Refined ${days}-day plan is ready!`);
+          return;
+        }
+
         // ── Step 1: Resolve locations ────────────────────────────────────
         step('searching', 'Collecting locations from your saved items…');
 
@@ -133,6 +182,19 @@ export async function POST(req: NextRequest) {
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
+        // Enrichment signals: festival/weather warnings for the destination + travel window
+        const now = new Date();
+        const sm = travelMonth ?? (now.getMonth() + 1);
+        const sd = travelDay ?? now.getDate();
+        const em = sm + Math.ceil(days / 30); // rough end month
+        const allLocationNames = resolvedLocs.locations.map((l) => l.name);
+        const activeEvents = getActiveEvents(allLocationNames, sm, sd, em > 12 ? 12 : em, 31);
+        const enrichmentBlock = buildEnrichmentPromptBlock(activeEvents);
+
+        if (activeEvents.length > 0) {
+          step('found', `⚠️ Detected ${activeEvents.length} event${activeEvents.length !== 1 ? 's' : ''} that may affect your trip`);
+        }
+
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
@@ -142,7 +204,7 @@ Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
-
+${enrichmentBlock}
 Rules:
 - 2-4 activities per day with realistic timing
 - Cluster geographically nearby places each day

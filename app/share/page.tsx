@@ -1,26 +1,42 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { CheckCircle2, ChevronRight, Copy } from 'lucide-react';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { hapticSuccess, hapticImpact, hapticWarning } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Stage = 'picking' | 'saving' | 'done';
+type Stage = 'picking' | 'saving' | 'done' | 'duplicate';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function SharePageInner() {
   const searchParams    = useSearchParams();
+  const router          = useRouter();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImage        = searchParams.get('hasImage') === 'true';
   const sharedTitle     = rawTitle || 'New inspiration';
+
+  // Retrieve image data written by CapacitorBridge from the native share payload.
+  // The image is stored as a base64 JPEG data URL in sessionStorage so it doesn't
+  // bloat the URL. We read it once and clear it to avoid stale data.
+  const [sharedImageUrl, setSharedImageUrl] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!hasImage) return;
+    const stored = typeof window !== 'undefined' ? sessionStorage.getItem('pendingShareImage') : null;
+    if (stored) {
+      setSharedImageUrl(stored);
+      sessionStorage.removeItem('pendingShareImage');
+    }
+  }, [hasImage]);
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -29,6 +45,8 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
+  const pendingSaveRef = useRef<{ boardId?: string; boardName?: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -60,7 +78,19 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDuplicateCheck = false) {
+    if (!skipDuplicateCheck && rawUrl) {
+      const existing = await getAllItems();
+      const dup = existing.find((i) => i.url === rawUrl && !i.isDemo);
+      if (dup) {
+        setDuplicateItem(dup);
+        pendingSaveRef.current = { boardId: selectedBoardId, boardName: boardDisplayName };
+        track('duplicate_detected', { platform });
+        setStage('duplicate');
+        return;
+      }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -88,10 +118,11 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image URL for vision extraction (Xiaohongshu etc.)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, sharedImageUrl)
       .then(async (success) => {
+        if (!success) hapticWarning();
         if (success) {
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
@@ -112,6 +143,7 @@ function SharePageInner() {
         setEnrichmentLoading(false);
       });
 
+    hapticSuccess();
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
   }
@@ -136,7 +168,74 @@ function SharePageInner() {
     setBoards((prev) => [newBoard, ...prev]);
     setNewBoardName('');
     setShowNewBoardInput(false);
-    await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
+    await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`, false);
+  }
+
+  // ── Stage: duplicate ─────────────────────────────────────────────────────
+
+  if (stage === 'duplicate' && duplicateItem) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+        <div className="flex-1 flex flex-col items-center justify-center gap-5 py-10">
+          <div className="text-5xl">🔁</div>
+          <div className="text-center space-y-1">
+            <p className="text-lg font-bold text-gray-900">Already saved!</p>
+            <p className="text-sm text-gray-500 max-w-xs">
+              You already have this clip in your TravelPanel.
+            </p>
+          </div>
+
+          <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-1">
+            <p className="text-sm font-semibold text-gray-800 line-clamp-2">{duplicateItem.title || sharedTitle}</p>
+            {duplicateItem.boardId && (
+              <p className="text-xs text-gray-500">
+                Saved to board
+              </p>
+            )}
+            {duplicateItem.locations.length > 0 && (
+              <p className="text-xs text-indigo-600">
+                📍 {duplicateItem.locations.length} location{duplicateItem.locations.length !== 1 ? 's' : ''} extracted
+              </p>
+            )}
+          </div>
+
+          <div className="w-full space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                const loc = duplicateItem.locations[0];
+                if (loc) {
+                  router.push(`/?flyTo=${loc.lat},${loc.lng}&itemId=${duplicateItem.id}`);
+                } else {
+                  router.push('/inbox');
+                }
+              }}
+              className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-semibold hover:bg-indigo-700 active:scale-[0.98] transition-all"
+            >
+              View existing clip →
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const { boardId, boardName } = pendingSaveRef.current ?? {};
+                handleSave(boardId, boardName, true);
+              }}
+              className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Copy size={14} />
+              Save again anyway
+            </button>
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── Stage: picking ────────────────────────────────────────────────────────
@@ -177,7 +276,7 @@ function SharePageInner() {
             <button
               type="button"
               disabled={stage === 'saving'}
-              onClick={() => handleSave(undefined, 'Inbox')}
+              onClick={() => { hapticImpact(); handleSave(undefined, 'Inbox'); }}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox
@@ -189,7 +288,7 @@ function SharePageInner() {
                 key={board.id}
                 type="button"
                 disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                onClick={() => { hapticImpact(); handleSave(board.id, `${board.emoji} ${board.name}`); }}
                 className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}

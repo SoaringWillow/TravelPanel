@@ -1,20 +1,30 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Sparkles, Check, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem, Board } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, saveBoard } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { ProactiveSuggestions } from '@/components/ProactiveSuggestions';
+
+// ─── Auto-organize types ──────────────────────────────────────────────────────
+
+interface OrganizeCluster {
+  boardName: string;
+  emoji: string;
+  description?: string;
+  itemIds: string[];
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,7 +39,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -38,6 +48,43 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // ── Pull-to-refresh ───────────────────────────────────────────────────────
+  const touchStartY = useRef<number | null>(null);
+  const [pullY, setPullY] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const PULL_THRESHOLD = 70;
+
+  function onScrollTouchStart(e: React.TouchEvent) {
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function onScrollTouchMove(e: React.TouchEvent) {
+    if (touchStartY.current === null || isRefreshing) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) setPullY(Math.min(dy, PULL_THRESHOLD + 20));
+  }
+
+  async function onScrollTouchEnd() {
+    if (pullY >= PULL_THRESHOLD && !isRefreshing) {
+      setIsRefreshing(true);
+      setPullY(0);
+      try {
+        await refresh();
+        track('manual_refresh');
+      } finally {
+        setIsRefreshing(false);
+      }
+    } else {
+      setPullY(0);
+    }
+    touchStartY.current = null;
+  }
+
+  // ── Auto-organize ─────────────────────────────────────────────────────────
+  const [organizing, setOrganizing] = useState(false);
+  const [organizePreview, setOrganizePreview] = useState<OrganizeCluster[] | null>(null);
+  const [confirmingOrganize, setConfirmingOrganize] = useState(false);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -53,6 +100,55 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  async function handleAutoOrganize() {
+    if (inboxItems.length < 5) return;
+    setOrganizing(true);
+    setOrganizePreview(null);
+    track('auto_organize_started', { itemCount: inboxItems.length });
+    try {
+      const res = await fetch('/api/organize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: inboxItems }),
+      });
+      if (!res.ok) throw new Error('Organize failed');
+      const data = await res.json();
+      setOrganizePreview(data.clusters ?? []);
+    } catch {
+      // silently skip — user can retry
+    } finally {
+      setOrganizing(false);
+    }
+  }
+
+  async function confirmOrganize() {
+    if (!organizePreview) return;
+    setConfirmingOrganize(true);
+    try {
+      for (const cluster of organizePreview) {
+        const now = Date.now();
+        const newBoard: Board = {
+          id: crypto.randomUUID(),
+          name: cluster.boardName,
+          emoji: cluster.emoji,
+          description: cluster.description,
+          itemIds: [],
+          createdAt: now,
+          updatedAt: now,
+        };
+        await saveBoard(newBoard);
+        for (const itemId of cluster.itemIds) {
+          await addItemToBoard(newBoard.id, itemId);
+        }
+      }
+      track('auto_organize_confirmed', { boardCount: organizePreview.length, itemCount: inboxItems.length });
+      setOrganizePreview(null);
+      router.refresh();
+    } finally {
+      setConfirmingOrganize(false);
+    }
+  }
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -138,8 +234,97 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Proactive suggestions — shown above the clip grid */}
+      <ProactiveSuggestions />
+
+      {/* Auto-organize banner (shown when ≥5 unassigned clips) */}
+      {inboxItems.length >= 5 && !organizePreview && (
+        <div className="mx-4 mt-2 mb-0">
+          <button
+            type="button"
+            onClick={handleAutoOrganize}
+            disabled={organizing}
+            className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-60"
+          >
+            {organizing ? (
+              <><span className="animate-spin">⏳</span> Grouping your {inboxItems.length} saves…</>
+            ) : (
+              <><Sparkles size={15} /> Auto-organize {inboxItems.length} clips</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Organize preview sheet */}
+      {organizePreview && (
+        <div className="mx-4 mt-2 bg-white rounded-2xl border border-indigo-100 shadow-sm overflow-hidden">
+          <div className="px-4 pt-3 pb-2">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-bold text-gray-800">Suggested boards</p>
+              <button
+                type="button"
+                onClick={() => setOrganizePreview(null)}
+                className="text-gray-400 hover:text-gray-600 p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Claude grouped your clips by destination. Confirm to create these boards.</p>
+            <div className="space-y-2 max-h-52 overflow-y-auto">
+              {organizePreview.map((cluster, idx) => (
+                <div key={idx} className="flex items-start gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                  <span className="text-xl flex-shrink-0">{cluster.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{cluster.boardName}</p>
+                    {cluster.description && (
+                      <p className="text-xs text-gray-500 leading-snug">{cluster.description}</p>
+                    )}
+                    <p className="text-xs text-indigo-500 mt-0.5">{cluster.itemIds.length} clip{cluster.itemIds.length !== 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2 px-4 pb-3">
+            <button
+              type="button"
+              onClick={confirmOrganize}
+              disabled={confirmingOrganize}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            >
+              <Check size={14} />
+              {confirmingOrganize ? 'Creating boards…' : 'Create all boards'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrganizePreview(null)}
+              className="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        onTouchStart={onScrollTouchStart}
+        onTouchMove={onScrollTouchMove}
+        onTouchEnd={onScrollTouchEnd}
+      >
+        {/* Pull-to-refresh indicator */}
+        <div
+          className="flex items-center justify-center overflow-hidden transition-all duration-200"
+          style={{ height: isRefreshing ? 44 : Math.max(0, pullY * 0.6), opacity: isRefreshing || pullY > 20 ? 1 : 0 }}
+        >
+          <div className={`flex items-center gap-2 text-xs text-indigo-600 font-medium ${isRefreshing ? 'animate-pulse' : ''}`}>
+            <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+            {isRefreshing ? 'Refreshing…' : pullY >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+          </div>
+        </div>
+
+        <div className="py-4">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -181,6 +366,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
+        </div>
       </div>
 
       {/* Board selector bottom sheet */}

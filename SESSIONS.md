@@ -96,3 +96,10 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-02 20:26 | c3e476d | feat: B2 — browser extension (Chrome/Safari clipper)
+2026-06-02 20:31 | 8bd12b4 | feat: B3 — Xiaohongshu Vision fix (image payload extraction + Claude Vision)
+2026-06-02 20:34 | 8d8c613 | feat: B5 — Cloud Backup Export (download + restore + Settings page)
+2026-06-02 20:37 | 1c8e8a8 | feat: C1 — On-Trip GPS Mode (check-in, next stop, walking directions)
+2026-06-02 20:39 | 8be3052 | feat: C2 — Post-Trip Timeline (trip journal with check-in history)
+2026-06-02 20:41 | cf62e2c | feat: C3 — Shared Boards v1 (privacy-safe board sharing via URL hash)
+2026-06-02 20:43 | e59f628 | feat: C4 — Proactive Resurfacing (in-app smart suggestions)

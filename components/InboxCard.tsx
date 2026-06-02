@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { hapticImpact, hapticWarning } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +34,8 @@ function truncateUrl(url: string, maxLen = 40): string {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
+const SWIPE_THRESHOLD = 80;
+
 export default function InboxCard({
   item,
   onDelete,
@@ -41,6 +45,39 @@ export default function InboxCard({
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
+  // ── Swipe-to-delete ──────────────────────────────────────────────────────
+  const touchStartX = useRef<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swiped, setSwiped] = useState(false); // true = delete action revealed
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    setSwiped(false);
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    if (dx < 0) setSwipeOffset(Math.max(dx, -SWIPE_THRESHOLD - 20));
+  }
+
+  function onTouchEnd() {
+    if (swipeOffset < -SWIPE_THRESHOLD) {
+      hapticImpact();
+      setSwiped(true);
+      setSwipeOffset(-SWIPE_THRESHOLD);
+    } else {
+      setSwiped(false);
+      setSwipeOffset(0);
+    }
+    touchStartX.current = null;
+  }
+
+  function handleSwipeDelete() {
+    hapticWarning();
+    onDelete(item.id);
+  }
+
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
   // 'processing' on a card that already has a title = retry in flight
@@ -48,9 +85,9 @@ export default function InboxCard({
 
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
-      // Full skeleton — no content yet
+      // Full shimmer skeleton with animated gradient overlay
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
           <div className="w-full h-32 bg-gray-200" />
           <div className="p-4 space-y-3">
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
@@ -59,6 +96,10 @@ export default function InboxCard({
               <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
             </div>
+          </div>
+          {/* Shimmer overlay */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
           </div>
         </div>
       );
@@ -116,7 +157,15 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+      <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-4 space-y-3 relative">
+        {/* Red dot badge for failed state */}
+        {enrichmentStatus === 'failed' && !isRetrying && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-500 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+            Failed
+          </div>
+        )}
+
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
@@ -189,7 +238,25 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* Delete reveal behind the card */}
+      {swiped && (
+        <button
+          type="button"
+          onClick={handleSwipeDelete}
+          className="absolute inset-y-0 right-0 flex items-center justify-center w-20 bg-red-500 text-white text-xs font-semibold rounded-r-2xl"
+          aria-label="Delete"
+        >
+          <Trash2 size={18} />
+        </button>
+      )}
+    <div
+      className="bg-white shadow-sm border border-gray-100 overflow-hidden rounded-2xl transition-transform"
+      style={{ transform: `translateX(${swipeOffset}px)` }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -310,6 +377,7 @@ export default function InboxCard({
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { WisdomTab } from '@/components/WisdomTab';
+import { buildShareUrl } from '@/lib/shareBoard';
+import { track } from '@/lib/analytics';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -23,6 +26,8 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'places' | 'wisdom' | 'plans'>('places');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -49,6 +54,21 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShare() {
+    if (!board) return;
+    const shareUrl = buildShareUrl(board, boardItems);
+    try {
+      if (navigator.share && /mobile/i.test(navigator.userAgent)) {
+        await navigator.share({ title: `${board.emoji} ${board.name}`, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      }
+      track('board_shared', { boardId, itemCount: boardItems.length });
+    } catch { /* user dismissed share dialog or clipboard denied */ }
   }
 
   if (loading) {
@@ -110,12 +130,24 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={handleShare}
+              title="Share this board"
+              className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full hover:bg-indigo-100 transition-colors flex-shrink-0"
+            >
+              {shareCopied ? <Check size={13} /> : <Share2 size={13} />}
+              {shareCopied ? 'Copied!' : 'Share'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Scrollable content below header */}
       <div className="flex-1 overflow-y-auto pb-24">
-        {/* Map section */}
+        {/* Map section — always visible */}
         {boardItems.length > 0 && (
           <div
             className="relative w-full bg-gray-200"
@@ -131,60 +163,108 @@ export default function BoardDetailPage() {
           </div>
         )}
 
-        <div className="px-4 py-4">
-          {/* Plan this trip CTA */}
-          <div className="mb-4">
-            {hasLocations ? (
+        {/* Tab bar */}
+        <div className="bg-white border-b border-gray-100 px-4">
+          <div className="flex gap-0">
+            {(['places', 'wisdom', 'plans'] as const).map((tab) => (
               <button
+                key={tab}
                 type="button"
-                onClick={() => router.push(`/plan/${boardId}`)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-3 text-sm font-semibold capitalize transition-colors border-b-2 ${
+                  activeTab === tab
+                    ? 'text-indigo-600 border-indigo-600'
+                    : 'text-gray-400 border-transparent hover:text-gray-600'
+                }`}
               >
-                <Rocket size={18} />
-                Plan this trip
+                {tab === 'places' ? '📍 Places' : tab === 'wisdom' ? '🧠 Wisdom' : '🗓 Plans'}
               </button>
-            ) : (
-              <div className="relative group">
+            ))}
+          </div>
+        </div>
+
+        <div className="px-4 py-4">
+          {/* Places tab */}
+          {activeTab === 'places' && (
+            <>
+              {/* Plan this trip CTA */}
+              <div className="mb-4">
+                {hasLocations ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/plan/${boardId}`)}
+                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
+                  >
+                    <Rocket size={18} />
+                    Plan this trip
+                  </button>
+                ) : (
+                  <div className="relative group">
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                    >
+                      <Rocket size={18} />
+                      Plan this trip
+                    </button>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
+                      <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                        Add items with identified locations to plan a trip
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {boardItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-center">
+                  <MapPin className="text-gray-300 mb-3" size={40} />
+                  <p className="text-sm font-medium text-gray-600 mb-1">
+                    No places saved to this board yet.
+                  </p>
+                  <p className="text-sm text-gray-400">Go to Inbox to add items.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {boardItems.map((item) => (
+                    <InboxCard
+                      key={item.id}
+                      item={item}
+                      onDelete={handleDelete}
+                      onViewOnMap={handleViewOnMap}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Wisdom tab */}
+          {activeTab === 'wisdom' && <WisdomTab items={boardItems} />}
+
+          {/* Plans tab */}
+          {activeTab === 'plans' && (
+            <div className="space-y-3">
+              {hasLocations ? (
                 <button
                   type="button"
-                  disabled
-                  className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                  onClick={() => router.push(`/plan/${boardId}`)}
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
                 >
                   <Rocket size={18} />
-                  Plan this trip
+                  Generate a new trip plan
                 </button>
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
-                  <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-                    Add items with identified locations to plan a trip
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
-                  </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-48 text-center">
+                  <div className="text-4xl mb-3">🗓</div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">No plans yet</p>
+                  <p className="text-xs text-gray-400">
+                    Add clips with locations to generate a trip plan.
+                  </p>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Items grid */}
-          {boardItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                No places saved to this board yet.
-              </p>
-              <p className="text-sm text-gray-400">
-                Go to Inbox to add items.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
-                />
-              ))}
+              )}
             </div>
           )}
         </div>
