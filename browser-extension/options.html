@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Extension Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f172a;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.4px;
+    }
+    .brand-sub {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    h2 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .field-hint {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    input[type="text"], input[type="url"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #f1f5f9;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #6366f1; }
+    input::placeholder { color: #475569; }
+
+    .boards-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .board-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .board-emoji-input {
+      width: 44px;
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      border-radius: 8px;
+      padding: 6px 8px;
+      color: #f1f5f9;
+      font-size: 16px;
+      text-align: center;
+      outline: none;
+    }
+    .board-name-input {
+      flex: 1;
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #f1f5f9;
+      font-size: 13px;
+      outline: none;
+    }
+    .board-emoji-input:focus, .board-name-input:focus { border-color: #6366f1; }
+    .remove-btn {
+      background: none;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.15s;
+      display: flex;
+    }
+    .remove-btn:hover { color: #f43f5e; }
+
+    .add-board-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: 1.5px dashed #334155;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #64748b;
+      font-size: 13px;
+      cursor: pointer;
+      width: 100%;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .add-board-btn:hover { border-color: #6366f1; color: #6366f1; }
+
+    .save-btn {
+      width: 100%;
+      padding: 13px 20px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 8px;
+    }
+    .save-btn:hover { opacity: 0.92; }
+
+    .toast {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #14532d;
+      border: 1px solid #166534;
+      border-radius: 10px;
+      color: #86efac;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    .toast.show { display: flex; }
+
+    .install-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .step-num {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      color: #fff;
+    }
+    .step-text {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+      padding-top: 3px;
+    }
+    code {
+      background: #0f172a;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #a78bfa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-icon">🗺</div>
+      <div>
+        <div class="brand-name">TravelPanel</div>
+        <div class="brand-sub">Extension Settings</div>
+      </div>
+    </div>
+
+    <!-- App URL setting -->
+    <h2>Connection</h2>
+    <div class="card">
+      <div class="field">
+        <label for="appUrl">TravelPanel App URL</label>
+        <input type="url" id="appUrl" placeholder="https://your-app.vercel.app" />
+        <div class="field-hint">
+          The URL where your TravelPanel app is deployed. Clips open in the app at this address.
+        </div>
+      </div>
+    </div>
+
+    <!-- Boards -->
+    <h2>My Boards</h2>
+    <div class="card">
+      <div class="field">
+        <div class="boards-editor" id="boardsEditor"></div>
+        <button class="add-board-btn" id="addBoardBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add board
+        </button>
+        <div class="field-hint" style="margin-top:10px">
+          These boards appear in the clipper popup for quick saving. Your boards are also synced automatically from the TravelPanel app.
+        </div>
+      </div>
+    </div>
+
+    <!-- Install instructions -->
+    <h2>Installation</h2>
+    <div class="card">
+      <div class="install-steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">Open Chrome and go to <code>chrome://extensions</code></div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">Enable <strong style="color:#e2e8f0">Developer mode</strong> (top-right toggle)</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">Click <strong style="color:#e2e8f0">Load unpacked</strong> and select the <code>browser-extension/</code> folder from the project</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">Pin the TravelPanel icon to your toolbar — then press <code>Alt+T</code> on any travel page</div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-text">For Safari: use <code>xcrun safari-web-extension-converter browser-extension/</code> in Xcode (macOS only)</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-btn" id="saveBtn">Save Settings</button>
+    <div class="toast" id="toast">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      Settings saved!
+    </div>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
