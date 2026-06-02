@@ -22,6 +22,17 @@ function SharePageInner() {
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
+  // Image stashed by CapacitorBridge when the iOS Share Extension captured a screenshot.
+  // Read once and clear immediately so a page refresh doesn't re-use it.
+  const sharedImageRef  = useRef<string | null>(null);
+  if (typeof window !== 'undefined' && sharedImageRef.current === null) {
+    const stored = sessionStorage.getItem('pendingShareImage');
+    if (stored) {
+      sharedImageRef.current = stored;
+      sessionStorage.removeItem('pendingShareImage');
+    }
+  }
+
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
   const [savedToName, setSavedToName]         = useState('');
@@ -88,9 +99,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if the Share Extension captured one
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, sharedImageRef.current ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

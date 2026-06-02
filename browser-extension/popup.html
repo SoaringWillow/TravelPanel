@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      color: #111827;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-logo {
+      width: 28px;
+      height: 28px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .header-title {
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .header-subtitle {
+      color: rgba(255,255,255,0.7);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .settings-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s, background 0.15s;
+      font-size: 16px;
+    }
+    .settings-btn:hover { color: #fff; background: rgba(255,255,255,0.15); }
+
+    /* ── Page preview ────────────────────────────────────── */
+    .page-preview {
+      padding: 14px 16px 0;
+    }
+    .page-preview-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #9ca3af;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .page-card {
+      background: #f9fafb;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .favicon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      object-fit: contain;
+    }
+    .favicon-placeholder {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .page-info { flex: 1; min-width: 0; }
+    .page-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .page-url {
+      font-size: 10px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .platform-chip {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 2px 7px;
+      border-radius: 20px;
+      color: #fff;
+      margin-top: 5px;
+      display: inline-block;
+    }
+
+    /* ── Loading skeleton ────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 4px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skeleton-title { height: 12px; width: 90%; margin-bottom: 6px; }
+    .skeleton-url { height: 10px; width: 65%; }
+
+    /* ── Save actions ────────────────────────────────────── */
+    .actions {
+      padding: 14px 16px;
+    }
+    .save-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: -0.01em;
+    }
+    .save-btn:hover { opacity: 0.92; }
+    .save-btn:active { transform: scale(0.98); opacity: 0.85; }
+    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .save-btn .icon { font-size: 16px; }
+
+    .open-app-btn {
+      width: 100%;
+      background: none;
+      color: #6366f1;
+      border: 1.5px solid #e0e7ff;
+      border-radius: 12px;
+      padding: 9px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s, border-color 0.15s;
+      margin-top: 8px;
+    }
+    .open-app-btn:hover { background: #eef2ff; border-color: #c7d2fe; }
+
+    /* ── Status states ────────────────────────────────────── */
+    .status-saving, .status-done, .status-error {
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .status-icon { font-size: 40px; margin-bottom: 8px; }
+    .status-title { font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+    .status-subtitle { font-size: 12px; color: #6b7280; }
+    .status-done .status-icon { animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes pop {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    .footer {
+      padding: 0 16px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-tip {
+      font-size: 10px;
+      color: #d1d5db;
+    }
+    .footer-link {
+      font-size: 10px;
+      color: #9ca3af;
+      cursor: pointer;
+      background: none;
+      border: none;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: #d1d5db;
+    }
+    .footer-link:hover { color: #6b7280; }
+
+    /* ── Not-a-travel-page warning ──────────────────────── */
+    .non-travel-hint {
+      margin: 0 16px 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #92400e;
+      display: none;
+    }
+    .non-travel-hint.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────── -->
+<div class="header">
+  <div class="header-brand">
+    <div class="header-logo">✈</div>
+    <div>
+      <div class="header-title">TravelPanel</div>
+      <div class="header-subtitle">Clipper</div>
+    </div>
+  </div>
+  <button class="settings-btn" id="settingsBtn" title="Settings">⚙</button>
+</div>
+
+<!-- ── Main content ────────────────────────────────────── -->
+<div id="mainContent">
+
+  <!-- Page preview -->
+  <div class="page-preview">
+    <div class="page-preview-label">Current page</div>
+    <div class="page-card">
+      <div id="faviconWrap" class="favicon-placeholder">🌐</div>
+      <div class="page-info">
+        <div id="pageTitle" class="page-title skeleton skeleton-title">&nbsp;</div>
+        <div id="pageUrl" class="page-url skeleton skeleton-url">&nbsp;</div>
+        <div id="platformChip" class="platform-chip" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Non-travel hint -->
+  <div class="non-travel-hint" id="nonTravelHint">
+    This page might not be travel content, but you can still save it.
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="save-btn" id="saveBtn" disabled>
+      <span class="icon">✈</span>
+      <span id="saveBtnText">Save to TravelPanel</span>
+    </button>
+    <button class="open-app-btn" id="openAppBtn">
+      Open TravelPanel →
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-tip">Opens board picker in TravelPanel</span>
+    <button class="footer-link" id="settingsLink">Change app URL</button>
+  </div>
+</div>
+
+<!-- ── Saving state ─────────────────────────────────────── -->
+<div id="savingState" style="display:none">
+  <div class="status-saving">
+    <div class="status-icon">🔍</div>
+    <div class="status-title">Opening TravelPanel…</div>
+    <div class="status-subtitle">Board picker is loading in the new tab</div>
+  </div>
+</div>
+
+<!-- ── Done state ──────────────────────────────────────── -->
+<div id="doneState" style="display:none">
+  <div class="status-done">
+    <div class="status-icon">✅</div>
+    <div class="status-title">Clip opened in TravelPanel!</div>
+    <div class="status-subtitle" id="doneSubtitle">Choose a board to save it.</div>
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

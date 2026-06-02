@@ -83,10 +83,16 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+// Platforms that block server-side fetching — Vision is the primary source for these.
+const VISION_PRIMARY_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
 export async function POST(req: NextRequest) {
   let url: string;
+  let base64Image: string | undefined;
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    base64Image = body.base64Image;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,9 +102,40 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  // Skip the page fetch for anti-scraping platforms when we have an image — save time
+  const skipFetch = !!base64Image && VISION_PRIMARY_PLATFORMS.has(platform);
+  const page = skipFetch ? null : await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const textPrompt = base64Image
+    ? `You are a travel content analyzer. An image has been shared from ${platform} (a platform that blocks server-side fetching, so the image is the primary source).
+
+Platform: ${platform}
+URL: ${url}
+Title from share sheet: ${page?.title ?? '(unavailable)'}
+
+## What to do
+Analyze the image carefully. It is a screenshot or photo from a ${platform} travel post.
+
+1. Read ALL visible text in the image (including Chinese text, overlaid captions, hashtags, location tags).
+2. Identify landmarks, scenery, or places shown in the photos.
+3. Extract travel wisdom from the post caption or overlay text.
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations you can see or read in the image.
+Use landmark recognition + any location tags visible. Only include coordinates you are confident about.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, warning, or opinion visible in the image.
+Read Chinese text carefully — the wisdom is often in the caption overlay.
+Examples:
+- "Arrive before 8am to beat the queue" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Cherry blossom peaks mid-April" → wisdom
+- "It was overrated for the price" → opinion
+- "Skip the tourist version" → recommendation
+
+Even if text is limited, extract location context and any visible tips.`
+    : `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -130,12 +167,35 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (base64Image) {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: `data:image/jpeg;base64,${base64Image}`,
+              },
+              {
+                type: 'text',
+                text: textPrompt,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
