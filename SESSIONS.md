@@ -96,3 +96,16 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-02 16:25 | e9a5c91 | feat(B2): browser extension — one-click clipper for Chrome & Safari
+2026-06-02 16:31 | 184f831 | feat(B3): Claude Vision extraction for Xiaohongshu / anti-scraping platforms
+2026-06-02 16:33 | 05cea8e | feat(B5): data export — download all clips/boards/trips as JSON
+2026-06-02 16:38 | 4b0c80d | feat(D): Phase D tasks — swipe-to-delete, new task queue for iOS polish
+2026-06-02 16:39 | 8aaf0d7 | feat(D2): haptic feedback — tap/success/warning on key iOS actions
+2026-06-02 16:41 | 0da8baa | feat(D3): illustrated empty states for inbox, boards, search, map
+2026-06-02 16:42 | 70f1bcc | feat(D5): import JSON backup — restore clips/boards/trips from export
+2026-06-02 16:42 | 88872a1 | feat(D6): hero thumbnail in location detail card
+2026-06-02 16:44 | 2ac27ca | feat(D9): smooth page entrance transitions (opacity + y slide)
+2026-06-02 16:45 | 2894352 | feat(D10): FAB success animation + clipboard paste chip + URL auto-focus
+2026-06-02 16:49 | 34f641f | feat(D4): category-based map pin colors by tag
+2026-06-02 16:51 | 29e2ddd | feat(D7): vertical timeline trip plan UI
+2026-06-02 16:52 | 49984b6 | feat(D8): boards 2-col portrait grid with long-press edit mode

@@ -3,6 +3,16 @@
 import { motion } from 'framer-motion';
 import { DayPlan } from '@/lib/types';
 
+const DAY_GRADIENTS = [
+  'from-indigo-500 to-violet-500',
+  'from-pink-500 to-rose-500',
+  'from-amber-500 to-orange-500',
+  'from-teal-500 to-cyan-500',
+  'from-green-500 to-emerald-500',
+  'from-blue-500 to-sky-500',
+  'from-purple-500 to-fuchsia-500',
+];
+
 interface DayStripCardProps {
   day: DayPlan;
   index: number;
@@ -12,37 +22,31 @@ interface DayStripCardProps {
 
 export default function DayStripCard({ day, index, isActive, onSelect }: DayStripCardProps) {
   const stopCount = day.activities.length;
+  const gradient = DAY_GRADIENTS[index % DAY_GRADIENTS.length];
 
   return (
     <motion.div
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ scale: 0.96 }}
       onClick={onSelect}
-      className={`cursor-pointer rounded-2xl p-3 flex-shrink-0 ${
-        isActive
-          ? 'border-2 border-indigo-500 bg-indigo-50 shadow-md'
-          : 'border-2 border-transparent bg-white shadow-sm'
+      className={`cursor-pointer rounded-2xl overflow-hidden flex-shrink-0 transition-all duration-150 ${
+        isActive ? 'shadow-lg ring-2 ring-offset-1 ring-indigo-400' : 'shadow-sm opacity-70 hover:opacity-90'
       }`}
-      style={{ minWidth: 160, maxWidth: 180 }}
+      style={{ minWidth: 130, maxWidth: 150 }}
     >
-      <div className="mb-1">
-        <span
-          className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
-            isActive
-              ? 'bg-white text-indigo-600'
-              : 'bg-gray-100 text-gray-600'
-          }`}
-        >
-          Day {index + 1}
-        </span>
+      {/* Gradient header band */}
+      <div className={`bg-gradient-to-r ${gradient} px-3 py-2`}>
+        <span className="text-white text-xs font-bold tracking-wide">Day {index + 1}</span>
       </div>
 
-      <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 mt-1">
-        {day.theme}
-      </p>
-
-      <p className="text-xs text-gray-400 mt-1">
-        {stopCount} stop{stopCount !== 1 ? 's' : ''}
-      </p>
+      {/* Body */}
+      <div className={`px-3 py-2.5 ${isActive ? 'bg-white' : 'bg-gray-50'}`}>
+        <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">
+          {day.theme}
+        </p>
+        <p className="text-xs text-gray-400 mt-1.5">
+          {stopCount} stop{stopCount !== 1 ? 's' : ''}
+        </p>
+      </div>
     </motion.div>
   );
 }

@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,24 +174,173 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
 
-## PHASE C — On-Trip Mode (Future)
+## PHASE D — iOS Polish & Delight (Current Sprint — "Beautiful App" push)
 
-### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+> **Goal**: Turn the functional MVP into a product that feels native, premium, and inevitable on iPhone.
+> Every task below is independently shippable and self-contained.
 
-### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+### D1 — Swipe-to-Delete on Inbox Cards
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Wrap InboxCard in a framer-motion drag container that responds to horizontal swipe
+- Dragging left ≥ 60px reveals a red delete zone with a trash icon
+- Release at ≥ 80px triggers `onDelete`; releasing short snaps back with spring animation
+- Show a red strip on the right as drag handle hint (width = |dragX|)
+- Lock vertical scroll while horizontal drag is active (`dragElastic: 0`, `dragConstraints` left=-120, right=0)
+- On iOS, the momentum from the swipe should feel natural (no artificial dampening)
 
-### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+### D2 — Haptic Feedback on Key Actions
+**Status**: `[x]` Done  
+**Files**: `app/share/page.tsx`, `app/inbox/page.tsx`, `app/plan/[boardId]/page.tsx`, new `lib/haptics.ts`  
+**What to do**:
+- Install `@capacitor/haptics` if not present (check package.json first — add if missing)
+- Create `lib/haptics.ts` with `tap()`, `success()`, `warning()` wrappers that no-op outside native context:
+  ```typescript
+  // tap: light impact for button presses
+  // success: notification success for save/complete actions
+  // warning: notification warning for deletes
+  ```
+- Wire `success()` on clip save (share page `handleSave` after setStage('done'))
+- Wire `tap()` on every primary button press (plan generate, board create)
+- Wire `warning()` on delete confirmation
+- All wrappers must be async and swallow errors silently
 
-### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+### D3 — Empty States with Character
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/page.tsx`  
+**What to do**:
+- Inbox empty state: replace plain text with a card showing:
+  - Large emoji/SVG illustration (a phone with a share sheet)
+  - Headline: "Your travel inspiration starts here"
+  - Body: "Share any Instagram, YouTube, or Xiaohongshu post and Claude extracts the wisdom for you."
+  - CTA button: "Open a link to try" (opens ImportSheet with placeholder URL)
+- Boards empty state: illustration of a stack of cards + "Create your first collection"
+- Map empty state: already shows globe icon — enhance with "Save clips to see them on the map" subtitle
+- All empty states should be centered, generous whitespace, never feel like an error
+
+### D4 — Custom Map Markers by Category Tag
+**Status**: `[x]` Done  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Replace the single default pin color with per-category colors based on the item's first tag:
+  - `food` → `#f97316` (orange)
+  - `nature` → `#22c55e` (green)
+  - `culture` / `history` / `art` / `architecture` → `#a855f7` (purple)
+  - `adventure` → `#ef4444` (red)
+  - `beach` → `#06b6d4` (cyan)
+  - `city` / `shopping` / `nightlife` → `#6366f1` (indigo, default)
+- Use MapLibre's `createRoot`/canvas approach or symbol layers with circle-color expressions
+- Keep clusters using the existing cluster layer, count badge stays the same
+- Pins should be 12×12px filled circles with a 2px white stroke and 1px drop shadow
+
+### D5 — Import JSON Backup (pair with B5 export)
+**Status**: `[x]` Done  
+**Files**: `app/settings/page.tsx`, `lib/exportData.ts`  
+**What to do**:
+- Add "Import from backup" button below the export button in Settings
+- Opens a file picker (`<input type="file" accept=".json">`)
+- Parse the JSON, validate it has `version: 1` and `items`/`boards`/`trips` arrays
+- For each item/board/trip: skip if an item with the same `id` already exists (no overwrite)
+- Show a result toast: "Imported 12 clips, 3 boards (5 already existed — skipped)"
+- On parse error: "Invalid backup file — please use a TravelPanel export"
+- Add `importBundle(bundle)` function to `lib/exportData.ts`
+
+### D6 — Hero Thumbnail in Location Detail Card
+**Status**: `[x]` Done  
+**Files**: `components/LocationDetailCard.tsx`  
+**What to do**:
+- When `item.thumbnail` is set, show it as a full-width hero image at the top (height: 200px, object-cover)
+- Add a gradient overlay (`linear-gradient(to top, rgba(0,0,0,0.6), transparent)`) so the title and platform chip are readable on top of the image
+- Move title + platform chip into the image overlay area (bottom-left, white text)
+- Remove the separate header section when thumbnail is present (merges into hero)
+- When no thumbnail: show a platform-colored gradient banner (height: 80px) instead of blank space
+- Add a subtle drag handle at the very top of the sheet (4×40px gray pill)
+
+### D7 — Trip Plan UI Overhaul
+**Status**: `[x]` Done  
+**Files**: `components/DayStripCard.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Redesign `DayStripCard` to use a vertical timeline layout:
+  - Day header with colored pill (Day 1, Day 2…) and the day's theme
+  - Each activity is a card connected by a vertical dashed line (the timeline)
+  - Activity card shows: time chip, location name (bold), duration, tips row
+  - Sourced tips render distinctly: indigo left-border, "💡 from [clip title]" attribution in smaller italic text
+- Plan header: show total days, total locations, estimated distance as a horizontal stat row
+- "Regenerate" button with a spinner during generation (already exists — style it better)
+- Plan version selector (PlanVersionBar) should be styled as a segmented control
+
+### D8 — Boards View Grid Layout
+**Status**: `[x]` Done  
+**Files**: `app/boards/page.tsx`, `components/BoardCard.tsx`  
+**What to do**:
+- Switch boards list from single-column cards to a 2-column grid on mobile
+- Each board card: cover image (first clip thumbnail or gradient placeholder), emoji + name overlay, clip count badge
+- Long-press (or hold) to enter "edit mode" where boards show a delete/reorder handle
+- "New board" is always the last cell in the grid with a dashed border + "+" icon
+- Board card aspect ratio: 3:4 (portrait, like an album cover)
+
+### D9 — Smooth Page Transitions
+**Status**: `[x]` Done  
+**Files**: `app/layout.tsx`, any page that navigates between views  
+**What to do**:
+- Wrap page content in a framer-motion `AnimatePresence` with `mode="wait"`
+- Each page: `initial={{ opacity: 0, y: 8 }}`, `animate={{ opacity: 1, y: 0 }}`, `exit={{ opacity: 0, y: -8 }}`
+- Duration: 0.18s with `ease: [0.4, 0, 0.2, 1]`
+- The share page already has good animations — apply the same treatment to boards, inbox, plan views
+- NavBar should NOT animate (stays fixed); only the page content animates
+
+### D10 — In-App "Quick Add" URL Entry
+**Status**: `[x]` Done  
+**Files**: `app/page.tsx`, `components/ImportSheet.tsx`  
+**What to do**:
+- The existing ImportSheet is a modal — improve the trigger UX:
+- FAB (floating action button) on the map: indigo circle with "+" at bottom-right, 20px above the NavBar
+- On tap: ImportSheet slides up from bottom as a full-height sheet with a drag handle
+- Auto-focus the URL input immediately
+- Paste button: detect clipboard content on focus, if it's a URL, show a "Paste" chip above the keyboard
+- After save: FAB pulses with a green checkmark briefly before resetting
+
+---
+
+## PHASE E — On-Trip & Social (Future)
+
+### E1 — On-Trip GPS Mode (was C1)
+**Status**: `[ ]` Not started  
+**What to do**:
+- "Start Trip" button on a plan view activates GPS tracking mode
+- Show user's current location on the plan map
+- Highlight the nearest activity to current position
+- Distance + ETA to next activity (using device GPS + straight-line distance)
+- "Arrived" button marks an activity done and advances to the next
+
+### E2 — AI Concierge ("I just landed")
+**Status**: `[ ]` Not started  
+**What to do**:
+- New entry point on home screen: "I just landed in [destination]"
+- Auto-detect location from GPS, find matching boards/clips
+- Generate a same-day plan optimized for arrival time + current location
+
+### E3 — Shared Boards (was C3)
+**Status**: `[ ]` Not started  
+**Needs**: Supabase auth (B1)  
+**What to do**: Read-only share link for a board; shared recipient can view clips + plan but not edit
+
+### E4 — Festival & Weather Enrichment (was future)
+**Status**: `[ ]` Not started  
+**What to do**: When generating a plan, inject real-world signals (festivals, weather, public holidays) as context — tell Claude "it's sakura season in Tokyo right now, adjust the plan accordingly"
+
+---
+
+## PHASE C — On-Trip Mode (original stubs, superseded by Phase E above)
+
+### C1–C4
+**Status**: Superseded by Phase E tasks above with more detail.
 
 ---
 

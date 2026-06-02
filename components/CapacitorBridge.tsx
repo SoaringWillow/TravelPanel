@@ -11,9 +11,22 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: imageBase64 }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImage' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImage' }),
+    ]);
+
+    if (imageBase64) {
+      // Hand the image to the share page via sessionStorage (avoids URL length limits).
+      // The share page reads and clears this key on mount.
+      sessionStorage.setItem('pendingShareImage', imageBase64);
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);

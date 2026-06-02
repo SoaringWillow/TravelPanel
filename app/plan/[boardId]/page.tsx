@@ -9,6 +9,7 @@ import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } fro
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { tap as hapticTap } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -385,7 +386,7 @@ export default function PlanPage() {
 
               {/* Generate button */}
               <button
-                onClick={generatePlan}
+                onClick={() => { hapticTap(); generatePlan(); }}
                 disabled={!hasLocations}
                 className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -436,24 +437,33 @@ export default function PlanPage() {
                 <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
               )}
 
-              {/* Summary chips */}
-              <div className="flex flex-wrap gap-2">
+              {/* Horizontal stat row */}
+              <div className="grid grid-cols-3 gap-2">
                 {plan.days && (
-                  <div className="flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                    <Calendar size={12} />
-                    {plan.days.length} day{plan.days.length !== 1 ? 's' : ''}
+                  <div className="bg-indigo-50 rounded-xl px-3 py-2.5 text-center">
+                    <div className="flex items-center justify-center gap-1 text-indigo-600 mb-0.5">
+                      <Calendar size={13} />
+                    </div>
+                    <p className="text-base font-bold text-indigo-700">{plan.days.length}</p>
+                    <p className="text-[10px] text-indigo-500">day{plan.days.length !== 1 ? 's' : ''}</p>
                   </div>
                 )}
                 {plan.totalLocations !== undefined && (
-                  <div className="flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                    <MapPin size={12} />
-                    {plan.totalLocations} location{plan.totalLocations !== 1 ? 's' : ''}
+                  <div className="bg-indigo-50 rounded-xl px-3 py-2.5 text-center">
+                    <div className="flex items-center justify-center gap-1 text-indigo-600 mb-0.5">
+                      <MapPin size={13} />
+                    </div>
+                    <p className="text-base font-bold text-indigo-700">{plan.totalLocations}</p>
+                    <p className="text-[10px] text-indigo-500">location{plan.totalLocations !== 1 ? 's' : ''}</p>
                   </div>
                 )}
                 {plan.estimatedDailyDistance && (
-                  <div className="flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                    <Route size={12} />
-                    ~{plan.estimatedDailyDistance}
+                  <div className="bg-indigo-50 rounded-xl px-3 py-2.5 text-center">
+                    <div className="flex items-center justify-center gap-1 text-indigo-600 mb-0.5">
+                      <Route size={13} />
+                    </div>
+                    <p className="text-base font-bold text-indigo-700 truncate">{plan.estimatedDailyDistance}</p>
+                    <p className="text-[10px] text-indigo-500">per day</p>
                   </div>
                 )}
               </div>
@@ -505,61 +515,76 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Active day activities */}
+              {/* Active day activities — vertical timeline */}
               {activeDayPlan && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-700 mb-4">
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
+                  <div className="relative">
+                    {/* Dashed connecting line */}
                     <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                      className="absolute left-[11px] top-4 bottom-0 border-l-2 border-dashed border-gray-200"
+                      style={{ pointerEvents: 'none' }}
+                    />
+
+                    {activeDayPlan.activities.map((activity, aIdx) => (
+                      <div key={aIdx} className="relative pl-9 mb-4">
+                        {/* Timeline dot */}
+                        <div className="absolute left-0 top-3 w-[22px] h-[22px] rounded-full bg-white border-2 border-indigo-400 shadow-sm flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500" />
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
 
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
+                        {/* Activity card */}
+                        <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+                          {/* Header row */}
+                          <div className="flex items-start gap-2 mb-1.5">
+                            <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+                              {activity.time}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-gray-900 leading-snug truncate">
+                                {activity.location.name}
                               </p>
+                              <p className="text-xs text-gray-500 mt-0.5">{activity.name}</p>
                             </div>
-                          ))}
+                            <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                              {activity.duration}
+                            </span>
+                          </div>
+
+                          {/* Generic tips */}
+                          {activity.tips.length > 0 && (
+                            <ul className="space-y-0.5 pl-1 mt-1">
+                              {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                                <li key={tIdx} className="text-xs text-gray-500 leading-snug">
+                                  · {tip}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {/* Sourced tips — clip wisdom with indigo citation stripe */}
+                          {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                            <div className="space-y-1.5 mt-2 pt-2 border-t border-gray-50">
+                              {activity.sourcedTips.map((st, sIdx) => (
+                                <div
+                                  key={sIdx}
+                                  className="bg-indigo-50 rounded-lg px-2.5 py-2 border-l-2 border-indigo-400"
+                                >
+                                  <p className="text-xs text-indigo-900 leading-snug">💡 {st.content}</p>
+                                  <p className="text-[10px] text-indigo-500 mt-0.5 truncate italic">
+                                    from your clip: {st.sourceTitle}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
