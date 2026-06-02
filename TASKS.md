@@ -226,7 +226,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a summary: "Imported 12 clips, 3 collections, 1 plan. 4 skipped (already existed)."
 
 ### D5 — Pull-to-Refresh on Inbox + Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Standard iOS gesture — users expect it. Currently the only way to refresh is reloading.  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
