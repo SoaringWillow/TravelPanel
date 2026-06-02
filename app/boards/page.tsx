@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
@@ -9,17 +9,32 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import { Board } from '@/lib/types';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const [localBoards, setLocalBoards] = useState<Board[] | null>(null);
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
 
+  const displayBoards = localBoards ?? boards;
+
   function getItemCount(boardId: string): number {
-    const board = boards.find((b) => b.id === boardId);
+    const board = displayBoards.find((b) => b.id === boardId);
     return board ? board.itemIds.length : 0;
   }
+
+  function getBoardItems(boardId: string) {
+    return items.filter((item) => item.boardId === boardId);
+  }
+
+  const handleBoardUpdate = useCallback((updated: Board) => {
+    setLocalBoards((prev) => {
+      const base = prev ?? boards;
+      return base.map((b) => (b.id === updated.id ? updated : b));
+    });
+  }, [boards]);
 
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
@@ -75,14 +90,16 @@ export default function BoardsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {boards.map((board) => (
+          <div className="grid grid-cols-2 gap-3">
+            {displayBoards.map((board) => (
               <BoardCard
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
+                boardItems={getBoardItems(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
+                onBoardUpdate={handleBoardUpdate}
               />
             ))}
           </div>

@@ -300,7 +300,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Update `ios/App/App/Assets.xcassets/AppIcon.appiconset/` with proper icons
 
 ### D9 — Smart Board Cover Photos
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Boards currently show a generic color or the first item's thumbnail. Rich cover photos with gradient overlays, clip count, and destination name make boards feel like a polished travel magazine.  
 **Files to change**: `components/BoardCard.tsx`, `app/boards/page.tsx`  
 **What to do**:
