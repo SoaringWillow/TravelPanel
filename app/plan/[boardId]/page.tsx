@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, CheckCircle2 } from 'lucide-react';
+import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, Activity } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
@@ -13,6 +13,7 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import { OnTripNextStop } from '@/components/OnTripNextStop';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -39,6 +40,12 @@ export default function PlanPage() {
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
+  // ── On-trip mode ──────────────────────────────────────────────────────────
+  const [onTripMode, setOnTripMode] = useState(false);
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [checkedActivities, setCheckedActivities] = useState<Set<string>>(new Set());
+  const posWatchRef = useRef<number | null>(null);
+
   useEffect(() => {
     async function load() {
       setLoadingBoard(true);
@@ -61,8 +68,73 @@ export default function PlanPage() {
     load();
   }, [boardId]);
 
+  // Load saved check-ins when the active trip changes
+  useEffect(() => {
+    if (!currentTripId) return;
+    try {
+      const stored = localStorage.getItem(`trip-checkins-${currentTripId}`);
+      if (stored) setCheckedActivities(new Set(JSON.parse(stored) as string[]));
+    } catch { /* ignore */ }
+  }, [currentTripId]);
+
+  // Start/stop GPS watch when on-trip mode changes
+  useEffect(() => {
+    if (onTripMode && 'geolocation' in navigator) {
+      posWatchRef.current = navigator.geolocation.watchPosition(
+        (pos) => setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {},
+        { enableHighAccuracy: true, timeout: 15000 },
+      );
+    } else {
+      if (posWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(posWatchRef.current);
+        posWatchRef.current = null;
+      }
+    }
+    return () => {
+      if (posWatchRef.current !== null) navigator.geolocation.clearWatch(posWatchRef.current);
+    };
+  }, [onTripMode]);
+
   const itemsWithLocations = boardItems.filter((item) => item.locations.length > 0);
   const hasLocations = itemsWithLocations.length > 0;
+
+  // ── On-trip helpers ───────────────────────────────────────────────────────
+
+  function toggleOnTripMode() {
+    setOnTripMode((v) => {
+      if (!v) track('on_trip_mode_started', { boardId });
+      return !v;
+    });
+  }
+
+  function checkInActivity(dayIdx: number, actIdx: number) {
+    const key = `${dayIdx}-${actIdx}`;
+    setCheckedActivities((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      if (currentTripId) {
+        localStorage.setItem(`trip-checkins-${currentTripId}`, JSON.stringify([...next]));
+      }
+      track('activity_checked_in', { boardId, dayIdx, actIdx });
+      return next;
+    });
+  }
+
+  function getNextStop(): { activity: Activity; dayIdx: number; actIdx: number } | null {
+    if (!plan?.days) return null;
+    for (let d = activeDayIndex; d < plan.days.length; d++) {
+      const day = plan.days[d];
+      for (let a = 0; a < day.activities.length; a++) {
+        if (!checkedActivities.has(`${d}-${a}`)) {
+          return { activity: day.activities[a], dayIdx: d, actIdx: a };
+        }
+      }
+    }
+    return null;
+  }
+
+  const nextStop = onTripMode ? getNextStop() : null;
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
@@ -458,23 +530,38 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Export actions */}
+              {/* Export actions + On-trip mode */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="space-y-2">
+                  {/* On-trip mode toggle */}
                   <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    onClick={toggleOnTripMode}
+                    className={`w-full flex items-center justify-center gap-2 font-semibold text-sm py-2.5 rounded-xl active:scale-[0.98] transition-all ${
+                      onTripMode
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    }`}
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Navigation size={15} />
+                    {onTripMode ? '🧭 On-trip mode active — tap to exit' : '🚀 Start On-Trip Mode'}
                   </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -512,54 +599,74 @@ export default function PlanPage() {
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const actKey = `${activeDayIndex}-${aIdx}`;
+                    const isChecked = checkedActivities.has(actKey);
+                    return (
+                      <div
+                        key={aIdx}
+                        className={`bg-white rounded-2xl p-3 shadow-sm border space-y-1 transition-all ${
+                          isChecked ? 'border-green-200 opacity-60' : 'border-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.time}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium truncate ${isChecked ? 'text-green-600 line-through' : 'text-indigo-600'}`}>
+                              {activity.location.name}
+                            </p>
+                            <p className={`text-sm ${isChecked ? 'text-gray-400' : 'text-gray-800'}`}>{activity.name}</p>
+                          </div>
+                          {onTripMode ? (
+                            <button
+                              onClick={() => checkInActivity(activeDayIndex, aIdx)}
+                              className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                                isChecked
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-500 hover:bg-green-50 hover:text-green-600'
+                              }`}
                             >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
+                              <CheckCircle2 size={11} />
+                              {isChecked ? 'Done' : 'Check in'}
+                            </button>
+                          ) : (
+                            <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                              {activity.duration}
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {!isChecked && activity.tips.length > 0 && (
+                          <ul className="space-y-0.5 pl-1">
+                            {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                              <li key={tIdx} className="text-xs text-gray-500 leading-snug">
+                                · {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {/* Sourced tips — wisdom cited from the user's own clips */}
+                        {!isChecked && activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                          <div className="space-y-1 pt-1">
+                            {activity.sourcedTips.map((st, sIdx) => (
+                              <div
+                                key={sIdx}
+                                className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                              >
+                                <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
+                                <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
+                                  from your clip: {st.sourceTitle}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -593,6 +700,18 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {/* On-trip sticky "Next Stop" banner */}
+      {onTripMode && plan && (
+        <OnTripNextStop
+          activity={nextStop?.activity ?? activeDayPlan?.activities[0]!}
+          dayIdx={nextStop?.dayIdx ?? activeDayIndex}
+          actIdx={nextStop?.actIdx ?? 0}
+          userPosition={userPosition}
+          isChecked={!nextStop}
+          onCheckIn={() => nextStop && checkInActivity(nextStop.dayIdx, nextStop.actIdx)}
+        />
+      )}
     </div>
   );
 }
