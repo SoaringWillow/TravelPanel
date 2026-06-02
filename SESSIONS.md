@@ -96,3 +96,8 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-02 14:24 | e89add2 | feat(B2): add Chrome/Safari browser extension for one-click clipping
+2026-06-02 14:30 | fb34d2a | feat(B3): Claude Vision extraction for Xiaohongshu screenshots
+2026-06-02 14:32 | 18f75a9 | feat(B5): Settings page with JSON export/import and data stats
+2026-06-02 14:34 | 66fd694 | chore: add Phase D-G tasks toward beautiful, production-ready iOS app
+2026-06-02 14:36 | fbec775 | feat(D1): haptic feedback on key actions via @capacitor/haptics
