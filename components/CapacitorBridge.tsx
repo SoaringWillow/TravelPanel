@@ -3,17 +3,28 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share stored by the iOS Share Extension via App Groups.
+// Stashes imageData in sessionStorage so the /share page can read it without polluting the URL.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: imageData }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImageData' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImageData' }),
+    ]);
+
+    if (imageData) {
+      try { sessionStorage.setItem('pendingShareImageData', imageData); } catch { /* quota */ }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -45,14 +56,24 @@ export function CapacitorBridge() {
 
         // Handle URL scheme deep links from the iOS Share Extension.
         // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // Image data (if any) is stored in App Group and read here to avoid URL length limits.
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
-            // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
 
             if (shareUrl) {
+              // Pull any image the Share Extension stored alongside this URL
+              try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: imageData } = await Preferences.get({ key: 'pendingShareImageData' });
+                if (imageData) {
+                  await Preferences.remove({ key: 'pendingShareImageData' });
+                  try { sessionStorage.setItem('pendingShareImageData', imageData); } catch { /* quota */ }
+                }
+              } catch { /* no Preferences plugin */ }
+
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);

@@ -29,12 +29,24 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [sharedImageData, setSharedImageData] = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Read image payload stashed by CapacitorBridge (Xiaohongshu/WeChat Vision fallback)
+  useEffect(() => {
+    try {
+      const data = sessionStorage.getItem('pendingShareImageData');
+      if (data) {
+        sessionStorage.removeItem('pendingShareImageData');
+        setSharedImageData(data);
+      }
+    } catch { /* sessionStorage unavailable */ }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +100,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass imageData when available (Xiaohongshu Vision fallback)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, sharedImageData)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
