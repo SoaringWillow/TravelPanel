@@ -289,7 +289,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On confirm: create boards and move items atomically
 
 ### D8 — App Icon, Splash Screen & PWA Manifest Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The iOS home screen icon and splash screen are the first impression. The current manifest has placeholder values. Before any public launch, the app needs a proper icon, splash, and PWA identity.  
 **Files to change**: `public/manifest.json`, `app/layout.tsx`, `public/` (icon files), `ios/App/App/Assets.xcassets`  
 **What to do**:
