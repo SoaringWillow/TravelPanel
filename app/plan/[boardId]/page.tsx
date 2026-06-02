@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
-import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
+import { exportPlanToPDF, exportPlanToICS, sharePlanAsText } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { hapticSuccess } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
@@ -184,6 +184,17 @@ export default function PlanPage() {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
+  }, [plan, board, boardId]);
+
+  const [copyToast, setCopyToast] = useState('');
+  const handleShareText = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const result = await sharePlanAsText(plan, board.name);
+    if (result === 'copied') {
+      setCopyToast('Copied to clipboard!');
+      setTimeout(() => setCopyToast(''), 2500);
+    }
+    track('plan_exported', { format: 'text', boardId });
   }, [plan, board, boardId]);
 
   // Load a previously-saved plan variant into view.
@@ -462,20 +473,29 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
                   <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    onClick={handleShareText}
+                    className="w-full flex items-center justify-center gap-1.5 border border-indigo-200 text-indigo-600 text-xs font-medium py-2 rounded-xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
-                  </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
+                    <Share2 size={14} />
+                    {copyToast || 'Share as Text'}
                   </button>
                 </div>
               )}

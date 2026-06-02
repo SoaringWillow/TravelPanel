@@ -266,7 +266,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Auto-hide 3s after going back online
 
 ### D9 — Share Plan as Text
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to share itineraries with travel companions via WhatsApp/iMessage. Currently only PDF/ICS export exists.  
 **Files**: `app/plan/[boardId]/page.tsx`, `lib/exportPlan.ts`  
 **What to do**:

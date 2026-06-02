@@ -180,3 +180,41 @@ export function exportPlanToICS(plan: TripPlan, boardName: string): void {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ─── Share as text ───────────────────────────────────────────────────────────
+
+export function buildPlanText(plan: TripPlan, boardName: string): string {
+  const lines: string[] = [`✈ ${boardName} — ${plan.days.length}-Day Itinerary`, ''];
+
+  for (const day of plan.days) {
+    lines.push(`── Day ${day.dayNumber}: ${day.theme} ──`);
+    for (const act of day.activities) {
+      const time = act.time ? `${act.time}  ` : '';
+      lines.push(`• ${time}${act.name}`);
+      if (act.description) lines.push(`  ${act.description}`);
+      const tips = collectSourcedTips(act);
+      for (const t of act.tips ?? []) lines.push(`  💡 ${t}`);
+      for (const t of tips)            lines.push(`  📎 ${t}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('Planned with TravelPanel');
+  return lines.join('\n');
+}
+
+export async function sharePlanAsText(plan: TripPlan, boardName: string): Promise<'shared' | 'copied'> {
+  const text = buildPlanText(plan, boardName);
+
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share({ title: `${boardName} Itinerary`, text });
+      return 'shared';
+    } catch {
+      // User cancelled or API unavailable — fall through to clipboard
+    }
+  }
+
+  await navigator.clipboard.writeText(text);
+  return 'copied';
+}
