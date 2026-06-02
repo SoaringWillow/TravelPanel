@@ -200,7 +200,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: make the app feel genuinely native and delightful on iPhone. These are all web-layer changes (Tailwind/React) that the Capacitor shell renders as a native app. Work top-to-bottom.
 
 ### D1 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `components/ImportSheet.tsx`  
 **What to do**:
 - Create `lib/haptics.ts` wrapper: `tap()`, `success()`, `error()`, `heavy()` — calls `@capacitor/haptics` on native, no-ops in browser
