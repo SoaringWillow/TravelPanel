@@ -103,3 +103,14 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-02 20:39 | 8be3052 | feat: C2 — Post-Trip Timeline (trip journal with check-in history)
 2026-06-02 20:41 | cf62e2c | feat: C3 — Shared Boards v1 (privacy-safe board sharing via URL hash)
 2026-06-02 20:43 | e59f628 | feat: C4 — Proactive Resurfacing (in-app smart suggestions)
+2026-06-02 20:47 | d36921e | chore: add Phase D task queue (D1-D10) for iOS beauty sprint
+2026-06-02 20:48 | a9bd4d5 | feat(D1): add Wisdom tab to board detail page
+2026-06-02 20:49 | 3927c6c | feat(D2): duplicate detection on save in share page
+2026-06-02 20:51 | 0125b9f | feat(D3): natural language plan refinement
+2026-06-02 20:53 | 2b94cc4 | feat(D4): festival & weather enrichment signals in trip planner
+2026-06-02 20:55 | 0831eb3 | feat(D5): iOS haptic feedback + swipe-to-delete on inbox cards
+2026-06-02 20:56 | f0736be | feat(D6): offline plan caching and offline mode detection
+2026-06-02 20:57 | fc0a58b | feat(D7): AI auto-organize inbox — cluster clips by destination
+2026-06-02 20:58 | 1f1c9f0 | feat(D8): app icon, PWA manifest polish, iOS meta tags
+2026-06-02 21:00 | 2ba2c89 | feat(D9): smart board cover photos with destination gradients
+2026-06-02 21:01 | a99cd57 | feat(D10): pull-to-refresh + live enrichment shimmer/failed indicators
