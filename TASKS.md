@@ -202,7 +202,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Ordered by impact on UX and the core product promise.
 
 ### D1 — Wisdom Tab on Boards (per-board substance library)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: PRODUCT_STRATEGY.md identifies this as the "third primary surface" beyond Map and Plan. Every board should have a "Wisdom" tab showing all substance items extracted from its clips — browsable, grouped by type, searchable. This turns the clip corpus into a personal knowledge base.  
 **Files to change**: `app/boards/[id]/page.tsx`, new `components/WisdomTab.tsx`  
 **What to do**:
