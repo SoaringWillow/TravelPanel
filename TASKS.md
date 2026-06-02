@@ -215,7 +215,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test: map overlay, InboxCard, LocationDetailCard, share page, settings page
 
 ### D4 — Import Data from Backup
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Without import, the backup export (B5) is a write-only safety net. Users need restore.  
 **Files**: `app/settings/page.tsx`, `lib/exportData.ts`  
 **What to do**:
