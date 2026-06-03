@@ -272,7 +272,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - "Notes" field is already in the SavedItem type (optional string) but never shown or editable
 
 ### D9 — App Store Metadata & Screenshots
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `appstore/` directory  
 **What to do**:
 - Write `appstore/description.txt` — App Store long description (4000 chars max)
