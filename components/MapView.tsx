@@ -247,11 +247,17 @@ function useOnlineStatus() {
   );
 }
 
+interface ClusterSheet {
+  items: SavedItem[];
+  totalCount: number;
+}
+
 export default function MapView({ items, onPinClick, flyTo, onUserLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
-  const { clusters, getExpansionZoom, setView } = useSupercluster(items);
+  const [clusterSheet, setClusterSheet] = useState<ClusterSheet | null>(null);
+  const { clusters, getExpansionZoom, getLeaves, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
   const isOnline = useOnlineStatus();
 
@@ -348,11 +354,21 @@ export default function MapView({ items, onPinClick, flyTo, onUserLocation }: Ma
                   total={maxClusterCount}
                   onClick={() => {
                     const expansionZoom = getExpansionZoom(clusterId);
-                    mapInstanceRef.current?.easeTo({
-                      center: [lng, lat],
-                      zoom: expansionZoom,
-                      duration: 500,
-                    });
+                    const currentZoom = mapInstanceRef.current?.getZoom() ?? 0;
+                    if (expansionZoom <= currentZoom + 0.5) {
+                      // Already at max expansion — show the item list instead
+                      const leaves = getLeaves(clusterId);
+                      setClusterSheet({
+                        items: leaves.map((l) => l.properties.item),
+                        totalCount: count,
+                      });
+                    } else {
+                      mapInstanceRef.current?.easeTo({
+                        center: [lng, lat],
+                        zoom: expansionZoom,
+                        duration: 500,
+                      });
+                    }
                   }}
                 />
               </Marker>
@@ -434,6 +450,69 @@ export default function MapView({ items, onPinClick, flyTo, onUserLocation }: Ma
           </svg>
         )}
       </button>
+
+      {/* Cluster item list sheet */}
+      {clusterSheet && (
+        <>
+          <div
+            className="absolute inset-0 z-[1100]"
+            onClick={() => setClusterSheet(null)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 z-[1200] bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t dark:border-white/10"
+            style={{ maxHeight: '60%' }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-b dark:border-white/10">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                {clusterSheet.totalCount} places here
+              </h3>
+              <button
+                type="button"
+                onClick={() => setClusterSheet(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(60vh - 100px)' }}>
+              {clusterSheet.items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { onPinClick(item); setClusterSheet(null); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-50 dark:border-white/5 last:border-0"
+                >
+                  {item.thumbnail ? (
+                    <img src={item.thumbnail} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold text-white"
+                      style={{ background: `linear-gradient(135deg, ${PLATFORM_COLORS[item.platform]}dd, ${PLATFORM_COLORS[item.platform]}88)` }}>
+                      {item.title[0]?.toUpperCase() ?? '?'}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100 line-clamp-1">{item.title}</p>
+                    {(item.substance?.length ?? 0) > 0 && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                        💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))}
+              {clusterSheet.totalCount > clusterSheet.items.length && (
+                <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-3">
+                  + {clusterSheet.totalCount - clusterSheet.items.length} more — zoom in to see all
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -605,7 +605,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: capturing a quick note while browsing (e.g. "go in shoulder season") is currently a 4-tap operation (tap card → open detail → find notes field → type); inline saves that friction
 
 ### I4 — Map Cluster Tap — Item List Popover
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`  
 **What to do**:
 - When a cluster marker is tapped, show a compact bottom sheet listing all item titles in that cluster (up to 10, with count if more)
