@@ -211,7 +211,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Ensure NavBar bottom padding accounts for the home indicator on iPhone X+
 
 ### D2 — Dark Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/globals.css`, `tailwind.config.js`, all components  
 **What to do**:
 - Enable Tailwind `darkMode: 'class'` (or `media`) 

@@ -1,11 +1,19 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Download, Upload, Trash2, ChevronLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, Upload, Trash2, ChevronLeft, CheckCircle2, AlertCircle, Loader2, Sun, Moon, Monitor } from 'lucide-react';
 import Link from 'next/link';
 import { exportAllData, importBackupFile, ImportSummary } from '@/lib/exportData';
 import { getAllItems } from '@/lib/db';
 import NavBar from '@/components/NavBar';
+import { useTheme } from '@/components/ThemeProvider';
+
+type ThemeOption = { value: 'light' | 'dark' | 'system'; label: string; Icon: React.ElementType };
+const THEME_OPTIONS: ThemeOption[] = [
+  { value: 'light',  label: 'Light',  Icon: Sun },
+  { value: 'dark',   label: 'Dark',   Icon: Moon },
+  { value: 'system', label: 'System', Icon: Monitor },
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +23,7 @@ type ImportState = 'idle' | 'loading' | 'done' | 'error';
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const [exportState, setExportState] = useState<ExportState>('idle');
   const [importState, setImportState] = useState<ImportState>('idle');
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
@@ -100,6 +109,33 @@ export default function SettingsPage() {
             </p>
           </div>
         )}
+
+        {/* Theme */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="px-4 py-4 border-b border-gray-50">
+            <h2 className="font-semibold text-gray-900">Appearance</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Choose light, dark, or follow your system setting.</p>
+          </div>
+          <div className="px-4 py-4">
+            <div className="flex gap-2">
+              {THEME_OPTIONS.map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
+                    theme === value
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon size={18} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Export section */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
