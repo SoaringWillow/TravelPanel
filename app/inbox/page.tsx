@@ -1,20 +1,28 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, deleteItem as dbDeleteItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import SwipeToDelete from '@/components/SwipeToDelete';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+
+// ─── Undo toast state ─────────────────────────────────────────────────────────
+
+interface PendingDelete {
+  item: SavedItem;
+  timer: ReturnType<typeof setTimeout>;
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -38,6 +46,46 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // ── Undo delete ───────────────────────────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const pendingDeleteRef = useRef<PendingDelete | null>(null);
+  pendingDeleteRef.current = pendingDelete;
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteRef.current) clearTimeout(pendingDeleteRef.current.timer);
+    };
+  }, []);
+
+  function handleSwipeDelete(item: SavedItem) {
+    // Cancel any previous pending delete and immediately execute it
+    if (pendingDeleteRef.current) {
+      clearTimeout(pendingDeleteRef.current.timer);
+      dbDeleteItem(pendingDeleteRef.current.item.id);
+    }
+
+    // Optimistically remove from the visual list
+    removeItem(item.id);
+
+    // Schedule actual deletion after 4 seconds
+    const timer = setTimeout(() => {
+      dbDeleteItem(item.id);
+      setPendingDelete(null);
+      track('clip_deleted', { platform: item.platform });
+    }, 4000);
+
+    setPendingDelete({ item, timer });
+  }
+
+  function handleUndo() {
+    if (!pendingDelete) return;
+    clearTimeout(pendingDelete.timer);
+    setPendingDelete(null);
+    // Re-save the item to IndexedDB and refresh the visual list
+    saveItem(pendingDelete.item).then(() => refreshItem(pendingDelete.item.id));
+  }
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -169,13 +217,15 @@ export default function InboxPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
+                  <SwipeToDelete onDelete={() => handleSwipeDelete(item)}>
+                    <InboxCard
+                      item={item}
+                      onDelete={(id) => handleSwipeDelete(items.find((i) => i.id === id) ?? item)}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  </SwipeToDelete>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -259,6 +309,30 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Undo toast ──────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {pendingDelete && (
+          <motion.div
+            key="undo-toast"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 24, stiffness: 320 }}
+            className="fixed bottom-20 left-4 right-4 z-[3000] flex items-center justify-between
+                       bg-gray-900 text-white rounded-2xl px-4 py-3 shadow-xl"
+          >
+            <span className="text-sm font-medium">Clip deleted</span>
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="text-sm font-bold text-indigo-300 hover:text-indigo-200 transition-colors ml-4"
+            >
+              Undo
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 

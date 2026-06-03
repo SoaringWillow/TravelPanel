@@ -7,17 +7,19 @@
 
 ---
 
-## ⭐ Recommended Execution Order (revised 2026-05-31)
+## ⭐ Recommended Execution Order (revised 2026-06-03)
 
-The moat is **Substance over Spots**. A1 made the app *extract* substance, but it's
-currently invisible (only a count badge) and the trip planner throws it away. The two
-highest-value tasks are surfacing substance (A11) and threading it into plans (A12) —
-do these before clustering/search polish.
+**Phase A & B are complete** (except B4 which needs Supabase keys). **Phase D is the active sprint.**
 
-`A11 → A12 → A3 → A7 → A8 → A6 → A9 → A10`
+Phase D priority order: `D2 → D4 → D5 → D1 → D6 → D3 → D7 → D8`
 
-(A3 is NOT blocked — it no-ops without a key. Build it now; it just stays dormant
-until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
+- D2 (swipe-to-delete) and D4 (notes) are the most-missed core interactions
+- D5 (tag filter) unlocks the map at scale
+- D1 (haptics) and D6 (photo clip) are iOS-native differentiators
+- D3 (dark mode) and D7 (onboarding) are polish
+- D8 (pull-to-refresh) is a finishing touch
+
+Phase E tasks are future work, mostly gated on Supabase (B1).
 
 ---
 
@@ -192,6 +194,162 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ### C4 — Proactive Resurfacing
 **Status**: `[ ]` Not started
+
+---
+
+---
+
+## PHASE D — iOS Polish & Delight (Current Sprint — revised 2026-06-03)
+
+> Goal: A beautiful, native-feeling iOS app. These tasks close the gap between "web app in a shell" and "app that feels built for iPhone."
+>
+> **Recommended order:** `D2 → D4 → D5 → D1 → D6 → D3 → D7 → D8`
+
+### D1 — Haptic Feedback on Key Interactions
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect physical feedback. Silent saves feel broken.  
+**Files**: `app/share/page.tsx`, `components/ImportSheet.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` with `haptic(style: 'light'|'medium'|'heavy'|'success'|'error')` that calls `Capacitor` `Haptics` plugin — no-op if not in native context
+- Fire `haptic('success')` when a clip is saved (after `setStage('done')`)
+- Fire `haptic('light')` when a board chip is tapped in the share flow
+- Fire `haptic('medium')` when plan generation starts
+- Fire `haptic('success')` when a plan is generated successfully
+
+### D2 — Swipe-to-Delete Clips with Undo Toast
+**Status**: `[x]` Done  
+**Why**: Deleting a clip currently has no gesture. Mobile-first apps need swipe-to-delete.  
+**Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`, possibly new `components/SwipeableRow.tsx`  
+**What to do**:
+- Wrap each `InboxCard` in a `SwipeableRow` component that reveals a red delete button on swipe-left
+- On delete: immediately remove from view, show a "Undo" toast for 4 seconds (bottom snackbar)
+- If undo is not tapped within 4s, call `deleteItem()` from db.ts
+- If undo IS tapped, re-insert the item at the original position
+- Use `framer-motion` drag gestures (`x` motion value with a threshold of -80px)
+- Works with both mouse (desktop) and touch (iOS)
+
+### D3 — Dark Mode Support
+**Status**: `[ ]` Not started  
+**Why**: iOS dark mode is expected by users. The app is all white backgrounds — jarring at night.  
+**Files**: `app/globals.css`, `tailwind.config.js`, key components  
+**What to do**:
+- Enable Tailwind `darkMode: 'class'` (already set or set it)
+- Add `dark:` variants to all major components: bg-white → bg-gray-900, text-gray-900 → dark:text-white, etc.
+- Add a `ThemeToggle` component in the settings page (`app/settings/page.tsx`) that sets `dark` class on `<html>` and persists in localStorage
+- On iOS, auto-detect system preference via `prefers-color-scheme` media query on first launch
+- MapLibre: use a dark basemap style when in dark mode (OpenFreeMap has a dark variant)
+
+### D4 — Personal Notes on Clips
+**Status**: `[ ]` Not started  
+**Why**: Users want to annotate clips with their own context. "I was recommended this by Mei."  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`, `lib/types.ts`  
+**What to do**:
+- `SavedItem.notes` already exists in the type — it just needs a UI to edit it
+- Add an editable notes section to `LocationDetailCard`: tapping shows a multiline textarea
+- Auto-save on blur (debounced 500ms) by calling `updateItemNote(id, notes)` in db.ts
+- Show a subtle "📝 Note" chip on `InboxCard` if `notes` is non-empty
+- Notes survive export/import via the existing backup system (already in the schema)
+
+### D5 — Tag/Category Filtering
+**Status**: `[ ]` Not started  
+**Why**: Users with 50+ clips need to filter by type. "Show me only food spots in Tokyo."  
+**Files**: `app/inbox/page.tsx`, `app/page.tsx` (map view), `components/NavBar.tsx`  
+**What to do**:
+- Create `components/TagFilterBar.tsx`: a horizontally-scrollable row of tag chips (food, nature, culture, adventure, beach, mountain, city, etc.)
+- Show this below the search bar in `/inbox` view
+- Active tags filter the clip list (AND logic if multiple selected, OR is more user-friendly — use OR)
+- On the map view, active tag filters hide pins that don't match
+- Persist selected filters in `sessionStorage` so they survive navigation
+- "All" chip always present and clears other filters
+
+### D6 — Photo Clip Flow (Camera Roll → Claude Vision)
+**Status**: `[ ]` Not started  
+**Why**: Users screenshot travel posts. They want to clip screenshots directly, not just URLs.  
+**Files**: `app/share/page.tsx`, `app/page.tsx`, `lib/enrichItem.ts`, `app/api/import/route.ts`  
+**What to do**:
+- Add a "Clip a screenshot" button to the main import sheet (`components/ImportSheet.tsx`)
+- Uses `<input type="file" accept="image/*" capture="environment">` for camera/library access
+- On image select: create a `SavedItem` with `url: 'local-photo'`, `platform: 'other'`, and pass the base64 image to `enrichItem()` as the image payload
+- The existing B3 vision path in `/api/import` handles the extraction — it already accepts `imageData`
+- In the share UI, show a thumbnail preview of the selected image in the page preview card
+- After enrichment, the clip appears normally in the inbox with any extracted locations + substance
+
+### D7 — Animated First-Launch Onboarding
+**Status**: `[ ]` Not started  
+**Why**: New users see a blank map and don't know what to do. Retention cliff at first launch.  
+**Files**: new `components/OnboardingOverlay.tsx`, `app/page.tsx`  
+**What to do**:
+- Create a 3-step onboarding overlay that fires only on first launch (gate: `localStorage.getItem('onboarded')`)
+- Step 1: "✈️ TravelPanel — Save travel inspiration from anywhere" (full-screen with animated map pin drop)
+- Step 2: "📌 Clip posts from Instagram, YouTube, 小红书 via iOS Share Sheet or the browser extension"
+- Step 3: "🗺 Generate AI trip plans from your saved clips, with cited tips from the posts you saved"
+- Each step has a "Next →" button; last step has "Start exploring →" which sets `onboarded` flag
+- The existing seed boards (A8) are pre-loaded in step 3 to show a rich demo of the substance layer
+- Skip link always visible
+
+### D8 — Pull-to-Refresh in Clip Lists
+**Status**: `[ ]` Not started  
+**Why**: On iOS, pull-to-refresh is muscle memory. The inbox feels stale without it.  
+**Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts`  
+**What to do**:
+- Add a `usePullToRefresh(onRefresh, containerRef)` hook in `hooks/usePullToRefresh.ts`
+- Uses touch events to detect downward drag beyond 60px when already scrolled to top
+- Shows an animated spinner (framer-motion rotate loop) during refresh
+- On release: calls `onRefresh()` which re-reads all items from IndexedDB
+- Also re-triggers any `pending` enrichment items (calls the retry queue)
+- Snap back with spring animation on release
+
+---
+
+## PHASE E — Advanced Features (Future Sprint)
+
+### E1 — AI Smart Collections
+**Status**: `[ ]` Not started  
+**Why**: Users with 100+ clips want automatic grouping. "All my Tokyo clips" shouldn't require manual board management.  
+**Files**: new `app/api/cluster/route.ts`, `app/boards/page.tsx`  
+**What to do**:
+- Create `/api/cluster` endpoint that takes all item titles/descriptions/tags and uses Claude to suggest 3–5 collection themes
+- Each suggested collection has a name, emoji, and list of item IDs
+- Show "Suggested collections" section at the top of `/boards` view
+- User can tap to create the board with one tap (pre-populated with the suggested items)
+- Only runs when user has 20+ clips and no smart collections created yet
+
+### E2 — Share Clip as Image Card
+**Status**: `[ ]` Not started  
+**Why**: Users want to share clips with friends ("You should visit this!"). Plain URL shares don't show the substance layer.  
+**Files**: new `app/card/[itemId]/page.tsx`, new API route  
+**What to do**:
+- Create `/card/[itemId]` — a server-rendered OG-image-style page showing the clip's key info
+- Use `next/og` (ImageResponse) to generate a branded image card: clip title, top 2 substance items, location count, TravelPanel branding
+- Add "Share" button to `LocationDetailCard` that copies the URL or triggers native iOS share sheet
+- The shared URL opens the card page which deep-links into the app
+
+### E3 — Trip Itinerary Sharing
+**Status**: `[ ]` Not started  
+**Needs**: Server-side storage (Supabase B1) or serialization into URL  
+**What to do**:
+- Export a trip as a shareable link that renders a read-only itinerary view
+- If Supabase available: store trip as public record, share `/trip/[shareId]`
+- If not: serialize trip JSON into a compressed URL-safe base64 string, share `/trip/view?d=...`
+
+### E4 — Nearby Discovery
+**Status**: `[ ]` Not started  
+**Why**: Users want to discover what else is near a saved location.  
+**Files**: new `app/api/nearby/route.ts`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- When viewing a clip's location detail, show a "Nearby" section
+- Calls a new `/api/nearby?lat=&lng=&radius=500` endpoint
+- Uses Overpass API (free, no key) to fetch nearby POIs (restaurants, attractions, transport)
+- Shows 3–5 nearby places in a horizontal scroll row beneath the location card
+
+### E5 — Collaborative Boards
+**Status**: `[ ]` Not started  
+**Needs**: Supabase B1 (cloud sync + auth)  
+**What to do**:
+- Share a board with friends via invite link
+- Invitees can add clips to the shared board
+- Changes sync in real-time via Supabase realtime subscriptions
+- Plan can be generated from a collaborative board
 
 ---
 
