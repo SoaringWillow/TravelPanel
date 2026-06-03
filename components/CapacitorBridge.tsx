@@ -8,6 +8,9 @@ import { useRouter } from 'next/navigation';
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
+    // Use the App Group suite so Preferences can read keys written by the Share Extension.
+    // The Share Extension writes to UserDefaults(suiteName: "group.com.travelpanel.app").
+    await Preferences.configure({ group: 'group.com.travelpanel.app' });
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 

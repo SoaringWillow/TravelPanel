@@ -29,12 +29,34 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [shareImageBase64, setShareImageBase64] = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Read pending image stored by the iOS Share Extension via App Group UserDefaults.
+  // Xiaohongshu and WeChat block URL scraping, so image-based extraction is the fallback.
+  useEffect(() => {
+    const readPendingImage = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { Preferences } = await import('@capacitor/preferences');
+        await Preferences.configure({ group: 'group.com.travelpanel.app' });
+        const { value } = await Preferences.get({ key: 'pendingShareImageBase64' });
+        if (value) {
+          setShareImageBase64(value);
+          await Preferences.remove({ key: 'pendingShareImageBase64' });
+        }
+      } catch {
+        // Not in native context or App Group not configured — graceful no-op
+      }
+    };
+    readPendingImage();
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +110,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if present (Xiaohongshu/WeChat vision fallback)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, shareImageBase64 ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
