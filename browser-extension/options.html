@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    :root {
+      --blue: #2563EB;
+      --blue-dark: #1D4ED8;
+      --text: #111827;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+      --bg: #F9FAFB;
+      --green: #22C55E;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    .page {
+      max-width: 480px;
+      margin: 48px auto;
+      padding: 0 20px;
+    }
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand-name { font-size: 16px; font-weight: 700; }
+    .brand-sub { font-size: 12px; color: var(--text-muted); }
+    h2 { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .field { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    }
+    .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+    .actions-row { display: flex; gap: 8px; align-items: center; }
+    button {
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .15s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+      color: white;
+      box-shadow: 0 2px 6px rgba(37,99,235,.3);
+    }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .btn-reset {
+      background: #F3F4F6;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-reset:hover { background: var(--border); }
+    .saved-msg {
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 600;
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+    .saved-msg.show { display: flex; }
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .shortcut-row p { font-size: 13px; }
+    .kbd {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+    .kbd span {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11.5px;
+      font-family: 'SF Mono', monospace;
+      font-weight: 600;
+    }
+    .link-row { margin-top: 6px; }
+    .link-row a {
+      font-size: 12px;
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .link-row a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7z" fill="white" opacity="0.9"/>
+          <circle cx="12" cy="9" r="2.5" fill="var(--blue-dark)"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">TravelPanel Clipper</div>
+        <div class="brand-sub">Settings</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Connection</h2>
+
+      <div class="field">
+        <label for="appUrl">TravelPanel URL</label>
+        <input type="url" id="appUrl" placeholder="https://travel-panel.vercel.app" />
+        <p class="hint">Your TravelPanel web app URL. Change this to point to your local dev server during development.</p>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-primary" id="saveBtn">Save</button>
+        <button class="btn-reset" id="resetBtn">Reset to default</button>
+        <span class="saved-msg" id="savedMsg">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+          Saved
+        </span>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2>Keyboard Shortcut</h2>
+      <div class="shortcut-row">
+        <p>Clip current page</p>
+        <div class="kbd">
+          <span>⌥</span><span>⇧</span><span>T</span>
+        </div>
+      </div>
+      <div class="link-row">
+        <a href="chrome://extensions/shortcuts" id="shortcutLink">Customize shortcuts →</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
