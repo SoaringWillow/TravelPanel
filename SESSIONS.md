@@ -96,3 +96,26 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-03 21:30 | 502a700 | feat(B2): add TravelPanel Clipper browser extension (MV3)
+2026-06-03 21:37 | d1bc670 | feat(B3): Xiaohongshu/WeChat fix via Claude Vision
+2026-06-03 21:38 | 0c31521 | feat(B5): data backup export + Settings page
+2026-06-03 21:42 | cf624fc | feat(C1): On-Trip GPS Mode — location dot on map + Near me inbox sort
+2026-06-03 21:44 | abf4b63 | feat(C2): Post-Trip Timeline view on board detail page
+2026-06-03 21:45 | 43116f0 | feat(C4): Proactive Resurfacing — nearby clips banner on map home
+2026-06-03 21:47 | 885f188 | fix(D1): add iOS privacy usage strings to Info.plist
+2026-06-03 21:55 | 283ed79 | D2: Add system-respecting dark mode across all major screens
+2026-06-03 21:56 | b391021 | D3: Add haptic feedback on key iOS actions
+2026-06-03 21:56 | 33cf127 | D4: Swipe-to-delete on inbox cards
+2026-06-03 21:58 | 16eb9ae | D5: Plan view visual polish
+2026-06-03 21:59 | b62e0db | D6: Illustrated empty states for inbox, boards, and plan
+2026-06-03 22:00 | 5e4fb58 | D7: Regenerate iOS app icon — indigo gradient + white pin
+2026-06-03 22:02 | d5a5a76 | D8: Inline clip editing (title + notes) from map detail card
+2026-06-03 22:03 | 4d368e0 | D9: App Store metadata — description, keywords, screenshot shot list
+2026-06-03 22:04 | 1da6109 | D10: PWA manifest icons + apple-touch-icon meta tags
+2026-06-03 22:05 | f5058af | E1: Global search toggle — search across all boards, not just Inbox
+2026-06-03 22:05 | 42612db | E2: Board cover — full-bleed thumbnail with gradient overlay
+2026-06-03 22:07 | 017c760 | E3: Drag-to-reorder days in trip itinerary
+2026-06-03 22:08 | c3d2d20 | E6: Admin cost dashboard at /admin (password-gated)
+2026-06-03 22:09 | b4ab958 | Add Phase F (App Store Readiness) and Phase G (Growth) task phases
+2026-06-03 22:09 | a25493b | F1: Enrichment retry queue with live progress indicator
+2026-06-03 22:10 | 3e6d362 | F2: React ErrorBoundary + unhandled rejection logger

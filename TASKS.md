@@ -354,7 +354,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `window.addEventListener('unhandledrejection', ...)` logger to the CapacitorBridge
 
 ### F3 — Onboarding Flow (First Launch)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/onboarding/page.tsx` (new), `lib/db.ts`  
 **What to do**:
 - 3-screen swipeable onboarding shown only on first launch (store flag in localStorage)
