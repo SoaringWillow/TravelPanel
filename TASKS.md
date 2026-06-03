@@ -406,7 +406,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Dismiss on map tap elsewhere
 
 ### F5 — Swipe-Between-Days in Trip Plan
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The day strip is a horizontal scroll but swiping left/right on the activity list doesn't advance the day. On mobile, this feels broken.  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:

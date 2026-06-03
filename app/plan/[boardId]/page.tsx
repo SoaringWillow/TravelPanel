@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
@@ -533,9 +534,22 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Active day activities */}
+              {/* Active day activities — drag left/right to advance/retreat */}
               {activeDayPlan && (
-                <div className="space-y-3">
+                <motion.div
+                  className="space-y-3"
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={(_e, info) => {
+                    const maxDay = (plan?.days?.length ?? 1) - 1;
+                    if (info.velocity.x < -200 || info.offset.x < -80) {
+                      setActiveDayIndex((i) => Math.min(i + 1, maxDay));
+                    } else if (info.velocity.x > 200 || info.offset.x > 80) {
+                      setActiveDayIndex((i) => Math.max(i - 1, 0));
+                    }
+                  }}
+                >
                   <h2 className="text-sm font-bold text-gray-700">
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
@@ -588,7 +602,7 @@ export default function PlanPage() {
                       )}
                     </div>
                   ))}
-                </div>
+                </motion.div>
               )}
 
               {/* Trip tips */}
