@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Pencil, Check } from 'lucide-react';
+import { X, MapPin, Pencil, Check, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { saveItem } from '@/lib/db';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
@@ -12,6 +12,16 @@ interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
   onUpdated?: (updated: SavedItem) => void;
+}
+
+function openInMaps(lat: number, lng: number, name: string) {
+  const label = encodeURIComponent(name);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === 'MacIntel';
+  if (isIOS) {
+    window.open(`maps://?ll=${lat},${lng}&q=${label}`, '_blank');
+  } else {
+    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+  }
 }
 
 export default function LocationDetailCard({ item: initialItem, onClose, onUpdated }: LocationDetailCardProps) {
@@ -163,7 +173,7 @@ export default function LocationDetailCard({ item: initialItem, onClose, onUpdat
                   {item.locations.map((loc, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <MapPin size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <span className="text-sm text-gray-700 dark:text-gray-300 font-medium block">
                           {loc.name}
                         </span>
@@ -174,6 +184,15 @@ export default function LocationDetailCard({ item: initialItem, onClose, onUpdat
                           {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
                         </span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => openInMaps(loc.lat, loc.lng, loc.name)}
+                        className="flex-shrink-0 p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 transition-colors"
+                        aria-label={`Open ${loc.name} in Maps`}
+                        title="Open in Maps"
+                      >
+                        <ExternalLink size={13} />
+                      </button>
                     </div>
                   ))}
                 </div>

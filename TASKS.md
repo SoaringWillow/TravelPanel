@@ -365,7 +365,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Skip button always visible
 
 ### F4 — Substance Detail View
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/SubstanceList.tsx`, `components/LocationDetailCard.tsx`  
 **What to do**:
 - Currently SubstanceList just shows a list of tips. Add visual hierarchy:
@@ -376,7 +376,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This surfaces the substance moat directly in the detail view
 
 ### F5 — Location Detail: Open in Maps
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`  
 **What to do**:
 - Add "Open in Maps" button to each location in the LocationDetailCard
@@ -385,7 +385,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Small icon button, placed inline with each location row
 
 ### F6 — Import Sheet Polish (URL Preview)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ImportSheet.tsx`  
 **What to do**:
 - When a URL is pasted into the import field, immediately show a platform chip + domain preview
