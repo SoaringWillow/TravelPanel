@@ -200,7 +200,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: every screen should feel like a native iOS app — delightful, fast, and instantly intuitive to a first-time user.
 
 ### D1 — Substance Visible in Inbox Cards 🔴 HIGHEST PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The substance extraction is the #1 moat, but `InboxCard` only shows title, thumbnail, tags, and a count badge. Users never read the actual wisdom unless they open the map detail card. This is the single biggest gap between "feature exists" and "feature is felt".  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:

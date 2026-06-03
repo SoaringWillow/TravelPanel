@@ -1,8 +1,19 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
-import { SavedItem } from '@/lib/types';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
+import { SavedItem, SubstanceType } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+
+// Per-type styling for inline substance preview
+const SUBSTANCE_CONFIG: Record<SubstanceType, { icon: string; textColor: string; borderColor: string; bgColor: string }> = {
+  tip:            { icon: '💡', textColor: 'text-blue-700',   borderColor: 'border-blue-300',  bgColor: 'bg-blue-50'   },
+  warning:        { icon: '⚠️', textColor: 'text-amber-700',  borderColor: 'border-amber-300', bgColor: 'bg-amber-50'  },
+  opinion:        { icon: '💬', textColor: 'text-gray-600',   borderColor: 'border-gray-200',  bgColor: 'bg-gray-50'   },
+  wisdom:         { icon: '🧠', textColor: 'text-purple-700', borderColor: 'border-purple-300',bgColor: 'bg-purple-50' },
+  context:        { icon: '🌍', textColor: 'text-teal-700',   borderColor: 'border-teal-200',  bgColor: 'bg-teal-50'   },
+  recommendation: { icon: '⭐', textColor: 'text-orange-700', borderColor: 'border-orange-300',bgColor: 'bg-orange-50' },
+};
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +51,7 @@ export default function InboxCard({
   onRetry,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
+  const [substanceExpanded, setSubstanceExpanded] = useState(false);
 
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
@@ -226,41 +238,58 @@ export default function InboxCard({
           </p>
         )}
 
-        {/* Meta row: location count + activity count + substance count */}
-        {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0) && (
-          <div className="flex items-center gap-3 mb-2">
-            {item.locations.length > 0 && (
-              <span className="text-xs text-gray-500 flex items-center gap-0.5">
-                <MapPin size={10} className="text-indigo-400" />
-                {item.locations.length}
-              </span>
-            )}
-            {item.activities.length > 0 && (
-              <span className="text-xs text-gray-500">
-                🎯 {item.activities.length}
-              </span>
-            )}
-            {(item.substance?.length ?? 0) > 0 && (
-              <span className="text-xs text-amber-600 font-medium">
-                💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-        )}
+        {/* Meta row: location count + tags */}
+        <div className="flex items-center gap-2 flex-wrap mb-2">
+          {item.locations.length > 0 && (
+            <span className="text-xs text-gray-500 flex items-center gap-0.5">
+              <MapPin size={10} className="text-indigo-400" />
+              {item.locations.length} spot{item.locations.length !== 1 ? 's' : ''}
+            </span>
+          )}
+          {item.tags.slice(0, 3).map((tag) => (
+            <span key={tag} className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">
+              #{tag}
+            </span>
+          ))}
+        </div>
 
-        {/* Tags (first 3) */}
-        {item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {item.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Inline substance preview — the moat made visible */}
+        {(item.substance?.length ?? 0) > 0 && (() => {
+          const substance = item.substance!;
+          const preview   = substanceExpanded ? substance : substance.slice(0, 2);
+          const hasMore   = substance.length > 2;
+          return (
+            <div className="mb-2 space-y-1.5">
+              {preview.map((s, i) => {
+                const cfg = SUBSTANCE_CONFIG[s.type] ?? SUBSTANCE_CONFIG.tip;
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 border-l-2 ${cfg.borderColor} ${cfg.bgColor}`}
+                  >
+                    <span className="text-[13px] flex-shrink-0 leading-none mt-0.5">{cfg.icon}</span>
+                    <p className={`text-[12px] leading-snug ${cfg.textColor} line-clamp-2`}>
+                      {s.content}
+                    </p>
+                  </div>
+                );
+              })}
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setSubstanceExpanded((v) => !v); }}
+                  className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors pl-1"
+                >
+                  {substanceExpanded ? (
+                    <><ChevronUp size={11} /> Show less</>
+                  ) : (
+                    <><ChevronDown size={11} /> +{substance.length - 2} more tip{substance.length - 2 !== 1 ? 's' : ''}</>
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-50">
