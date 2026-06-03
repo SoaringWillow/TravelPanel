@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "short_name": "TravelPanel",
+  "version": "1.0.0",
+  "description": "Clip travel content from any webpage into TravelPanel — extract locations & wisdom instantly",
+  "permissions": ["activeTab", "storage", "tabs"],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://*.vercel.app/*",
+    "https://*.travelpanel.app/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
