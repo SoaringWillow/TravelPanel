@@ -336,7 +336,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: ship to TestFlight. Fix every crash path, polish every visible screen, make enrichment bulletproof.
 
 ### F1 — Enrichment Retry Queue (Background)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/enrichItem.ts`, `hooks/useEnrichmentRetry.ts`, service worker or `useEffect` on mount  
 **What to do**:
 - On app mount, scan all items with `enrichmentStatus === 'failed'` and `retryCount < 3`

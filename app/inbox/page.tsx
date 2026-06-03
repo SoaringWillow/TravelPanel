@@ -36,7 +36,7 @@ export default function InboxPage() {
   const { boards } = useBoards();
   const router = useRouter();
 
-  const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { retryItem, retryState } = useEnrichmentRetry(refreshItem);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -150,9 +150,17 @@ export default function InboxPage() {
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {globalSearch ? `${items.length} total` : `${inboxItems.length} unsorted`}
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {retryState.inFlight > 0 && (
+              <span className="flex items-center gap-1 text-xs font-medium text-indigo-500 dark:text-indigo-400 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+                Retrying {retryState.inFlight} clip{retryState.inFlight !== 1 ? 's' : ''}…
+              </span>
+            )}
+            <span className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {globalSearch ? `${items.length} total` : `${inboxItems.length} unsorted`}
+            </span>
+          </div>
         </div>
 
         {/* Search + Global toggle */}
