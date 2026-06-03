@@ -3,6 +3,7 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import OfflineBanner from '@/components/OfflineBanner';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -15,8 +16,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Anti-FODT: apply stored theme before first paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('tp-theme')||'system';if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')})()`,
+          }}
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6366f1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -27,6 +34,7 @@ export default function RootLayout({
         <CapacitorBridge />
         <AnalyticsProvider />
         <ResourceBanner />
+        <OfflineBanner />
         <div className="min-h-screen">
           {children}
         </div>

@@ -5,8 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
-import { enrichItem } from '@/lib/enrichItem';
+import { enrichItem, ImagePayload } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { haptic } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -20,7 +21,21 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const imageKey        = searchParams.get('imageKey') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+
+  // Read image payload from sessionStorage (written by CapacitorBridge)
+  const imagePayload    = useRef<ImagePayload | null>(null);
+  useEffect(() => {
+    if (!imageKey) return;
+    try {
+      const raw = sessionStorage.getItem(imageKey);
+      if (raw) {
+        imagePayload.current = JSON.parse(raw) as ImagePayload;
+        sessionStorage.removeItem(imageKey);
+      }
+    } catch { /* ignore */ }
+  }, [imageKey]);
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -88,9 +103,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image payload if available (e.g. Xiaohongshu screenshot)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imagePayload.current ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -114,6 +129,7 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    haptic('success');
   }
 
   // ── Create new board + save ───────────────────────────────────────────────
@@ -177,7 +193,7 @@ function SharePageInner() {
             <button
               type="button"
               disabled={stage === 'saving'}
-              onClick={() => handleSave(undefined, 'Inbox')}
+              onClick={() => { haptic('light'); handleSave(undefined, 'Inbox'); }}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox
@@ -189,7 +205,7 @@ function SharePageInner() {
                 key={board.id}
                 type="button"
                 disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                onClick={() => { haptic('light'); handleSave(board.id, `${board.emoji} ${board.name}`); }}
                 className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}

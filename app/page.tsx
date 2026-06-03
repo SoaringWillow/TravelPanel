@@ -9,7 +9,11 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import TagFilterBar from '@/components/TagFilterBar';
 import NavBar from '@/components/NavBar';
+import { useTagFilter } from '@/hooks/useTagFilter';
+import { OnboardingOverlay } from '@/components/OnboardingOverlay';
+import MapEmptyHint from '@/components/MapEmptyHint';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,6 +26,13 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const { activeTags, toggleTag, clearTags, itemMatchesFilter } = useTagFilter();
+
+  // Filter items for map pins; filtered items still get their locations shown
+  const mapItems = activeTags.size === 0
+    ? items
+    : items.filter((i) => itemMatchesFilter(i.tags));
+  const availableMapTags = [...new Set(items.flatMap((i) => i.tags))];
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -70,18 +81,33 @@ function HomePageInner() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden">
-      {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      {/* Map fills entire screen — only filtered items shown as pins */}
+      <MapView items={mapItems} onPinClick={setSelectedItem} flyTo={flyTo} />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 space-y-2">
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
+          <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
+          <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
+          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
+            {loading
+              ? 'Loading…'
+              : activeTags.size > 0
+                ? `${mapItems.length} / ${items.length} places`
+                : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
           </div>
         </div>
+        {/* Tag filter bar — only shown when there are tags to filter by */}
+        {availableMapTags.length > 0 && (
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-md px-3 py-2">
+            <TagFilterBar
+              activeTags={activeTags}
+              onToggle={toggleTag}
+              onClear={clearTags}
+              availableTags={availableMapTags}
+            />
+          </div>
+        )}
       </div>
 
       {/* Selected item detail card */}
@@ -93,6 +119,13 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Empty state hint */}
+      <MapEmptyHint
+        itemCount={items.length}
+        loading={loading}
+        onAddClick={() => setShowImport(true)}
+      />
 
       {/* Import FAB */}
       {!selectedItem && (
@@ -114,6 +147,7 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+      <OnboardingOverlay />
     </main>
   );
 }

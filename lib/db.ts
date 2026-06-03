@@ -109,6 +109,25 @@ export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedI
   }
 }
 
+export async function updateItemNote(id: string, notes: string): Promise<void> {
+  const db   = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, notes: notes || undefined });
+}
+
+export async function updateItem(id: string, patch: Partial<SavedItem>): Promise<void> {
+  const db   = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...patch });
+}
+
+export async function getItem(id: string): Promise<SavedItem | undefined> {
+  const db = await getDB();
+  return db.get('items', id);
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,
@@ -191,6 +210,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {
     const db = await getDB();
@@ -208,4 +236,20 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+// ─── Backup / Restore ──────────────────────────────────────────────────────
+
+export async function restoreFromBackup(
+  items: SavedItem[],
+  boards: Board[],
+  trips: Trip[],
+): Promise<{ items: number; boards: number; trips: number }> {
+  const db = await getDB();
+  const tx = db.transaction(['items', 'boards', 'trips'], 'readwrite');
+  for (const item of items)   await tx.objectStore('items').put(item);
+  for (const board of boards) await tx.objectStore('boards').put(board);
+  for (const trip of trips)   await tx.objectStore('trips').put(trip);
+  await tx.done;
+  return { items: items.length, boards: boards.length, trips: trips.length };
 }

@@ -3,12 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
+import { buildShareUrl } from '@/lib/sharePlan';
 import { track } from '@/lib/analytics';
+import { haptic } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -80,6 +83,7 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    haptic('medium');
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
@@ -125,6 +129,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              haptic(msg.step.type === 'done' ? 'success' : 'error');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -183,6 +188,23 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  const [shareCopied, setShareCopied] = useState(false);
+  const handleSharePlan = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const url = buildShareUrl(board.name, board.emoji, days, plan);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${board.emoji} ${board.name} trip plan`, url });
+        track('plan_shared', { boardId });
+        return;
+      } catch {}
+    }
+    await navigator.clipboard.writeText(url);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2500);
+    track('plan_shared', { boardId });
+  }, [plan, board, boardId, days]);
 
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
@@ -460,7 +482,7 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={handleExportPDF}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
@@ -474,6 +496,13 @@ export default function PlanPage() {
                   >
                     <CalendarPlus size={14} />
                     Add to Calendar
+                  </button>
+                  <button
+                    onClick={handleSharePlan}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-indigo-200 text-indigo-600 text-xs font-medium py-2 rounded-xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
+                  >
+                    <Share2 size={14} />
+                    {shareCopied ? 'Link copied!' : 'Share Trip'}
                   </button>
                 </div>
               )}
@@ -505,9 +534,22 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Active day activities */}
+              {/* Active day activities — drag left/right to advance/retreat */}
               {activeDayPlan && (
-                <div className="space-y-3">
+                <motion.div
+                  className="space-y-3"
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={(_e, info) => {
+                    const maxDay = (plan?.days?.length ?? 1) - 1;
+                    if (info.velocity.x < -200 || info.offset.x < -80) {
+                      setActiveDayIndex((i) => Math.min(i + 1, maxDay));
+                    } else if (info.velocity.x > 200 || info.offset.x > 80) {
+                      setActiveDayIndex((i) => Math.max(i - 1, 0));
+                    }
+                  }}
+                >
                   <h2 className="text-sm font-bold text-gray-700">
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
@@ -560,7 +602,7 @@ export default function PlanPage() {
                       )}
                     </div>
                   ))}
-                </div>
+                </motion.div>
               )}
 
               {/* Trip tips */}

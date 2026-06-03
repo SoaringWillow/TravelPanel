@@ -1,20 +1,33 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, deleteItem as dbDeleteItem, updateItem as dbUpdateItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import SwipeToDelete from '@/components/SwipeToDelete';
+import EditClipModal from '@/components/EditClipModal';
+import EnrichmentToast from '@/components/EnrichmentToast';
+import TagFilterBar from '@/components/TagFilterBar';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { useTagFilter } from '@/hooks/useTagFilter';
+
+// ─── Undo toast state ─────────────────────────────────────────────────────────
+
+interface PendingDelete {
+  item: SavedItem;
+  timer: ReturnType<typeof setTimeout>;
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,7 +42,9 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { pullDistance, refreshing, triggered } = usePullToRefresh(refresh, scrollRef);
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -38,6 +53,55 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const { activeTags, toggleTag, clearTags, itemMatchesFilter } = useTagFilter();
+
+  // ── Edit clip ─────────────────────────────────────────────────────────────
+  const [editingItem, setEditingItem] = useState<SavedItem | null>(null);
+
+  function handleEditSaved(patch: Partial<SavedItem>) {
+    if (!editingItem) return;
+    refreshItem(editingItem.id);
+  }
+
+  // ── Undo delete ───────────────────────────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const pendingDeleteRef = useRef<PendingDelete | null>(null);
+  pendingDeleteRef.current = pendingDelete;
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteRef.current) clearTimeout(pendingDeleteRef.current.timer);
+    };
+  }, []);
+
+  function handleSwipeDelete(item: SavedItem) {
+    // Cancel any previous pending delete and immediately execute it
+    if (pendingDeleteRef.current) {
+      clearTimeout(pendingDeleteRef.current.timer);
+      dbDeleteItem(pendingDeleteRef.current.item.id);
+    }
+
+    // Optimistically remove from the visual list
+    removeItem(item.id);
+
+    // Schedule actual deletion after 4 seconds
+    const timer = setTimeout(() => {
+      dbDeleteItem(item.id);
+      setPendingDelete(null);
+      track('clip_deleted', { platform: item.platform });
+    }, 4000);
+
+    setPendingDelete({ item, timer });
+  }
+
+  function handleUndo() {
+    if (!pendingDelete) return;
+    clearTimeout(pendingDelete.timer);
+    setPendingDelete(null);
+    // Re-save the item to IndexedDB and refresh the visual list
+    saveItem(pendingDelete.item).then(() => refreshItem(pendingDelete.item.id));
+  }
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -52,7 +116,11 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const searchFiltered = searchItems(platformFiltered, query);
+  const filtered = searchFiltered.filter((item) => itemMatchesFilter(item.tags));
+
+  // Tags available in the current inbox (for dynamic chip list)
+  const availableTags = [...new Set(inboxItems.flatMap((i) => i.tags))];
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -97,12 +165,12 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:shadow-gray-900 px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
@@ -112,6 +180,18 @@ export default function InboxPage() {
         <div className="mb-3">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {/* Tag filter bar */}
+        {availableTags.length > 0 && (
+          <div className="mb-2">
+            <TagFilterBar
+              activeTags={activeTags}
+              onToggle={toggleTag}
+              onClear={clearTags}
+              availableTags={availableTags}
+            />
+          </div>
+        )}
 
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
@@ -139,7 +219,29 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Pull-to-refresh indicator */}
+        <AnimatePresence>
+          {(pullDistance > 0 || refreshing) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: refreshing ? 48 : pullDistance }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+              className="flex items-center justify-center overflow-hidden"
+            >
+              <motion.div
+                animate={{ rotate: refreshing ? 360 : triggered ? 180 : (pullDistance / 60) * 180 }}
+                transition={refreshing ? { repeat: Infinity, duration: 0.7, ease: 'linear' } : { duration: 0.1 }}
+              >
+                <RefreshCw
+                  size={20}
+                  className={`transition-colors ${triggered || refreshing ? 'text-indigo-600' : 'text-gray-400'}`}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -169,13 +271,16 @@ export default function InboxPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
+                  <SwipeToDelete onDelete={() => handleSwipeDelete(item)}>
+                    <InboxCard
+                      item={item}
+                      onDelete={(id) => handleSwipeDelete(items.find((i) => i.id === id) ?? item)}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                      onEdit={(id) => setEditingItem(items.find((i) => i.id === id) ?? null)}
+                    />
+                  </SwipeToDelete>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -262,7 +367,43 @@ export default function InboxPage() {
         )}
       </AnimatePresence>
 
+      {/* ── Undo toast ──────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {pendingDelete && (
+          <motion.div
+            key="undo-toast"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 24, stiffness: 320 }}
+            className="fixed bottom-20 left-4 right-4 z-[3000] flex items-center justify-between
+                       bg-gray-900 text-white rounded-2xl px-4 py-3 shadow-xl"
+          >
+            <span className="text-sm font-medium">Clip deleted</span>
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="text-sm font-bold text-indigo-300 hover:text-indigo-200 transition-colors ml-4"
+            >
+              Undo
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <NavBar active="inbox" />
+
+      {/* Enrichment success toasts */}
+      <EnrichmentToast items={items} />
+
+      {/* Edit clip modal */}
+      {editingItem && (
+        <EditClipModal
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
     </div>
   );
 }

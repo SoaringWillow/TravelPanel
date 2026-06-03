@@ -1,17 +1,63 @@
 'use client';
 
+import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Share2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+
+function formatSourceLabel(url: string, platform: string): { label: string; href: string | null } {
+  if (url.startsWith('local:photo:')) return { label: '📷 Clipped from screenshot', href: null };
+  if (!url.startsWith('http')) return { label: url, href: null };
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace('www.', '');
+    return { label: `${PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] ?? host} ↗`, href: url };
+  } catch {
+    return { label: url, href: url };
+  }
+}
+import { updateItemNote } from '@/lib/db';
 import SubstanceList from './SubstanceList';
+import NearbyPlaces from './NearbyPlaces';
 
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
 }
 
+const SAVE_DELAY_MS = 500;
+
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const [notes, setNotes]   = useState(item.notes ?? '');
+  const saveTimer           = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saved, setSaved]   = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare() {
+    const url  = `${window.location.origin}/card/${item.id}`;
+    const text = `${item.title} — via TravelPanel`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try { await navigator.share({ title: text, url }); return; } catch {}
+    }
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const scheduleSave = useCallback((value: string) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      await updateItemNote(item.id, value);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    }, SAVE_DELAY_MS);
+  }, [item.id]);
+
+  function handleNotesChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setNotes(e.target.value);
+    scheduleSave(e.target.value);
+  }
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -32,7 +78,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col">
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">
             <div className="flex-1 min-w-0 pr-3">
@@ -41,18 +87,31 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               >
                 {PLATFORM_LABELS[item.platform]}
               </span>
-              <h3 className="font-bold text-gray-800 text-base leading-snug line-clamp-2">
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base leading-snug line-clamp-2">
                 {item.title}
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="Close"
-            >
-              <X size={18} className="text-gray-500" />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-full transition-colors"
+                aria-label="Share"
+              >
+                {copied
+                  ? <span className="text-xs font-semibold text-green-600 px-1">✓</span>
+                  : <Share2 size={16} className="text-indigo-500" />
+                }
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                aria-label="Close"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
           </div>
 
           {/* ── Scrollable body ──────────────────────────────────────────── */}
@@ -91,6 +150,11 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
+            {/* Nearby places for the first location */}
+            {item.locations.length > 0 && (
+              <NearbyPlaces location={item.locations[0]} />
+            )}
+
             {/* Activities */}
             {item.activities.length > 0 && (
               <div>
@@ -127,13 +191,49 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+            {/* Notes — editable, auto-saves on change */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  My notes
+                </p>
+                {saved && (
+                  <span className="text-xs text-green-600 font-medium">✓ Saved</span>
+                )}
               </div>
-            )}
+              <textarea
+                value={notes}
+                onChange={handleNotesChange}
+                placeholder="Add a personal note… (auto-saved)"
+                rows={3}
+                className="w-full text-sm text-gray-800 bg-amber-50 rounded-xl px-3 py-2.5
+                           resize-none border-2 border-transparent focus:border-amber-300
+                           focus:outline-none placeholder-amber-300 leading-relaxed transition-colors"
+              />
+            </div>
+
+            {/* Source attribution */}
+            {(() => {
+              const { label, href } = formatSourceLabel(item.url, item.platform);
+              if (!label) return null;
+              return (
+                <div className="flex items-center gap-1.5 pt-1 border-t border-gray-50 dark:border-gray-800">
+                  {href ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
+                    >
+                      <ExternalLink size={11} />
+                      {label}
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-400">{label}</span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </motion.div>

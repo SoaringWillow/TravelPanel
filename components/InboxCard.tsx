@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 
@@ -12,6 +12,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  onEdit?: (id: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +39,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  onEdit,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -189,7 +191,7 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -201,8 +203,8 @@ export default function InboxCard({
           }}
         />
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
+        <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <Globe size={32} className="text-gray-300 dark:text-gray-500" />
         </div>
       )}
 
@@ -215,13 +217,13 @@ export default function InboxCard({
         </span>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -248,10 +250,15 @@ export default function InboxCard({
           </div>
         )}
 
-        {/* Tags (first 3) */}
-        {item.tags.length > 0 && (
+        {/* Tags + notes chip */}
+        {(item.tags.length > 0 || item.notes) && (
           <div className="flex flex-wrap gap-1 mb-3">
-            {item.tags.slice(0, 3).map((tag) => (
+            {item.notes && (
+              <span className="bg-amber-50 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                📝 Note
+              </span>
+            )}
+            {item.tags.slice(0, 2).map((tag) => (
               <span
                 key={tag}
                 className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
@@ -296,6 +303,18 @@ export default function InboxCard({
                 aria-label="Move to collection"
               >
                 <LayoutGrid size={13} />
+              </button>
+            )}
+
+            {/* Edit */}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(item.id)}
+                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                aria-label="Edit clip"
+              >
+                <Pencil size={13} />
               </button>
             )}
 

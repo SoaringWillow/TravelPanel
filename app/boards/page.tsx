@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { addItemToBoard as dbAddItemToBoard } from '@/lib/db';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
+import SmartCollectionsBanner from '@/components/SmartCollectionsBanner';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
@@ -21,8 +23,23 @@ export default function BoardsPage() {
     return board ? board.itemIds.length : 0;
   }
 
+  function getCoverThumbnail(boardId: string): string | undefined {
+    const board = boards.find((b) => b.id === boardId);
+    if (!board) return undefined;
+    const coverItem = board.itemIds
+      .map((id) => items.find((i) => i.id === id))
+      .find((item) => item?.thumbnail);
+    return coverItem?.thumbnail ?? undefined;
+  }
+
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
+  }
+
+  async function handleCreateSmart(name: string, emoji: string, itemIds: string[]) {
+    const board = await createBoard(name, emoji);
+    await Promise.all(itemIds.map((id) => dbAddItemToBoard(board.id, id)));
+    router.refresh();
   }
 
   async function handleDelete(id: string) {
@@ -52,6 +69,9 @@ export default function BoardsPage() {
       {/* First-launch demo seed banner */}
       <OnboardingSeed />
 
+      {/* AI Smart Collections — shown when user has 20+ clips */}
+      <SmartCollectionsBanner items={items} onCreateBoard={handleCreateSmart} />
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {boardsLoading ? (
@@ -79,7 +99,7 @@ export default function BoardsPage() {
             {boards.map((board) => (
               <BoardCard
                 key={board.id}
-                board={board}
+                board={{ ...board, coverThumbnail: getCoverThumbnail(board.id) }}
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
