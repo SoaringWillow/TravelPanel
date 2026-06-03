@@ -319,7 +319,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE F — iOS Native Features
 
 ### F1 — App Group Bridge (Capacitor Plugin)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (Xcode wiring required — see ios/App/App/Plugins/TravelPanelBridge/)  
 **Files**: new `ios/App/App/Plugins/TravelPanelBridge/`, `CapacitorBridge.tsx`  
 **What to do**:
 - Create a minimal Capacitor plugin (Swift + JS) that exposes `readAppGroupData()` and `clearAppGroupData()`

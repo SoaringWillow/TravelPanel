@@ -22,6 +22,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const rawImageData    = searchParams.get('imageData') ? decodeURIComponent(searchParams.get('imageData')!) : null;
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                       = useState<Board[]>([]);
@@ -73,7 +74,7 @@ function SharePageInner() {
 
     saveItem(item).then(() => {
       setEnrichmentLoading(true);
-      enrichItem(itemId, rawUrl).then(async (success) => {
+      enrichItem(itemId, rawUrl, rawImageData ?? undefined).then(async (success) => {
         if (success) {
           successNotification();
           const updated = await getItemById(itemId);

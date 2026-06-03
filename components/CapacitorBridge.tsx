@@ -3,23 +3,25 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads pending share data (URL + optional screenshot image) stored by the iOS
+// Share Extension via App Group UserDefaults, then routes into /share.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
-    const { Preferences } = await import('@capacitor/preferences');
-    const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
-    if (!url) return;
+    const { TravelPanelBridge } = await import('@/lib/capacitorPlugins');
+    const data = await TravelPanelBridge.readAppGroupData();
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    if (!data.pendingShareURL && !data.pendingShareImage) return;
 
-    const qs = new URLSearchParams({ url });
-    if (title) qs.set('title', title);
+    await TravelPanelBridge.clearAppGroupData();
+
+    const qs = new URLSearchParams();
+    if (data.pendingShareURL) qs.set('url', data.pendingShareURL);
+    if (data.pendingShareTitle) qs.set('title', data.pendingShareTitle);
+    if (data.pendingShareImage) qs.set('imageData', encodeURIComponent(data.pendingShareImage));
+
     router.push(`/share?${qs.toString()}`);
   } catch {
-    // @capacitor/preferences not installed or not in native context
+    // Plugin not available — no-op
   }
 }
 
