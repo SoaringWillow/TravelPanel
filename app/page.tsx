@@ -84,10 +84,10 @@ function HomePageInner() {
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 space-y-2">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
+          <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
+          <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
+          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
             {loading
               ? 'Loading…'
               : activeTags.size > 0
@@ -97,7 +97,7 @@ function HomePageInner() {
         </div>
         {/* Tag filter bar — only shown when there are tags to filter by */}
         {availableMapTags.length > 0 && (
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-md px-3 py-2">
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-md px-3 py-2">
             <TagFilterBar
               activeTags={activeTags}
               onToggle={toggleTag}

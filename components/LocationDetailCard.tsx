@@ -53,7 +53,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col">
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">
             <div className="flex-1 min-w-0 pr-3">
@@ -62,7 +62,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               >
                 {PLATFORM_LABELS[item.platform]}
               </span>
-              <h3 className="font-bold text-gray-800 text-base leading-snug line-clamp-2">
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base leading-snug line-clamp-2">
                 {item.title}
               </h3>
             </div>

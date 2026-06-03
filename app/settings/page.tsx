@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Download, Upload, Trash2, ChevronRight, Database, Info, Cloud } from 'lucide-react';
+import { Download, Upload, Trash2, ChevronRight, Database, Info, Cloud, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import NavBar from '@/components/NavBar';
+import ThemeToggle from '@/components/ThemeToggle';
 import { exportAllData, importBackupFile } from '@/lib/exportData';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -15,8 +16,8 @@ type Status = { type: 'idle' } | { type: 'loading' } | { type: 'success'; msg: s
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">{title}</p>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">{title}</p>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
         {children}
       </div>
     </div>
@@ -48,15 +49,15 @@ function Row({
       onClick={onClick}
       disabled={loading || !onClick}
       className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors
-        ${onClick ? 'hover:bg-gray-50 active:bg-gray-100 cursor-pointer' : 'cursor-default'}
+        ${onClick ? 'hover:bg-gray-50 dark:hover:bg-gray-700/50 active:bg-gray-100 dark:active:bg-gray-700 cursor-pointer' : 'cursor-default'}
         disabled:opacity-60`}
     >
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
         <Icon size={18} className={iconColor} strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">{label}</p>
-        {sublabel && <p className="text-xs text-gray-400 mt-0.5 truncate">{sublabel}</p>}
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</p>
+        {sublabel && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{sublabel}</p>}
       </div>
       {children}
       {onClick && !children && (
@@ -127,14 +128,30 @@ export default function SettingsPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your data and preferences</p>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-12 pb-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Settings</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your data and preferences</p>
       </div>
 
       <div className="px-4 pt-6 space-y-6">
+
+        {/* ── Appearance section ──────────────────────────────── */}
+        <Section title="Appearance">
+          <div className="px-4 py-3.5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-violet-50 dark:bg-violet-900/30">
+                <Palette size={18} className="text-violet-600 dark:text-violet-400" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Theme</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Light, dark, or follow system</p>
+              </div>
+            </div>
+            <ThemeToggle />
+          </div>
+        </Section>
 
         {/* ── Data backup section ─────────────────────────────── */}
         <Section title="Data & Backup">

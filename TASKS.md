@@ -229,7 +229,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Works with both mouse (desktop) and touch (iOS)
 
 ### D3 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS dark mode is expected by users. The app is all white backgrounds — jarring at night.  
 **Files**: `app/globals.css`, `tailwind.config.js`, key components  
 **What to do**:
