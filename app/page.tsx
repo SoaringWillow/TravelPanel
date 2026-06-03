@@ -12,6 +12,7 @@ import LocationDetailCard from '@/components/LocationDetailCard';
 import TagFilterBar from '@/components/TagFilterBar';
 import NavBar from '@/components/NavBar';
 import { useTagFilter } from '@/hooks/useTagFilter';
+import { OnboardingOverlay } from '@/components/OnboardingOverlay';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -138,6 +139,7 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+      <OnboardingOverlay />
     </main>
   );
 }

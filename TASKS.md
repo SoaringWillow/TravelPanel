@@ -275,7 +275,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - After enrichment, the clip appears normally in the inbox with any extracted locations + substance
 
 ### D7 — Animated First-Launch Onboarding
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: New users see a blank map and don't know what to do. Retention cliff at first launch.  
 **Files**: new `components/OnboardingOverlay.tsx`, `app/page.tsx`  
 **What to do**:
