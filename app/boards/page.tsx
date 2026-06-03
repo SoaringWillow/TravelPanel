@@ -23,6 +23,15 @@ export default function BoardsPage() {
     return board ? board.itemIds.length : 0;
   }
 
+  function getCoverThumbnail(boardId: string): string | undefined {
+    const board = boards.find((b) => b.id === boardId);
+    if (!board) return undefined;
+    const coverItem = board.itemIds
+      .map((id) => items.find((i) => i.id === id))
+      .find((item) => item?.thumbnail);
+    return coverItem?.thumbnail ?? undefined;
+  }
+
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
   }
@@ -90,7 +99,7 @@ export default function BoardsPage() {
             {boards.map((board) => (
               <BoardCard
                 key={board.id}
-                board={board}
+                board={{ ...board, coverThumbnail: getCoverThumbnail(board.id) }}
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}

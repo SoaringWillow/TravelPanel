@@ -427,7 +427,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Hide the row entirely if no meaningful source can be shown
 
 ### F7 — Board Cover Photos from Clip Thumbnails
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Boards currently show only emoji + name. Adding a cover photo from the first clip thumbnail makes the boards grid feel rich and visual.  
 **Files**: `components/BoardCard.tsx`, `hooks/useBoards.ts`  
 **What to do**:

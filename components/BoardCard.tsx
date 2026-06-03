@@ -27,8 +27,9 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
             src={board.coverThumbnail}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
-          <div className="absolute inset-0 bg-white/80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         </>
       )}
 
@@ -38,12 +39,12 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
         <div className="text-2xl leading-none mb-3">{board.emoji}</div>
 
         {/* Name */}
-        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
+        <h3 className={`font-bold text-sm leading-snug line-clamp-1 mb-1 ${board.coverThumbnail ? 'text-white' : 'text-gray-800'}`}>
           {board.name}
         </h3>
 
         {/* Item count */}
-        <p className="text-sm text-gray-400">
+        <p className={`text-sm ${board.coverThumbnail ? 'text-white/70' : 'text-gray-400'}`}>
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
