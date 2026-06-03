@@ -478,7 +478,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: empty map on first launch is the #1 reason users churn in minute 1
 
 ### H2 — JSON Data Backup (Export + Import)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `lib/backup.ts`, `app/settings/page.tsx` (new)  
 **What to do**:
 - Create `lib/backup.ts` with `exportAllData()` → serializes all boards + items to JSON → triggers download via `navigator.share` (iOS) or anchor download (web)
@@ -560,7 +560,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: onboarding Screen 2 is the most important pitch — it's why TravelPanel > competitors who only save pins
 
 ### H10 — Settings Page & Data Management
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/settings/page.tsx`, `components/NavBar.tsx`  
 **What to do**:
 - Create a Settings page at `/settings` with sections:

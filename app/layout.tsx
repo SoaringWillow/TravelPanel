@@ -20,7 +20,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Sync dark class before first paint to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var q=window.matchMedia('(prefers-color-scheme: dark)');if(q.matches)document.documentElement.classList.add('dark');q.addEventListener('change',function(e){document.documentElement.classList.toggle('dark',e.matches);});})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('tp_theme_override');if(t==='dark'){document.documentElement.classList.add('dark');}else if(t==='light'){document.documentElement.classList.remove('dark');}else{var q=window.matchMedia('(prefers-color-scheme: dark)');if(q.matches)document.documentElement.classList.add('dark');q.addEventListener('change',function(e){if(!localStorage.getItem('tp_theme_override')||localStorage.getItem('tp_theme_override')==='system'){document.documentElement.classList.toggle('dark',e.matches);}});}})();` }} />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#6366f1" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e1b4b" />
