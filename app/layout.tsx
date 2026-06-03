@@ -23,8 +23,14 @@ export default function RootLayout({
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#6366f1" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e1b4b" />
         <meta name="color-scheme" content="light dark" />
+        {/* PWA / home screen */}
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="TravelPanel" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body>

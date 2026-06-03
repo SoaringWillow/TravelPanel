@@ -289,7 +289,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
   - Shot 5: Board timeline view
 
 ### D10 — PWA Manifest & Meta Tags
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `public/manifest.json`, `app/layout.tsx`  
 **What to do**:
 - Create `public/manifest.json` with name, short_name, icons, theme_color (#6366f1), display: standalone
