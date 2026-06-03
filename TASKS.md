@@ -195,6 +195,168 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Beauty & Polish (Current Sprint)
+
+> Goal: every screen should feel like a native iOS app — delightful, fast, and instantly intuitive to a first-time user.
+
+### D1 — Substance Visible in Inbox Cards 🔴 HIGHEST PRIORITY
+**Status**: `[ ]` Not started  
+**Why**: The substance extraction is the #1 moat, but `InboxCard` only shows title, thumbnail, tags, and a count badge. Users never read the actual wisdom unless they open the map detail card. This is the single biggest gap between "feature exists" and "feature is felt".  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Show the first 1–2 substance items directly on the card (below tags)
+- Use icon + short content text: "💡 Arrive before 8am to beat the queue"
+- Type-colored left border accent (warning=amber, tip=blue, wisdom=purple)
+- Collapse/expand if >2 items (tap card to expand inline — avoid navigation)
+- Empty substance: don't render the section (no whitespace)
+
+### D2 — Dark Mode Support
+**Status**: `[ ]` Not started  
+**Files**: `app/globals.css`, all major components  
+**What to do**:
+- Add `dark:` Tailwind classes throughout the app (bg, text, border colors)
+- Use `prefers-color-scheme` media query via Tailwind's `dark` variant
+- Add `colorScheme: 'dark light'` to `app/layout.tsx` metadata
+- Test key surfaces: map top bar, inbox cards, plan page, settings, share page
+- Map tiles already work in dark mode (OpenFreeMap has dark styles available at `https://tiles.openfreemap.org/styles/dark`)
+
+### D3 — Haptic Feedback on Key Interactions
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`, `app/share/page.tsx`, `app/trip/[boardId]/page.tsx`  
+**What to do**:
+- Use `navigator.vibrate()` (web) for short haptic pulses on:
+  - Clip saved successfully (1 pulse, 50ms)
+  - Activity checked off in trip mode (2 pulses, 30ms each)
+  - Board selected in share flow (1 pulse, 30ms)
+- On iOS Capacitor, use `@capacitor/haptics` with `ImpactStyle.Medium`
+- Detect platform and use the right API; no-op gracefully if unavailable
+- Don't overdo it — only on decisive confirmation moments, not every tap
+
+### D4 — Illustrated Empty States
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/page.tsx`  
+**What to do**:
+- Replace plain "No items yet" text with illustrated empty states
+- Use large emoji + 2-line description + a clear CTA button
+- Inbox empty: "✈️ Nothing saved yet · Share any travel post from Instagram, YouTube, or Xiaohongshu → TravelPanel" + "Clip your first inspiration →" button
+- Boards empty: "🗂 No boards yet · Boards let you organise clips by destination" + "Create a board →"
+- Map empty (no pins): "🗺 Your map is empty · Save travel clips to see locations pinned here" + share icon
+- Use seed boards to pre-fill on first launch (already exists via OnboardingSeed)
+
+### D5 — Swipe-to-Delete on Inbox Cards
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Add swipe-left gesture on `InboxCard` to reveal a red delete button
+- Use Framer Motion `drag="x"` with `dragConstraints` and a threshold (e.g. -120px)
+- On confirm delete: animate card out, call the `onDelete` handler
+- On iOS: feels completely native; on web: shows a visual affordance
+- Don't require a confirmation dialog — the animation itself is the affordance (undo is out of scope for now)
+
+### D6 — Platform Extraction Quality (Instagram, YouTube, TikTok)
+**Status**: `[ ]` Not started  
+**Files**: `lib/parse-url.ts`, `app/api/import/route.ts`  
+**What to do**:
+- Add `instagram`, `youtube`, `tiktok`, `twitter` to the `Platform` type and `detectPlatform()`
+- Update `PLATFORM_LABELS` and `PLATFORM_COLORS` for the new platforms
+- Add platform-specific user agents and headers in `fetchPageData()` to improve scraping
+- For YouTube: extract video title from `<meta property="og:title">` reliably; prompt Claude to extract the places and tips mentioned in the video title/description
+- For Instagram/TikTok: these are anti-scraped, document that Vision path (B3) is the fix; add `isAntiScraped` flag to `detectPlatform()` return value and use it in the vision routing
+
+### D7 — Pull-to-Refresh on Inbox
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Add pull-to-refresh gesture to the inbox scrollable list
+- On pull: re-trigger enrichment on all `failed` items (re-using existing retry queue from A2)
+- Show a subtle spinner at the top during refresh
+- Use CSS overscroll with a `touchstart`/`touchmove` event to detect pull distance
+- On Capacitor iOS: additionally check App Group for any pending shares that came in while the app was backgrounded
+
+---
+
+## PHASE E — App Store Ready
+
+### E1 — In-App Review Prompt
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx` or a new `lib/reviewPrompt.ts`  
+**Needs**: `@capacitor/app-review` plugin  
+**What to do**:
+- Trigger the native iOS App Store review prompt after the user saves their 5th clip (track count in localStorage)
+- Use `@capacitor/app-review` on native; gracefully no-op on web
+- Only show once (track via `hasShownReview` localStorage key)
+- Show at the right moment: on the "done" screen of the share flow, after the checkmark animation
+
+### E2 — Onboarding Walkthrough
+**Status**: `[ ]` Not started  
+**Files**: new `components/OnboardingWalkthrough.tsx`, `app/layout.tsx` or `app/page.tsx`  
+**What to do**:
+- 3-screen onboarding shown on first launch (before seed boards appear)
+- Screen 1: "Save travel inspiration from anywhere" — show mock share sheet clip
+- Screen 2: "AI extracts every location and tip automatically" — show substance card
+- Screen 3: "Plan your trip with your own clips" — show plan view mock
+- CTA: "Get started →" (dismisses walkthrough, shows seed boards)
+- Skip button in top-right corner
+- Store `hasSeenOnboarding: true` in localStorage
+
+### E3 — Privacy Policy Page
+**Status**: `[ ]` Not started  
+**Files**: new `app/privacy/page.tsx`  
+**What to do**:
+- Simple page with privacy policy text covering:
+  - What data is collected (URLs shared, locally stored in IndexedDB)
+  - What's sent to third parties (Claude API for extraction, PostHog for analytics)
+  - User rights (delete all data from Settings)
+  - Contact email
+- Link to it from Settings page
+- Required for App Store submission
+
+### E4 — Background Enrichment via Service Worker
+**Status**: `[ ]` Not started  
+**Files**: new `public/sw.js`, `app/layout.tsx`  
+**What to do**:
+- Register a minimal service worker that listens for a `ENRICH_QUEUE` message
+- When the tab is hidden/closed, the SW picks up pending items from IndexedDB and calls `/api/import`
+- This ensures Xiaohongshu clips enrich even if the user leaves immediately after saving
+- Use `navigator.serviceWorker.postMessage` to hand off the queue
+- On iOS Capacitor, the WKWebView SW support is limited — document the limitation and fall back to the existing retry queue (A2)
+
+---
+
+## PHASE F — Cloud & Monetisation Foundation
+
+### F1 — Supabase Full Activation
+**Status**: `[ ]` Blocked on `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`  
+**What to do once keys provided**:
+- Create Supabase project → run `supabase/schema.sql`
+- Add sign-in UI to Settings page (magic link + Google OAuth button)
+- Wire `syncNow()` on auth change and app focus
+- Enable Google provider in Supabase dashboard
+- Test round-trip: save on one device → appears on another within 5s
+
+### F2 — Semantic / Vibe Search
+**Status**: `[ ]` Blocked on Supabase pgvector (needs F1)  
+**What to do**: See original B4 task description.
+
+### F3 — Push Notifications (Enrichment Complete + Nearby)
+**Status**: `[ ]` Not started  
+**Needs**: Supabase Edge Functions or a simple notification service, `@capacitor/push-notifications`  
+**What to do**:
+- "Your Tokyo clip has been enriched — 5 locations found" → push when enrichment finishes
+- "You saved a clip about Shinjuku — you're 400m away" → local notification using Capacitor LocalNotifications
+- For the nearby case: trigger on app foreground via existing `useNearbyClips` hook
+
+### F4 — iOS Home Screen Widget
+**Status**: `[ ]` Not started  
+**Needs**: WidgetKit (Swift, Xcode)  
+**What to do**:
+- Small widget: "Today's inspiration" — shows the most recently saved clip thumbnail + title
+- Medium widget: shows clip count + recent board names
+- Data from App Group UserDefaults (shared with main app)
+- Deeplinks into relevant board on tap
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
