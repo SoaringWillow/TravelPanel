@@ -3,7 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform, SavedItem } from '@/lib/types';
@@ -39,7 +40,9 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { pullDistance, refreshing, triggered } = usePullToRefresh(refresh, scrollRef);
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -206,7 +209,29 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Pull-to-refresh indicator */}
+        <AnimatePresence>
+          {(pullDistance > 0 || refreshing) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: refreshing ? 48 : pullDistance }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+              className="flex items-center justify-center overflow-hidden"
+            >
+              <motion.div
+                animate={{ rotate: refreshing ? 360 : triggered ? 180 : (pullDistance / 60) * 180 }}
+                transition={refreshing ? { repeat: Infinity, duration: 0.7, ease: 'linear' } : { duration: 0.1 }}
+              >
+                <RefreshCw
+                  size={20}
+                  className={`transition-colors ${triggered || refreshing ? 'text-indigo-600' : 'text-gray-400'}`}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

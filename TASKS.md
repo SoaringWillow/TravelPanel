@@ -288,7 +288,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Skip link always visible
 
 ### D8 — Pull-to-Refresh in Clip Lists
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On iOS, pull-to-refresh is muscle memory. The inbox feels stale without it.  
 **Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts`  
 **What to do**:
