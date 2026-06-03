@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,6 +30,8 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image payload from iOS Share Extension (stored in sessionStorage to avoid URL size limits)
+  const [pendingImage, setPendingImage]       = useState<{ base64: string; mime: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +39,22 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read pending image from sessionStorage when the share page opens with hasImage flag
+  useEffect(() => {
+    if (!hasImage) return;
+    try {
+      const base64 = sessionStorage.getItem('pendingShareImage');
+      const mime   = sessionStorage.getItem('pendingShareImageMime') ?? 'image/jpeg';
+      if (base64) {
+        setPendingImage({ base64, mime });
+        sessionStorage.removeItem('pendingShareImage');
+        sessionStorage.removeItem('pendingShareImageMime');
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+  }, [hasImage]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +107,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image when available (Xiaohongshu / anti-scraping platforms)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImage?.base64, pendingImage?.mime)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

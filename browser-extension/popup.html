@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      width: 320px;
+      background: #0f0f0f;
+      color: #f0f0f0;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      border-bottom: 1px solid #222;
+    }
+
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .header-settings {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.15s;
+      font-size: 16px;
+    }
+    .header-settings:hover { color: #aaa; }
+
+    .page-preview {
+      padding: 14px 16px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #e0e0e0;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+      padding: 3px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .content {
+      padding: 16px;
+    }
+
+    .clip-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .clip-btn:hover { opacity: 0.9; }
+    .clip-btn:active { transform: scale(0.98); }
+    .clip-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      text-align: center;
+      display: none;
+    }
+    .status.success {
+      display: block;
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    .status.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .footer {
+      padding: 0 16px 14px;
+      font-size: 11px;
+      color: #444;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">✈️</div>
+    <h1>TravelPanel Clipper</h1>
+    <button class="header-settings" id="settingsBtn" title="Settings">⚙️</button>
+  </div>
+
+  <div class="page-preview">
+    <div class="page-title" id="pageTitle">Loading…</div>
+    <div class="page-url" id="pageUrl"></div>
+    <div id="platformBadge" class="platform-badge" style="display:none"></div>
+  </div>
+
+  <div class="content">
+    <button class="clip-btn" id="clipBtn">
+      <span>📌</span>
+      <span>Clip to TravelPanel</span>
+    </button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="footer" id="footer">Opens your TravelPanel board</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

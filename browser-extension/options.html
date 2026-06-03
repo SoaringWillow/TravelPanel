@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      padding: 40px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 32px;
+    }
+
+    .field {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #3b82f6; }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    .save-btn {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .save-btn:hover { opacity: 0.9; }
+
+    .saved-msg {
+      display: none;
+      margin-left: 12px;
+      font-size: 13px;
+      color: #4ade80;
+    }
+    .saved-msg.visible { display: inline; }
+  </style>
+</head>
+<body>
+  <h1>✈️ TravelPanel Clipper</h1>
+  <p class="subtitle">Configure which TravelPanel instance to clip into.</p>
+
+  <div class="field">
+    <label for="appUrl">TravelPanel URL</label>
+    <input
+      type="url"
+      id="appUrl"
+      placeholder="https://travelpanel.vercel.app"
+    />
+    <p class="hint">Your deployed Vercel URL, or http://localhost:3000 for local dev.</p>
+  </div>
+
+  <button class="save-btn" id="saveBtn">Save Settings</button>
+  <span class="saved-msg" id="savedMsg">✓ Saved!</span>
+
+  <script src="options.js"></script>
+</body>
+</html>
