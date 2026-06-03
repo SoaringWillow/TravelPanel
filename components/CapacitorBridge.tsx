@@ -3,20 +3,41 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
+// Reads a pending share written by the iOS Share Extension via App Groups.
 // The App Group suite name must match the one in ShareViewController.swift.
+// An optional base64 image is passed via sessionStorage (too large for query params).
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: image }, { value: imageMime }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImage' }),
+      Preferences.get({ key: 'pendingShareImageMime' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImage' }),
+      Preferences.remove({ key: 'pendingShareImageMime' }),
+    ]);
+
+    // Store image in sessionStorage so the share page can read it without a query-param size limit
+    if (image) {
+      try {
+        sessionStorage.setItem('pendingShareImage', image);
+        sessionStorage.setItem('pendingShareImageMime', imageMime ?? 'image/jpeg');
+      } catch {
+        // sessionStorage quota exceeded — proceed without image
+      }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
+    if (image) qs.set('hasImage', '1');
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
@@ -51,10 +72,15 @@ export function CapacitorBridge() {
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage = parsed.searchParams.get('hasImage');
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              // hasImage=1 means the image was already stored in App Group by the Swift extension;
+              // checkPendingAppGroupShare will read it into sessionStorage on next launch.
+              // For URL-scheme opens (extension stayed alive), pass the flag through.
+              if (hasImage) qs.set('hasImage', hasImage);
               router.push(`/share?${qs.toString()}`);
             }
           } catch {
