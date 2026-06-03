@@ -248,10 +248,15 @@ export default function InboxCard({
           </div>
         )}
 
-        {/* Tags (first 3) */}
-        {item.tags.length > 0 && (
+        {/* Tags + notes chip */}
+        {(item.tags.length > 0 || item.notes) && (
           <div className="flex flex-wrap gap-1 mb-3">
-            {item.tags.slice(0, 3).map((tag) => (
+            {item.notes && (
+              <span className="bg-amber-50 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                📝 Note
+              </span>
+            )}
+            {item.tags.slice(0, 2).map((tag) => (
               <span
                 key={tag}
                 className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"

@@ -240,7 +240,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - MapLibre: use a dark basemap style when in dark mode (OpenFreeMap has a dark variant)
 
 ### D4 — Personal Notes on Clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to annotate clips with their own context. "I was recommended this by Mei."  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`, `lib/types.ts`  
 **What to do**:

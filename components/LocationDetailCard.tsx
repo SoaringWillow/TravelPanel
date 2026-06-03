@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { updateItemNote } from '@/lib/db';
 import SubstanceList from './SubstanceList';
 
 interface LocationDetailCardProps {
@@ -11,7 +13,26 @@ interface LocationDetailCardProps {
   onClose: () => void;
 }
 
+const SAVE_DELAY_MS = 500;
+
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const [notes, setNotes]   = useState(item.notes ?? '');
+  const saveTimer           = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saved, setSaved]   = useState(false);
+
+  const scheduleSave = useCallback((value: string) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      await updateItemNote(item.id, value);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    }, SAVE_DELAY_MS);
+  }, [item.id]);
+
+  function handleNotesChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setNotes(e.target.value);
+    scheduleSave(e.target.value);
+  }
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -127,13 +148,26 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+            {/* Notes — editable, auto-saves on change */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  My notes
+                </p>
+                {saved && (
+                  <span className="text-xs text-green-600 font-medium">✓ Saved</span>
+                )}
               </div>
-            )}
+              <textarea
+                value={notes}
+                onChange={handleNotesChange}
+                placeholder="Add a personal note… (auto-saved)"
+                rows={3}
+                className="w-full text-sm text-gray-800 bg-amber-50 rounded-xl px-3 py-2.5
+                           resize-none border-2 border-transparent focus:border-amber-300
+                           focus:outline-none placeholder-amber-300 leading-relaxed transition-colors"
+              />
+            </div>
           </div>
         </div>
       </motion.div>
