@@ -10,8 +10,10 @@ import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { runRetryQueue } from '@/lib/retryQueue';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -130,12 +132,19 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
   const { clip: resurfaceClip, dismiss: dismissResurface } = useResurfaceClip(items);
+
+  const handlePullRefresh = useCallback(async () => {
+    await runRetryQueue();
+    await refresh();
+  }, [refresh]);
+
+  const { refreshing, pullProgress, handlers: pullHandlers } = usePullToRefresh(handlePullRefresh);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -241,7 +250,29 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-4 pb-[calc(6rem+env(safe-area-inset-bottom))]"
+        {...pullHandlers}
+      >
+        {/* Pull-to-refresh indicator */}
+        {(pullProgress > 0 || refreshing) && (
+          <div
+            className="flex justify-center overflow-hidden transition-all duration-150"
+            style={{ height: refreshing ? 36 : pullProgress * 36, marginBottom: 8 }}
+          >
+            <div className={`flex items-center gap-2 text-indigo-600 text-xs font-medium ${refreshing ? 'animate-pulse' : ''}`}>
+              <svg
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                style={{ transform: refreshing ? undefined : `rotate(${pullProgress * 180}deg)` }}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              >
+                <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" />
+              </svg>
+              {refreshing ? 'Refreshing…' : pullProgress >= 1 ? 'Release to refresh' : 'Pull to refresh'}
+            </div>
+          </div>
+        )}
+
         {/* Rediscover banner */}
         <AnimatePresence>
           {!loading && resurfaceClip && !query.trim() && activePlatform === 'all' && (
