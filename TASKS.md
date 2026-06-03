@@ -328,7 +328,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - See `ios/App/ShareExtension/ShareViewController.swift` for the writer side (already implemented in B3)
 
 ### F2 — iOS Home Screen Widget
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (Xcode target setup required — see ios/App/TravelPanelWidget/TravelPanelWidget.swift)  
 **Needs**: Xcode; SwiftUI widget extension  
 **What to do**:
 - Create a SwiftUI widget that shows the 3 most recently saved clips (title + thumbnail)
@@ -337,7 +337,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Reads from App Group UserDefaults (written by the main app via the F1 bridge)
 
 ### F3 — Siri Shortcut: "Clip Current URL"
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (Xcode capabilities setup required — see ios/App/App/SiriShortcuts.swift)  
 **Files**: `ios/App/App/`, register in App capabilities  
 **What to do**:
 - Donate a `INSendMessageIntent`-style shortcut: "Clip [URL] to TravelPanel"
