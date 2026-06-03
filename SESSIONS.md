@@ -103,3 +103,17 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-03 20:39 | 7f7e5ca | feat(C2): post-trip timeline view on board detail
 2026-06-03 20:41 | 24dca51 | feat(C4): proactive resurfacing — Rediscover banner in inbox
 2026-06-03 20:42 | 32b70b5 | chore: new task phases D/E/F — iOS beauty, AI enhancements, native features
+2026-06-03 20:44 | 6dd3814 | feat(D1): iOS safe area + native feel polish
+2026-06-03 20:48 | 66d1e4f | D2: Add full dark mode support with theme persistence and dark map tiles
+2026-06-03 20:50 | 0b358d7 | D3: Pre-start enrichment on share page load for instant save feel
+2026-06-03 20:52 | 0e727b3 | D4: Beautiful plan view with hero, gradient day cards, scroll-snap, share
+2026-06-03 20:54 | fdb3910 | D5: Haptic feedback via @capacitor/haptics (no-op on web)
+2026-06-03 20:56 | 8d50b73 | D6: Pull-to-refresh on inbox and boards with retry queue
+2026-06-03 20:57 | badaa2e | D7: Full-screen ClipDetailSheet replaces minimal LocationDetailCard
+2026-06-03 20:59 | e2d40e4 | D8: Splash screen, board skeletons, map-load callback
+2026-06-03 21:00 | 81b49d6 | E1: Ask About Your Clips — Claude-powered Q&A over saved items
+2026-06-03 21:02 | 51211f6 | E2: Smart board suggestions on share page
+2026-06-03 21:03 | 075884a | E3: Duplicate URL detection in ImportSheet and share page
+2026-06-03 21:03 | 44e492b | E4: Warning substance highlights at top of generated plan
+2026-06-03 21:05 | 98e8682 | F1: App Group Bridge Capacitor plugin for iOS Share Extension image pipeline
+2026-06-03 21:06 | c1e2e86 | F2+F3: iOS Widget and Siri Shortcut scaffold (Xcode target setup required)
