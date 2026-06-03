@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">✈️</span>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="settings-btn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="page-preview">
+      <img id="favicon" class="favicon" src="" alt="" onerror="this.style.display='none'">
+      <div class="page-meta">
+        <div id="page-title" class="page-title">Loading…</div>
+        <div id="page-url" class="page-url"></div>
+      </div>
+    </div>
+
+    <div id="content">
+      <div id="idle-state" class="pane">
+        <p class="hint-text">Save this page to TravelPanel and extract travel spots &amp; wisdom automatically.</p>
+        <button id="clip-btn" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          Clip This Page
+        </button>
+      </div>
+
+      <div id="loading-state" class="pane hidden">
+        <div class="spinner-wrap">
+          <div class="spinner"></div>
+        </div>
+        <p class="hint-text" id="loading-msg">Extracting travel wisdom…</p>
+      </div>
+
+      <div id="preview-state" class="pane hidden">
+        <div class="preview-card">
+          <div class="stats-row">
+            <div class="stat">
+              <span class="stat-icon">📍</span>
+              <span id="location-count" class="stat-num">0</span>
+              <span class="stat-label">locations</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <span class="stat-icon">💡</span>
+              <span id="substance-count" class="stat-num">0</span>
+              <span class="stat-label">tips &amp; wisdom</span>
+            </div>
+          </div>
+          <div id="tags-row" class="tags-row"></div>
+        </div>
+        <button id="save-btn" class="btn btn-success">
+          Save to TravelPanel →
+        </button>
+        <button id="open-share-btn" class="btn btn-ghost">
+          Open full view
+        </button>
+      </div>
+
+      <div id="error-state" class="pane hidden">
+        <div class="error-icon">⚠️</div>
+        <p class="error-msg" id="error-msg">Something went wrong</p>
+        <button id="retry-btn" class="btn btn-primary">Try Again</button>
+        <button id="open-anyway-btn" class="btn btn-ghost">Open in TravelPanel</button>
+      </div>
+    </div>
+
+    <div id="settings-panel" class="settings-panel hidden">
+      <div class="settings-inner">
+        <label class="settings-label">TravelPanel Server URL</label>
+        <input type="text" id="server-url" class="settings-input" placeholder="http://localhost:3000">
+        <p class="settings-hint">For production, use your Vercel deployment URL</p>
+        <div class="settings-actions">
+          <button id="cancel-settings" class="btn btn-ghost btn-sm">Cancel</button>
+          <button id="save-settings" class="btn btn-primary btn-sm">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, Clipboard } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { encodeBoardForSharing, buildShareUrl, getSharePayloadSize } from '@/lib/shareBoard';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,7 +23,9 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]           = useState<Location | undefined>(undefined);
+  const [sharing, setSharing]       = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -47,8 +50,27 @@ export default function BoardDetailPage() {
     await removeItem(id);
   }
 
-  async function handleMoveToBoard(id: string) {
+  async function handleMoveToBoard(_id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShareBoard() {
+    if (!board || sharing) return;
+    setSharing(true);
+    try {
+      const encoded = await encodeBoardForSharing(board, boardItems);
+      const { warning } = await getSharePayloadSize(encoded);
+      const url = buildShareUrl(encoded);
+
+      if (navigator.share && !warning) {
+        await navigator.share({ title: `${board.emoji} ${board.name}`, url }).catch(() => {});
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 3000);
+      }
+    } catch { /* ignore */ }
+    setSharing(false);
   }
 
   if (loading) {
@@ -110,6 +132,20 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {/* Share board button */}
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={handleShareBoard}
+              disabled={sharing}
+              className="flex-shrink-0 flex items-center gap-1.5 border border-gray-200 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+              title="Share this board"
+            >
+              {shareCopied ? <Clipboard size={13} className="text-green-600" /> : <Share2 size={13} />}
+              {shareCopied ? 'Copied!' : 'Share'}
+            </button>
+          )}
         </div>
       </div>
 
