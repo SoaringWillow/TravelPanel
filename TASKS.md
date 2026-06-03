@@ -614,7 +614,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: currently tapping a cluster does nothing useful; users can't find the specific clip they're looking for when pins overlap
 
 ### I5 — Keyboard-Safe Import Sheet on iOS
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ImportSheet.tsx`  
 **What to do**:
 - When the URL input field is focused, add `pb-[env(keyboard-inset-height,0px)]` padding to the sheet's scrollable area so the keyboard doesn't cover the paste button

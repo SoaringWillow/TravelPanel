@@ -58,6 +58,25 @@ function LoadingSkeleton() {
 
 // ── Main component ──────────────────────────────────────────────────────────
 
+function useKeyboardHeight(): number {
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const kbh = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop ?? 0));
+      setKbHeight(kbh);
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return kbHeight;
+}
+
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
   const [url, setUrl]           = useState(initialUrl);
   const [notes, setNotes]       = useState('');
@@ -68,6 +87,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [canPaste, setCanPaste] = useState(false);
   const [duplicate, setDuplicate] = useState<SavedItem | null>(null);
   const abortRef                = useRef<AbortController | null>(null);
+  const kbHeight                = useKeyboardHeight();
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -227,7 +247,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           <DrawerTitle>Clip inspiration</DrawerTitle>
         </DrawerHeader>
 
-        <div className="px-4 pb-8 space-y-4">
+        <div className="px-4 space-y-4" style={{ paddingBottom: Math.max(32, kbHeight + 16) }}>
           {/* ── Success state ────────────────────────────────────────────── */}
           {stage === 'success' && (
             <div className="flex flex-col items-center justify-center py-10 gap-4">
