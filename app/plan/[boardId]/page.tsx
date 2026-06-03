@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, DayPlan } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
@@ -498,21 +498,25 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
+              {/* Day strip — drag to reorder */}
               {plan.days && plan.days.length > 0 && (
-                <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                  <div className="flex gap-3" style={{ width: 'max-content' }}>
-                    {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <DraggableDayStrip
+                  days={plan.days}
+                  activeDayIndex={activeDayIndex}
+                  onSelect={setActiveDayIndex}
+                  onReorder={(newDays) => {
+                    const updated = { ...plan, days: newDays } as Partial<TripPlan>;
+                    setPlan(updated);
+                    // Persist if we have a current trip
+                    if (currentTripId) {
+                      const trip = savedTrips.find((t) => t.id === currentTripId);
+                      if (trip) saveTrip({ ...trip, plan: updated as TripPlan });
+                    }
+                    // Keep active day index pointing at same day after reorder
+                    setActiveDayIndex(0);
+                    hapticImpact('light');
+                  }}
+                />
               )}
 
               {/* Active day activities */}
@@ -602,6 +606,72 @@ export default function PlanPage() {
           )}
 
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── DraggableDayStrip ────────────────────────────────────────────────────────
+
+interface DraggableDayStripProps {
+  days: DayPlan[];
+  activeDayIndex: number;
+  onSelect: (idx: number) => void;
+  onReorder: (newDays: DayPlan[]) => void;
+}
+
+function DraggableDayStrip({ days, activeDayIndex, onSelect, onReorder }: DraggableDayStripProps) {
+  const dragIdx  = useRef<number | null>(null);
+  const overIdx  = useRef<number | null>(null);
+  const [order, setOrder] = useState<DayPlan[]>(days);
+
+  // Sync when days prop changes (new plan loaded)
+  useEffect(() => { setOrder(days); }, [days]);
+
+  function handleDragStart(idx: number) {
+    dragIdx.current = idx;
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    if (dragIdx.current === null || dragIdx.current === idx) return;
+    overIdx.current = idx;
+    const next = [...order];
+    const [moved] = next.splice(dragIdx.current, 1);
+    next.splice(idx, 0, moved);
+    dragIdx.current = idx;
+    setOrder(next);
+  }
+
+  function handleDrop() {
+    if (dragIdx.current !== null) {
+      onReorder(order);
+    }
+    dragIdx.current = null;
+    overIdx.current = null;
+  }
+
+  return (
+    <div className="overflow-x-auto pb-2 -mx-4 px-4">
+      <div className="flex gap-3" style={{ width: 'max-content' }}>
+        {order.map((day, idx) => (
+          <div
+            key={`${day.day}-${idx}`}
+            draggable
+            onDragStart={() => handleDragStart(idx)}
+            onDragOver={(e) => handleDragOver(e, idx)}
+            onDrop={handleDrop}
+            onDragEnd={handleDrop}
+            style={{ cursor: 'grab' }}
+          >
+            <DayStripCard
+              day={day}
+              index={idx}
+              isActive={activeDayIndex === idx}
+              onSelect={() => onSelect(idx)}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

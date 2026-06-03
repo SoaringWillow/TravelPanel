@@ -312,7 +312,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Let users pick a clip thumbnail as the board cover. Store as `coverThumbnail` on the Board object (field already exists). Show in board list as a full-bleed card rather than emoji.
 
 ### E3 — Trip Itinerary Polish: Drag-Reorder Days
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Allow dragging day cards to reorder the generated itinerary. Persist the reordered plan to IndexedDB. Use framer-motion's drag-to-reorder pattern.
 
 ### E4 — iOS Home Screen Widget
