@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <!-- ── Main Clip View ──────────────────────────────────────── -->
+  <div id="main-view" class="view hidden">
+    <div class="header">
+      <div class="logo">
+        <span class="logo-icon">✈️</span>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="page-card">
+      <img id="page-favicon" class="favicon" src="" alt="" />
+      <div class="page-info">
+        <div id="page-title" class="page-title">Loading…</div>
+        <div id="page-url" class="page-url">Loading…</div>
+      </div>
+    </div>
+
+    <div id="platform-badge-wrap" class="platform-wrap hidden">
+      <span id="platform-badge" class="platform-badge"></span>
+    </div>
+
+    <div id="error-msg" class="alert alert-error hidden"></div>
+
+    <button id="clip-btn" class="btn btn-primary" disabled>
+      <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+
+    <p class="hint-text">
+      Opens the TravelPanel share page with this URL pre-filled
+    </p>
+  </div>
+
+  <!-- ── First-Run Setup View ──────────────────────────────────── -->
+  <div id="setup-view" class="view hidden">
+    <div class="setup-hero">
+      <div class="setup-emoji">✈️</div>
+      <h1 class="setup-title">TravelPanel Clipper</h1>
+      <p class="setup-desc">Save travel inspiration from any page — YouTube, Instagram, travel blogs — directly into your TravelPanel boards.</p>
+    </div>
+
+    <div class="form-group">
+      <label for="setup-url-input" class="form-label">TravelPanel App URL</label>
+      <input
+        type="url"
+        id="setup-url-input"
+        class="form-input"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="form-hint">Your TravelPanel deployment URL (or <code>http://localhost:3000</code> for local dev)</p>
+    </div>
+
+    <div id="setup-error" class="alert alert-error hidden"></div>
+
+    <button id="setup-save-btn" class="btn btn-primary">
+      Get Started →
+    </button>
+  </div>
+
+  <!-- ── Settings View ───────────────────────────────────────── -->
+  <div id="settings-view" class="view hidden">
+    <div class="header header-plain">
+      <button id="back-btn" class="icon-btn back-btn" title="Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title">Settings</span>
+    </div>
+
+    <div class="form-group">
+      <label for="settings-url-input" class="form-label">TravelPanel App URL</label>
+      <input
+        type="url"
+        id="settings-url-input"
+        class="form-input"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="form-hint">Change this if you redeployed your app</p>
+    </div>
+
+    <div id="settings-success" class="alert alert-success hidden">✓ Settings saved!</div>
+    <div id="settings-error" class="alert alert-error hidden"></div>
+
+    <button id="settings-save-btn" class="btn btn-primary">Save Settings</button>
+
+    <div class="settings-footer">
+      <span>TravelPanel Clipper v1.0.0</span>
+    </div>
+  </div>
+
+  <!-- ── Success View ────────────────────────────────────────── -->
+  <div id="success-view" class="view hidden">
+    <div class="success-content">
+      <div class="success-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h2 class="success-title">Tab opened!</h2>
+      <p class="success-desc" id="success-desc">Complete the clip in TravelPanel.</p>
+    </div>
+    <button id="close-btn" class="btn btn-secondary">Close</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
