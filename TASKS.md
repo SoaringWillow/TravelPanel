@@ -241,7 +241,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - "Share plan" button that exports the plan as a beautiful image (using html2canvas or a server-side OG image endpoint)
 
 ### D5 — Haptic Feedback (iOS)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `lib/haptics.ts`, used in clip save, board create, plan generate  
 **What to do**:
 - Create `lib/haptics.ts` that wraps `@capacitor/haptics` with a no-op fallback for web

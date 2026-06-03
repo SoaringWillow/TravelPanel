@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemById } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { mediumImpact, successNotification } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -66,6 +67,7 @@ function SharePageInner() {
       setEnrichmentLoading(true);
       enrichItem(itemId, rawUrl).then(async (success) => {
         if (success) {
+          successNotification();
           const updated = await getItemById(itemId);
           if (updated) {
             setEnrichedData({
@@ -143,6 +145,7 @@ function SharePageInner() {
     }
 
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    mediumImpact();
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
