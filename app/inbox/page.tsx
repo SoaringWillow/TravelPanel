@@ -29,6 +29,9 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
   { key: 'bilibili', label: 'Bilibili' },
 ];
 
+const TIPS_FILTER_KEY = 'has_tips' as const;
+type TipsFilter = typeof TIPS_FILTER_KEY | null;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
@@ -39,6 +42,7 @@ export default function InboxPage() {
   const { retryItem, retryState } = useEnrichmentRetry(refreshItem);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
+  const [tipsFilter, setTipsFilter] = useState<TipsFilter>(null);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [globalSearch, setGlobalSearch] = useState(false);
@@ -64,9 +68,13 @@ export default function InboxPage() {
 
   const searched = searchItems(platformFiltered, query);
 
+  const tipsFiltered = tipsFilter === TIPS_FILTER_KEY
+    ? searched.filter((i) => (i.substance?.length ?? 0) > 0)
+    : searched;
+
   // When "near me" is active, attach distances and sort nearest-first
   const itemsWithDistance = nearMeActive && userCoords
-    ? searched.map(item => ({
+    ? tipsFiltered.map(item => ({
         item,
         distance: minDistanceKm(userCoords.lat, userCoords.lng, item.locations),
       })).sort((a, b) => {
@@ -74,7 +82,7 @@ export default function InboxPage() {
         if (b.distance === undefined) return -1;
         return a.distance - b.distance;
       })
-    : searched.map(item => ({ item, distance: undefined }));
+    : tipsFiltered.map(item => ({ item, distance: undefined }));
 
   const filtered = itemsWithDistance;
 
@@ -207,6 +215,19 @@ export default function InboxPage() {
               </button>
             );
           })}
+          {/* Has tips filter */}
+          <button
+            type="button"
+            onClick={() => setTipsFilter((v) => (v === TIPS_FILTER_KEY ? null : TIPS_FILTER_KEY))}
+            className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+              tipsFilter === TIPS_FILTER_KEY
+                ? 'bg-emerald-600 text-white border-emerald-600'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/10 hover:border-emerald-300'
+            }`}
+          >
+            💡 Has tips
+          </button>
+
           {/* Near me sort */}
           <button
             onClick={toggleNearMe}
@@ -234,19 +255,20 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          {query.trim() || activePlatform !== 'all' ? (
+          query.trim() || activePlatform !== 'all' || tipsFilter ? (
             <div className="flex flex-col items-center justify-center h-60 text-center">
               <div className="text-5xl mb-4">🔍</div>
               <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">No matches found.</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-                {query.trim()
-                  ? `No clips match "${query.trim()}". Try a different search.`
-                  : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
+                {tipsFilter
+                  ? 'No clips with extracted tips yet. Save some links to get started.'
+                  : query.trim()
+                    ? `No clips match "${query.trim()}". Try a different search.`
+                    : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
               </p>
             </div>
           ) : (
             <EmptyState variant="inbox" onCta={() => router.push('/')} />
-          )}
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>

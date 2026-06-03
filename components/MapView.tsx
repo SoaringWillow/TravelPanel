@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -219,7 +219,7 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
         justifyContent: 'center',
       }}
     >
-      {count}
+      {count > 99 ? '99+' : `+${count}`}
     </button>
   );
 }
@@ -235,12 +235,25 @@ interface MapViewProps {
   onUserLocation?: (coords: { lat: number; lng: number } | null) => void;
 }
 
+function useOnlineStatus() {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener('online', cb);
+      window.addEventListener('offline', cb);
+      return () => { window.removeEventListener('online', cb); window.removeEventListener('offline', cb); };
+    },
+    () => navigator.onLine,
+    () => true,
+  );
+}
+
 export default function MapView({ items, onPinClick, flyTo, onUserLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const isOnline = useOnlineStatus();
 
   function requestLocation() {
     if (!navigator.geolocation) {
@@ -388,6 +401,14 @@ export default function MapView({ items, onPinClick, flyTo, onUserLocation }: Ma
           </Popup>
         )}
       </Map>
+
+      {/* Offline badge */}
+      {!isOnline && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 bg-gray-800/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+          Offline — showing cached tiles
+        </div>
+      )}
 
       {/* My Location button */}
       <button

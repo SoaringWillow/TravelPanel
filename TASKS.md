@@ -394,7 +394,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - After save: show a mini success card with location count before the sheet closes
 
 ### F7 — Map Cluster Labels
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`  
 **What to do**:
 - Currently pins are individual dots; at high zoom-out, 50+ pins become unreadable
@@ -404,7 +404,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use MapLibre's built-in cluster layer (GeoJSON source with `cluster: true`)
 
 ### F8 — Substance Search Filter
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `lib/searchItems.ts`  
 **What to do**:
 - Add "Has tips" filter chip to the inbox filter row (alongside platform chips)
@@ -413,7 +413,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This surfaces the wisdom layer as a first-class filter, not just a badge
 
 ### F9 — Plan Share Card (Screenshot)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, new `components/PlanShareCard.tsx`  
 **What to do**:
 - "Share plan" button in the complete state generates a screenshot-able summary card
@@ -423,7 +423,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Design: white card, indigo header strip, clean minimal layout
 
 ### F10 — Offline Map Tiles Cache
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `public/sw.js` (service worker), `components/MapView.tsx`  
 **What to do**:
 - Register a service worker that caches OpenFreeMap tile responses
