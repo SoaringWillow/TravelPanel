@@ -11,12 +11,16 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: title }        = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: imageBase64 }  = await Preferences.get({ key: 'pendingShareImageBase64' });
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareImageBase64' });
 
     const qs = new URLSearchParams({ url });
-    if (title) qs.set('title', title);
+    if (title)       qs.set('title', title);
+    if (imageBase64) qs.set('imageBase64', imageBase64);
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
