@@ -8,7 +8,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, getItemById } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { minDistanceKm } from '@/lib/haversine';
@@ -35,7 +35,7 @@ type TipsFilter = typeof TIPS_FILTER_KEY | null;
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -139,6 +139,13 @@ export default function InboxPage() {
       () => setLocationLoading(false),
       { enableHighAccuracy: true, timeout: 10000 },
     );
+  }
+
+  async function handleNotesSaved(id: string, notes: string) {
+    const item = await getItemById(id);
+    if (!item) return;
+    await saveItem({ ...item, notes: notes || undefined });
+    refreshItem(id);
   }
 
   function handleViewOnMap(id: string) {
@@ -350,6 +357,7 @@ export default function InboxPage() {
                           onViewOnMap={handleViewOnMap}
                           onMoveToBoard={handleMoveToBoard}
                           onRetry={retryItem}
+                          onNotesSaved={handleNotesSaved}
                           nearbyDistance={nearMeActive ? distance : undefined}
                           {...snippetProps}
                         />

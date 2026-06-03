@@ -587,7 +587,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: users mark day activities done as they travel; losing that on refresh is data loss
 
 ### I2 — Board Cover Thumbnail Auto-Set
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/db.ts`, `hooks/useBoards.ts`, `app/boards/page.tsx` (or wherever boards list renders)  
 **What to do**:
 - When an item with a thumbnail is added to a board (`addItemToBoard`), update the board's `coverThumbnail` to the item's thumbnail if the board doesn't already have one
@@ -596,7 +596,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: boards page looks sparse (just emojis on white cards); cover photos make it feel alive and visually scannable
 
 ### I3 — Inline Clip Notes from Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `lib/db.ts`  
 **What to do**:
 - Add a "Add note" button (pencil icon) to the InboxCard footer (done state only)

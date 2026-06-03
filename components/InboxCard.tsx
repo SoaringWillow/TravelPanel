@@ -1,6 +1,7 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, PenLine } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import ClipThumbnail from './ClipThumbnail';
@@ -13,6 +14,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  onNotesSaved?: (id: string, notes: string) => void;
   nearbyDistance?: number;
   matchSnippet?: string;
   matchQuery?: string;
@@ -67,10 +69,25 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  onNotesSaved,
   nearbyDistance,
   matchSnippet,
   matchQuery,
 }: InboxCardProps) {
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [noteValue, setNoteValue] = useState(item.notes ?? '');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function openNotes() {
+    setNoteValue(item.notes ?? '');
+    setEditingNotes(true);
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  }
+
+  function handleNotesBlur() {
+    setEditingNotes(false);
+    onNotesSaved?.(item.id, noteValue.trim());
+  }
   const { enrichmentStatus } = item;
 
   // ── Pending / processing state ───────────────────────────────────────────
@@ -299,6 +316,30 @@ export default function InboxCard({
           </div>
         )}
 
+        {/* Inline notes */}
+        {onNotesSaved && (
+          editingNotes ? (
+            <textarea
+              ref={textareaRef}
+              value={noteValue}
+              onChange={(e) => setNoteValue(e.target.value)}
+              onBlur={handleNotesBlur}
+              placeholder="Add a note…"
+              rows={2}
+              className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-400 mb-2"
+            />
+          ) : item.notes ? (
+            <button
+              type="button"
+              onClick={openNotes}
+              className="w-full text-left text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 rounded-lg px-2 py-1.5 mb-2 line-clamp-1 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <PenLine size={9} className="inline mr-1 text-gray-400" />
+              {item.notes}
+            </button>
+          ) : null
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-white/10">
           <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
@@ -312,6 +353,18 @@ export default function InboxCard({
             >
               Map
             </button>
+
+            {/* Note edit / add */}
+            {onNotesSaved && (
+              <button
+                type="button"
+                onClick={openNotes}
+                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                aria-label={item.notes ? 'Edit note' : 'Add note'}
+              >
+                <PenLine size={13} />
+              </button>
+            )}
 
             {/* Open original */}
             <a
