@@ -76,6 +76,26 @@ export async function getItemById(id: string): Promise<SavedItem | undefined> {
   return db.get('items', id);
 }
 
+function normaliseUrl(url: string): string {
+  try {
+    const u = new URL(url.toLowerCase().trim());
+    u.hash = '';
+    return u.toString().replace(/\/$/, '');
+  } catch {
+    return url.toLowerCase().trim().replace(/\/$/, '');
+  }
+}
+
+export async function findByUrl(url: string): Promise<SavedItem | undefined> {
+  try {
+    const norm = normaliseUrl(url);
+    const items = await getAllItems();
+    return items.find((i) => normaliseUrl(i.url) === norm);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function saveItem(item: SavedItem): Promise<void> {
   const db = await getDB();
   await db.put('items', item);

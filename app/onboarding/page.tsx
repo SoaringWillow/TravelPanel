@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { hapticImpact } from '@/hooks/useHaptic';
+import { seedDemoBoard } from '@/lib/demoData';
 
 const ONBOARDING_KEY = 'tp_onboarding_done';
 
@@ -51,12 +52,21 @@ export default function OnboardingPage() {
     if (screen < SCREENS.length - 1) {
       setScreen(screen + 1);
     } else {
-      handleDone();
+      handleDone(true); // seed demo board on "Get started"
     }
   }
 
-  function handleDone() {
+  async function handleDone(withDemo = false) {
     markOnboardingDone();
+    if (withDemo) {
+      try {
+        const boardId = await seedDemoBoard();
+        router.replace(`/plan/${boardId}`);
+        return;
+      } catch {
+        // If seeding fails, fall through to home
+      }
+    }
     router.replace('/');
   }
 
@@ -69,7 +79,7 @@ export default function OnboardingPage() {
       <div className="flex justify-end p-5">
         <button
           type="button"
-          onClick={handleDone}
+          onClick={() => handleDone(false)}
           className="text-white/60 text-sm font-medium hover:text-white transition-colors"
         >
           Skip

@@ -463,6 +463,116 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE H — Premium Polish & Retention Hooks
+
+> Goal: turn the app from "interesting tool" to "daily companion." These tasks address the biggest remaining gaps in UX quality, retention, and data safety — all buildable without Supabase or native Swift.
+
+### H1 — Demo Board on First Launch
+**Status**: `[x]` Done  
+**Files**: `app/onboarding/page.tsx`, `lib/db.ts`, new `lib/demoData.ts`  
+**What to do**:
+- Create `lib/demoData.ts` with 3 realistic synthetic clips (Tokyo ramen alley, Paris Marais, Kyoto bamboo grove), each with `substance` items pre-populated
+- In `markOnboardingDone()`, call `seedDemoBoard()` which inserts a "🌏 Explore Ideas" demo board with those clips and marks them `isDemo: true`
+- Change the "Get started" CTA in onboarding to navigate to that board's plan page instead of `/`
+- Add a "Clear demo content" button in Settings (or admin) that removes items where `isDemo === true`
+- Why: empty map on first launch is the #1 reason users churn in minute 1
+
+### H2 — JSON Data Backup (Export + Import)
+**Status**: `[ ]` Not started  
+**Files**: new `lib/backup.ts`, `app/settings/page.tsx` (new)  
+**What to do**:
+- Create `lib/backup.ts` with `exportAllData()` → serializes all boards + items to JSON → triggers download via `navigator.share` (iOS) or anchor download (web)
+- Add `importFromJSON(file)` which reads a backup file, merges boards/items (skip duplicates by id)
+- Create `app/settings/page.tsx` — a simple settings screen with: Export backup button, Import backup button (file picker), Clear all data (with confirmation), App version
+- Add "Settings" entry to NavBar (gear icon replacing a less-used tab, or as a header button)
+- Why: data loss on device wipe is existential; users need backup before switching phones
+
+### H3 — Activity Check-in (Live Trip Mode)
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Add a checkbox (or tap-to-complete) to each activity card in the plan complete view
+- Store checked activity state in the `Trip` object: `checkedActivities: Record<dayIndex, Set<activityIndex>>`
+- Show a day progress bar: "2 / 5 done today" above the activity list
+- Checked activities get a strikethrough + lighter opacity with a green checkmark
+- Persist immediately to IndexedDB on check/uncheck (reuse `saveTrip`)
+- Why: users return to the plan repeatedly during the trip; engagement driver
+
+### H4 — Clip Deduplication Guard
+**Status**: `[x]` Done  
+**Files**: `app/share/page.tsx`, `components/ImportSheet.tsx`, `lib/db.ts`  
+**What to do**:
+- Before saving a new clip, check `getAllItems()` for an existing item with matching `url` (normalise: strip trailing slash, lowercase scheme)
+- If duplicate found: show a toast "Already saved — tap to view it" with the existing item's title and a "View" button that opens the detail card
+- Allow force-save via "Save anyway" for intentional duplicates (e.g. revisiting same restaurant)
+- Add a `findByUrl(url)` helper to `lib/db.ts`
+- Why: users who actively clip often double-save; duplicates pollute the map and inflate counts
+
+### H5 — Thumbnail Fallback System
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, `components/BoardCard.tsx`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Replace `<img onError=hide>` pattern with a graceful fallback: a styled div showing platform gradient background + first letter of title
+- Create `components/ClipThumbnail.tsx` — wraps `<img>` with a fallback that renders platform color + emoji when image fails or is absent
+- Use `PLATFORM_COLORS` for the gradient and `PLATFORM_LABELS` initial for the letter
+- Apply everywhere thumbnails are shown: InboxCard, BoardCard cover, LocationDetailCard header, PlanShareCard
+- Why: Xiaohongshu/WeChat block thumbnail scraping → half the inbox shows broken/empty images; this makes every card look intentional
+
+### H6 — Batch Select & Manage in Inbox
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Long-press any InboxCard to enter "selection mode" (use framer-motion press duration or `onLongPress` via pointer events)
+- In selection mode: cards show a checkbox overlay in the top-left corner; tapping a card toggles its selection
+- Show a sticky action bar at the bottom (above NavBar): "X selected · Move to board · Delete"
+- Exit selection mode by pressing X in the action bar or tapping an empty area
+- Persist the board-move and delete actions the same way single-item actions work
+- Why: power users with 50+ clips need bulk operations to stay organized
+
+### H7 — Map Fullscreen Mode
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`, `components/MapView.tsx`  
+**What to do**:
+- Add a "↗ Expand" button (top-right of map area) that toggles the map to cover the full screen including nav bar
+- In fullscreen mode: NavBar is hidden, map fills viewport, a "✕ Close" button appears in top-left
+- Swipe up from the bottom edge to restore the panel (framer-motion drag gesture)
+- Animate with a smooth height transition (spring, 400ms)
+- Why: the map is the #1 feature; on mobile it's cramped by headers/tabs; fullscreen makes it feel like a native maps app
+
+### H8 — Clip Search with Semantic Highlight
+**Status**: `[ ]` Not started  
+**Files**: `lib/searchItems.ts`, `components/InboxCard.tsx`  
+**What to do**:
+- Extend `searchItems()` to return match positions alongside each result: `{ item, matchField: 'title' | 'substance' | 'notes' | 'tag', matchSnippet: string }`
+- In InboxCard, when `matchSnippet` is present, show it as a small highlight row below the card title (max 1 line, with the matched term bolded)
+- Use a simple regex to find and bold the matching term in the snippet
+- Why: with 50+ clips, knowing *why* a clip matched the search (substance content vs. just title) helps users find the right clip faster
+
+### H9 — Onboarding: Substance Value Demonstration
+**Status**: `[ ]` Not started  
+**Files**: `app/onboarding/page.tsx`  
+**What to do**:
+- Replace the static SVG illustration on Screen 2 (AI extracts the wisdom) with an animated "before/after" demo
+- Left side: raw Instagram-style post with a location pin
+- Right side: the extracted wisdom card with colour-coded badges (🟡 Tip, 🔴 Warning, 🌸 Good to know)
+- Animate the cards sliding in one-by-one with a 400ms stagger (framer-motion)
+- This directly visualises the substance moat to new users who've never seen the extraction in action
+- Why: onboarding Screen 2 is the most important pitch — it's why TravelPanel > competitors who only save pins
+
+### H10 — Settings Page & Data Management
+**Status**: `[ ]` Not started  
+**Files**: new `app/settings/page.tsx`, `components/NavBar.tsx`  
+**What to do**:
+- Create a Settings page at `/settings` with sections:
+  - **Data**: Export backup (JSON), Import backup, Clear all demo content
+  - **Appearance**: Dark mode toggle (override system preference, stored in localStorage)
+  - **About**: App version (`package.json` version), GitHub link, feedback mailto
+- Add "Settings" tab to NavBar (gear icon) replacing the least-used tab, or as an icon in the inbox header
+- Dark mode toggle writes `force-dark` / `force-light` to localStorage and overrides the system pref in the existing dark mode script
+- Why: users expect a settings page; currently there's no way to explicitly toggle dark mode or manage data
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*

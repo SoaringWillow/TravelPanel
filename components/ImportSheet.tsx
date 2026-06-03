@@ -15,6 +15,7 @@ import {
   PLATFORM_BG,
   PLATFORM_COLORS,
 } from '@/lib/parse-url';
+import { findByUrl } from '@/lib/db';
 
 interface ImportSheetProps {
   open: boolean;
@@ -65,6 +66,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [error, setError]       = useState('');
   const [savedCount, setSavedCount] = useState(0);
   const [canPaste, setCanPaste] = useState(false);
+  const [duplicate, setDuplicate] = useState<SavedItem | null>(null);
   const abortRef                = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -99,6 +101,14 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   async function handleImport() {
     if (!trimmedUrl) return;
+
+    // Deduplicate — check if this URL was already saved
+    const existing = await findByUrl(trimmedUrl);
+    if (existing) {
+      setDuplicate(existing);
+      return;
+    }
+    setDuplicate(null);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -194,6 +204,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setStage('idle');
     setError('');
     setSavedCount(0);
+    setDuplicate(null);
   }
 
   function handleClose() {
@@ -315,6 +326,30 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 >
                   Clip &amp; discover places
                 </button>
+              )}
+
+              {/* ── Duplicate warning ────────────────────────────────────── */}
+              {duplicate && !error && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+                  <p className="text-sm font-semibold text-amber-800">Already saved</p>
+                  <p className="text-xs text-amber-700 line-clamp-2">{duplicate.title}</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setDuplicate(null); handleClose(); }}
+                      className="flex-1 py-2 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition-colors"
+                    >
+                      View existing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDuplicate(null)}
+                      className="flex-1 py-2 rounded-lg border border-amber-300 text-amber-700 text-xs font-medium hover:bg-amber-50 transition-colors"
+                    >
+                      Save anyway
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* ── Error + save anyway ───────────────────────────────────── */}
