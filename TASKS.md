@@ -394,7 +394,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - In `useSavedItems`, handle errors gracefully (no crash, show error toast)
 
 ### F4 — Long-Press Quick Actions on Map Pins
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Tapping a pin opens the detail card. But users want a quicker way to navigate to source, share, or fly-to on plan — without opening the full card.  
 **Files**: `components/MapView.tsx`  
 **What to do**:

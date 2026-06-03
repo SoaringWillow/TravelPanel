@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { ExternalLink, Share2, Info } from 'lucide-react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -83,14 +84,25 @@ function MapController({ flyTo }: MapControllerProps) {
 // ─── Pin component ───────────────────────────────────────────────────────────
 
 interface PinProps {
-  item: SavedItem;
-  locName: string;
-  onClick: () => void;
+  item:        SavedItem;
+  locName:     string;
+  onClick:     () => void;
+  onLongPress: () => void;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ item, locName, onClick, onLongPress }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleTouchStart() {
+    longPressTimer.current = setTimeout(() => {
+      onLongPress();
+    }, 500);
+  }
+  function cancelLongPress() {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }
 
   return (
     <div style={{ position: 'relative' }}>
@@ -131,6 +143,9 @@ function Pin({ item, locName, onClick }: PinProps) {
           onClick={onClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={cancelLongPress}
+          onTouchMove={cancelLongPress}
           style={{
             width:        36,
             height:       36,
@@ -163,6 +178,9 @@ function Pin({ item, locName, onClick }: PinProps) {
           onClick={onClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={cancelLongPress}
+          onTouchMove={cancelLongPress}
           style={{
             width:           emoji ? 34 : 26,
             height:          emoji ? 34 : 26,
@@ -232,8 +250,72 @@ interface MapViewProps {
   flyTo?: Location;
 }
 
+interface QuickAction {
+  item: SavedItem;
+}
+
+function QuickActionSheet({ item, onDetails, onDismiss }: { item: SavedItem; onDetails: () => void; onDismiss: () => void }) {
+  async function handleShare() {
+    const url  = `${window.location.origin}/card/${item.id}`;
+    const text = `${item.title} — via TravelPanel`;
+    if (navigator.share) {
+      try { await navigator.share({ title: text, url }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(url);
+    }
+    onDismiss();
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[1300]" onClick={onDismiss} />
+      <div
+        className="fixed bottom-24 left-4 right-4 z-[1400] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800"
+      >
+        <div className="px-4 pt-4 pb-2">
+          <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">{item.title}</p>
+          {item.locations.length > 0 && (
+            <p className="text-xs text-gray-400 mt-0.5 truncate">{item.locations[0].name}</p>
+          )}
+        </div>
+        <div className="divide-y divide-gray-50 dark:divide-gray-800">
+          {item.url && !item.url.startsWith('local:') && (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onDismiss}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <ExternalLink size={16} className="text-indigo-500 flex-shrink-0" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Open source</span>
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={handleShare}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <Share2 size={16} className="text-indigo-500 flex-shrink-0" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Share clip</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { onDetails(); onDismiss(); }}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <Info size={16} className="text-indigo-500 flex-shrink-0" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">View details</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [quickAction, setQuickAction] = useState<QuickAction | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
@@ -324,6 +406,9 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);
                 }}
+                onLongPress={() => {
+                  setQuickAction({ item });
+                }}
               />
             </Marker>
           );
@@ -350,6 +435,15 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
           </Popup>
         )}
       </Map>
+
+      {/* Long-press quick action sheet */}
+      {quickAction && (
+        <QuickActionSheet
+          item={quickAction.item}
+          onDetails={() => onPinClick(quickAction.item)}
+          onDismiss={() => setQuickAction(null)}
+        />
+      )}
     </div>
   );
 }
