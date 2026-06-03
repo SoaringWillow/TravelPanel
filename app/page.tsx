@@ -8,7 +8,7 @@ import { Globe2, Plus, Navigation2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
-import LocationDetailCard from '@/components/LocationDetailCard';
+import ClipDetailSheet from '@/components/ClipDetailSheet';
 import NearbyPanel from '@/components/NearbyPanel';
 import NavBar from '@/components/NavBar';
 import { useGeolocation } from '@/lib/useGeolocation';
@@ -127,12 +127,16 @@ function HomePageInner() {
         )}
       </div>
 
-      {/* Selected item detail card */}
+      {/* Selected item detail sheet */}
       <AnimatePresence>
         {selectedItem && (
-          <LocationDetailCard
+          <ClipDetailSheet
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            onViewOnMap={() => {
+              if (selectedItem.locations.length > 0) setFlyTo(selectedItem.locations[0]);
+              setSelectedItem(null);
+            }}
           />
         )}
       </AnimatePresence>

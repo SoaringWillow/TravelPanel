@@ -259,7 +259,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use the Capacitor `@capacitor/motion` or a simple touch-event approach for the gesture
 
 ### D7 — Clip Detail Sheet (Full-Screen Modal)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`, new `components/ClipDetailSheet.tsx`  
 **What to do**:
 - Create a full-screen bottom sheet for viewing a single clip in detail
