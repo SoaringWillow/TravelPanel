@@ -263,7 +263,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Tip: use the same icon geometry as the browser extension (`extension/generate-icons.js`) scaled up
 
 ### D8 — Clip Editing (title + notes)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
 - Add an "Edit" button to the LocationDetailCard that opens an inline edit form
