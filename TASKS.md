@@ -244,7 +244,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a "Share plan" button that generates a clean screenshot-able summary card
 
 ### D6 — Illustrated Empty States
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Create SVG illustrations for: empty inbox, empty board, no plan generated yet

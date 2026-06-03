@@ -13,6 +13,7 @@ import { hapticImpact, hapticNotification } from '@/hooks/useHaptic';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
+import EmptyState from '@/components/EmptyState';
 import PlanVersionBar from '@/components/PlanVersionBar';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
@@ -290,17 +291,22 @@ export default function PlanPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.back()}
-                  className="flex items-center gap-1 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                  className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-800 transition-colors"
                 >
                   <ArrowLeft size={16} />
                   Back
                 </button>
                 <span className="text-2xl">{board.emoji}</span>
-                <h1 className="text-lg font-bold text-gray-800 flex-1 truncate">{board.name}</h1>
-                <span className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex-1 truncate">{board.name}</h1>
+                <span className="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
                   {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 </span>
               </div>
+
+              {/* First-time illustration — only when no previous trips */}
+              {savedTrips.length === 0 && (
+                <EmptyState variant="plan" />
+              )}
 
               {/* Days slider */}
               <div className="space-y-2">

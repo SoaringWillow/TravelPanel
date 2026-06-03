@@ -8,6 +8,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
+import EmptyState from '@/components/EmptyState';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
@@ -59,21 +60,7 @@ export default function BoardsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
-            >
-              <Plus size={16} />
-              Create a Board
-            </button>
-          </div>
+          <EmptyState variant="boards" onCta={() => setShowCreate(true)} />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {boards.map((board) => (

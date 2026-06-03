@@ -15,6 +15,7 @@ import { minDistanceKm } from '@/lib/haversine';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SwipeToDelete from '@/components/SwipeToDelete';
+import EmptyState from '@/components/EmptyState';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
@@ -204,19 +205,19 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          {query.trim() || activePlatform !== 'all' ? (
+            <div className="flex flex-col items-center justify-center h-60 text-center">
+              <div className="text-5xl mb-4">🔍</div>
+              <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">No matches found.</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                {query.trim()
+                  ? `No clips match "${query.trim()}". Try a different search.`
+                  : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
+              </p>
+            </div>
+          ) : (
+            <EmptyState variant="inbox" onCta={() => router.push('/')} />
+          )}
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
