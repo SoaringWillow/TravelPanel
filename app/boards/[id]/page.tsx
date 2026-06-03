@@ -10,6 +10,18 @@ import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
+type SortMode = 'date' | 'tips' | 'platform';
+
+const SORT_SESSION_KEY = 'tp_board_sort';
+
+function sortItems(items: SavedItem[], mode: SortMode): SavedItem[] {
+  const copy = [...items];
+  if (mode === 'date') return copy.sort((a, b) => b.savedAt - a.savedAt);
+  if (mode === 'tips') return copy.sort((a, b) => (b.substance?.length ?? 0) - (a.substance?.length ?? 0));
+  if (mode === 'platform') return copy.sort((a, b) => a.platform.localeCompare(b.platform));
+  return copy;
+}
+
 type ViewMode = 'grid' | 'timeline';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -26,6 +38,14 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo]       = useState<Location | undefined>(undefined);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortMode, setSortMode] = useState<SortMode>(() => {
+    try { return (sessionStorage.getItem(SORT_SESSION_KEY) as SortMode) || 'date'; } catch { return 'date'; }
+  });
+
+  function handleSortChange(mode: SortMode) {
+    setSortMode(mode);
+    try { sessionStorage.setItem(SORT_SESSION_KEY, mode); } catch {}
+  }
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -181,36 +201,56 @@ export default function BoardDetailPage() {
           ) : (
             <>
               {/* Toggle: Grid / Timeline */}
-              <div className="flex gap-1.5 mb-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
-                    viewMode === 'grid'
-                      ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  <LayoutGrid size={13} />
-                  Grid
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('timeline')}
-                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
-                    viewMode === 'timeline'
-                      ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  <Clock size={13} />
-                  Timeline
-                </button>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex gap-1.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                      viewMode === 'grid'
+                        ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    <LayoutGrid size={13} />
+                    Grid
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('timeline')}
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                      viewMode === 'timeline'
+                        ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    <Clock size={13} />
+                    Timeline
+                  </button>
+                </div>
+
+                {/* Sort controls */}
+                <div className="flex gap-1">
+                  {([['date', 'Recent'], ['tips', '💡 Tips'], ['platform', 'Source']] as [SortMode, string][]).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => handleSortChange(mode)}
+                      className={`text-[11px] font-medium px-2 py-1 rounded-lg transition-all ${
+                        sortMode === mode
+                          ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
+                          : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {viewMode === 'grid' ? (
                 <div className="grid grid-cols-2 gap-3">
-                  {boardItems.map((item) => (
+                  {sortItems(boardItems, sortMode).map((item) => (
                     <InboxCard
                       key={item.id}
                       item={item}
@@ -220,7 +260,7 @@ export default function BoardDetailPage() {
                   ))}
                 </div>
               ) : (
-                <TimelineView items={boardItems} onDelete={handleDelete} onViewOnMap={handleViewOnMap} />
+                <TimelineView items={sortItems(boardItems, sortMode)} onDelete={handleDelete} onViewOnMap={handleViewOnMap} />
               )}
             </>
           )}

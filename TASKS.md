@@ -632,7 +632,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: travelers need to capture real-world context ("Restaurant was closed — try the place next door") that the AI plan can't know
 
 ### I7 — Board Sort & Filter Bar
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx` (or the board detail page that lists items)  
 **What to do**:
 - In the board detail view (the page that lists clips in a board), add a sort bar: "Date added", "Most tips", "Platform"
