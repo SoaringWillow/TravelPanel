@@ -362,7 +362,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > **Recommended order:** `F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → F9 → F10`
 
 ### F1 — Clip Editing (Edit Title, Tags, Description)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users clip fast and often want to fix a wrong title or add missing tags afterward. There's no edit flow today — you'd have to delete and re-clip.  
 **Files**: new `components/EditClipModal.tsx`, `components/InboxCard.tsx`, `lib/db.ts`  
 **What to do**:

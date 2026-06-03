@@ -9,12 +9,13 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, deleteItem as dbDeleteItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, deleteItem as dbDeleteItem, updateItem as dbUpdateItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SwipeToDelete from '@/components/SwipeToDelete';
+import EditClipModal from '@/components/EditClipModal';
 import TagFilterBar from '@/components/TagFilterBar';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -52,6 +53,14 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const { activeTags, toggleTag, clearTags, itemMatchesFilter } = useTagFilter();
+
+  // ── Edit clip ─────────────────────────────────────────────────────────────
+  const [editingItem, setEditingItem] = useState<SavedItem | null>(null);
+
+  function handleEditSaved(patch: Partial<SavedItem>) {
+    if (!editingItem) return;
+    refreshItem(editingItem.id);
+  }
 
   // ── Undo delete ───────────────────────────────────────────────────────────
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
@@ -268,6 +277,7 @@ export default function InboxPage() {
                       onViewOnMap={handleViewOnMap}
                       onMoveToBoard={handleMoveToBoard}
                       onRetry={retryItem}
+                      onEdit={(id) => setEditingItem(items.find((i) => i.id === id) ?? null)}
                     />
                   </SwipeToDelete>
                 </motion.div>
@@ -381,6 +391,15 @@ export default function InboxPage() {
       </AnimatePresence>
 
       <NavBar active="inbox" />
+
+      {/* Edit clip modal */}
+      {editingItem && (
+        <EditClipModal
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
     </div>
   );
 }

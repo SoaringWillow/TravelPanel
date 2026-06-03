@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 
@@ -12,6 +12,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  onEdit?: (id: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +39,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  onEdit,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -301,6 +303,18 @@ export default function InboxCard({
                 aria-label="Move to collection"
               >
                 <LayoutGrid size={13} />
+              </button>
+            )}
+
+            {/* Edit */}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(item.id)}
+                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                aria-label="Edit clip"
+              >
+                <Pencil size={13} />
               </button>
             )}
 

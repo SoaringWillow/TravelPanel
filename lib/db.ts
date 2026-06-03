@@ -116,6 +116,18 @@ export async function updateItemNote(id: string, notes: string): Promise<void> {
   await db.put('items', { ...item, notes: notes || undefined });
 }
 
+export async function updateItem(id: string, patch: Partial<SavedItem>): Promise<void> {
+  const db   = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...patch });
+}
+
+export async function getItem(id: string): Promise<SavedItem | undefined> {
+  const db = await getDB();
+  return db.get('items', id);
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,
