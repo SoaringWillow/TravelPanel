@@ -353,6 +353,124 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+---
+
+## PHASE F — iOS Production Readiness (Current Sprint — 2026-06-03)
+
+> Goal: Close the gap between "working web app in a Capacitor shell" and "beautiful, App Store-ready iOS app that feels native." All tasks are implementable without Supabase.
+>
+> **Recommended order:** `F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → F9 → F10`
+
+### F1 — Clip Editing (Edit Title, Tags, Description)
+**Status**: `[ ]` Not started  
+**Why**: Users clip fast and often want to fix a wrong title or add missing tags afterward. There's no edit flow today — you'd have to delete and re-clip.  
+**Files**: new `components/EditClipModal.tsx`, `components/InboxCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add `updateItem(id, patch)` to `lib/db.ts` that partial-updates a SavedItem in IndexedDB
+- Create `EditClipModal.tsx` — slide-up sheet with fields for title, description, and tags (comma-separated input)
+- Add an "Edit" button to the done-state `InboxCard` footer (pencil icon, next to Delete)
+- On save: call `updateItem`, refresh the item in `useSavedItems` state
+- Haptic feedback on save (use `haptic('success')`)
+
+### F2 — Map Empty State & First-Clip Hint
+**Status**: `[ ]` Not started  
+**Why**: New users who dismissed onboarding see a blank map with no guidance. Retention cliff.  
+**Files**: `app/page.tsx`, new `components/MapEmptyHint.tsx`  
+**What to do**:
+- Show a floating hint card over the map when `items.length === 0 && !loading`
+- Card: illustration (✈️ + map pin), "No clips yet", sub-text "Tap + or share a URL from any app", subtle pulsing animation on the FAB
+- Dismiss automatically the moment the first clip is saved (animate card out)
+- Don't show if user has previously had clips (gate on `items.length === 0 AND never-had-clips localStorage key`)
+
+### F3 — Network Error States & Offline Banner
+**Status**: `[ ]` Not started  
+**Why**: On iOS, network drops frequently. Silent failures erode trust.  
+**Files**: new `components/OfflineBanner.tsx`, `app/layout.tsx`, `components/ImportSheet.tsx`  
+**What to do**:
+- Add `OfflineBanner` that listens to `navigator.onLine` + `online`/`offline` events
+- Renders a slim red/amber pill at the top when offline: "No internet — clips saved locally"
+- Animate in/out with spring slide from top
+- In `ImportSheet`, when fetch fails due to network, show inline error with "Try again when online"
+- In `useSavedItems`, handle errors gracefully (no crash, show error toast)
+
+### F4 — Long-Press Quick Actions on Map Pins
+**Status**: `[ ]` Not started  
+**Why**: Tapping a pin opens the detail card. But users want a quicker way to navigate to source, share, or fly-to on plan — without opening the full card.  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- On long-press a map pin (touchstart + timeout 500ms), show a popover near the pin with 3 actions: "Open Source", "Share Clip", "Details"
+- Popover: white card with shadow, arrow pointing to pin, 3 icon+label rows
+- "Open Source" opens `item.url` in new tab / system browser
+- "Share Clip" triggers native share or copies `/card/[id]` URL
+- "Details" triggers the existing `onPinClick(item)` handler
+- Dismiss on map tap elsewhere
+
+### F5 — Swipe-Between-Days in Trip Plan
+**Status**: `[ ]` Not started  
+**Why**: The day strip is a horizontal scroll but swiping left/right on the activity list doesn't advance the day. On mobile, this feels broken.  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Wrap the active-day activities section in a `motion.div` with `drag="x"` and `dragConstraints={{ left: 0, right: 0 }}`
+- On `onDragEnd`: if swipe velocity > 200 or drag distance > 80px left/right, advance/retreat `activeDayIndex`
+- Animate the incoming day card in from the correct direction (left slide for next day, right slide for previous)
+- Sync with the day strip dots (the horizontal scroll should auto-scroll to keep active day visible)
+
+### F6 — Clip Source Attribution in Detail Card
+**Status**: `[ ]` Not started  
+**Why**: When a clip was generated from a screenshot (Vision extraction) or from a browser extension (not the Share Sheet), the source URL `local:photo:...` or raw URL is ugly and not clickable.  
+**Files**: `components/LocationDetailCard.tsx`, `lib/parse-url.ts`  
+**What to do**:
+- In `LocationDetailCard`, show a formatted "Source" row at the bottom of the card
+- If URL starts with `local:photo:` — show "📷 Clipped from screenshot"
+- If URL is a valid http/https URL — show platform label + truncated URL as a tappable link
+- Add a "View original" deep-link button that uses `window.open(url, '_system')` (Capacitor convention for opening in Safari)
+- Hide the row entirely if no meaningful source can be shown
+
+### F7 — Board Cover Photos from Clip Thumbnails
+**Status**: `[ ]` Not started  
+**Why**: Boards currently show only emoji + name. Adding a cover photo from the first clip thumbnail makes the boards grid feel rich and visual.  
+**Files**: `components/BoardCard.tsx`, `hooks/useBoards.ts`  
+**What to do**:
+- In `BoardCard`, accept an optional `coverUrl?: string` prop
+- If `coverUrl` present: render it as the card background with a dark gradient overlay at the bottom
+- Board name and emoji rendered over the gradient
+- In `boards/page.tsx`: compute `coverUrl` for each board by finding the first item in `board.itemIds` that has a thumbnail
+- No DB schema change needed — derive at render time from `items` list
+
+### F8 — Inline Enrichment Progress Toasts
+**Status**: `[ ]` Not started  
+**Why**: After clipping a URL, users return to the inbox and see the card in "loading" state. There's no feedback about what the AI found. The first "wow" moment happens silently.  
+**Files**: `hooks/useEnrichmentRetry.ts`, new `components/EnrichmentToast.tsx`  
+**What to do**:
+- When an item transitions from `processing` → `done`, show a brief celebration toast
+- Toast content: "✨ Found [N] places + [M] tips in [title]"
+- Appears at top of inbox, slides down, auto-dismisses after 3.5s
+- Use `useSavedItems`'s `items` diff (previous vs current enrichmentStatus) to detect transitions
+- Only show once per item (gate with a Set of shown item IDs in a ref)
+
+### F9 — Keyboard-Aware Import Sheet
+**Status**: `[ ]` Not started  
+**Why**: On iOS, the keyboard pushes the sheet content but the URL input field can get hidden behind it.  
+**Files**: `components/ImportSheet.tsx`  
+**What to do**:
+- Use the Visual Viewport API (`window.visualViewport`) to detect keyboard height
+- When keyboard appears, add bottom padding equal to `window.innerHeight - visualViewport.height`
+- Animate the adjustment with a spring transition (framer-motion)
+- On keyboard dismiss, remove the padding
+- Fall back gracefully on browsers that don't support visualViewport
+
+### F10 — Plan Stats Bar (Distance + Time Estimate)
+**Status**: `[ ]` Not started  
+**Why**: Users want to know at a glance how ambitious the day is. "Day 2 · 6 stops · ~12km · 4-5h" is the kind of summary that makes a plan feel real.  
+**Files**: `components/DayStripCard.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- In `DayStripCard`, show a small stat row: stop count, estimated distance (sum of haversine between consecutive locations), estimated time (stops × 1.5h average)
+- Format: "4 stops · ~8km · ~6h"
+- Add haversine distance util to `lib/utils.ts` if not already present
+- Show the stats on both the day strip card AND the day header in the detailed view
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
