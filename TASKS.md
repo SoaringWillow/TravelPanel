@@ -235,7 +235,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Should feel like native iOS Mail / Reminders swipe-to-delete
 
 ### D5 — Plan View Visual Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/DayStripCard.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Redesign DayStripCard to use a vertical timeline layout (similar to C2 board timeline) with activity cards that surface sourced tips

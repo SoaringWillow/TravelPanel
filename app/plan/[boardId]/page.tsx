@@ -262,7 +262,7 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -519,7 +519,7 @@ export default function PlanPage() {
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-white/10 space-y-1"
                     >
                       <div className="flex items-start gap-2">
                         <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
