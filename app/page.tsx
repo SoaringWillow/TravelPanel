@@ -12,6 +12,7 @@ import ClipDetailSheet from '@/components/ClipDetailSheet';
 import NearbyPanel from '@/components/NearbyPanel';
 import NavBar from '@/components/NavBar';
 import SplashScreen from '@/components/SplashScreen';
+import AskBar from '@/components/AskBar';
 import { useGeolocation } from '@/lib/useGeolocation';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -161,6 +162,15 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Ask bar — centered above FAB row */}
+      {!selectedItem && !onTripMode && items.length > 0 && (
+        <div className="absolute bottom-[calc(6.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-[1100] flex justify-center pointer-events-none">
+          <div className="pointer-events-auto">
+            <AskBar items={items} />
+          </div>
+        </div>
+      )}
 
       {/* Import FAB — hidden in on-trip mode */}
       {!selectedItem && !onTripMode && (

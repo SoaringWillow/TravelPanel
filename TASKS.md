@@ -281,7 +281,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — AI Enhancements
 
 ### E1 — Ask About Your Clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/api/ask/route.ts`, new `components/AskBar.tsx`, add to main page  
 **What to do**:
 - Add a floating search/ask bar to the map view with placeholder "Ask about your saved places…"
