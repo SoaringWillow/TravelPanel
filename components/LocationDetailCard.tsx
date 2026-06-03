@@ -7,6 +7,7 @@ import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { updateItemNote } from '@/lib/db';
 import SubstanceList from './SubstanceList';
+import NearbyPlaces from './NearbyPlaces';
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -135,6 +136,11 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Nearby places for the first location */}
+            {item.locations.length > 0 && (
+              <NearbyPlaces location={item.locations[0]} />
             )}
 
             {/* Activities */}

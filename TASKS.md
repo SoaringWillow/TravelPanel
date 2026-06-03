@@ -333,7 +333,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - If not: serialize trip JSON into a compressed URL-safe base64 string, share `/trip/view?d=...`
 
 ### E4 — Nearby Discovery
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to discover what else is near a saved location.  
 **Files**: new `app/api/nearby/route.ts`, `components/LocationDetailCard.tsx`  
 **What to do**:
