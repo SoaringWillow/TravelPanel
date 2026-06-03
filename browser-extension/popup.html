@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #ffffff;
+      width: 320px;
+      min-height: 240px;
+      color: #111827;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: #4f46e5;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.2px;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: #9ca3af;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .settings-btn:hover {
+      color: #4f46e5;
+      background: #ede9fe;
+    }
+
+    /* ── Page info ── */
+    .page-info {
+      padding: 14px 16px 10px;
+    }
+
+    .platform-chip {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Board selector ── */
+    .board-section {
+      padding: 0 16px 14px;
+    }
+
+    .board-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 8px;
+    }
+
+    .board-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .board-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .board-chip:active {
+      transform: scale(0.95);
+    }
+
+    .board-chip.inbox {
+      background: #ede9fe;
+      color: #4f46e5;
+    }
+
+    .board-chip.inbox:hover {
+      background: #ddd6fe;
+    }
+
+    .board-chip.regular {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .board-chip.regular:hover {
+      background: #e5e7eb;
+    }
+
+    /* ── Main CTA ── */
+    .main-cta {
+      padding: 0 16px 16px;
+    }
+
+    .clip-btn {
+      width: 100%;
+      padding: 11px 16px;
+      background: #4f46e5;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .clip-btn:hover {
+      background: #4338ca;
+    }
+
+    .clip-btn:active {
+      transform: scale(0.98);
+    }
+
+    .clip-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── States ── */
+    .state-saving,
+    .state-done,
+    .state-error,
+    .state-no-url {
+      padding: 24px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .state-icon {
+      font-size: 40px;
+      line-height: 1;
+    }
+
+    .state-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .state-sub {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #ede9fe;
+      border-top-color: #4f46e5;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .open-app-link {
+      font-size: 12px;
+      color: #4f46e5;
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .open-app-link:hover {
+      text-decoration: underline;
+    }
+
+    .divider {
+      height: 1px;
+      background: #f3f4f6;
+      margin: 0 16px;
+    }
+
+    .footer {
+      padding: 10px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Platform colors */
+    .chip-instagram { background: #e1306c; }
+    .chip-youtube   { background: #ff0000; }
+    .chip-xiaohongshu { background: #ff2442; }
+    .chip-tiktok    { background: #010101; }
+    .chip-twitter   { background: #1da1f2; }
+    .chip-other     { background: #6b7280; }
+
+    /* Loading skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #f3f4f6 25%, #e9eaf0 50%, #f3f4f6 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 6px;
+    }
+
+    @keyframes shimmer {
+      to { background-position: -200% 0; }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🗺</div>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Main clip view -->
+  <div id="clipView">
+    <!-- Page info -->
+    <div class="page-info">
+      <div id="platformChip" class="platform-chip chip-other">Web</div>
+      <div id="pageTitle" class="page-title">Loading…</div>
+      <div id="pageUrl" class="page-url"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Board selector -->
+    <div class="board-section" id="boardSection">
+      <div class="board-label">Save to</div>
+      <div class="board-chips" id="boardChips">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- Main CTA -->
+    <div class="main-cta">
+      <button class="clip-btn" id="clipBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Clip to TravelPanel
+      </button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="footer">
+      <a id="openAppLink" href="#" class="open-app-link" target="_blank">
+        Open TravelPanel
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Saving state -->
+  <div id="savingView" class="state-saving hidden">
+    <div class="spinner"></div>
+    <div class="state-title">Opening TravelPanel…</div>
+    <div class="state-sub">Select a board in the tab that just opened.</div>
+  </div>
+
+  <!-- Done state -->
+  <div id="doneView" class="state-done hidden">
+    <div class="state-icon">✅</div>
+    <div class="state-title">Clipped!</div>
+    <div class="state-sub" id="doneSubtext">Saved to your TravelPanel.</div>
+    <a id="doneOpenLink" href="#" class="open-app-link" target="_blank">
+      View in TravelPanel →
+    </a>
+  </div>
+
+  <!-- Error state -->
+  <div id="errorView" class="state-error hidden">
+    <div class="state-icon">⚠️</div>
+    <div class="state-title">Couldn't clip</div>
+    <div class="state-sub" id="errorMsg">Something went wrong. Please try again.</div>
+    <button class="clip-btn" id="retryBtn" style="max-width:200px; font-size:13px;">
+      Try again
+    </button>
+  </div>
+
+  <!-- No URL state -->
+  <div id="noUrlView" class="state-no-url hidden">
+    <div class="state-icon">🌐</div>
+    <div class="state-title">No page to clip</div>
+    <div class="state-sub">Navigate to a travel page, then click the extension icon to save it.</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
