@@ -438,7 +438,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No DB schema change needed — derive at render time from `items` list
 
 ### F8 — Inline Enrichment Progress Toasts
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After clipping a URL, users return to the inbox and see the card in "loading" state. There's no feedback about what the AI found. The first "wow" moment happens silently.  
 **Files**: `hooks/useEnrichmentRetry.ts`, new `components/EnrichmentToast.tsx`  
 **What to do**:

@@ -16,6 +16,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SwipeToDelete from '@/components/SwipeToDelete';
 import EditClipModal from '@/components/EditClipModal';
+import EnrichmentToast from '@/components/EnrichmentToast';
 import TagFilterBar from '@/components/TagFilterBar';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -391,6 +392,9 @@ export default function InboxPage() {
       </AnimatePresence>
 
       <NavBar active="inbox" />
+
+      {/* Enrichment success toasts */}
+      <EnrichmentToast items={items} />
 
       {/* Edit clip modal */}
       {editingItem && (
