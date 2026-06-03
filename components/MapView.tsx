@@ -282,9 +282,10 @@ interface MapViewProps {
   flyTo?: Location;
   userLocation?: GeoPosition | null;
   followUser?: boolean;
+  onMapLoad?: () => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo, userLocation, followUser }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation, followUser, onMapLoad }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { resolvedTheme } = useTheme();
   const mapStyle = resolvedTheme === 'dark' ? MAP_STYLE_DARK : MAP_STYLE_LIGHT;
@@ -326,8 +327,9 @@ export default function MapView({ items, onPinClick, flyTo, userLocation, follow
     (e: { target: maplibregl.Map }) => {
       mapInstanceRef.current = e.target;
       syncView(e.target);
+      onMapLoad?.();
     },
-    [syncView],
+    [syncView, onMapLoad],
   );
 
   const handleMove = useCallback(

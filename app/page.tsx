@@ -11,6 +11,7 @@ import ImportSheet from '@/components/ImportSheet';
 import ClipDetailSheet from '@/components/ClipDetailSheet';
 import NearbyPanel from '@/components/NearbyPanel';
 import NavBar from '@/components/NavBar';
+import SplashScreen from '@/components/SplashScreen';
 import { useGeolocation } from '@/lib/useGeolocation';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -25,6 +26,7 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [onTripMode, setOnTripMode]     = useState(false);
+  const [mapLoaded, setMapLoaded]       = useState(false);
   const geo = useGeolocation();
 
   function toggleOnTrip() {
@@ -84,6 +86,9 @@ function HomePageInner() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden">
+      {/* Splash screen — fades out once the map tile layer fires onLoad */}
+      <SplashScreen visible={!mapLoaded} />
+
       {/* Map fills entire screen */}
       <MapView
         items={items}
@@ -91,6 +96,7 @@ function HomePageInner() {
         flyTo={flyTo}
         userLocation={geo.position}
         followUser={onTripMode && !flyTo}
+        onMapLoad={() => setMapLoaded(true)}
       />
 
       {/* Top bar – floating, respects Dynamic Island / notch */}

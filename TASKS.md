@@ -268,7 +268,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Smooth spring animation; can be dismissed by swipe-down or tap outside
 
 ### D8 — App Loading Performance
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, `app/layout.tsx`, `components/MapView.tsx`  
 **What to do**:
 - Add a splash screen overlay (matching the app's dark teal brand colour) that fades out after the map loads

@@ -7,7 +7,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { runRetryQueue } from '@/lib/retryQueue';
-import BoardCard from '@/components/BoardCard';
+import BoardCard, { BoardCardSkeleton } from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
@@ -85,8 +85,8 @@ export default function BoardsPage() {
         )}
 
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => <BoardCardSkeleton key={i} />)}
           </div>
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">
