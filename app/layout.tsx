@@ -3,6 +3,7 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -37,9 +38,11 @@ export default function RootLayout({
         <CapacitorBridge />
         <AnalyticsProvider />
         <ResourceBanner />
-        <div className="min-h-screen">
-          {children}
-        </div>
+        <ErrorBoundary>
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </ErrorBoundary>
       </body>
     </html>
   );

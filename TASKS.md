@@ -345,7 +345,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fire `hapticNotification('success')` per item when enrichment succeeds after retry
 
 ### F2 — Crash-Free Enrichment (Error Boundaries)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/layout.tsx`, `components/ErrorBoundary.tsx` (new)  
 **What to do**:
 - Create a React ErrorBoundary component that catches render errors

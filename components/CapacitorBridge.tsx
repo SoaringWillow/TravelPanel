@@ -33,6 +33,15 @@ export function CapacitorBridge() {
   const router = useRouter();
 
   useEffect(() => {
+    // Log unhandled promise rejections — surfaces silent failures in iOS WebView
+    const handleRejection = (e: PromiseRejectionEvent) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[TravelPanel] Unhandled rejection:', e.reason);
+      }
+      e.preventDefault(); // prevent Safari from crashing the WebView
+    };
+    window.addEventListener('unhandledrejection', handleRejection);
+
     let cleanup: (() => void) | undefined;
 
     const init = async () => {
@@ -86,7 +95,10 @@ export function CapacitorBridge() {
     };
 
     init();
-    return () => cleanup?.();
+    return () => {
+      cleanup?.();
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
   }, [router]);
 
   return null;
