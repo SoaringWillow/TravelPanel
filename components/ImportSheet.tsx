@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, ImagePlus, X } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -15,6 +15,7 @@ import {
   PLATFORM_BG,
   PLATFORM_COLORS,
 } from '@/lib/parse-url';
+import { getItemByUrl } from '@/lib/db';
 
 // ─── Props / types ───────────────────────────────────────────────────────────
 
@@ -34,12 +35,16 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]           = useState(initialUrl);
+  const [notes, setNotes]       = useState('');
+  const [stage, setStage]       = useState<Stage>('idle');
+  const [preview, setPreview]   = useState<ImportResult | null>(null);
+  const [error, setError]       = useState('');
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState('');
+  const [duplicate, setDuplicate] = useState<SavedItem | null>(null);
+  const abortRef                = useRef<AbortController | null>(null);
+  const fileInputRef            = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -48,10 +53,32 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const trimmedUrl       = url.trim();
   const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
 
+  // ── Image upload handler ─────────────────────────────────────────────────
+
+  const handleImageFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === 'string') {
+        // Store full data URL; API strips the prefix
+        setImageData(result);
+        setImageFileName(file.name);
+      }
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
   // ── Handlers ────────────────────────────────────────────────────────────
 
   async function handleImport() {
     if (!trimmedUrl) return;
+
+    // Check for duplicate before importing
+    const existing = await getItemByUrl(trimmedUrl);
+    if (existing) {
+      setDuplicate(existing);
+      // Still allow proceeding — show banner but don't block
+    }
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -64,10 +91,12 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setError('');
 
     try {
+      const body: Record<string, string> = { url: trimmedUrl };
+      if (imageData) body.imageData = imageData;
       const res = await fetch('/api/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: trimmedUrl }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -141,6 +170,9 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setImageData(null);
+    setImageFileName('');
+    setDuplicate(null);
   }
 
   function handleClose() {
@@ -206,6 +238,60 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
             />
           </div>
+
+          {/* ── Screenshot upload (for Xiaohongshu / WeChat) ────────────── */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImageFile(file);
+              e.target.value = '';
+            }}
+          />
+          {imageData ? (
+            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2">
+              <ImagePlus size={14} className="text-indigo-500 flex-shrink-0" />
+              <span className="text-xs text-indigo-700 flex-1 truncate">{imageFileName}</span>
+              <button
+                type="button"
+                onClick={() => { setImageData(null); setImageFileName(''); }}
+                className="text-indigo-400 hover:text-indigo-600"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-xs font-medium hover:border-indigo-300 hover:text-indigo-500 transition-colors"
+            >
+              <ImagePlus size={13} />
+              Upload screenshot (for 小红书 / WeChat)
+            </button>
+          )}
+
+          {/* ── Duplicate banner ─────────────────────────────────────────── */}
+          {duplicate && stage !== 'preview' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
+              <span className="text-amber-500 text-sm flex-shrink-0 mt-0.5">⚠️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-amber-800">You already saved this</p>
+                <p className="text-xs text-amber-700 line-clamp-1 mt-0.5">{duplicate.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDuplicate(null)}
+                className="text-amber-400 hover:text-amber-600 flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (

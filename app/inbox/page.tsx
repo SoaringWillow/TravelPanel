@@ -1,20 +1,123 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Sparkles, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { runRetryQueue } from '@/lib/retryQueue';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+
+// ─── Rediscover banner ────────────────────────────────────────────────────────
+
+const RESURFACE_DISMISS_KEY = 'travelpanel_resurface_dismissed';
+const RESURFACE_THRESHOLD_DAYS = 14;
+
+function useResurfaceClip(items: SavedItem[]): {
+  clip: SavedItem | null;
+  dismiss: () => void;
+} {
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(RESURFACE_DISMISS_KEY);
+    if (stored) {
+      const dismissedAt = Number(stored);
+      if (Date.now() - dismissedAt < 24 * 60 * 60 * 1000) {
+        setDismissed(true);
+      }
+    }
+  }, []);
+
+  const clip = useMemo(() => {
+    if (dismissed) return null;
+    const cutoff = Date.now() - RESURFACE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+    const candidates = items.filter(
+      (i) => !i.isDemo && i.enrichmentStatus === 'done' && i.savedAt < cutoff,
+    );
+    if (candidates.length === 0) return null;
+    // Deterministic-ish daily rotation: seed by day number
+    const dayIndex = Math.floor(Date.now() / (24 * 60 * 60 * 1000));
+    return candidates[dayIndex % candidates.length];
+  }, [items, dismissed]);
+
+  const dismiss = useCallback(() => {
+    localStorage.setItem(RESURFACE_DISMISS_KEY, String(Date.now()));
+    setDismissed(true);
+  }, []);
+
+  return { clip, dismiss };
+}
+
+function RediscoverBanner({ clip, onView, onDismiss }: {
+  clip: SavedItem;
+  onView: () => void;
+  onDismiss: () => void;
+}) {
+  const daysAgo = Math.round((Date.now() - clip.savedAt) / (1000 * 60 * 60 * 24));
+  const topSubstance = clip.substance?.find((s) => s.type === 'tip' || s.type === 'recommendation');
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="mb-4 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl overflow-hidden"
+    >
+      <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Sparkles size={12} className="text-indigo-500" />
+          <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Rediscover</span>
+        </div>
+        <button type="button" onClick={onDismiss} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="px-4 pb-3">
+        <p className="text-xs text-indigo-400 mb-1">Saved {daysAgo} days ago</p>
+        <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{clip.title}</p>
+        {clip.locations.length > 0 && (
+          <div className="flex items-center gap-1 mt-1">
+            <MapPin size={10} className="text-indigo-400 flex-shrink-0" />
+            <p className="text-xs text-indigo-600 line-clamp-1">
+              {clip.locations.map((l) => l.name).join(' · ')}
+            </p>
+          </div>
+        )}
+        {topSubstance && (
+          <p className="text-xs text-gray-600 mt-1.5 line-clamp-2 italic">"{topSubstance.content}"</p>
+        )}
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={onView}
+            className="flex-1 bg-indigo-600 text-white text-xs font-semibold py-2 rounded-xl hover:bg-indigo-700 transition-colors"
+          >
+            Take me there →
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="px-3 bg-white text-gray-500 text-xs font-medium py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
+            Skip
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,11 +132,19 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { clip: resurfaceClip, dismiss: dismissResurface } = useResurfaceClip(items);
+
+  const handlePullRefresh = useCallback(async () => {
+    await runRetryQueue();
+    await refresh();
+  }, [refresh]);
+
+  const { refreshing, pullProgress, handlers: pullHandlers } = usePullToRefresh(handlePullRefresh);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -99,7 +210,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white shadow-sm px-4 pt-safe pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -139,7 +250,52 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-4 pb-[calc(6rem+env(safe-area-inset-bottom))]"
+        {...pullHandlers}
+      >
+        {/* Pull-to-refresh indicator */}
+        {(pullProgress > 0 || refreshing) && (
+          <div
+            className="flex justify-center overflow-hidden transition-all duration-150"
+            style={{ height: refreshing ? 36 : pullProgress * 36, marginBottom: 8 }}
+          >
+            <div className={`flex items-center gap-2 text-indigo-600 text-xs font-medium ${refreshing ? 'animate-pulse' : ''}`}>
+              <svg
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                style={{ transform: refreshing ? undefined : `rotate(${pullProgress * 180}deg)` }}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              >
+                <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" />
+              </svg>
+              {refreshing ? 'Refreshing…' : pullProgress >= 1 ? 'Release to refresh' : 'Pull to refresh'}
+            </div>
+          </div>
+        )}
+
+        {/* Rediscover banner */}
+        <AnimatePresence>
+          {!loading && resurfaceClip && !query.trim() && activePlatform === 'all' && (
+            <RediscoverBanner
+              key={resurfaceClip.id}
+              clip={resurfaceClip}
+              onView={() => {
+                track('resurface_viewed', { clipId: resurfaceClip.id });
+                if (resurfaceClip.locations.length > 0) {
+                  const loc = resurfaceClip.locations[0];
+                  router.push(`/?flyTo=${loc.lat},${loc.lng}&itemId=${resurfaceClip.id}`);
+                } else {
+                  router.push('/');
+                }
+              }}
+              onDismiss={() => {
+                track('resurface_dismissed');
+                dismissResurface();
+              }}
+            />
+          )}
+        </AnimatePresence>
+
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

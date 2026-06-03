@@ -1,20 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import BoardCard from '@/components/BoardCard';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { runRetryQueue } from '@/lib/retryQueue';
+import BoardCard, { BoardCardSkeleton } from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
-  const { items } = useSavedItems();
+  const { items, refresh: refreshItems } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  const handlePullRefresh = useCallback(async () => {
+    await runRetryQueue();
+    await refreshItems();
+  }, [refreshItems]);
+
+  const { refreshing, pullProgress, handlers: pullHandlers } = usePullToRefresh(handlePullRefresh);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -32,7 +41,7 @@ export default function BoardsPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pt-safe pb-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid className="text-indigo-600" size={22} />
@@ -53,10 +62,31 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-4 pb-[calc(6rem+env(safe-area-inset-bottom))]"
+        {...pullHandlers}
+      >
+        {(pullProgress > 0 || refreshing) && (
+          <div
+            className="flex justify-center overflow-hidden transition-all duration-150"
+            style={{ height: refreshing ? 36 : pullProgress * 36, marginBottom: 8 }}
+          >
+            <div className={`flex items-center gap-2 text-indigo-600 text-xs font-medium ${refreshing ? 'animate-pulse' : ''}`}>
+              <svg
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                style={{ transform: refreshing ? undefined : `rotate(${pullProgress * 180}deg)` }}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              >
+                <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" />
+              </svg>
+              {refreshing ? 'Refreshing…' : pullProgress >= 1 ? 'Release to refresh' : 'Pull to refresh'}
+            </div>
+          </div>
+        )}
+
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => <BoardCardSkeleton key={i} />)}
           </div>
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">

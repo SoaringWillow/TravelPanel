@@ -4,9 +4,11 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard, getItemById, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { mediumImpact, successNotification } from '@/lib/haptics';
+import { suggestBoards, BoardSuggestion } from '@/lib/suggestBoards';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -20,50 +22,35 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const rawImageData    = searchParams.get('imageData') ? decodeURIComponent(searchParams.get('imageData')!) : null;
   const sharedTitle     = rawTitle || 'New inspiration';
 
-  const [boards, setBoards]                   = useState<Board[]>([]);
-  const [stage, setStage]                     = useState<Stage>('picking');
-  const [savedToName, setSavedToName]         = useState('');
-  const [newBoardName, setNewBoardName]       = useState('');
+  const [boards, setBoards]                       = useState<Board[]>([]);
+  const [stage, setStage]                         = useState<Stage>('picking');
+  const [savedToName, setSavedToName]             = useState('');
+  const [newBoardName, setNewBoardName]           = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
-  const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
+  const [enrichedData, setEnrichedData]           = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
+  // Pre-created item ID — enrichment starts before board selection
+  const preItemIdRef = useRef<string | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [boardSuggestions, setBoardSuggestions] = useState<BoardSuggestion[]>([]);
+  const [duplicateItem, setDuplicateItem] = useState<import('@/lib/types').SavedItem | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
-  // Auto-dismiss when done
+  // Pre-start enrichment immediately on mount, before user picks a board
   useEffect(() => {
-    if (stage === 'done') {
-      dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
-      }, 3000);
-    }
-    return () => {
-      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-    };
-  }, [stage]);
-
-  const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
-  const platformColor = PLATFORM_COLORS[platform];
-  const platformLabel = PLATFORM_LABELS[platform];
-
-  // Most-recently-updated 5 boards for quick-pick
-  const recentBoards = [...boards]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 5);
-
-  // ── Save handler ─────────────────────────────────────────────────────────
-
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
-    setStage('saving');
-
+    if (!rawUrl) return;
     const itemId = crypto.randomUUID();
+    preItemIdRef.current = itemId;
+
+    const platform = detectPlatform(rawUrl);
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
@@ -78,23 +65,18 @@ function SharePageInner() {
       savedAt: Date.now(),
       enrichmentStatus: 'pending',
       retryCount: 0,
-      boardId: selectedBoardId,
     };
 
-    await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    // Check for duplicate before creating
+    getItemByUrl(rawUrl).then((existing) => {
+      if (existing) setDuplicateItem(existing);
+    });
 
-    if (selectedBoardId) {
-      await addItemToBoard(selectedBoardId, itemId);
-    }
-
-    // Background enrichment
-    setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
-      .then(async (success) => {
+    saveItem(item).then(() => {
+      setEnrichmentLoading(true);
+      enrichItem(itemId, rawUrl, rawImageData ?? undefined).then(async (success) => {
         if (success) {
-          // Read back the enriched data to show location count in the done UI
-          const { getItemById } = await import('@/lib/db');
+          successNotification();
           const updated = await getItemById(itemId);
           if (updated) {
             setEnrichedData({
@@ -107,10 +89,81 @@ function SharePageInner() {
               tags: updated.tags,
               substance: updated.substance,
             } as ImportResult);
+
+            // Compute board suggestions from extracted data
+            const [allBoards, allItems] = await Promise.all([getAllBoards(), getAllItems()]);
+            const suggestions = suggestBoards(allBoards, allItems, updated);
+            if (suggestions.length > 0) setBoardSuggestions(suggestions);
           }
         }
         setEnrichmentLoading(false);
       });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally mount-only
+
+  // Auto-dismiss when done
+  useEffect(() => {
+    if (stage === 'done') {
+      dismissTimerRef.current = setTimeout(() => {
+        window.history.back();
+      }, 3000);
+    }
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
+  }, [stage]);
+
+  const platform      = rawUrl ? detectPlatform(rawUrl) : 'other';
+  const platformColor = PLATFORM_COLORS[platform];
+  const platformLabel = PLATFORM_LABELS[platform];
+
+  // Most-recently-updated 5 boards for quick-pick
+  const recentBoards = [...boards]
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 5);
+
+  // ── Save handler ─────────────────────────────────────────────────────────
+  // Item was already created on mount — just attach board and move to done.
+
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    setStage('saving');
+
+    const itemId = preItemIdRef.current ?? crypto.randomUUID();
+
+    if (!preItemIdRef.current) {
+      // Fallback: rawUrl missing or effect not yet run
+      const item: SavedItem = {
+        id: itemId,
+        url: rawUrl,
+        title: sharedTitle,
+        platform,
+        description: '',
+        thumbnail: undefined,
+        locations: [],
+        activities: [],
+        tags: [],
+        substance: [],
+        savedAt: Date.now(),
+        enrichmentStatus: 'pending',
+        retryCount: 0,
+        boardId: selectedBoardId,
+      };
+      await saveItem(item);
+    } else if (selectedBoardId) {
+      // Update boardId on already-saved item
+      const existing = await getItemById(itemId);
+      if (existing) {
+        await saveItem({ ...existing, boardId: selectedBoardId });
+      }
+    }
+
+    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    mediumImpact();
+
+    if (selectedBoardId) {
+      await addItemToBoard(selectedBoardId, itemId);
+    }
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
@@ -131,7 +184,6 @@ function SharePageInner() {
       updatedAt: Date.now(),
     };
 
-    // Persist the board first, then let handleSave create + save the item
     await saveBoard(newBoard);
     setBoards((prev) => [newBoard, ...prev]);
     setNewBoardName('');
@@ -154,6 +206,10 @@ function SharePageInner() {
             >
               {platformLabel}
             </span>
+            {/* Show enrichment is already running */}
+            {enrichmentLoading && (
+              <span className="text-xs text-gray-400 animate-pulse">🔍 Extracting…</span>
+            )}
           </div>
 
           {/* Title */}
@@ -165,11 +221,42 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Duplicate warning */}
+          {duplicateItem && (
+            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-2">
+              <span className="text-amber-500 text-sm flex-shrink-0">⚠️</span>
+              <p className="text-xs text-amber-800 flex-1">Already saved: <span className="font-semibold">{duplicateItem.title}</span></p>
+              <button type="button" onClick={() => setDuplicateItem(null)} className="text-amber-400 hover:text-amber-600">
+                <span className="text-xs">✕</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
           <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
+
+          {/* Smart board suggestions */}
+          {boardSuggestions.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs text-indigo-500 font-semibold mb-1.5">✨ Suggested</p>
+              <div className="flex gap-2">
+                {boardSuggestions.map(({ board }) => (
+                  <button
+                    key={board.id}
+                    type="button"
+                    disabled={stage === 'saving'}
+                    onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                    className="flex-shrink-0 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap ring-2 ring-indigo-300 ring-offset-1"
+                  >
+                    {board.emoji} {board.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -286,7 +373,7 @@ function SharePageInner() {
           </p>
         </motion.div>
 
-        {/* Enrichment result */}
+        {/* Enrichment result — already in progress since page load */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -295,7 +382,7 @@ function SharePageInner() {
         >
           {enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+              <span className="text-sm animate-pulse">🔍 Extracting locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
             <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">

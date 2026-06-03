@@ -75,6 +75,32 @@ export function recordPlanGeneration(): void {
   writeLog(PLAN_KEY, [...log, now]);
 }
 
+// ─── Ask limit: 20 per day ────────────────────────────────────────────────────
+
+const ASK_LIMIT = 20;
+const ASK_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+const ASK_KEY = 'askLog';
+
+export function checkAskLimit(): { allowed: boolean; remaining: number; resetsAt: number } {
+  const now = Date.now();
+  const cutoff = now - ASK_WINDOW_MS;
+  const log = readLog(ASK_KEY).filter((t) => t > cutoff);
+  const allowed = log.length < ASK_LIMIT;
+  const oldest = log[0] ?? now;
+  return {
+    allowed,
+    remaining: Math.max(0, ASK_LIMIT - log.length),
+    resetsAt: oldest + ASK_WINDOW_MS,
+  };
+}
+
+export function recordAsk(): void {
+  const now = Date.now();
+  const cutoff = now - ASK_WINDOW_MS;
+  const log = readLog(ASK_KEY).filter((t) => t > cutoff);
+  writeLog(ASK_KEY, [...log, now]);
+}
+
 export function formatResetsIn(resetsAt: number): string {
   const diff = Math.max(0, resetsAt - Date.now());
   const h = Math.floor(diff / 3600000);

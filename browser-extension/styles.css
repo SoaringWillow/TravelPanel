@@ -1,0 +1,180 @@
+:root {
+  --bg:        #0f172a;
+  --bg2:       #1e293b;
+  --bg3:       #334155;
+  --text:      #f1f5f9;
+  --text2:     #94a3b8;
+  --text3:     #64748b;
+  --accent:    #14b8a6;
+  --accent-hv: #0d9488;
+  --success:   #22c55e;
+  --error:     #ef4444;
+  --border:    #334155;
+  --r:         8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 320px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Layout ── */
+.app { display: flex; flex-direction: column; }
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo { display: flex; align-items: center; gap: 7px; }
+
+.logo-icon {
+  width: 18px; height: 18px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.logo-text { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+
+.icon-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text2); padding: 4px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .15s, background .15s;
+}
+.icon-btn:hover { color: var(--text); background: var(--bg3); }
+.icon-btn svg { width: 17px; height: 17px; }
+
+/* ── States ── */
+.state { padding: 14px; display: flex; flex-direction: column; gap: 11px; }
+.state.hidden { display: none; }
+
+/* ── URL card ── */
+.url-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 11px 12px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+
+.url-card-header {
+  display: flex; align-items: center; gap: 7px;
+}
+
+.platform-badge {
+  font-size: 11px; font-weight: 700;
+  padding: 2px 7px; border-radius: 100px;
+  border: 1px solid; white-space: nowrap;
+}
+
+.card-label { font-size: 11px; color: var(--text3); margin-left: auto; }
+
+.page-title {
+  font-size: 13px; font-weight: 500; color: var(--text);
+  overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+
+.page-url {
+  font-size: 11px; color: var(--text3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── Primary clip button ── */
+.clip-btn {
+  background: var(--accent); color: #fff;
+  border: none; border-radius: var(--r);
+  padding: 10px 16px; font-size: 14px; font-weight: 700;
+  cursor: pointer; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background .15s, transform .1s;
+}
+.clip-btn:hover { background: var(--accent-hv); }
+.clip-btn:active { transform: scale(.98); }
+.clip-btn svg { width: 15px; height: 15px; }
+
+/* ── Secondary button ── */
+.secondary-btn {
+  background: var(--bg2); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--r);
+  padding: 7px 14px; font-size: 13px;
+  cursor: pointer; transition: background .15s;
+  white-space: nowrap;
+}
+.secondary-btn:hover { background: var(--bg3); }
+
+/* ── Divider ── */
+.divider {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text3); font-size: 11px;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── Custom URL row ── */
+.custom-url-row { display: flex; gap: 6px; }
+
+.url-input {
+  flex: 1; min-width: 0;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r); color: var(--text);
+  font-size: 12px; padding: 7px 10px; outline: none;
+  transition: border-color .15s;
+}
+.url-input:focus { border-color: var(--accent); }
+.url-input::placeholder { color: var(--text3); }
+
+/* ── Center card (loading / success / error) ── */
+.center-card {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 10px;
+  padding: 28px 16px; text-align: center;
+}
+
+.spinner {
+  width: 34px; height: 34px;
+  border: 3px solid var(--bg3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.state-title { font-size: 14px; font-weight: 600; }
+.state-sub   { font-size: 12px; color: var(--text2); }
+
+/* ── Status icons ── */
+.status-icon {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.status-icon svg { width: 22px; height: 22px; color: #fff; }
+
+.success-icon { background: var(--success); }
+.error-icon   { background: var(--error); }
+.error-title  { color: var(--error); }
+
+/* ── Footer ── */
+.footer {
+  display: flex; align-items: center; gap: 6px;
+  justify-content: center;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text3);
+}
+.footer-link {
+  color: var(--accent); text-decoration: none;
+}
+.footer-link:hover { text-decoration: underline; }

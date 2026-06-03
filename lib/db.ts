@@ -86,6 +86,12 @@ export async function deleteItem(id: string): Promise<void> {
   await db.delete('items', id);
 }
 
+export async function getItemByUrl(url: string): Promise<SavedItem | undefined> {
+  const db = await getDB();
+  const all = await db.getAll('items');
+  return all.find((i) => i.url === url);
+}
+
 export async function getItemsByPlatform(platform: string): Promise<SavedItem[]> {
   const db = await getDB();
   return db.getAllFromIndex('items', 'by-platform', platform);
@@ -190,6 +196,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 }
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
 
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {

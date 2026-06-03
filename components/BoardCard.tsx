@@ -4,6 +4,18 @@ import { Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Board } from '@/lib/types';
 
+export function BoardCardSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden min-h-[160px] animate-pulse">
+      <div className="p-4 space-y-3">
+        <div className="w-8 h-8 bg-gray-200 rounded-xl" />
+        <div className="h-3.5 bg-gray-200 rounded-full w-3/4" />
+        <div className="h-3 bg-gray-200 rounded-full w-1/3" />
+      </div>
+    </div>
+  );
+}
+
 interface BoardCardProps {
   board: Board;
   itemCount: number;

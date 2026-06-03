@@ -3,12 +3,16 @@ import { anthropic } from '@ai-sdk/anthropic';
 // Model routing: right model for the right job.
 //
 // Haiku  — fast, cheap, structured extraction (enrichment, coordinate checks, clustering)
+// Sonnet — vision-capable extraction for image payloads (Xiaohongshu/WeChat screenshots)
 // Opus   — highest reasoning quality (complex multi-day itinerary generation)
-// Sonnet — fallback middle-ground (keep for future use if Opus cost becomes a concern)
 
 export const models = {
   // Simple structured extraction — runs on every clip save, must be fast and cheap
   enrichment: anthropic('claude-haiku-4-5-20251001'),
+
+  // Vision-capable extraction — used when an image is provided alongside the URL
+  // (Xiaohongshu/WeChat block scraping; user supplies a screenshot instead)
+  vision: anthropic('claude-sonnet-4-6'),
 
   // Intermediate planning steps — coordinate resolution and geographic clustering
   planResolve: anthropic('claude-haiku-4-5-20251001'),
