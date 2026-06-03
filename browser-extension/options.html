@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 8px rgba(0,0,0,0.04);
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 24px 24px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-icon svg { width: 22px; height: 22px; }
+
+    .card-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .card-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+    .card-body { padding: 24px; }
+
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .field input[type="url"],
+    .field input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #111827;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .field input:focus { border-color: #4f46e5; }
+    .field .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+    .field .hint code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: #f3f4f6;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: -0.2px;
+    }
+    .save-btn:hover { opacity: 0.92; }
+    .save-btn:active { transform: scale(0.98); }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.success { background: #f0fdf4; color: #15803d; }
+    .status.error   { background: #fff1f2; color: #be123c; }
+
+    .divider { height: 1px; background: #f3f4f6; margin: 20px 0; }
+
+    .presets {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .preset-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .preset-row {
+      display: flex;
+      gap: 8px;
+    }
+    .preset-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      text-align: left;
+    }
+    .preset-btn:hover { border-color: #4f46e5; color: #4f46e5; background: #f5f3ff; }
+    .preset-btn code {
+      display: block;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="logo-icon">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="7" r="5" stroke="white" stroke-width="1.4"/>
+          <line x1="3" y1="7" x2="13" y2="7" stroke="white" stroke-width="1.2"/>
+          <line x1="8" y1="2" x2="8" y2="12" stroke="white" stroke-width="1.2"/>
+          <path d="M4.5 4 Q8 6 11.5 4" stroke="white" stroke-width="1" fill="none"/>
+          <path d="M4.5 10 Q8 8 11.5 10" stroke="white" stroke-width="1" fill="none"/>
+          <path d="M8 12 L6.5 15 L8 14 L9.5 15 Z" fill="white"/>
+        </svg>
+      </div>
+      <div>
+        <div class="card-title">TravelPanel Clipper</div>
+        <div class="card-subtitle">Extension settings</div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="field">
+        <label for="urlInput">TravelPanel URL</label>
+        <input
+          type="url"
+          id="urlInput"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="url"
+          spellcheck="false"
+        />
+        <p class="hint">
+          The base URL of your TravelPanel deployment. The extension opens
+          <code>/share?url=…</code> on this host to save clips.
+        </p>
+      </div>
+
+      <div class="presets">
+        <div class="preset-label">Quick presets</div>
+        <div class="preset-row">
+          <button class="preset-btn" data-url="http://localhost:3000">
+            Local dev
+            <code>localhost:3000</code>
+          </button>
+          <button class="preset-btn" data-url="http://localhost:3001">
+            Local dev
+            <code>localhost:3001</code>
+          </button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="save-btn" id="saveBtn">Save settings</button>
+      <div class="status" id="statusMsg" role="status"></div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
