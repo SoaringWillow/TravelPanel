@@ -326,7 +326,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: "Hey Siri, clip this" opens TravelPanel Share Extension. "Hey Siri, what's near me on TravelPanel" opens Near Me inbox view.
 
 ### E6 — Enrichment Cost Dashboard (Admin)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: A hidden `/admin` route (password-gated) showing: total enrichments this month, average tokens per enrichment, total API cost estimate, top-clipped domains, daily active users estimate from analytics.
 
 ---
