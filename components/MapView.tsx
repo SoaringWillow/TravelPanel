@@ -226,16 +226,44 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
+type LocationStatus = 'idle' | 'loading' | 'active' | 'error';
+
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  onUserLocation?: (coords: { lat: number; lng: number } | null) => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, onUserLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  function requestLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setLocationStatus('active');
+        onUserLocation?.(coords);
+        mapInstanceRef.current?.flyTo({
+          center: [coords.lng, coords.lat],
+          zoom: 14,
+          duration: 1200,
+        });
+      },
+      () => setLocationStatus('error'),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -279,6 +307,16 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+
+        {/* User location dot */}
+        {userLocation && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute w-10 h-10 rounded-full bg-blue-400 opacity-30 animate-ping" />
+              <div className="w-5 h-5 rounded-full bg-blue-500 border-[3px] border-white shadow-lg relative z-10" />
+            </div>
+          </Marker>
+        )}
 
         <MapController flyTo={flyTo} />
 
@@ -350,6 +388,31 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
           </Popup>
         )}
       </Map>
+
+      {/* My Location button */}
+      <button
+        type="button"
+        onClick={requestLocation}
+        title={locationStatus === 'error' ? 'Location unavailable' : 'Center on my location'}
+        className={`absolute bottom-24 right-4 z-[1000] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center transition-all active:scale-95 ${
+          locationStatus === 'active' ? 'ring-2 ring-blue-400' : ''
+        }`}
+        style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.2)' }}
+      >
+        {locationStatus === 'loading' ? (
+          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+        ) : locationStatus === 'error' ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={locationStatus === 'active' ? '#3b82f6' : '#4b5563'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+            <circle cx="12" cy="12" r="8" strokeDasharray="4 4"/>
+          </svg>
+        )}
+      </button>
     </div>
   );
 }

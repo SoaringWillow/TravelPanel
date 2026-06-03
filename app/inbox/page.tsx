@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Navigation } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -11,6 +11,7 @@ import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
+import { minDistanceKm } from '@/lib/haversine';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
@@ -38,6 +39,9 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [userCoords, setUserCoords]     = useState<{ lat: number; lng: number } | null>(null);
+  const [nearMeActive, setNearMeActive] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -52,7 +56,44 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const searched = searchItems(platformFiltered, query);
+
+  // When "near me" is active, attach distances and sort nearest-first
+  const itemsWithDistance = nearMeActive && userCoords
+    ? searched.map(item => ({
+        item,
+        distance: minDistanceKm(userCoords.lat, userCoords.lng, item.locations),
+      })).sort((a, b) => {
+        if (a.distance === undefined) return 1;
+        if (b.distance === undefined) return -1;
+        return a.distance - b.distance;
+      })
+    : searched.map(item => ({ item, distance: undefined }));
+
+  const filtered = itemsWithDistance;
+
+  function toggleNearMe() {
+    if (nearMeActive) {
+      setNearMeActive(false);
+      return;
+    }
+    if (userCoords) {
+      setNearMeActive(true);
+      return;
+    }
+    if (!navigator.geolocation) return;
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setNearMeActive(true);
+        setLocationLoading(false);
+        track('near_me_activated', {});
+      },
+      () => setLocationLoading(false),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -113,7 +154,7 @@ export default function InboxPage() {
           <SearchBar onSearch={handleSearch} />
         </div>
 
-        {/* Platform filter tabs */}
+        {/* Platform filter tabs + Near Me */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
           {PLATFORM_FILTERS.map((p) => {
             const count =
@@ -135,6 +176,23 @@ export default function InboxPage() {
               </button>
             );
           })}
+          {/* Near me sort */}
+          <button
+            onClick={toggleNearMe}
+            disabled={locationLoading}
+            className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
+              nearMeActive
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+            }`}
+          >
+            {locationLoading ? (
+              <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+            ) : (
+              <Navigation size={11} />
+            )}
+            Near me
+          </button>
         </div>
       </div>
 
@@ -161,7 +219,7 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map((item) => (
+              {filtered.map(({ item, distance }) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -175,6 +233,7 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    nearbyDistance={nearMeActive ? distance : undefined}
                   />
                 </motion.div>
               ))}

@@ -12,6 +12,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  nearbyDistance?: number;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +39,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  nearbyDistance,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -226,9 +228,14 @@ export default function InboxCard({
           </p>
         )}
 
-        {/* Meta row: location count + activity count + substance count */}
-        {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0) && (
-          <div className="flex items-center gap-3 mb-2">
+        {/* Meta row: location count + activity count + substance count + distance */}
+        {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0 || nearbyDistance !== undefined) && (
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            {nearbyDistance !== undefined && (
+              <span className="text-xs font-semibold text-blue-600 flex items-center gap-0.5 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                📍 {nearbyDistance < 1 ? `${Math.round(nearbyDistance * 1000)}m` : `${nearbyDistance.toFixed(1)}km`}
+              </span>
+            )}
             {item.locations.length > 0 && (
               <span className="text-xs text-gray-500 flex items-center gap-0.5">
                 <MapPin size={10} className="text-indigo-400" />
