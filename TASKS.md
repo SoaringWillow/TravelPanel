@@ -383,7 +383,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Don't show if user has previously had clips (gate on `items.length === 0 AND never-had-clips localStorage key`)
 
 ### F3 — Network Error States & Offline Banner
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On iOS, network drops frequently. Silent failures erode trust.  
 **Files**: new `components/OfflineBanner.tsx`, `app/layout.tsx`, `components/ImportSheet.tsx`  
 **What to do**:
