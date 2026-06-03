@@ -119,3 +119,21 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-03 22:09 | b4ab958 | Add Phase F (App Store Readiness) and Phase G (Growth) task phases
 2026-06-03 22:09 | a25493b | F1: Enrichment retry queue with live progress indicator
 2026-06-03 22:10 | 3e6d362 | F2: React ErrorBoundary + unhandled rejection logger
+2026-06-03 22:13 | 31be418 | feat(F3): first-launch onboarding flow with 3 illustrated screens
+2026-06-03 22:16 | df7a7cf | feat(F4/F5/F6): substance detail polish, open-in-maps, import sheet shimmer
+2026-06-03 22:20 | dc1cd44 | feat(F7-F10): cluster labels, has-tips filter, plan share card, offline map cache
+2026-06-03 22:22 | 649492b | feat(G1/G5): plan-ready notifications + AI conversational plan editor
+2026-06-03 22:27 | c5c43a4 | feat(H1/H4/H5): demo board seeding, clip dedup, thumbnail fallback
+2026-06-03 22:28 | 1ae3c8f | feat(H2/H10): JSON backup + settings page with dark mode toggle
+2026-06-03 22:30 | 0473cd8 | feat(H3): activity check-in for live trip mode + fix TS/syntax issues
+2026-06-03 22:31 | b4edadb | feat(H6): batch select & bulk actions in inbox
+2026-06-03 22:32 | 1d583bf | feat(H7/H9): map fullscreen mode + animated substance onboarding
+2026-06-03 22:38 | 90dae38 | feat(search): semantic snippet highlight in search results
+2026-06-03 22:41 | 67ddea7 | feat(plan): persist trip activity check state to IndexedDB
+2026-06-03 22:43 | 7fe15ad | feat(inbox): inline notes editing on clip cards
+2026-06-03 22:44 | 5aa005a | feat(map): cluster tap shows item list bottom sheet
+2026-06-03 22:46 | 154c6d2 | feat(plan+detail): collapsible sourced tips + substance type breakdown
+2026-06-03 22:47 | 27f1dac | feat(plan): per-day notes field with IndexedDB persistence
+2026-06-03 22:49 | 9a46258 | fix(import-sheet): keyboard-safe bottom padding using visualViewport
+2026-06-03 22:49 | c1a4836 | feat(boards): sort bar on board detail page (Recent / Tips / Source)
+2026-06-03 22:50 | a651aa6 | feat(plan): rich empty state when board has no clips with locations
