@@ -519,7 +519,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: Xiaohongshu/WeChat block thumbnail scraping → half the inbox shows broken/empty images; this makes every card look intentional
 
 ### H6 — Batch Select & Manage in Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:
 - Long-press any InboxCard to enter "selection mode" (use framer-motion press duration or `onLongPress` via pointer events)

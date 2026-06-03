@@ -44,6 +44,8 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [tipsFilter, setTipsFilter] = useState<TipsFilter>(null);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [selectMode, setSelectMode]       = useState(false);
+  const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
   const [globalSearch, setGlobalSearch] = useState(false);
   const [userCoords, setUserCoords]     = useState<{ lat: number; lng: number } | null>(null);
@@ -54,6 +56,36 @@ export default function InboxPage() {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
+
+  function enterSelectMode(itemId: string) {
+    setSelectMode(true);
+    setSelectedIds(new Set([itemId]));
+  }
+
+  function toggleSelect(itemId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkDelete() {
+    for (const id of selectedIds) removeItem(id);
+    exitSelectMode();
+  }
+
+  async function handleBulkMove(boardId: string) {
+    for (const id of selectedIds) await addItemToBoard(boardId, id);
+    exitSelectMode();
+    router.refresh();
+  }
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
@@ -273,26 +305,54 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map(({ item, distance }) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <SwipeToDelete onDelete={() => removeItem(item.id)}>
-                    <InboxCard
-                      item={item}
-                      onDelete={removeItem}
-                      onViewOnMap={handleViewOnMap}
-                      onMoveToBoard={handleMoveToBoard}
-                      onRetry={retryItem}
-                      nearbyDistance={nearMeActive ? distance : undefined}
-                    />
-                  </SwipeToDelete>
-                </motion.div>
-              ))}
+              {filtered.map(({ item, distance }) => {
+                const isSelected = selectedIds.has(item.id);
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative"
+                    onContextMenu={(e) => { e.preventDefault(); enterSelectMode(item.id); }}
+                  >
+                    {selectMode ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(item.id)}
+                        className="w-full text-left"
+                      >
+                        {/* Selection overlay */}
+                        <div className={`absolute inset-0 z-10 rounded-2xl border-2 transition-colors pointer-events-none ${isSelected ? 'border-indigo-600 bg-indigo-600/10' : 'border-transparent'}`} />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 z-20 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center">
+                            <span className="text-white text-[10px] font-bold">✓</span>
+                          </div>
+                        )}
+                        <InboxCard
+                          item={item}
+                          onDelete={removeItem}
+                          onViewOnMap={() => {}}
+                          onMoveToBoard={() => {}}
+                          nearbyDistance={nearMeActive ? distance : undefined}
+                        />
+                      </button>
+                    ) : (
+                      <SwipeToDelete onDelete={() => removeItem(item.id)}>
+                        <InboxCard
+                          item={item}
+                          onDelete={removeItem}
+                          onViewOnMap={handleViewOnMap}
+                          onMoveToBoard={handleMoveToBoard}
+                          onRetry={retryItem}
+                          nearbyDistance={nearMeActive ? distance : undefined}
+                        />
+                      </SwipeToDelete>
+                    )}
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         )}
@@ -374,6 +434,55 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk action bar — shown in select mode above NavBar */}
+      <AnimatePresence>
+        {selectMode && (
+          <motion.div
+            key="bulk-bar"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            className="fixed bottom-16 left-0 right-0 z-[1999] px-4"
+          >
+            <div className="bg-gray-900 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between shadow-2xl">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={exitSelectMode}
+                  className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+                >
+                  ✕ Cancel
+                </button>
+                <span className="text-white text-sm font-semibold">
+                  {selectedIds.size} selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {boards.length > 0 && selectedIds.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { if (boards[0]) handleBulkMove(boards[0].id); }}
+                    className="text-xs font-medium bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Move to {boards[0]?.emoji} {boards[0]?.name}
+                  </button>
+                )}
+                {selectedIds.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBulkDelete}
+                    className="text-xs font-medium bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    Delete {selectedIds.size}
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
