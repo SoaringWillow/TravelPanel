@@ -373,7 +373,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Haptic feedback on save (use `haptic('success')`)
 
 ### F2 — Map Empty State & First-Clip Hint
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: New users who dismissed onboarding see a blank map with no guidance. Retention cliff.  
 **Files**: `app/page.tsx`, new `components/MapEmptyHint.tsx`  
 **What to do**:
