@@ -651,7 +651,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: new users don't understand why the plan button is disabled; the empty state should teach them what to do
 
 ### I9 — Substance Highlight in Plan Activities
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - For each plan activity, if its `sourcedTips` array is non-empty, show a collapsible "From your clips" section below the activity time/name
@@ -660,7 +660,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: sourcedTips are already in the plan data but are currently invisible — this is the core substance moat surfaced at exactly the right moment (the user is about to go to that location)
 
 ### I10 — Substance Type Breakdown in Detail Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`  
 **What to do**:
 - In LocationDetailCard, replace the flat "N tips" count badge with a breakdown row showing each type that's present: `💡 3 tips · ⚠️ 1 warning · 💬 1 opinion`

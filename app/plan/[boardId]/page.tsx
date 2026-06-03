@@ -654,22 +654,8 @@ export default function PlanPage() {
                         </ul>
                       )}
 
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      {/* Sourced tips — collapsible, from user's own clips */}
+                      <SourcedTipsSection tips={activity.sourcedTips ?? []} />
                     </div>
                   );
                   })}
@@ -788,6 +774,41 @@ function DraggableDayStrip({ days, activeDayIndex, onSelect, onReorder }: Dragga
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─── SourcedTipsSection ───────────────────────────────────────────────────────
+
+function SourcedTipsSection({ tips }: { tips: { content: string; sourceTitle: string }[] }) {
+  const [expanded, setExpanded] = useState(false);
+  if (tips.length === 0) return null;
+  return (
+    <div className="pt-1">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
+      >
+        <span>💡</span>
+        <span>{tips.length} tip{tips.length !== 1 ? 's' : ''} from your clips</span>
+        <span className="ml-0.5 text-emerald-500">{expanded ? '▲' : '▼'}</span>
+      </button>
+      {expanded && (
+        <div className="space-y-1">
+          {tips.map((st, i) => (
+            <div
+              key={i}
+              className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300 dark:border-emerald-700"
+            >
+              <p className="text-xs text-emerald-900 dark:text-emerald-200 leading-snug">{st.content}</p>
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+                — from &ldquo;{st.sourceTitle}&rdquo;
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

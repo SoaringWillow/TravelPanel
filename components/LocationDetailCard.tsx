@@ -3,10 +3,19 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Pencil, Check, ExternalLink } from 'lucide-react';
-import { SavedItem } from '@/lib/types';
+import { SavedItem, SubstanceType } from '@/lib/types';
 import { saveItem } from '@/lib/db';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
+
+const SUBSTANCE_EMOJI: Record<SubstanceType, string> = {
+  tip: '💡',
+  warning: '⚠️',
+  opinion: '💬',
+  wisdom: '🧠',
+  context: '📖',
+  recommendation: '⭐',
+};
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -218,7 +227,24 @@ export default function LocationDetailCard({ item: initialItem, onClose, onUpdat
               </div>
             )}
 
-            {/* Substance */}
+            {/* Substance type breakdown + list */}
+            {(item.substance?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-1.5 -mb-1">
+                {Object.entries(
+                  (item.substance ?? []).reduce<Record<string, number>>((acc, s) => {
+                    acc[s.type] = (acc[s.type] ?? 0) + 1;
+                    return acc;
+                  }, {})
+                ).map(([type, count]) => (
+                  <span
+                    key={type}
+                    className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full"
+                  >
+                    {SUBSTANCE_EMOJI[type as SubstanceType] ?? '·'} {count} {type}{count !== 1 ? 's' : ''}
+                  </span>
+                ))}
+              </div>
+            )}
             <SubstanceList items={item.substance ?? []} />
 
             {/* Tags */}
