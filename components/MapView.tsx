@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -219,23 +219,70 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
         justifyContent: 'center',
       }}
     >
-      {count}
+      {count > 99 ? '99+' : `+${count}`}
     </button>
   );
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
+type LocationStatus = 'idle' | 'loading' | 'active' | 'error';
+
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  onUserLocation?: (coords: { lat: number; lng: number } | null) => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+function useOnlineStatus() {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener('online', cb);
+      window.addEventListener('offline', cb);
+      return () => { window.removeEventListener('online', cb); window.removeEventListener('offline', cb); };
+    },
+    () => navigator.onLine,
+    () => true,
+  );
+}
+
+interface ClusterSheet {
+  items: SavedItem[];
+  totalCount: number;
+}
+
+export default function MapView({ items, onPinClick, flyTo, onUserLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
-  const { clusters, getExpansionZoom, setView } = useSupercluster(items);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
+  const [clusterSheet, setClusterSheet] = useState<ClusterSheet | null>(null);
+  const { clusters, getExpansionZoom, getLeaves, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const isOnline = useOnlineStatus();
+
+  function requestLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setLocationStatus('active');
+        onUserLocation?.(coords);
+        mapInstanceRef.current?.flyTo({
+          center: [coords.lng, coords.lat],
+          zoom: 14,
+          duration: 1200,
+        });
+      },
+      () => setLocationStatus('error'),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -280,6 +327,16 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
       >
         <NavigationControl position="top-right" />
 
+        {/* User location dot */}
+        {userLocation && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute w-10 h-10 rounded-full bg-blue-400 opacity-30 animate-ping" />
+              <div className="w-5 h-5 rounded-full bg-blue-500 border-[3px] border-white shadow-lg relative z-10" />
+            </div>
+          </Marker>
+        )}
+
         <MapController flyTo={flyTo} />
 
         {clusters.map((feature) => {
@@ -297,11 +354,21 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
                   total={maxClusterCount}
                   onClick={() => {
                     const expansionZoom = getExpansionZoom(clusterId);
-                    mapInstanceRef.current?.easeTo({
-                      center: [lng, lat],
-                      zoom: expansionZoom,
-                      duration: 500,
-                    });
+                    const currentZoom = mapInstanceRef.current?.getZoom() ?? 0;
+                    if (expansionZoom <= currentZoom + 0.5) {
+                      // Already at max expansion — show the item list instead
+                      const leaves = getLeaves(clusterId);
+                      setClusterSheet({
+                        items: leaves.map((l) => l.properties.item),
+                        totalCount: count,
+                      });
+                    } else {
+                      mapInstanceRef.current?.easeTo({
+                        center: [lng, lat],
+                        zoom: expansionZoom,
+                        duration: 500,
+                      });
+                    }
                   }}
                 />
               </Marker>
@@ -350,6 +417,102 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
           </Popup>
         )}
       </Map>
+
+      {/* Offline badge */}
+      {!isOnline && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 bg-gray-800/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+          Offline — showing cached tiles
+        </div>
+      )}
+
+      {/* My Location button */}
+      <button
+        type="button"
+        onClick={requestLocation}
+        title={locationStatus === 'error' ? 'Location unavailable' : 'Center on my location'}
+        className={`absolute bottom-24 right-4 z-[1000] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center transition-all active:scale-95 ${
+          locationStatus === 'active' ? 'ring-2 ring-blue-400' : ''
+        }`}
+        style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.2)' }}
+      >
+        {locationStatus === 'loading' ? (
+          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+        ) : locationStatus === 'error' ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={locationStatus === 'active' ? '#3b82f6' : '#4b5563'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+            <circle cx="12" cy="12" r="8" strokeDasharray="4 4"/>
+          </svg>
+        )}
+      </button>
+
+      {/* Cluster item list sheet */}
+      {clusterSheet && (
+        <>
+          <div
+            className="absolute inset-0 z-[1100]"
+            onClick={() => setClusterSheet(null)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 z-[1200] bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t dark:border-white/10"
+            style={{ maxHeight: '60%' }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-b dark:border-white/10">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                {clusterSheet.totalCount} places here
+              </h3>
+              <button
+                type="button"
+                onClick={() => setClusterSheet(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(60vh - 100px)' }}>
+              {clusterSheet.items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { onPinClick(item); setClusterSheet(null); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-50 dark:border-white/5 last:border-0"
+                >
+                  {item.thumbnail ? (
+                    <img src={item.thumbnail} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold text-white"
+                      style={{ background: `linear-gradient(135deg, ${PLATFORM_COLORS[item.platform]}dd, ${PLATFORM_COLORS[item.platform]}88)` }}>
+                      {item.title[0]?.toUpperCase() ?? '?'}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100 line-clamp-1">{item.title}</p>
+                    {(item.substance?.length ?? 0) > 0 && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                        💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))}
+              {clusterSheet.totalCount > clusterSheet.items.length && (
+                <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-3">
+                  + {clusterSheet.totalCount - clusterSheet.items.length} more — zoom in to see all
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

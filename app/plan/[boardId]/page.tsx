@@ -1,18 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2 } from 'lucide-react';
+import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, DayPlan } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { notifyPlanReady } from '@/lib/notifications';
+import { hapticImpact, hapticNotification } from '@/hooks/useHaptic';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
+import EmptyState from '@/components/EmptyState';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import PlanShareCard from '@/components/PlanShareCard';
+import PlanChat from '@/components/PlanChat';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -38,6 +43,15 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [checkedActivities, setCheckedActivities] = useState<Record<number, Set<number>>>({});
+  const [dayNotes, setDayNotes] = useState<Record<number, string>>({});
+
+  // Refs for persist-on-toggle without stale closures
+  const savedTripsRef = useRef(savedTrips);
+  const currentTripIdRef = useRef(currentTripId);
+  useEffect(() => { savedTripsRef.current = savedTrips; }, [savedTrips]);
+  useEffect(() => { currentTripIdRef.current = currentTripId; }, [currentTripId]);
 
   useEffect(() => {
     async function load() {
@@ -80,6 +94,7 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    hapticImpact('medium');
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
@@ -125,6 +140,10 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') {
+                hapticNotification('success');
+                notifyPlanReady(board?.name ?? 'Your trip');
+              } else hapticNotification('error');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -166,6 +185,8 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setSelectedChips(new Set());
     setCustomNotes('');
+    setCheckedActivities({});
+    setDayNotes({});
   }, []);
 
   // Export is only meaningful for a fully-formed plan (days + activities present).
@@ -184,6 +205,42 @@ export default function PlanPage() {
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 
+  function saveDayNote(dayIdx: number, note: string) {
+    const next = note.trim() ? { ...dayNotes, [dayIdx]: note.trim() } : (() => {
+      const n = { ...dayNotes };
+      delete n[dayIdx];
+      return n;
+    })();
+    setDayNotes(next);
+    const tripId = currentTripIdRef.current;
+    if (tripId) {
+      const trip = savedTripsRef.current.find((t) => t.id === tripId);
+      if (trip) saveTrip({ ...trip, dayNotes: next });
+    }
+  }
+
+  function toggleActivity(dayIdx: number, actIdx: number) {
+    setCheckedActivities((prev) => {
+      const daySet = new Set(prev[dayIdx] ?? []);
+      if (daySet.has(actIdx)) daySet.delete(actIdx);
+      else daySet.add(actIdx);
+      const next = { ...prev, [dayIdx]: daySet };
+      const tripId = currentTripIdRef.current;
+      if (tripId) {
+        const trip = savedTripsRef.current.find((t) => t.id === tripId);
+        if (trip) {
+          const serialized: Record<number, number[]> = {};
+          for (const [k, v] of Object.entries(next)) {
+            serialized[Number(k)] = Array.from(v as Set<number>);
+          }
+          saveTrip({ ...trip, checkedActivities: serialized });
+        }
+      }
+      return next;
+    });
+    hapticImpact('light');
+  }
+
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
     if (!trip.plan) return;
@@ -193,6 +250,16 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
     setStage('complete');
+    const restored: Record<number, Set<number>> = {};
+    for (const [k, v] of Object.entries(trip.checkedActivities ?? {})) {
+      restored[Number(k)] = new Set(v);
+    }
+    setCheckedActivities(restored);
+    const restoredNotes: Record<number, string> = {};
+    for (const [k, v] of Object.entries(trip.dayNotes ?? {})) {
+      restoredNotes[Number(k)] = v;
+    }
+    setDayNotes(restoredNotes);
   }, []);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
@@ -258,7 +325,7 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -286,17 +353,22 @@ export default function PlanPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.back()}
-                  className="flex items-center gap-1 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                  className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-800 transition-colors"
                 >
                   <ArrowLeft size={16} />
                   Back
                 </button>
                 <span className="text-2xl">{board.emoji}</span>
-                <h1 className="text-lg font-bold text-gray-800 flex-1 truncate">{board.name}</h1>
-                <span className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex-1 truncate">{board.name}</h1>
+                <span className="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
                   {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 </span>
               </div>
+
+              {/* First-time illustration — only when no previous trips */}
+              {savedTrips.length === 0 && (
+                <EmptyState variant="plan" />
+              )}
 
               {/* Days slider */}
               <div className="space-y-2">
@@ -357,11 +429,31 @@ export default function PlanPage() {
                 />
               </div>
 
-              {/* Warning if no locations */}
+              {/* Empty state — no clips with locations */}
               {!hasLocations && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
-                  <MapPin size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>Add items with identified locations to plan a trip.</span>
+                <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/40 rounded-2xl p-5 border border-indigo-100 dark:border-indigo-900/40 text-center space-y-3">
+                  <div className="text-6xl leading-none">{board.emoji}</div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">
+                      No places with pins yet
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                      Save clips with locations to unlock AI trip planning for this board.
+                    </p>
+                  </div>
+                  <div className="text-left bg-white/70 dark:bg-black/20 rounded-xl p-3 space-y-1.5">
+                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Works great with</p>
+                    {['📸 Instagram / 小红书 location posts', '🎬 YouTube travel vlogs', '🎵 Douyin / Bilibili city guides'].map((ex) => (
+                      <p key={ex} className="text-xs text-gray-600 dark:text-gray-300">{ex}</p>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/inbox')}
+                    className="w-full bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
+                  >
+                    Clip from Inbox →
+                  </button>
                 </div>
               )}
 
@@ -460,21 +552,42 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <Download size={14} />
-                    Export PDF
-                  </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                    <button
+                      onClick={() => setShowShareCard((v) => !v)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-xl transition-all active:scale-[0.98] ${
+                        showShareCard
+                          ? 'bg-indigo-600 text-white border-indigo-600 border'
+                          : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Share2 size={14} />
+                      Share
+                    </button>
+                  </div>
+
+                  {showShareCard && (
+                    <PlanShareCard
+                      plan={plan}
+                      boardName={board.name}
+                      boardEmoji={board.emoji}
+                    />
+                  )}
                 </div>
               )}
 
@@ -488,46 +601,88 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
+              {/* Day strip — drag to reorder */}
               {plan.days && plan.days.length > 0 && (
-                <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                  <div className="flex gap-3" style={{ width: 'max-content' }}>
-                    {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <DraggableDayStrip
+                  days={plan.days}
+                  activeDayIndex={activeDayIndex}
+                  onSelect={setActiveDayIndex}
+                  onReorder={(newDays) => {
+                    const updated = { ...plan, days: newDays } as Partial<TripPlan>;
+                    setPlan(updated);
+                    // Persist if we have a current trip
+                    if (currentTripId) {
+                      const trip = savedTrips.find((t) => t.id === currentTripId);
+                      if (trip) saveTrip({ ...trip, plan: updated as TripPlan });
+                    }
+                    // Keep active day index pointing at same day after reorder
+                    setActiveDayIndex(0);
+                    hapticImpact('light');
+                  }}
+                />
               )}
 
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  {/* Day header with progress */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                        {dayNotes[activeDayIndex] && <span title="Has notes" className="text-xs">📝</span>}
+                      </h2>
+                      {(checkedActivities[activeDayIndex]?.size ?? 0) > 0 && (
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                          {checkedActivities[activeDayIndex]?.size} / {activeDayPlan.activities.length} done
+                        </span>
+                      )}
+                    </div>
+                    {(checkedActivities[activeDayIndex]?.size ?? 0) > 0 && (
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                          style={{ width: `${((checkedActivities[activeDayIndex]?.size ?? 0) / activeDayPlan.activities.length) * 100}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const isChecked = checkedActivities[activeDayIndex]?.has(aIdx) ?? false;
+                    return (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className={`rounded-2xl p-3 shadow-sm border space-y-1 transition-all ${
+                        isChecked
+                          ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/40 opacity-75'
+                          : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10'
+                      }`}
                     >
                       <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        {/* Check-in button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleActivity(activeDayIndex, aIdx)}
+                          className={`flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${
+                            isChecked
+                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                              : 'border-gray-300 dark:border-gray-600 hover:border-emerald-400'
+                          }`}
+                          aria-label={isChecked ? 'Mark as not done' : 'Mark as done'}
+                        >
+                          {isChecked && <span style={{ fontSize: 10, lineHeight: 1 }}>✓</span>}
+                        </button>
+                        <span className="flex-shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.time}
                         </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
+                        <div className={`flex-1 min-w-0 ${isChecked ? 'line-through opacity-60' : ''}`}>
+                          <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
                             {activity.location.name}
                           </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200">{activity.name}</p>
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        <span className="flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.duration}
                         </span>
                       </div>
@@ -542,25 +697,21 @@ export default function PlanPage() {
                         </ul>
                       )}
 
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      {/* Sourced tips — collapsible, from user's own clips */}
+                      <SourcedTipsSection tips={activity.sourcedTips ?? []} />
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
+              )}
+
+              {/* Day notes */}
+              {activeDayPlan && (
+                <DayNotesField
+                  dayIdx={activeDayIndex}
+                  value={dayNotes[activeDayIndex] ?? ''}
+                  onSave={saveDayNote}
+                />
               )}
 
               {/* Trip tips */}
@@ -580,6 +731,22 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* AI Chat — conversational plan modification */}
+              {planIsComplete(plan) && (
+                <PlanChat
+                  plan={plan}
+                  boardItems={boardItems}
+                  onPlanUpdate={(updated) => {
+                    setPlan(updated);
+                    // Persist the AI-modified plan if there's an active trip
+                    if (currentTripId) {
+                      const trip = savedTrips.find((t) => t.id === currentTripId);
+                      if (trip) saveTrip({ ...trip, plan: updated });
+                    }
+                  }}
+                />
+              )}
+
               {/* Start Over */}
               <button
                 onClick={handleStartOver}
@@ -593,6 +760,140 @@ export default function PlanPage() {
 
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── DraggableDayStrip ────────────────────────────────────────────────────────
+
+interface DraggableDayStripProps {
+  days: DayPlan[];
+  activeDayIndex: number;
+  onSelect: (idx: number) => void;
+  onReorder: (newDays: DayPlan[]) => void;
+}
+
+function DraggableDayStrip({ days, activeDayIndex, onSelect, onReorder }: DraggableDayStripProps) {
+  const dragIdx  = useRef<number | null>(null);
+  const overIdx  = useRef<number | null>(null);
+  const [order, setOrder] = useState<DayPlan[]>(days);
+
+  // Sync when days prop changes (new plan loaded)
+  useEffect(() => { setOrder(days); }, [days]);
+
+  function handleDragStart(idx: number) {
+    dragIdx.current = idx;
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    if (dragIdx.current === null || dragIdx.current === idx) return;
+    overIdx.current = idx;
+    const next = [...order];
+    const [moved] = next.splice(dragIdx.current, 1);
+    next.splice(idx, 0, moved);
+    dragIdx.current = idx;
+    setOrder(next);
+  }
+
+  function handleDrop() {
+    if (dragIdx.current !== null) {
+      onReorder(order);
+    }
+    dragIdx.current = null;
+    overIdx.current = null;
+  }
+
+  return (
+    <div className="overflow-x-auto pb-2 -mx-4 px-4">
+      <div className="flex gap-3" style={{ width: 'max-content' }}>
+        {order.map((day, idx) => (
+          <div
+            key={`${day.day}-${idx}`}
+            draggable
+            onDragStart={() => handleDragStart(idx)}
+            onDragOver={(e) => handleDragOver(e, idx)}
+            onDrop={handleDrop}
+            onDragEnd={handleDrop}
+            style={{ cursor: 'grab' }}
+          >
+            <DayStripCard
+              day={day}
+              index={idx}
+              isActive={activeDayIndex === idx}
+              onSelect={() => onSelect(idx)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── DayNotesField ───────────────────────────────────────────────────────────
+
+interface DayNotesFieldProps {
+  dayIdx: number;
+  value: string;
+  onSave: (dayIdx: number, note: string) => void;
+}
+
+function DayNotesField({ dayIdx, value, onSave }: DayNotesFieldProps) {
+  const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
+
+  // Sync when switching days
+  useEffect(() => { setDraft(value); }, [value]);
+
+  return (
+    <div className="bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-800/30 p-3">
+      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5 flex items-center gap-1">
+        📝 Day notes
+      </p>
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => { setFocused(false); onSave(dayIdx, draft); }}
+        placeholder="Capture anything from today — real conditions, detours, discoveries…"
+        rows={focused || draft ? 3 : 1}
+        className="w-full text-xs text-amber-900 dark:text-amber-200 bg-transparent placeholder-amber-400 dark:placeholder-amber-600 resize-none focus:outline-none leading-relaxed"
+      />
+    </div>
+  );
+}
+
+// ─── SourcedTipsSection ───────────────────────────────────────────────────────
+
+function SourcedTipsSection({ tips }: { tips: { content: string; sourceTitle: string }[] }) {
+  const [expanded, setExpanded] = useState(false);
+  if (tips.length === 0) return null;
+  return (
+    <div className="pt-1">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
+      >
+        <span>💡</span>
+        <span>{tips.length} tip{tips.length !== 1 ? 's' : ''} from your clips</span>
+        <span className="ml-0.5 text-emerald-500">{expanded ? '▲' : '▼'}</span>
+      </button>
+      {expanded && (
+        <div className="space-y-1">
+          {tips.map((st, i) => (
+            <div
+              key={i}
+              className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300 dark:border-emerald-700"
+            >
+              <p className="text-xs text-emerald-900 dark:text-emerald-200 leading-snug">{st.content}</p>
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+                — from &ldquo;{st.sourceTitle}&rdquo;
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

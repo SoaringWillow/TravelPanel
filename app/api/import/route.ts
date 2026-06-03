@@ -85,30 +85,35 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  if ((!url || typeof url !== 'string') && !imageBase64) {
+    return NextResponse.json({ error: 'URL or image required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const platform = detectPlatform(url ?? '');
+  const page = url ? await fetchPageData(url) : null;
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const isImageOnly = !url && !!imageBase64;
+  const hasImage = !!imageBase64;
 
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+${hasImage ? '\nA screenshot of the post is also attached — use it as the primary source if the text content is sparse or empty.' : ''}
 Platform: ${platform}
-URL: ${url}
+URL: ${url || '(image-only share)'}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${isImageOnly ? '' : `Page content:\n${page?.textContent ?? '(could not fetch page)'}`}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
+Read any text visible in the image (captions, location tags, overlaid text) for place names.
 If the post doesn't mention specific named places, return an empty locations array.
 Do NOT invent or guess coordinates.
 
@@ -130,19 +135,42 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (hasImage) {
+      // Use vision: pass image + text as a messages array
+      const mimeType = (imageMimeType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: Buffer.from(imageBase64, 'base64'),
+                mimeType,
+              },
+              { type: 'text', text: textPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
+    title: (claudeResult?.title || page?.title || url || 'Travel inspiration').slice(0, 200),
     description: (claudeResult?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],

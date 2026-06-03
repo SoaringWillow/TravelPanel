@@ -53,11 +53,16 @@ export function useSupercluster(items: SavedItem[]) {
     return index.getClusters(view.bounds, Math.round(view.zoom));
   }, [index, view]);
 
-  // Returns the zoom level at which the given cluster expands.
   const getExpansionZoom = useCallback(
     (clusterId: number) => Math.min(index.getClusterExpansionZoom(clusterId), 16),
     [index],
   );
 
-  return { clusters, getExpansionZoom, setView };
+  const getLeaves = useCallback(
+    (clusterId: number, limit = 20): ClusterFeature[] =>
+      index.getLeaves(clusterId, limit) as ClusterFeature[],
+    [index],
+  );
+
+  return { clusters, getExpansionZoom, getLeaves, setView };
 }

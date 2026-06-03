@@ -1,0 +1,56 @@
+Save travel inspiration from any app in 2 taps.
+
+TravelPanel is the travel notebook that finally keeps up with how you discover places. Share any link from Instagram, YouTube, Xiaohongshu, or Douyin — and watch Claude AI instantly extract where to go AND what actually matters: the opening hours, the hidden menus, the "avoid the tourist queue" tips your friends post that every other app throws away.
+
+─────────────────────────────────────
+SAVE SMARTER, NOT HARDER
+─────────────────────────────────────
+Most travel apps save a pin. TravelPanel saves the wisdom.
+
+Every clip gets two extraction layers:
+• Spots — precise GPS coordinates, location names, addresses, mapped instantly
+• Substance — tips, warnings, insider opinions, and seasonal wisdom quoted directly from the post
+
+When your AI planner builds your itinerary, it cites your own saved clips inline — so you know exactly why Day 2 starts at 7am ("avoid the midday heat" from your own Xiaohongshu save).
+
+─────────────────────────────────────
+HOW IT WORKS
+─────────────────────────────────────
+1. Find something inspiring in any app
+2. Tap Share → TravelPanel
+3. Choose a board or save to Inbox — done
+
+Claude AI extracts locations and substance in the background. Your map fills up while you scroll.
+
+─────────────────────────────────────
+PLAN WITH AI
+─────────────────────────────────────
+Add your saved places to a board, tap "Plan this trip," and Claude builds a day-by-day itinerary:
+• Logical routing — no backtracking across the city
+• Your travel style — choose pace, transport, food preferences
+• Cited sources — every tip traces back to one of your clips
+• Export to PDF or add to Calendar
+
+─────────────────────────────────────
+ORGANISE YOUR IDEAS
+─────────────────────────────────────
+• Boards — group clips by destination or trip idea
+• Timeline view — see what you saved and when
+• Near Me — GPS sorting surfaces places within 10 km
+• Smart search — full-text across titles, locations, and tips
+• Data export — download all your clips as JSON (never lose your inspiration)
+
+─────────────────────────────────────
+BUILT FOR PRIVACY
+─────────────────────────────────────
+All your clips and boards live on your device (IndexedDB). Nothing is uploaded to our servers. AI extraction calls are sent to Anthropic's API — no other third parties.
+
+─────────────────────────────────────
+WHAT'S COMING
+─────────────────────────────────────
+• Shared boards — travel with friends
+• Real-time enrichment — festivals, weather, price signals
+• Offline maps — access your plan without signal
+• Pro tier — unlimited AI plans, advanced search
+
+TravelPanel is built for the traveller who saves 50 posts before every trip and forgets them all. It's the gap between inspiration and itinerary — finally closed.

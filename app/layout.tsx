@@ -3,6 +3,8 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { OnboardingGuard } from '@/components/OnboardingGuard';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -15,21 +17,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Sync dark class before first paint to prevent flash */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('tp_theme_override');if(t==='dark'){document.documentElement.classList.add('dark');}else if(t==='light'){document.documentElement.classList.remove('dark');}else{var q=window.matchMedia('(prefers-color-scheme: dark)');if(q.matches)document.documentElement.classList.add('dark');q.addEventListener('change',function(e){if(!localStorage.getItem('tp_theme_override')||localStorage.getItem('tp_theme_override')==='system'){document.documentElement.classList.toggle('dark',e.matches);}});}})();` }} />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#6366f1" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#6366f1" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e1b4b" />
+        <meta name="color-scheme" content="light dark" />
+        {/* PWA / home screen */}
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="TravelPanel" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body>
         <CapacitorBridge />
+        <OnboardingGuard />
         <AnalyticsProvider />
         <ResourceBanner />
-        <div className="min-h-screen">
-          {children}
-        </div>
+        <ErrorBoundary>
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </ErrorBoundary>
       </body>
     </html>
   );
