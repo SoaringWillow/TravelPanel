@@ -161,8 +161,9 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
-**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
+**Status**: `[x]` Done  
+**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel  
+**Implemented**: `browser-extension/` — Manifest V3 Chrome extension with popup UI, right-click context menu, programmatic teal location-pin icon, platform badge detection (Instagram/YouTube/小红书/TikTok/etc.), and configurable app URL via options page. Sends `?url=&title=` to `/share` which handles board selection + Claude enrichment.
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
 **Status**: `[ ]` Not started  
