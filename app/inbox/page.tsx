@@ -41,6 +41,7 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [globalSearch, setGlobalSearch] = useState(false);
   const [userCoords, setUserCoords]     = useState<{ lat: number; lng: number } | null>(null);
   const [nearMeActive, setNearMeActive] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -53,10 +54,13 @@ export default function InboxPage() {
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
 
+  // Global: all items including board-assigned; scoped: inbox only
+  const sourceItems = globalSearch ? items : inboxItems;
+
   const platformFiltered =
     activePlatform === 'all'
-      ? inboxItems
-      : inboxItems.filter((i) => i.platform === activePlatform);
+      ? sourceItems
+      : sourceItems.filter((i) => i.platform === activePlatform);
 
   const searched = searchItems(platformFiltered, query);
 
@@ -147,13 +151,30 @@ export default function InboxPage() {
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           <span className="ml-auto bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
+            {globalSearch ? `${items.length} total` : `${inboxItems.length} unsorted`}
           </span>
         </div>
 
-        {/* Search */}
-        <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+        {/* Search + Global toggle */}
+        <div className="mb-3 flex gap-2 items-center">
+          <div className="flex-1">
+            <SearchBar onSearch={handleSearch} />
+          </div>
+          {/* Only show Global toggle when there's an active query */}
+          {query.trim() && (
+            <button
+              type="button"
+              onClick={() => setGlobalSearch((v) => !v)}
+              className={`flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-xl border transition-all ${
+                globalSearch
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10'
+              }`}
+              title="Search all boards (not just Inbox)"
+            >
+              All boards
+            </button>
+          )}
         </div>
 
         {/* Platform filter tabs + Near Me */}

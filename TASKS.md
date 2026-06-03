@@ -304,7 +304,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > These features are unlocked after 1,000 active users. Don't build early.
 
 ### E1 — Global Search Across All Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Extend the existing `searchItems` utility to search across board-assigned items too. Add a "Global" toggle to the search bar that searches everything, not just Inbox.
 
 ### E2 — Board Cover Customization
