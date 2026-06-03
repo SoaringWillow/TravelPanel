@@ -416,7 +416,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Sync with the day strip dots (the horizontal scroll should auto-scroll to keep active day visible)
 
 ### F6 — Clip Source Attribution in Detail Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When a clip was generated from a screenshot (Vision extraction) or from a browser extension (not the Share Sheet), the source URL `local:photo:...` or raw URL is ugly and not clickable.  
 **Files**: `components/LocationDetailCard.tsx`, `lib/parse-url.ts`  
 **What to do**:

@@ -2,9 +2,21 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, Share2 } from 'lucide-react';
+import { X, MapPin, Share2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+
+function formatSourceLabel(url: string, platform: string): { label: string; href: string | null } {
+  if (url.startsWith('local:photo:')) return { label: '📷 Clipped from screenshot', href: null };
+  if (!url.startsWith('http')) return { label: url, href: null };
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace('www.', '');
+    return { label: `${PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] ?? host} ↗`, href: url };
+  } catch {
+    return { label: url, href: url };
+  }
+}
 import { updateItemNote } from '@/lib/db';
 import SubstanceList from './SubstanceList';
 import NearbyPlaces from './NearbyPlaces';
@@ -199,6 +211,29 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                            focus:outline-none placeholder-amber-300 leading-relaxed transition-colors"
               />
             </div>
+
+            {/* Source attribution */}
+            {(() => {
+              const { label, href } = formatSourceLabel(item.url, item.platform);
+              if (!label) return null;
+              return (
+                <div className="flex items-center gap-1.5 pt-1 border-t border-gray-50 dark:border-gray-800">
+                  {href ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
+                    >
+                      <ExternalLink size={11} />
+                      {label}
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-400">{label}</span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </motion.div>
