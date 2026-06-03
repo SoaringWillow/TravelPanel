@@ -96,3 +96,12 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-03 17:25 | 1b6107a | feat(B2): add Chrome/Safari browser extension for one-click URL clipping
+2026-06-03 17:31 | a280c8f | feat(B3): Xiaohongshu/WeChat fix via Claude Vision on iOS Share Sheet images
+2026-06-03 17:33 | 2aad32a | feat(B5): data export + Settings page with download-all-as-JSON
+2026-06-03 17:37 | 8079fbb | feat(C1): On-Trip GPS Mode with live distance tracking and navigation
+2026-06-03 17:39 | 749f70f | feat(C2): Post-Trip Timeline — visual summary of visited activities
+2026-06-03 17:42 | 729f99b | feat(C3): Shared Boards v1 — URL-encoded share links, no cloud required
+2026-06-03 17:43 | 548a353 | feat(C4): Proactive Resurfacing — nearby clips surface on the main map
+2026-06-03 17:44 | 326a5b9 | chore: add Phase D/E/F tasks for iOS polish, App Store readiness, and cloud
+2026-06-03 17:45 | 2dcfbb1 | feat(D1): surface substance wisdom inline on Inbox cards
