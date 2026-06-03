@@ -226,7 +226,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No-op gracefully in web context
 
 ### D4 — Swipe-to-Delete on Inbox Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
 **What to do**:
 - Wrap InboxCard in a swipeable container using `framer-motion` drag gesture

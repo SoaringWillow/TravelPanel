@@ -14,6 +14,7 @@ import { searchItems } from '@/lib/searchItems';
 import { minDistanceKm } from '@/lib/haversine';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import SwipeToDelete from '@/components/SwipeToDelete';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
@@ -227,14 +228,16 @@ export default function InboxPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                    nearbyDistance={nearMeActive ? distance : undefined}
-                  />
+                  <SwipeToDelete onDelete={() => removeItem(item.id)}>
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                      nearbyDistance={nearMeActive ? distance : undefined}
+                    />
+                  </SwipeToDelete>
                 </motion.div>
               ))}
             </AnimatePresence>
