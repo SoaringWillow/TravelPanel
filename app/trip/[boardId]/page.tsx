@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
   Footprints,
+  BarChart2,
 } from 'lucide-react';
 import { Board, Trip, Activity, DayPlan } from '@/lib/types';
 import { getBoardById, getTripsForBoard } from '@/lib/db';
@@ -315,6 +316,16 @@ export default function TripModePage() {
       {/* ── Activity list ────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-3 space-y-3 pb-8">
+          {/* Summary link (shown once any activity is checked off) */}
+          {trip && completedCount > 0 && (
+            <button
+              onClick={() => router.push(`/summary/${trip.id}`)}
+              className="w-full flex items-center justify-center gap-2 border border-indigo-200 text-indigo-600 font-semibold text-sm py-2.5 rounded-xl hover:bg-indigo-50 transition-colors"
+            >
+              <BarChart2 size={15} />
+              View Trip Summary
+            </button>
+          )}
           {activitiesWithDistance.length === 0 && (
             <div className="text-center py-12 text-sm text-gray-400">
               No activities planned for this day.
