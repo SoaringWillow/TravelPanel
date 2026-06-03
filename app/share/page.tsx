@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
+import { hapticImpact, hapticNotification } from '@/hooks/useHaptic';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -104,6 +105,7 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    hapticImpact('medium');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
@@ -115,6 +117,7 @@ function SharePageInner() {
     enrichItem(itemId, rawUrl, shareImageBase64 ?? undefined)
       .then(async (success) => {
         if (success) {
+          hapticNotification('success');
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
@@ -130,6 +133,8 @@ function SharePageInner() {
               substance: updated.substance,
             } as ImportResult);
           }
+        } else {
+          hapticNotification('error');
         }
         setEnrichmentLoading(false);
       });
@@ -155,6 +160,7 @@ function SharePageInner() {
 
     // Persist the board first, then let handleSave create + save the item
     await saveBoard(newBoard);
+    hapticImpact('medium');
     setBoards((prev) => [newBoard, ...prev]);
     setNewBoardName('');
     setShowNewBoardInput(false);

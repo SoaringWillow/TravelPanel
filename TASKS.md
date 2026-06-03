@@ -216,7 +216,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use CSS variables for core colors so one toggle flips the whole app
 
 ### D3 — Haptic Feedback on Key iOS Actions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `components/InboxCard.tsx`, `hooks/useHaptic.ts` (new)  
 **What to do**:
 - Create `useHaptic` hook wrapping `@capacitor/haptics` (already available via Capacitor)
