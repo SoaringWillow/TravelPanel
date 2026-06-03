@@ -89,9 +89,9 @@ export default function BoardDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:border-b dark:border-white/10 px-4 pt-12 pb-4 z-10">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -105,7 +105,7 @@ export default function BoardDetailPage() {
           <span className="text-2xl leading-none">{board.emoji}</span>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-gray-800 leading-tight truncate">
+            <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight truncate">
               {board.name}
             </h1>
           </div>
@@ -181,14 +181,14 @@ export default function BoardDetailPage() {
           ) : (
             <>
               {/* Toggle: Grid / Timeline */}
-              <div className="flex gap-1.5 mb-4 bg-gray-100 p-1 rounded-xl w-fit">
+              <div className="flex gap-1.5 mb-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
                   className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
                     viewMode === 'grid'
-                      ? 'bg-white text-gray-800 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
                 >
                   <LayoutGrid size={13} />
@@ -199,8 +199,8 @@ export default function BoardDetailPage() {
                   onClick={() => setViewMode('timeline')}
                   className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
                     viewMode === 'timeline'
-                      ? 'bg-white text-gray-800 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
                 >
                   <Clock size={13} />
@@ -302,7 +302,7 @@ function TimelineCard({
   onViewOnMap: (id: string) => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex gap-0">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden flex gap-0">
       {/* Thumbnail */}
       {item.thumbnail ? (
         <img
@@ -312,15 +312,15 @@ function TimelineCard({
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
       ) : (
-        <div className="w-20 h-20 bg-gray-100 flex items-center justify-center flex-shrink-0">
-          <MapPin size={20} className="text-gray-300" />
+        <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+          <MapPin size={20} className="text-gray-300 dark:text-gray-600" />
         </div>
       )}
 
       {/* Content */}
       <div className="flex-1 min-w-0 p-3 flex flex-col justify-between">
         <div>
-          <p className="text-xs font-semibold text-gray-700 line-clamp-2 leading-snug">
+          <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 line-clamp-2 leading-snug">
             {item.title}
           </p>
           {item.locations.length > 0 && (

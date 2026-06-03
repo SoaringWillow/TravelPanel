@@ -207,7 +207,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What was done**: Added `NSLocationWhenInUseUsageDescription`, `NSLocationAlwaysAndWhenInUseUsageDescription`, `NSPhotoLibraryUsageDescription`, `NSCameraUsageDescription` — required by iOS before any permissions can be requested. Without these, GPS and photo-library features silently fail.
 
 ### D2 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/globals.css`, `tailwind.config.js`, key components  
 **What to do**:
 - Add `dark:` Tailwind variants to all major components (MapView overlay, InboxCard, NavBar, share page, plan view)

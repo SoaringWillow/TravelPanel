@@ -191,7 +191,7 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -203,8 +203,8 @@ export default function InboxCard({
           }}
         />
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
+        <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <Globe size={32} className="text-gray-300 dark:text-gray-600" />
         </div>
       )}
 
@@ -217,13 +217,13 @@ export default function InboxCard({
         </span>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -232,23 +232,23 @@ export default function InboxCard({
         {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0 || nearbyDistance !== undefined) && (
           <div className="flex items-center gap-3 mb-2 flex-wrap">
             {nearbyDistance !== undefined && (
-              <span className="text-xs font-semibold text-blue-600 flex items-center gap-0.5 bg-blue-50 px-1.5 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-0.5 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-full">
                 📍 {nearbyDistance < 1 ? `${Math.round(nearbyDistance * 1000)}m` : `${nearbyDistance.toFixed(1)}km`}
               </span>
             )}
             {item.locations.length > 0 && (
-              <span className="text-xs text-gray-500 flex items-center gap-0.5">
+              <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
                 <MapPin size={10} className="text-indigo-400" />
                 {item.locations.length}
               </span>
             )}
             {item.activities.length > 0 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 🎯 {item.activities.length}
               </span>
             )}
             {(item.substance?.length ?? 0) > 0 && (
-              <span className="text-xs text-amber-600 font-medium">
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                 💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
               </span>
             )}
@@ -261,7 +261,7 @@ export default function InboxCard({
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-2 py-0.5 rounded-full"
               >
                 #{tag}
               </span>
@@ -270,15 +270,15 @@ export default function InboxCard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-xs text-gray-400">{date}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-white/10">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
 
           <div className="flex items-center gap-1">
             {/* View on Map */}
             <button
               type="button"
               onClick={() => onViewOnMap(item.id)}
-              className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors px-1.5 py-1"
             >
               Map
             </button>
@@ -288,7 +288,7 @@ export default function InboxCard({
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
               aria-label={`Open in ${PLATFORM_LABELS[item.platform]}`}
             >
               <ExternalLink size={13} />
@@ -299,7 +299,7 @@ export default function InboxCard({
               <button
                 type="button"
                 onClick={() => onMoveToBoard(item.id)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 aria-label="Move to collection"
               >
                 <LayoutGrid size={13} />
@@ -310,7 +310,7 @@ export default function InboxCard({
             <button
               type="button"
               onClick={() => onDelete(item.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
               aria-label="Delete"
             >
               <Trash2 size={13} />

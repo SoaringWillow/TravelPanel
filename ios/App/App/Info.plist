@@ -74,5 +74,8 @@
 	<!-- Camera — future: clip from camera -->
 	<key>NSCameraUsageDescription</key>
 	<string>TravelPanel can use your camera to photograph menus, signs, and travel content for extraction.</string>
+	<!-- Respect system dark/light mode setting -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Automatic</string>
 </dict>
 </plist>
