@@ -331,6 +331,138 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE F — App Store Readiness & Quality Hardening
+
+> Goal: ship to TestFlight. Fix every crash path, polish every visible screen, make enrichment bulletproof.
+
+### F1 — Enrichment Retry Queue (Background)
+**Status**: `[ ]` Not started  
+**Files**: `lib/enrichItem.ts`, `hooks/useEnrichmentRetry.ts`, service worker or `useEffect` on mount  
+**What to do**:
+- On app mount, scan all items with `enrichmentStatus === 'failed'` and `retryCount < 3`
+- Re-enrich them automatically (exponential backoff: 30s, 2min, 10min based on retryCount)
+- Show a subtle "Retrying X clips…" status in the inbox header while retries are in flight
+- Fire `hapticNotification('success')` per item when enrichment succeeds after retry
+
+### F2 — Crash-Free Enrichment (Error Boundaries)
+**Status**: `[ ]` Not started  
+**Files**: `app/layout.tsx`, `components/ErrorBoundary.tsx` (new)  
+**What to do**:
+- Create a React ErrorBoundary component that catches render errors
+- Wrap the root layout with it; show a graceful "Something went wrong" screen with a "Reload" button
+- Prevent blank white screens on unhandled promise rejections in Safari/iOS WebView
+- Add `window.addEventListener('unhandledrejection', ...)` logger to the CapacitorBridge
+
+### F3 — Onboarding Flow (First Launch)
+**Status**: `[ ]` Not started  
+**Files**: `app/onboarding/page.tsx` (new), `lib/db.ts`  
+**What to do**:
+- 3-screen swipeable onboarding shown only on first launch (store flag in localStorage)
+- Screen 1: "Clip from any app" — animated Share Sheet illustration
+- Screen 2: "AI extracts the wisdom" — substance vs. spots side-by-side
+- Screen 3: "Plan your trip" — map with route illustration
+- CTA: "Get started" → creates a demo board, drops user on map
+- Skip button always visible
+
+### F4 — Substance Detail View
+**Status**: `[ ]` Not started  
+**Files**: `components/SubstanceList.tsx`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Currently SubstanceList just shows a list of tips. Add visual hierarchy:
+  - Type badges (🟡 Tip / 🔴 Warning / 💬 Opinion / 🌸 Wisdom) with colour coding
+  - `applies_to` shown as a small grey pill under the content
+  - `source_quote` shown in a subtle blockquote style (italic, left border)
+- Expand/collapse if more than 4 items (show "See all X tips" button)
+- This surfaces the substance moat directly in the detail view
+
+### F5 — Location Detail: Open in Maps
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`  
+**What to do**:
+- Add "Open in Maps" button to each location in the LocationDetailCard
+- On iOS: opens `maps://` URL with lat/lng; on Android: `geo:` URL; on web: Google Maps URL
+- Use `Capacitor.getPlatform()` to pick the right URL scheme
+- Small icon button, placed inline with each location row
+
+### F6 — Import Sheet Polish (URL Preview)
+**Status**: `[ ]` Not started  
+**Files**: `components/ImportSheet.tsx`  
+**What to do**:
+- When a URL is pasted into the import field, immediately show a platform chip + domain preview
+- Add a "Paste from clipboard" button that reads `navigator.clipboard.readText()`
+- Show a subtle shimmer loading state while Claude is processing (not just a spinner)
+- After save: show a mini success card with location count before the sheet closes
+
+### F7 — Map Cluster Labels
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Currently pins are individual dots; at high zoom-out, 50+ pins become unreadable
+- Implement simple client-side clustering: group pins within 50px of each other at current zoom
+- Show cluster markers with count badge (`+12`) in indigo
+- Tapping a cluster zooms into the cluster bounds
+- Use MapLibre's built-in cluster layer (GeoJSON source with `cluster: true`)
+
+### F8 — Substance Search Filter
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `lib/searchItems.ts`  
+**What to do**:
+- Add "Has tips" filter chip to the inbox filter row (alongside platform chips)
+- When active: filters to only items with `substance.length > 0`
+- Show tip count badge on matching items in the grid
+- This surfaces the wisdom layer as a first-class filter, not just a badge
+
+### F9 — Plan Share Card (Screenshot)
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, new `components/PlanShareCard.tsx`  
+**What to do**:
+- "Share plan" button in the complete state generates a screenshot-able summary card
+- Card shows: board emoji + name, day count, top 5 locations, Claude badge
+- Use `html2canvas` or `dom-to-image` to capture the card as a PNG
+- On iOS: share via `navigator.share({ files: [blob] })`; on web: download PNG
+- Design: white card, indigo header strip, clean minimal layout
+
+### F10 — Offline Map Tiles Cache
+**Status**: `[ ]` Not started  
+**Files**: `public/sw.js` (service worker), `components/MapView.tsx`  
+**What to do**:
+- Register a service worker that caches OpenFreeMap tile responses
+- Cache strategy: stale-while-revalidate for map tiles (up to 200MB)
+- Show "Offline" badge on the map when navigator.onLine is false
+- Tiles already viewed in the current session remain accessible offline
+
+---
+
+## PHASE G — Growth & Retention
+
+> Features that drive habit formation and word-of-mouth. Build after TestFlight.
+
+### G1 — Push Notifications (iOS)
+**Status**: `[ ]` Not started  
+**Needs**: `@capacitor/push-notifications`, APNs certificate  
+**What to do**: "You have 3 saved places near you" local push when app is backgrounded and GPS detects proximity. Also: "Your trip plan is ready" when long-running plan completes.
+
+### G2 — Trip Sharing (Read-Only Link)
+**Status**: `[ ]` Not started  
+**Needs**: Vercel KV or Supabase  
+**What to do**: Generate a `travelpanel.app/plan/[shareId]` URL that shows a read-only version of the plan. Store plan JSON in KV with 90-day TTL. Share via native share sheet.
+
+### G3 — iCloud Sync
+**Status**: `[ ]` Not started  
+**Needs**: Capacitor community plugin or native Swift  
+**What to do**: Sync IndexedDB → CloudKit via background sync. Fallback: export/import JSON manually (already done in D5). Required for multi-device scenario.
+
+### G4 — Widgets (iOS 16+ interactive)
+**Status**: `[ ]` Not started  
+**Needs**: WidgetKit + AppIntents (Swift — same as E4/E5)  
+**What to do**: Interactive widget showing next trip day with "Check in" action to mark a day complete. Builds on E4 (home screen widget).
+
+### G5 — AI Chat Interface for Trip Planning
+**Status**: `[ ]` Not started  
+**What to do**: Replace the static day slider + chip preferences with a conversational interface. User can say "move the beach day to Day 1" or "add a vegetarian restaurant near the temple". Requires streaming Claude API with tool calls to mutate the plan.
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
