@@ -10,6 +10,8 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import NearbyClipsBar from '@/components/NearbyClipsBar';
+import { useNearbyClips } from '@/hooks/useNearbyClips';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,6 +24,8 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+
+  const { nearby } = useNearbyClips({ items, enabled: !loading && items.length > 0 });
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -72,6 +76,17 @@ function HomePageInner() {
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+
+      {/* Nearby clips bar — shows when user is within 400m of a saved clip */}
+      {nearby.length > 0 && !selectedItem && !showImport && (
+        <NearbyClipsBar
+          nearby={nearby}
+          onSelect={(clip) => {
+            setSelectedItem(clip.item);
+            if (clip.item.locations.length > 0) setFlyTo(clip.item.locations[0]);
+          }}
+        />
+      )}
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
