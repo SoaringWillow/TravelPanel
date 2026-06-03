@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const rawText         = searchParams.get('text') ?? '';    // post text from Share Extension
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -88,9 +89,19 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image + text for anti-scraping platforms
+    const pendingImage = (() => {
+      try { return sessionStorage.getItem('pendingShareImage') ?? undefined; } catch { return undefined; }
+    })();
+    if (pendingImage) {
+      try { sessionStorage.removeItem('pendingShareImage'); } catch { /* ignore */ }
+    }
+
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, {
+      imageBase64: pendingImage,
+      sharedText: rawText || undefined,
+    })
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
