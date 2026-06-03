@@ -429,11 +429,31 @@ export default function PlanPage() {
                 />
               </div>
 
-              {/* Warning if no locations */}
+              {/* Empty state — no clips with locations */}
               {!hasLocations && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
-                  <MapPin size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>Add items with identified locations to plan a trip.</span>
+                <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/40 rounded-2xl p-5 border border-indigo-100 dark:border-indigo-900/40 text-center space-y-3">
+                  <div className="text-6xl leading-none">{board.emoji}</div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">
+                      No places with pins yet
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                      Save clips with locations to unlock AI trip planning for this board.
+                    </p>
+                  </div>
+                  <div className="text-left bg-white/70 dark:bg-black/20 rounded-xl p-3 space-y-1.5">
+                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Works great with</p>
+                    {['📸 Instagram / 小红书 location posts', '🎬 YouTube travel vlogs', '🎵 Douyin / Bilibili city guides'].map((ex) => (
+                      <p key={ex} className="text-xs text-gray-600 dark:text-gray-300">{ex}</p>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/inbox')}
+                    className="w-full bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
+                  >
+                    Clip from Inbox →
+                  </button>
                 </div>
               )}
 

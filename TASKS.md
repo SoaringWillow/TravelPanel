@@ -641,7 +641,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: boards with 20+ clips become hard to navigate; sort-by-tips lets users quickly find the highest-signal clips before trip planning
 
 ### I8 — Smart Empty State for Plan Page
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/EmptyState.tsx`  
 **What to do**:
 - When a board has 0 items with locations (the `hasLocations = false` branch), show a richer empty state with:
