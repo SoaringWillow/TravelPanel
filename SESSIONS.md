@@ -96,3 +96,29 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-03 09:25 | 7162711 | feat(B2): add browser extension for one-click URL clipping
+2026-06-03 09:32 | 5e9b597 | feat(B3): Claude Vision extraction for Xiaohongshu/WeChat via iOS Share Sheet
+2026-06-03 09:33 | f247bf9 | feat(B5): settings page with JSON export/import and data management
+2026-06-03 09:37 | 37fe73b | feat(D2): swipe-to-delete clips with 4s undo toast
+2026-06-03 09:38 | 4b4622e | feat(D4): editable personal notes on clips with auto-save
+2026-06-03 09:39 | 42f4e5e | feat(D5): tag/category filtering on map and inbox views
+2026-06-03 09:41 | 66a894b | feat(D1): haptic feedback on key iOS interactions
+2026-06-03 09:42 | d0bbe96 | feat(D6): photo clip flow — Camera Roll / screenshots → Claude Vision
+2026-06-03 09:45 | 6b15324 | feat(D3): dark mode with system-preference detection and theme toggle
+2026-06-03 09:49 | f3ceb19 | feat(D7): animated 3-step first-launch onboarding overlay
+2026-06-03 09:50 | b6dd038 | feat(D8): pull-to-refresh in inbox with animated spinner
+2026-06-03 09:51 | ce77dc8 | feat(E1): AI smart collections — Claude-suggested boards from saved clips
+2026-06-03 09:52 | d7ad156 | feat(E2): shareable clip card page with native share sheet
+2026-06-03 09:53 | a23e2c3 | feat(E4): nearby discovery via Overpass API in location detail card
+2026-06-03 09:56 | 0d929bc | feat(E3): shareable trip itinerary via URL-serialized base64
+2026-06-03 09:57 | 97ad362 | chore: add Phase F — iOS production readiness tasks (F1–F10)
+2026-06-03 09:59 | 8b2e574 | feat(F1): clip editing — edit title, description, tags from inbox
+2026-06-03 09:59 | e4fe030 | feat(F2): map empty state with animated hint card for new users
+2026-06-03 10:00 | 12ab5fc | feat(F3): offline banner — spring slide from top when network drops
+2026-06-03 10:01 | 2b222e3 | feat(F7): board cover photos from first clip thumbnail
+2026-06-03 10:01 | 1d54dc5 | feat(F8): enrichment success toasts — celebrate the 'wow' moment
+2026-06-03 10:02 | 29d53b8 | feat(F10): day stats on strip cards — stops, distance, estimated time
+2026-06-03 10:03 | 1e5f1ac | feat(F6): source attribution row in location detail card
+2026-06-03 10:04 | faca06b | feat(F9): keyboard-aware import sheet via Visual Viewport API
+2026-06-03 10:06 | 40ee50d | feat(F4): long-press quick actions on map pins
+2026-06-03 10:06 | 3bd607e | feat(F5): swipe between days in trip plan
