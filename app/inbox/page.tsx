@@ -14,8 +14,10 @@ import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SwipeToDelete from '@/components/SwipeToDelete';
+import TagFilterBar from '@/components/TagFilterBar';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { useTagFilter } from '@/hooks/useTagFilter';
 
 // ─── Undo toast state ─────────────────────────────────────────────────────────
 
@@ -46,6 +48,7 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const { activeTags, toggleTag, clearTags, itemMatchesFilter } = useTagFilter();
 
   // ── Undo delete ───────────────────────────────────────────────────────────
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
@@ -100,7 +103,11 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const searchFiltered = searchItems(platformFiltered, query);
+  const filtered = searchFiltered.filter((item) => itemMatchesFilter(item.tags));
+
+  // Tags available in the current inbox (for dynamic chip list)
+  const availableTags = [...new Set(inboxItems.flatMap((i) => i.tags))];
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -160,6 +167,18 @@ export default function InboxPage() {
         <div className="mb-3">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {/* Tag filter bar */}
+        {availableTags.length > 0 && (
+          <div className="mb-2">
+            <TagFilterBar
+              activeTags={activeTags}
+              onToggle={toggleTag}
+              onClear={clearTags}
+              availableTags={availableTags}
+            />
+          </div>
+        )}
 
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">

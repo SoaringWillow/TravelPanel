@@ -251,7 +251,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Notes survive export/import via the existing backup system (already in the schema)
 
 ### D5 — Tag/Category Filtering
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users with 50+ clips need to filter by type. "Show me only food spots in Tokyo."  
 **Files**: `app/inbox/page.tsx`, `app/page.tsx` (map view), `components/NavBar.tsx`  
 **What to do**:
