@@ -263,7 +263,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - "All" chip always present and clears other filters
 
 ### D6 — Photo Clip Flow (Camera Roll → Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users screenshot travel posts. They want to clip screenshots directly, not just URLs.  
 **Files**: `app/share/page.tsx`, `app/page.tsx`, `lib/enrichItem.ts`, `app/api/import/route.ts`  
 **What to do**:

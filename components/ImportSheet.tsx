@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Camera } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -40,6 +40,11 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError]     = useState('');
   const abortRef              = useRef<AbortController | null>(null);
+
+  // Photo clip state
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string>('');
+  const [photoData, setPhotoData]             = useState<{ data: string; mime: string } | null>(null);
+  const photoInputRef                         = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -89,9 +94,10 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   function handleSave() {
     if (!preview) return;
+    const id = crypto.randomUUID();
     const item: SavedItem = {
-      id: crypto.randomUUID(),
-      url: trimmedUrl,
+      id,
+      url: trimmedUrl || `local:photo:${id}`,
       platform: preview.platform,
       title: preview.title,
       description: preview.description,
@@ -134,6 +140,49 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     resetState();
   }
 
+  // ── Photo clip ────────────────────────────────────────────────────────────
+
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const objectUrl = URL.createObjectURL(file);
+    setPhotoPreviewUrl(objectUrl);
+
+    // Read as base64
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const result = reader.result as string;
+      // Strip data URI prefix to get raw base64
+      const base64 = result.split(',')[1];
+      const mime   = file.type || 'image/jpeg';
+
+      setPhotoData({ data: base64, mime });
+
+      // Send to /api/import using vision path
+      setStage('loading');
+      setError('');
+      try {
+        const res = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: 'local-photo', imageData: base64, imageMimeType: mime }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: ImportResult = await res.json();
+        // Inject the local photo as thumbnail if API didn't return one
+        if (!data.thumbnail) data.thumbnail = objectUrl;
+        setPreview(data);
+        setStage('preview');
+      } catch {
+        setError('Could not analyze the photo. You can save it manually.');
+        setStage('idle');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   function resetState() {
     abortRef.current?.abort();
     setUrl('');
@@ -141,6 +190,9 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    setPhotoPreviewUrl('');
+    setPhotoData(null);
   }
 
   function handleClose() {
@@ -209,21 +261,74 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (
-            <button
-              type="button"
-              onClick={handleImport}
-              disabled={!trimmedUrl || stage === 'loading'}
-              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              {stage === 'loading' ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Analyzing with AI…
-                </>
-              ) : (
-                'Clip & discover places'
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={!trimmedUrl || stage === 'loading'}
+                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {stage === 'loading' && !photoData ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Analyzing with AI…
+                  </>
+                ) : (
+                  'Clip & discover places'
+                )}
+              </button>
+
+              {/* Photo clip button */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400 font-medium">or</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                disabled={stage === 'loading'}
+                className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-sm font-medium text-gray-500
+                           hover:border-indigo-300 hover:text-indigo-600 active:scale-[0.98] transition-all
+                           flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {stage === 'loading' && photoData ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin text-indigo-500" />
+                    Analyzing screenshot…
+                  </>
+                ) : (
+                  <>
+                    <Camera size={15} />
+                    Clip a screenshot
+                  </>
+                )}
+              </button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoSelect}
+              />
+
+              {/* Photo preview thumbnail */}
+              {photoPreviewUrl && stage !== 'preview' && (
+                <div className="relative">
+                  <img
+                    src={photoPreviewUrl}
+                    alt="Screenshot preview"
+                    className="w-full h-32 object-cover rounded-xl"
+                  />
+                  {stage === 'loading' && (
+                    <div className="absolute inset-0 bg-white/70 rounded-xl flex items-center justify-center">
+                      <Loader2 size={24} className="animate-spin text-indigo-600" />
+                    </div>
+                  )}
+                </div>
               )}
-            </button>
+            </div>
           )}
 
           {/* ── Error message + save-anyway fallback ─────────────────────── */}
