@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      font-size: 14px;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .logo img {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+    }
+    .logo span { color: #f1f5f9; }
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #475569;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    .settings-btn:hover { color: #94a3b8; background: #1e293b; }
+
+    /* ── Loading ─────────────────────────────── */
+    .loading-view {
+      padding: 40px 16px;
+      text-align: center;
+      color: #64748b;
+    }
+    .spinner {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #1e293b;
+      border-top-color: #0ea5e9;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Thumbnail ───────────────────────────── */
+    .thumbnail-wrap {
+      height: 148px;
+      background: #1e293b;
+      overflow: hidden;
+      position: relative;
+    }
+    .thumbnail-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      opacity: 0.5;
+    }
+    .thumbnail-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    /* ── Preview body ────────────────────────── */
+    .preview-content {
+      padding: 12px 14px 4px;
+    }
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 100px;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .page-title {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 4px;
+      color: #f1f5f9;
+    }
+    .page-url {
+      font-size: 11px;
+      color: #475569;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    /* ── Clip button ─────────────────────────── */
+    .clip-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: calc(100% - 28px);
+      margin: 10px 14px 14px;
+      padding: 11px 16px;
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: -0.01em;
+    }
+    .clip-btn:hover { background: #0284c7; }
+    .clip-btn:active { background: #0369a1; transform: scale(0.98); }
+
+    /* ── Settings ────────────────────────────── */
+    .settings-view {
+      padding: 16px 14px;
+    }
+    .settings-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 14px;
+      color: #f1f5f9;
+    }
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+    .field-hint {
+      font-size: 11px;
+      color: #475569;
+      margin-top: 5px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .input {
+      width: 100%;
+      padding: 9px 11px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input:focus { border-color: #0ea5e9; }
+    .input::placeholder { color: #475569; }
+    .settings-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .btn-secondary {
+      flex: 1;
+      padding: 9px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #273549; }
+    .btn-primary {
+      flex: 1;
+      padding: 9px;
+      background: #0ea5e9;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #0284c7; }
+
+    /* ── Error ───────────────────────────────── */
+    .error-view {
+      padding: 28px 16px 20px;
+      text-align: center;
+    }
+    .error-icon { font-size: 28px; margin-bottom: 8px; }
+    .error-msg {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header (always visible) -->
+  <div class="header">
+    <div class="logo">
+      <img src="icons/icon.svg" alt="TravelPanel">
+      <span>TravelPanel</span>
+    </div>
+    <button class="settings-btn" id="settings-btn" title="Settings">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div data-view="loading" class="loading-view">
+    <div class="spinner"></div>
+    <div>Reading page…</div>
+  </div>
+
+  <!-- Preview -->
+  <div data-view="preview" style="display:none">
+    <div class="thumbnail-wrap">
+      <div class="thumbnail-placeholder" id="thumbnail-placeholder">🗺️</div>
+      <img class="thumbnail-img" id="thumbnail-img" alt="">
+    </div>
+    <div class="preview-content">
+      <div class="platform-badge" id="platform-badge">🌐 Web</div>
+      <div class="page-title" id="page-title">Loading…</div>
+      <div class="page-url" id="page-url"></div>
+    </div>
+    <button class="clip-btn" id="clip-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+  </div>
+
+  <!-- Settings -->
+  <div data-view="settings" style="display:none" class="settings-view">
+    <div class="settings-title">Settings</div>
+    <div class="field-label">TravelPanel App URL</div>
+    <input type="url" class="input" id="app-url-input" placeholder="https://your-app.vercel.app">
+    <div class="field-hint">Your deployed TravelPanel URL — found in your Vercel dashboard.</div>
+    <div class="settings-actions">
+      <button class="btn-secondary" id="cancel-settings">Cancel</button>
+      <button class="btn-primary" id="save-settings">Save</button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div data-view="error" style="display:none" class="error-view">
+    <div class="error-icon">⚠️</div>
+    <div class="error-msg" id="error-msg">Could not read page info. Try reloading the page.</div>
+    <button class="btn-secondary" id="close-error">Close</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
