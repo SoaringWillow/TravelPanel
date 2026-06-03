@@ -46,6 +46,12 @@ export default function PlanPage() {
   const [showShareCard, setShowShareCard] = useState(false);
   const [checkedActivities, setCheckedActivities] = useState<Record<number, Set<number>>>({});
 
+  // Refs for persist-on-toggle without stale closures
+  const savedTripsRef = useRef(savedTrips);
+  const currentTripIdRef = useRef(currentTripId);
+  useEffect(() => { savedTripsRef.current = savedTrips; }, [savedTrips]);
+  useEffect(() => { currentTripIdRef.current = currentTripId; }, [currentTripId]);
+
   useEffect(() => {
     async function load() {
       setLoadingBoard(true);
@@ -201,7 +207,19 @@ export default function PlanPage() {
       const daySet = new Set(prev[dayIdx] ?? []);
       if (daySet.has(actIdx)) daySet.delete(actIdx);
       else daySet.add(actIdx);
-      return { ...prev, [dayIdx]: daySet };
+      const next = { ...prev, [dayIdx]: daySet };
+      const tripId = currentTripIdRef.current;
+      if (tripId) {
+        const trip = savedTripsRef.current.find((t) => t.id === tripId);
+        if (trip) {
+          const serialized: Record<number, number[]> = {};
+          for (const [k, v] of Object.entries(next)) {
+            serialized[Number(k)] = Array.from(v as Set<number>);
+          }
+          saveTrip({ ...trip, checkedActivities: serialized });
+        }
+      }
+      return next;
     });
     hapticImpact('light');
   }
@@ -215,7 +233,11 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
     setStage('complete');
-    setCheckedActivities({});
+    const restored: Record<number, Set<number>> = {};
+    for (const [k, v] of Object.entries(trip.checkedActivities ?? {})) {
+      restored[Number(k)] = new Set(v);
+    }
+    setCheckedActivities(restored);
   }, []);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {

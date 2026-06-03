@@ -124,6 +124,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  checkedActivities?: Record<number, number[]>; // persisted day→actIdx check state
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

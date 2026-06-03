@@ -573,6 +573,103 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE I — Data Integrity, Polish & Retention Depth
+
+> Goal: every "it'd be nice if" gap that makes the app feel unfinished on an iPhone. No infrastructure required — all tasks are pure client-side JS/React/IndexedDB.
+
+### I1 — Trip Activity Progress Persistence
+**Status**: `[x]` Done  
+**Files**: `lib/types.ts`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Add `checkedActivities?: Record<number, number[]>` to the `Trip` type (Sets aren't JSON-serializable, use arrays)
+- In `toggleActivity()`, persist the updated check state to IndexedDB immediately using refs (avoids stale closure) 
+- In `loadTrip()`, restore `checkedActivities` from the saved trip (convert `number[]` back to `Set<number>`)
+- Why: users mark day activities done as they travel; losing that on refresh is data loss
+
+### I2 — Board Cover Thumbnail Auto-Set
+**Status**: `[ ]` Not started  
+**Files**: `lib/db.ts`, `hooks/useBoards.ts`, `app/boards/page.tsx` (or wherever boards list renders)  
+**What to do**:
+- When an item with a thumbnail is added to a board (`addItemToBoard`), update the board's `coverThumbnail` to the item's thumbnail if the board doesn't already have one
+- In the boards list page, render the `coverThumbnail` as a background image behind the board card, with the emoji + name overlaid
+- Fall back to the emoji-on-gradient display when no thumbnail exists
+- Why: boards page looks sparse (just emojis on white cards); cover photos make it feel alive and visually scannable
+
+### I3 — Inline Clip Notes from Inbox
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add a "Add note" button (pencil icon) to the InboxCard footer (done state only)
+- Tapping expands a single-line textarea inline (no sheet, no navigation); on blur, save to `item.notes` via `saveItem()`
+- If `item.notes` already exists, show a truncated preview in the card footer with the edit button
+- Why: capturing a quick note while browsing (e.g. "go in shoulder season") is currently a 4-tap operation (tap card → open detail → find notes field → type); inline saves that friction
+
+### I4 — Map Cluster Tap — Item List Popover
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- When a cluster marker is tapped, show a compact bottom sheet listing all item titles in that cluster (up to 10, with count if more)
+- Each row in the list is tappable and calls `onPinClick` with that item
+- Dismiss on backdrop tap or drag-down gesture
+- Why: currently tapping a cluster does nothing useful; users can't find the specific clip they're looking for when pins overlap
+
+### I5 — Keyboard-Safe Import Sheet on iOS
+**Status**: `[ ]` Not started  
+**Files**: `components/ImportSheet.tsx`  
+**What to do**:
+- When the URL input field is focused, add `pb-[env(keyboard-inset-height,0px)]` padding to the sheet's scrollable area so the keyboard doesn't cover the paste button
+- Use `visualViewport` resize listener as a fallback for older iOS: on `visualViewport.resize`, set a CSS variable `--kb-height` and apply it as bottom padding
+- Why: on iPhone SE and iPhone 13 mini, the keyboard covers the URL input and paste button, making the import flow unusable
+
+### I6 — Trip Day Notes
+**Status**: `[ ]` Not started  
+**Files**: `lib/types.ts`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Add `notes?: Record<number, string>` to the `Trip` type for per-day notes
+- In the plan view, below each day's activity list, add a "Day notes…" textarea (shows only when the day is active/expanded)
+- Persist `notes` to the trip in IndexedDB on blur (same fire-and-forget pattern as I1)
+- Show a small notepad icon in the day header when a day has notes
+- Why: travelers need to capture real-world context ("Restaurant was closed — try the place next door") that the AI plan can't know
+
+### I7 — Board Sort & Filter Bar
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx` (or the board detail page that lists items)  
+**What to do**:
+- In the board detail view (the page that lists clips in a board), add a sort bar: "Date added", "Most tips", "Platform"
+- Sort is in-memory (no DB change needed)
+- Remember the chosen sort in `sessionStorage`
+- Why: boards with 20+ clips become hard to navigate; sort-by-tips lets users quickly find the highest-signal clips before trip planning
+
+### I8 — Smart Empty State for Plan Page
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/EmptyState.tsx`  
+**What to do**:
+- When a board has 0 items with locations (the `hasLocations = false` branch), show a richer empty state with:
+  - A visual showing the board emoji large + a "no pins yet" message
+  - An "Add clips to this board" CTA that routes to Inbox with the board pre-selected as move target
+  - A list of 3 example clip types that work well (Instagram reels, YouTube vlogs, 小红书 posts)
+- Why: new users don't understand why the plan button is disabled; the empty state should teach them what to do
+
+### I9 — Substance Highlight in Plan Activities
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- For each plan activity, if its `sourcedTips` array is non-empty, show a collapsible "From your clips" section below the activity time/name
+- Each sourced tip shows: `💡 <content>` with a smaller `— from "<sourceTitle>"` attribution line
+- Collapsed by default (show a "N tips from your clips" expand button); expand on tap
+- Why: sourcedTips are already in the plan data but are currently invisible — this is the core substance moat surfaced at exactly the right moment (the user is about to go to that location)
+
+### I10 — Substance Type Breakdown in Detail Card
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`  
+**What to do**:
+- In LocationDetailCard, replace the flat "N tips" count badge with a breakdown row showing each type that's present: `💡 3 tips · ⚠️ 1 warning · 💬 1 opinion`
+- Use the existing `SubstanceType` enum values to build the breakdown
+- Tapping the row scrolls to / expands the SubstanceList section
+- Why: substance type breakdown signals *what kind* of wisdom is in the clip at a glance, helping users prioritise which clips to read before visiting a place
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
