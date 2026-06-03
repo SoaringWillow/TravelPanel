@@ -201,7 +201,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Every task here is implementable without Supabase keys.
 
 ### D1 — iOS Safe Area + Native Feel
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/layout.tsx`, `app/globals.css`, `components/NavBar.tsx`, all page headers  
 **What to do**:
 - Add `viewport-fit=cover` to the meta viewport tag so the app fills the notch/Dynamic Island

@@ -34,8 +34,17 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Prevent elastic over-scroll that reveals white gaps beneath dark elements */
+    overscroll-behavior: none;
+  }
+  /* Remove 300ms tap delay on all interactive elements */
+  button, [role="button"], a, input, select, textarea {
+    touch-action: manipulation;
   }
 }
+
+/* ── Safe-area helpers ── */
+/* Use pb-safe / pt-safe on scroll containers and fixed bars */
 
 .maplibregl-map {
   width: 100%;
@@ -71,3 +80,10 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Combined: padding PLUS a base value */
+.pt-safe  { padding-top:    max(env(safe-area-inset-top), 12px); }
+.pb-safe  { padding-bottom: max(env(safe-area-inset-bottom), 8px); }
+
+/* Fixed elements that must sit below the notch/Dynamic Island */
+.top-safe { top: env(safe-area-inset-top); }

@@ -93,8 +93,9 @@ function HomePageInner() {
         followUser={onTripMode && !flyTo}
       />
 
-      {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      {/* Top bar – floating, respects Dynamic Island / notch */}
+      <div className="absolute top-0 left-0 right-0 z-[1000] pt-safe px-4 pb-2"
+           style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}>
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>

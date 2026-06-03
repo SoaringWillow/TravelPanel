@@ -101,3 +101,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-03 20:35 | 77015e8 | feat(B5): cloud backup export/import + settings page
 2026-06-03 20:38 | 9d23045 | feat(C1): on-trip GPS mode with nearby clips panel
 2026-06-03 20:39 | 7f7e5ca | feat(C2): post-trip timeline view on board detail
+2026-06-03 20:41 | 24dca51 | feat(C4): proactive resurfacing — Rediscover banner in inbox
+2026-06-03 20:42 | 32b70b5 | chore: new task phases D/E/F — iOS beauty, AI enhancements, native features
