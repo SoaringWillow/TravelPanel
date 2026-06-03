@@ -2,14 +2,15 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { useNearbyClips } from '@/hooks/useNearbyClips';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -17,11 +18,15 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 function HomePageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { items, loading, addItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  const nearby = useNearbyClips(items);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -83,6 +88,53 @@ function HomePageInner() {
           </div>
         </div>
       </div>
+
+      {/* Proactive "near you" banner */}
+      <AnimatePresence>
+        {nearby.count > 0 && !bannerDismissed && !selectedItem && (
+          <motion.div
+            key="nearby-banner"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ delay: 0.8, duration: 0.3 }}
+            className="absolute left-4 right-4 z-[999]"
+            style={{ top: 84 }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setBannerDismissed(true);
+                router.push('/inbox');
+              }}
+              className="w-full bg-blue-600 text-white rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3 text-left active:scale-[0.98] transition-all"
+            >
+              <span className="text-xl flex-shrink-0">📍</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold leading-tight">
+                  {nearby.count} saved place{nearby.count !== 1 ? 's' : ''} near you
+                </p>
+                {nearby.nearest && (
+                  <p className="text-xs text-blue-200 mt-0.5 truncate">
+                    Closest: {nearby.nearest.title}
+                    {nearby.nearestDistanceKm !== null && ` · ${nearby.nearestDistanceKm < 1
+                      ? `${Math.round(nearby.nearestDistanceKm * 1000)}m`
+                      : `${nearby.nearestDistanceKm.toFixed(1)}km`} away`}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setBannerDismissed(true); }}
+                className="p-1 text-blue-200 hover:text-white transition-colors flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Selected item detail card */}
       <AnimatePresence>

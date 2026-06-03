@@ -188,10 +188,10 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Status**: `[x]` Done
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Blocked — needs Supabase cloud sync (B1 keys required)
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ---
 
