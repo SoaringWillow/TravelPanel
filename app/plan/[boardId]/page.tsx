@@ -9,6 +9,7 @@ import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } fro
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { notifyPlanReady } from '@/lib/notifications';
 import { hapticImpact, hapticNotification } from '@/hooks/useHaptic';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
@@ -16,6 +17,7 @@ import DayStripCard from '@/components/DayStripCard';
 import EmptyState from '@/components/EmptyState';
 import PlanVersionBar from '@/components/PlanVersionBar';
 import PlanShareCard from '@/components/PlanShareCard';
+import PlanChat from '@/components/PlanChat';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -130,8 +132,10 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
-              if (msg.step.type === 'done') hapticNotification('success');
-              else hapticNotification('error');
+              if (msg.step.type === 'done') {
+                hapticNotification('success');
+                notifyPlanReady(board?.name ?? 'Your trip');
+              } else hapticNotification('error');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -615,6 +619,22 @@ export default function PlanPage() {
                     ))}
                   </ul>
                 </div>
+              )}
+
+              {/* AI Chat — conversational plan modification */}
+              {planIsComplete(plan) && (
+                <PlanChat
+                  plan={plan}
+                  boardItems={boardItems}
+                  onPlanUpdate={(updated) => {
+                    setPlan(updated);
+                    // Persist the AI-modified plan if there's an active trip
+                    if (currentTripId) {
+                      const trip = savedTrips.find((t) => t.id === currentTripId);
+                      if (trip) saveTrip({ ...trip, plan: updated });
+                    }
+                  }}
+                />
               )}
 
               {/* Start Over */}

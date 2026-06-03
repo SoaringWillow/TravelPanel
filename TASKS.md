@@ -438,7 +438,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Features that drive habit formation and word-of-mouth. Build after TestFlight.
 
 ### G1 — Push Notifications (iOS)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (local notifications — no APNs required; Capacitor LocalNotifications on native, Web Notifications API on web)  
 **Needs**: `@capacitor/push-notifications`, APNs certificate  
 **What to do**: "You have 3 saved places near you" local push when app is backgrounded and GPS detects proximity. Also: "Your trip plan is ready" when long-running plan completes.
 
@@ -458,7 +458,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Interactive widget showing next trip day with "Check in" action to mark a day complete. Builds on E4 (home screen widget).
 
 ### G5 — AI Chat Interface for Trip Planning
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Replace the static day slider + chip preferences with a conversational interface. User can say "move the beach day to Day 1" or "add a vegetarian restaurant near the temple". Requires streaming Claude API with tool calls to mutate the plan.
 
 ---
