@@ -325,7 +325,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The shared URL opens the card page which deep-links into the app
 
 ### E3 — Trip Itinerary Sharing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Needs**: Server-side storage (Supabase B1) or serialization into URL  
 **What to do**:
 - Export a trip as a shareable link that renders a read-only itinerary view
