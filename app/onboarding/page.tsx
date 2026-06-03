@@ -167,37 +167,62 @@ function ClipIllustration() {
   );
 }
 
+const SUBSTANCE_CARDS = [
+  { icon: '💡', label: 'Tip', text: 'Arrive before 6am to beat crowds', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+  { icon: '⚠️', label: 'Warning', text: 'Cash only — no card machines', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+  { icon: '🌸', label: 'Good to know', text: 'Peak cherry blossoms mid-April', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
+];
+
 function WisdomIllustration() {
   return (
-    <svg width="200" height="180" viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      {/* Post card */}
-      <rect x="20" y="30" width="80" height="110" rx="12" fill="white" opacity="0.15"/>
-      <rect x="28" y="42" width="64" height="36" rx="6" fill="white" opacity="0.2"/>
-      <rect x="28" y="84" width="50" height="6" rx="3" fill="white" opacity="0.4"/>
-      <rect x="28" y="94" width="40" height="5" rx="2.5" fill="white" opacity="0.3"/>
-      <rect x="28" y="104" width="44" height="5" rx="2.5" fill="white" opacity="0.3"/>
-      <text x="60" y="60" fontSize="22" textAnchor="middle">📷</text>
-      {/* Arrow / AI processing */}
-      <path d="M108 90 L130 90" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 3"/>
-      <path d="M125 85 L130 90 L125 95" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      {/* Extracted tips card */}
-      <rect x="136" y="20" width="50" height="140" rx="12" fill="white" opacity="0.9"/>
-      <text x="161" y="40" fontSize="10" textAnchor="middle" fill="#7c3aed" fontWeight="bold">Tips</text>
-      <rect x="142" y="46" width="38" height="5" rx="2.5" fill="#e0e7ff"/>
-      <rect x="142" y="55" width="30" height="4" rx="2" fill="#c7d2fe"/>
-      <rect x="142" y="64" width="34" height="4" rx="2" fill="#c7d2fe"/>
-      {/* Warning row */}
-      <rect x="142" y="76" width="38" height="5" rx="2.5" fill="#fecaca"/>
-      <rect x="142" y="85" width="28" height="4" rx="2" fill="#fca5a5"/>
-      {/* Wisdom row */}
-      <rect x="142" y="97" width="38" height="5" rx="2.5" fill="#d1fae5"/>
-      <rect x="142" y="106" width="32" height="4" rx="2" fill="#a7f3d0"/>
-      <rect x="142" y="115" width="36" height="4" rx="2" fill="#a7f3d0"/>
-      {/* Pin */}
-      <circle cx="161" cy="133" r="8" fill="#6366f1"/>
-      <circle cx="161" cy="131" r="3" fill="white"/>
-      <path d="M161 134 L161 139" stroke="#6366f1" strokeWidth="1.5"/>
-    </svg>
+    <div style={{ width: 240, position: 'relative' }} aria-hidden="true">
+      {/* "Post" card (left side) */}
+      <div style={{
+        background: 'rgba(255,255,255,0.12)',
+        borderRadius: 14,
+        padding: '10px 12px',
+        marginBottom: 12,
+        border: '1px solid rgba(255,255,255,0.2)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>📷</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ height: 7, background: 'rgba(255,255,255,0.4)', borderRadius: 4, marginBottom: 4, width: '80%' }} />
+            <div style={{ height: 5, background: 'rgba(255,255,255,0.25)', borderRadius: 3, width: '55%' }} />
+          </div>
+        </div>
+        <div style={{ height: 5, background: 'rgba(255,255,255,0.25)', borderRadius: 3, marginBottom: 4 }} />
+        <div style={{ height: 5, background: 'rgba(255,255,255,0.2)', borderRadius: 3, width: '70%' }} />
+      </div>
+
+      {/* Animated substance cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {SUBSTANCE_CARDS.map((card, i) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 + i * 0.35, duration: 0.4, ease: 'easeOut' }}
+            style={{
+              background: 'rgba(255,255,255,0.95)',
+              borderRadius: 12,
+              padding: '8px 10px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 14, lineHeight: 1, marginTop: 2 }}>{card.icon}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: card.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {card.label}
+              </span>
+              <p style={{ fontSize: 11, color: '#374151', margin: '2px 0 0', lineHeight: 1.35 }}>{card.text}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
   );
 }
 

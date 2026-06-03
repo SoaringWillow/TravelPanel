@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Globe2, Plus, X } from 'lucide-react';
+import { Globe2, Plus, X, Maximize2, Minimize2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
@@ -25,6 +25,7 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [fullscreen, setFullscreen]           = useState(false);
 
   const nearby = useNearbyClips(items);
 
@@ -78,16 +79,57 @@ function HomePageInner() {
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
 
-      {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
-          <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
-          </div>
-        </div>
-      </div>
+      {/* Top bar – floating (hidden in fullscreen) */}
+      <AnimatePresence>
+        {!fullscreen && (
+          <motion.div
+            key="topbar"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-0 left-0 right-0 z-[1000] p-4"
+          >
+            <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
+              <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
+              <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFullscreen(true)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+                  aria-label="Map fullscreen"
+                  title="Fullscreen map"
+                >
+                  <Maximize2 size={15} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Fullscreen exit button */}
+      <AnimatePresence>
+        {fullscreen && (
+          <motion.button
+            key="exit-fullscreen"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            type="button"
+            onClick={() => setFullscreen(false)}
+            className="absolute top-4 left-4 z-[1000] bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-900 transition-colors"
+            aria-label="Exit fullscreen"
+          >
+            <Minimize2 size={14} />
+            Exit
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Proactive "near you" banner */}
       <AnimatePresence>
@@ -150,8 +192,8 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
-      {/* Import FAB */}
-      {!selectedItem && (
+      {/* Import FAB — hidden in fullscreen */}
+      {!selectedItem && !fullscreen && (
         <button
           onClick={() => setShowImport(true)}
           className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
@@ -169,7 +211,8 @@ function HomePageInner() {
         initialUrl={prefilledUrl}
       />
 
-      <NavBar active="home" />
+      {/* NavBar hidden in fullscreen */}
+      {!fullscreen && <NavBar active="home" />}
     </main>
   );
 }

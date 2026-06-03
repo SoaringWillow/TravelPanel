@@ -530,7 +530,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: power users with 50+ clips need bulk operations to stay organized
 
 ### H7 — Map Fullscreen Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, `components/MapView.tsx`  
 **What to do**:
 - Add a "↗ Expand" button (top-right of map area) that toggles the map to cover the full screen including nav bar
@@ -549,7 +549,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: with 50+ clips, knowing *why* a clip matched the search (substance content vs. just title) helps users find the right clip faster
 
 ### H9 — Onboarding: Substance Value Demonstration
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/onboarding/page.tsx`  
 **What to do**:
 - Replace the static SVG illustration on Screen 2 (AI extracts the wisdom) with an animated "before/after" demo
