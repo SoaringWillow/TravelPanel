@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      background: #f9fafb;
+      color: #0f0f11;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      padding: 32px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: #6366f1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.4px;
+    }
+
+    .logo-sub {
+      font-size: 12px;
+      color: #9ca3af;
+      font-weight: 400;
+    }
+
+    h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #0f0f11;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+    input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+
+    .save-btn {
+      width: 100%;
+      margin-top: 20px;
+      padding: 11px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .save-btn:hover { background: #4f46e5; }
+
+    .toast {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #065f46;
+      text-align: center;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #f0f0f3;
+      margin: 28px 0;
+    }
+
+    .info-block {
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+    .info-block strong { color: #0f0f11; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🧭</div>
+      <div>
+        <div class="logo-text">TravelPanel</div>
+        <div class="logo-sub">Clipper Settings</div>
+      </div>
+    </div>
+
+    <h2>App URL</h2>
+
+    <label for="appUrl">TravelPanel App URL</label>
+    <input
+      type="url"
+      id="appUrl"
+      placeholder="https://your-app.vercel.app"
+      spellcheck="false"
+      autocomplete="off"
+    />
+    <div class="hint">The URL of your deployed TravelPanel app.</div>
+
+    <button class="save-btn" id="saveBtn">Save Settings</button>
+    <div class="toast" id="toast">✓ Settings saved!</div>
+
+    <hr class="divider" />
+
+    <h2>How It Works</h2>
+    <div class="info-block">
+      Click the <strong>🧭 TravelPanel</strong> icon on any page to clip it. The
+      extension opens TravelPanel's Share page with the URL pre-filled — Claude
+      then extracts locations, tips, and wisdom from the content automatically.
+      <br /><br />
+      Works with Instagram, YouTube, TikTok, Xiaohongshu, Bilibili, WeChat
+      articles, travel blogs, and any travel page.
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
