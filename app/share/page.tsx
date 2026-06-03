@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemById } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -22,48 +22,30 @@ function SharePageInner() {
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
-  const [boards, setBoards]                   = useState<Board[]>([]);
-  const [stage, setStage]                     = useState<Stage>('picking');
-  const [savedToName, setSavedToName]         = useState('');
-  const [newBoardName, setNewBoardName]       = useState('');
+  const [boards, setBoards]                       = useState<Board[]>([]);
+  const [stage, setStage]                         = useState<Stage>('picking');
+  const [savedToName, setSavedToName]             = useState('');
+  const [newBoardName, setNewBoardName]           = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
-  const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
+  const [enrichedData, setEnrichedData]           = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
+  // Pre-created item ID — enrichment starts before board selection
+  const preItemIdRef = useRef<string | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
-  // Auto-dismiss when done
+  // Pre-start enrichment immediately on mount, before user picks a board
   useEffect(() => {
-    if (stage === 'done') {
-      dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
-      }, 3000);
-    }
-    return () => {
-      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-    };
-  }, [stage]);
-
-  const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
-  const platformColor = PLATFORM_COLORS[platform];
-  const platformLabel = PLATFORM_LABELS[platform];
-
-  // Most-recently-updated 5 boards for quick-pick
-  const recentBoards = [...boards]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 5);
-
-  // ── Save handler ─────────────────────────────────────────────────────────
-
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
-    setStage('saving');
-
+    if (!rawUrl) return;
     const itemId = crypto.randomUUID();
+    preItemIdRef.current = itemId;
+
+    const platform = detectPlatform(rawUrl);
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
@@ -78,23 +60,12 @@ function SharePageInner() {
       savedAt: Date.now(),
       enrichmentStatus: 'pending',
       retryCount: 0,
-      boardId: selectedBoardId,
     };
 
-    await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
-
-    if (selectedBoardId) {
-      await addItemToBoard(selectedBoardId, itemId);
-    }
-
-    // Background enrichment
-    setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
-      .then(async (success) => {
+    saveItem(item).then(() => {
+      setEnrichmentLoading(true);
+      enrichItem(itemId, rawUrl).then(async (success) => {
         if (success) {
-          // Read back the enriched data to show location count in the done UI
-          const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
           if (updated) {
             setEnrichedData({
@@ -111,6 +82,71 @@ function SharePageInner() {
         }
         setEnrichmentLoading(false);
       });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally mount-only
+
+  // Auto-dismiss when done
+  useEffect(() => {
+    if (stage === 'done') {
+      dismissTimerRef.current = setTimeout(() => {
+        window.history.back();
+      }, 3000);
+    }
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
+  }, [stage]);
+
+  const platform      = rawUrl ? detectPlatform(rawUrl) : 'other';
+  const platformColor = PLATFORM_COLORS[platform];
+  const platformLabel = PLATFORM_LABELS[platform];
+
+  // Most-recently-updated 5 boards for quick-pick
+  const recentBoards = [...boards]
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 5);
+
+  // ── Save handler ─────────────────────────────────────────────────────────
+  // Item was already created on mount — just attach board and move to done.
+
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    setStage('saving');
+
+    const itemId = preItemIdRef.current ?? crypto.randomUUID();
+
+    if (!preItemIdRef.current) {
+      // Fallback: rawUrl missing or effect not yet run
+      const item: SavedItem = {
+        id: itemId,
+        url: rawUrl,
+        title: sharedTitle,
+        platform,
+        description: '',
+        thumbnail: undefined,
+        locations: [],
+        activities: [],
+        tags: [],
+        substance: [],
+        savedAt: Date.now(),
+        enrichmentStatus: 'pending',
+        retryCount: 0,
+        boardId: selectedBoardId,
+      };
+      await saveItem(item);
+    } else if (selectedBoardId) {
+      // Update boardId on already-saved item
+      const existing = await getItemById(itemId);
+      if (existing) {
+        await saveItem({ ...existing, boardId: selectedBoardId });
+      }
+    }
+
+    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+
+    if (selectedBoardId) {
+      await addItemToBoard(selectedBoardId, itemId);
+    }
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
@@ -131,7 +167,6 @@ function SharePageInner() {
       updatedAt: Date.now(),
     };
 
-    // Persist the board first, then let handleSave create + save the item
     await saveBoard(newBoard);
     setBoards((prev) => [newBoard, ...prev]);
     setNewBoardName('');
@@ -154,6 +189,10 @@ function SharePageInner() {
             >
               {platformLabel}
             </span>
+            {/* Show enrichment is already running */}
+            {enrichmentLoading && (
+              <span className="text-xs text-gray-400 animate-pulse">🔍 Extracting…</span>
+            )}
           </div>
 
           {/* Title */}
@@ -286,7 +325,7 @@ function SharePageInner() {
           </p>
         </motion.div>
 
-        {/* Enrichment result */}
+        {/* Enrichment result — already in progress since page load */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -295,7 +334,7 @@ function SharePageInner() {
         >
           {enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+              <span className="text-sm animate-pulse">🔍 Extracting locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
             <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">

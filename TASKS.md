@@ -221,7 +221,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Dark map style: swap OpenFreeMap liberty style to `dark` variant for dark mode
 
 ### D3 — Clip Flow Speed (Instant Save)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `lib/enrichItem.ts`  
 **Why**: The iOS Share Sheet flow currently saves first then enriches in the background. The enrichment is triggered but the Share Sheet closes in 3 seconds regardless. Add a "quick preview" that shows the extracted title as soon as the Share Extension is dismissed, then enriches silently.  
 **What to do**:
