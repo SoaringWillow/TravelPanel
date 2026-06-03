@@ -254,7 +254,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Plan empty: "Plan your trip — AI will build a day-by-day itinerary from your saved places"
 
 ### D7 — iOS App Icon Set
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`  
 **What to do**:
 - Design a single 1024×1024 master icon: dark indigo rounded background + white travel pin (SVG-first)
