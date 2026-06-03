@@ -12,11 +12,22 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: text }  = await Preferences.get({ key: 'pendingShareText' });
+    const { value: image } = await Preferences.get({ key: 'pendingShareImage' });
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareText' });
+    await Preferences.remove({ key: 'pendingShareImage' });
+
+    // Stash image in sessionStorage — too large for URL params but fine for same-tab use
+    if (image) {
+      try { sessionStorage.setItem('pendingShareImage', image); } catch { /* quota */ }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
+    if (text)  qs.set('text', text);
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
@@ -49,12 +60,14 @@ export function CapacitorBridge() {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
-            const shareUrl = parsed.searchParams.get('url');
+            const shareUrl   = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const shareText  = parsed.searchParams.get('text');
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              if (shareText)  qs.set('text', shareText);
               router.push(`/share?${qs.toString()}`);
             }
           } catch {

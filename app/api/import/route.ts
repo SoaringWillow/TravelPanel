@@ -83,29 +83,22 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+// Platforms that reliably block server-side scraping. For these, sharedText or
+// imageBase64 (from the iOS Share Extension) is the primary content source.
+const SCRAPE_BLOCKED_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>, sharedText?: string) {
+  const contentBlock = sharedText
+    ? `Shared post text:\n${sharedText.slice(0, 3000)}`
+    : `Page content:\n${page?.textContent ?? '(could not fetch page)'}`;
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+Description: ${page?.description ?? sharedText?.slice(0, 200) ?? '(unavailable)'}
+${contentBlock}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -127,23 +120,94 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(platform: string, url: string, sharedText?: string) {
+  const textHint = sharedText ? `\nShared caption/text: ${sharedText.slice(0, 500)}` : '';
+  return `You are a travel content analyzer. The attached image is a screenshot or photo from a ${platform} travel post.${textHint}
+URL: ${url}
+
+Analyze BOTH the visible text and imagery to extract:
+
+## Layer 1 — Spots (geographic skeleton)
+Real, identifiable locations with GPS coordinates you are confident about. Read any text overlays, captions, or place names visible in the image. If no specific places are named, return an empty array.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Every piece of actionable insight, tip, warning, or opinion visible in the image (text overlays, captions, visible signs). Also infer substance from what you see (e.g., long queue → "arrive early"; outdoor seating → "weather-dependent").
+
+Generate a descriptive title and 2-3 sentence description from what you can see.`;
+}
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let sharedText: string | undefined;
+
+  try {
+    ({ url, imageBase64, sharedText } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // Skip scraping for blocked platforms when we have alternative content sources
+  const skipScrape = SCRAPE_BLOCKED_PLATFORMS.has(platform) && (!!imageBase64 || !!sharedText);
+  const page = skipScrape ? null : await fetchPageData(url);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+
+  // Vision path: use image when available (primary for Xiaohongshu/WeChat)
+  if (imageBase64) {
+    try {
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image' as const,
+                image: `data:image/jpeg;base64,${imageBase64}`,
+              },
+              {
+                type: 'text' as const,
+                text: buildVisionPrompt(platform, url, sharedText),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to text path
+    }
+  }
+
+  // Text path: use sharedText or scraped page content
+  if (!claudeResult) {
+    const prompt = buildTextPrompt(platform, url, page, sharedText);
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
+    title: (claudeResult?.title || page?.title || sharedText?.split('\n')[0] || url).slice(0, 200),
+    description: (claudeResult?.description || page?.description || sharedText?.slice(0, 300) || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],
     activities: claudeResult?.activities ?? [],

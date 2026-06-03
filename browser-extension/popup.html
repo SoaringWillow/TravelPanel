@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="10" r="4" fill="#fff" opacity="0.9"/>
+          <path d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7z" fill="#fff" opacity="0.3"/>
+          <path d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7z" stroke="#fff" stroke-width="1.5" fill="none"/>
+          <circle cx="12" cy="9" r="2.5" fill="#1D4ED8"/>
+        </svg>
+        <span>TravelPanel</span>
+      </div>
+      <button class="settings-btn" id="settingsBtn" title="Settings" aria-label="Open settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Page preview -->
+    <section class="page-preview" id="pagePreview">
+      <div class="favicon-wrap">
+        <img id="favicon" class="favicon" src="" alt="" />
+        <div class="favicon-fallback" id="faviconFallback" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="page-meta">
+        <p class="page-title" id="pageTitle">Loading…</p>
+        <p class="page-url" id="pageUrl"></p>
+      </div>
+    </section>
+
+    <!-- Platform badge -->
+    <div class="platform-badge" id="platformBadge" hidden>
+      <span id="platformLabel"></span>
+    </div>
+
+    <!-- Thumbnail preview (og:image) -->
+    <div class="thumbnail-wrap" id="thumbnailWrap" hidden>
+      <img id="thumbnail" class="thumbnail" src="" alt="Page preview" />
+      <div class="thumbnail-overlay">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span id="substanceHint" class="substance-hint"></span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-primary" id="clipBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span id="clipLabel">Save to TravelPanel</span>
+      </button>
+
+      <button class="btn btn-secondary" id="clipWithBoardBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Choose board…
+      </button>
+    </div>
+
+    <!-- Success state -->
+    <div class="success-state" id="successState" hidden>
+      <div class="success-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+        </svg>
+      </div>
+      <p class="success-title">Saved!</p>
+      <p class="success-sub">Opening TravelPanel…</p>
+    </div>
+
+    <!-- Error state -->
+    <div class="error-state" id="errorState" hidden>
+      <p class="error-msg" id="errorMsg"></p>
+    </div>
+
+    <!-- Blocked URLs notice -->
+    <div class="blocked-notice" id="blockedNotice" hidden>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>Can't clip browser system pages.</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>⌥⇧T to clip instantly</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
