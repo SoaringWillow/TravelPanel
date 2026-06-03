@@ -101,20 +101,20 @@ export default function InboxPage() {
   const searched = searchItems(platformFiltered, query);
 
   const tipsFiltered = tipsFilter === TIPS_FILTER_KEY
-    ? searched.filter((i) => (i.substance?.length ?? 0) > 0)
+    ? searched.filter((r) => (r.item.substance?.length ?? 0) > 0)
     : searched;
 
   // When "near me" is active, attach distances and sort nearest-first
   const itemsWithDistance = nearMeActive && userCoords
-    ? tipsFiltered.map(item => ({
-        item,
-        distance: minDistanceKm(userCoords.lat, userCoords.lng, item.locations),
+    ? tipsFiltered.map((r) => ({
+        ...r,
+        distance: minDistanceKm(userCoords.lat, userCoords.lng, r.item.locations),
       })).sort((a, b) => {
         if (a.distance === undefined) return 1;
         if (b.distance === undefined) return -1;
         return a.distance - b.distance;
       })
-    : tipsFiltered.map(item => ({ item, distance: undefined }));
+    : tipsFiltered.map((r) => ({ ...r, distance: undefined }));
 
   const filtered = itemsWithDistance;
 
@@ -305,8 +305,11 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map(({ item, distance }) => {
+              {filtered.map(({ item, distance, matchSnippet }) => {
                 const isSelected = selectedIds.has(item.id);
+                const snippetProps = matchSnippet && query.trim()
+                  ? { matchSnippet, matchQuery: query }
+                  : {};
                 return (
                   <motion.div
                     key={item.id}
@@ -336,6 +339,7 @@ export default function InboxPage() {
                           onViewOnMap={() => {}}
                           onMoveToBoard={() => {}}
                           nearbyDistance={nearMeActive ? distance : undefined}
+                          {...snippetProps}
                         />
                       </button>
                     ) : (
@@ -347,6 +351,7 @@ export default function InboxPage() {
                           onMoveToBoard={handleMoveToBoard}
                           onRetry={retryItem}
                           nearbyDistance={nearMeActive ? distance : undefined}
+                          {...snippetProps}
                         />
                       </SwipeToDelete>
                     )}

@@ -14,6 +14,33 @@ interface InboxCardProps {
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
   nearbyDistance?: number;
+  matchSnippet?: string;
+  matchQuery?: string;
+}
+
+// ─── Snippet highlight ───────────────────────────────────────────────────────
+
+function SnippetHighlight({ snippet, query }: { snippet: string; query: string }) {
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return <>{snippet}</>;
+  const pattern = new RegExp(
+    `(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+    'gi',
+  );
+  const parts = snippet.split(pattern);
+  return (
+    <>
+      {parts.map((part, i) =>
+        terms.includes(part.toLowerCase()) ? (
+          <strong key={i} className="font-semibold text-gray-700 dark:text-gray-200">
+            {part}
+          </strong>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -41,6 +68,8 @@ export default function InboxCard({
   onMoveToBoard,
   onRetry,
   nearbyDistance,
+  matchSnippet,
+  matchQuery,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -214,6 +243,13 @@ export default function InboxCard({
         <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
+
+        {/* Search match snippet */}
+        {matchSnippet && matchQuery && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 px-2 py-1 rounded-lg mb-2 line-clamp-1 leading-relaxed">
+            <SnippetHighlight snippet={matchSnippet} query={matchQuery} />
+          </p>
+        )}
 
         {/* Description */}
         {item.description && (

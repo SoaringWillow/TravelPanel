@@ -540,7 +540,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: the map is the #1 feature; on mobile it's cramped by headers/tabs; fullscreen makes it feel like a native maps app
 
 ### H8 — Clip Search with Semantic Highlight
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/searchItems.ts`, `components/InboxCard.tsx`  
 **What to do**:
 - Extend `searchItems()` to return match positions alongside each result: `{ item, matchField: 'title' | 'substance' | 'notes' | 'tag', matchSnippet: string }`
