@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: #6366f1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text { font-size: 18px; font-weight: 700; color: #111827; }
+    .logo-sub  { font-size: 12px; color: #6b7280; font-weight: 400; }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #111827;
+      background: #fff;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    input[type="url"]:focus, input[type="text"]:focus {
+      border-color: #6366f1;
+    }
+    .input-hint {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+
+    .btn-save {
+      width: 100%;
+      padding: 12px 16px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 0.15s;
+    }
+    .btn-save:hover { background: #4f46e5; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-top: 12px;
+      display: none;
+    }
+    .status.success { background: #ecfdf5; color: #059669; display: block; }
+    .status.error   { background: #fef2f2; color: #dc2626; display: block; }
+
+    /* Example URLs */
+    .example-list {
+      list-style: none;
+      margin-top: 8px;
+    }
+    .example-list li {
+      margin-bottom: 6px;
+    }
+    .example-btn {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #6b7280;
+      cursor: pointer;
+      font-family: monospace;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .example-btn:hover { background: #e5e7eb; border-color: #d1d5db; color: #374151; }
+
+    .divider {
+      height: 1px;
+      background: #f3f4f6;
+      margin: 20px 0;
+    }
+
+    .how-it-works h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 10px;
+    }
+    .steps { list-style: none; }
+    .steps li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      background: #e0e7ff;
+      color: #6366f1;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="logo-row">
+      <div class="logo">🗺</div>
+      <div>
+        <div class="logo-text">TravelPanel Clipper</div>
+        <div class="logo-sub">Settings</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">TravelPanel URL</div>
+      <div class="card-desc">
+        Enter the URL where your TravelPanel app is deployed. This is the base URL —
+        the extension will add <code>/share?url=…</code> when you clip a page.
+      </div>
+
+      <label for="app-url">Your TravelPanel URL</label>
+      <input
+        type="url"
+        id="app-url"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="input-hint">
+        Example: <code>https://travelpanel.vercel.app</code> or <code>http://localhost:3000</code>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="card-desc" style="margin-bottom: 10px;">Common examples — click to fill:</div>
+      <ul class="example-list">
+        <li><button class="example-btn" data-url="http://localhost:3000">http://localhost:3000</button> (local dev)</li>
+        <li><button class="example-btn" data-url="https://travelpanel.vercel.app">https://travelpanel.vercel.app</button> (Vercel deploy)</li>
+      </ul>
+
+      <button class="btn-save" id="btn-save">Save Settings</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="card how-it-works">
+      <h3>How it works</h3>
+      <ol class="steps">
+        <li>
+          <span class="step-num">1</span>
+          Browse any travel page (Instagram, YouTube, blogs, etc.)
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          Click the TravelPanel extension icon (or press <kbd>Alt+S</kbd>)
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          Hit <strong>Save to TravelPanel</strong> — the clip opens in your app where you can assign it to a board
+        </li>
+        <li>
+          <span class="step-num">4</span>
+          Claude extracts locations + wisdom from the post automatically
+        </li>
+      </ol>
+    </div>
+
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

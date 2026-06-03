@@ -21,6 +21,8 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  // CapacitorBridge passes imageBase64 for anti-scraping platforms (xiaohongshu etc.)
+  const urlImage        = searchParams.get('imageBase64') ?? null;
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -29,8 +31,17 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [imageBase64, setImageBase64]         = useState<string | null>(null);
+  const [savedItemId, setSavedItemId]         = useState<string | null>(null);
+  const [visionRetrying, setVisionRetrying]   = useState(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Seed image from URL param (passed by CapacitorBridge for anti-scraping platforms)
+  useEffect(() => {
+    if (urlImage) setImageBase64(urlImage);
+  }, [urlImage]);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
@@ -82,15 +93,16 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    setSavedItemId(itemId);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass imageBase64 for vision-capable platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64 ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -137,6 +149,45 @@ function SharePageInner() {
     setNewBoardName('');
     setShowNewBoardInput(false);
     await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
+  }
+
+  // ── Screenshot file handler ────────────────────────────────────────────────
+
+  function handleScreenshotFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      // Strip the data:image/jpeg;base64, prefix — API expects raw base64
+      const base64 = dataUrl.split(',')[1];
+      setImageBase64(base64);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Re-enrich the already-saved item using the newly attached screenshot
+  async function handleVisionRetry() {
+    if (!savedItemId || !imageBase64) return;
+    setVisionRetrying(true);
+    const success = await enrichItem(savedItemId, rawUrl, imageBase64);
+    if (success) {
+      const { getItemById } = await import('@/lib/db');
+      const updated = await getItemById(savedItemId);
+      if (updated) {
+        setEnrichedData({
+          platform: updated.platform,
+          title: updated.title,
+          description: updated.description,
+          thumbnail: updated.thumbnail,
+          locations: updated.locations,
+          activities: updated.activities,
+          tags: updated.tags,
+          substance: updated.substance,
+        } as ImportResult);
+      }
+    }
+    setVisionRetrying(false);
   }
 
   // ── Stage: picking ────────────────────────────────────────────────────────
@@ -242,6 +293,50 @@ function SharePageInner() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Screenshot attachment — shown proactively for anti-scraping platforms */}
+          {(platform === 'xiaohongshu' || platform === 'wechat' || platform === 'douyin') && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3"
+            >
+              <p className="text-xs font-semibold text-amber-800 mb-1">
+                📸 Attach screenshot for better extraction
+              </p>
+              <p className="text-xs text-amber-600 mb-2">
+                {platformLabel} blocks automatic content fetching. Add a screenshot so Claude can read the post text.
+              </p>
+              {imageBase64 ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-green-700 font-medium">✓ Screenshot attached</span>
+                  <button
+                    type="button"
+                    onClick={() => setImageBase64(null)}
+                    className="text-xs text-gray-400 hover:text-gray-600 underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-full transition-colors"
+                >
+                  + Attach screenshot
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleScreenshotFile}
+              />
+            </motion.div>
+          )}
         </div>
 
         {/* Bottom — return button (ghost) */}
@@ -307,6 +402,39 @@ function SharePageInner() {
                   {loc.name}
                 </p>
               ))}
+            </div>
+          ) : enrichedData && enrichedData.locations.length === 0 && enrichedData.substance.length === 0 ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 space-y-2">
+              <p className="text-sm font-semibold text-amber-800">Nothing extracted automatically</p>
+              <p className="text-xs text-amber-600">
+                This platform blocks content fetching. Attach a screenshot so Claude can read the post.
+              </p>
+              {visionRetrying ? (
+                <p className="text-xs text-amber-700 animate-pulse">🔍 Analyzing screenshot…</p>
+              ) : imageBase64 ? (
+                <button
+                  type="button"
+                  onClick={handleVisionRetry}
+                  className="text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded-full transition-colors"
+                >
+                  Re-extract with screenshot →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-full transition-colors"
+                >
+                  📸 Attach screenshot
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleScreenshotFile}
+              />
             </div>
           ) : enrichedData && enrichedData.locations.length === 0 ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3">

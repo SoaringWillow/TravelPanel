@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,17 +97,23 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Fetch page text only when no image is provided and the platform isn't
+  // known to block server-side scraping (xiaohongshu, douyin, wechat).
+  const blockedByAntiScraping =
+    platform === 'xiaohongshu' || platform === 'wechat' || platform === 'douyin';
+  const page = imageBase64 ? null : await fetchPageData(url);
 
-Platform: ${platform}
+  const baseContext = `Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
+${page ? `Title: ${page.title || '(unavailable)'}
+Description: ${page.description || '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page.textContent || '(could not fetch page)'}` : blockedByAntiScraping
+    ? 'Note: this platform uses anti-scraping — no page text available. Extract from the screenshot provided.'
+    : 'Note: page content unavailable. Extract from any visual context provided.'}`;
 
+  const extractionInstructions = `
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
@@ -128,14 +135,49 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+${baseContext}
+${extractionInstructions}`;
+
+  const visionPrompt = `You are analyzing a SCREENSHOT of a ${platform} travel post.
+Read ALL visible text in the image carefully — captions, comments, overlaid text, hashtags.
+This is the primary content source; no page text was fetched because the platform blocks scraping.
+
+${baseContext}
+${extractionInstructions}`;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: send screenshot to Claude for OCR + extraction
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: visionPrompt },
+              {
+                type: 'image',
+                image: `data:image/jpeg;base64,${imageBase64}`,
+                mimeType: 'image/jpeg',
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: standard enrichment from page content
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
