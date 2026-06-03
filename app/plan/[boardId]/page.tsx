@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -182,6 +182,24 @@ export default function PlanPage() {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
+  }, [plan, board, boardId]);
+
+  const handleShare = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const text = [
+      `${board.emoji} ${board.name} — ${plan.days.length}-day trip plan`,
+      plan.overview ?? '',
+      ...plan.days.map((d, i) =>
+        `Day ${i + 1}: ${d.theme}\n${d.activities.map((a) => `  ${a.time} ${a.location.name}`).join('\n')}`
+      ),
+    ].join('\n\n');
+
+    if (navigator.share) {
+      await navigator.share({ title: `${board.name} Trip Plan`, text });
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+    track('plan_shared', { boardId });
   }, [plan, board, boardId]);
 
   // Load a previously-saved plan variant into view.
@@ -418,47 +436,47 @@ export default function PlanPage() {
           {/* ── COMPLETE STATE ── */}
           {stage === 'complete' && plan && (
             <div className="space-y-5">
-              {/* Board header row */}
-              <div className="flex items-center gap-2">
+              {/* Hero section */}
+              <div className="relative -mx-4 -mt-4 bg-gradient-to-br from-indigo-600 via-violet-600 to-indigo-800 px-4 pt-safe pb-5">
                 <button
                   onClick={() => router.back()}
-                  className="flex items-center gap-1 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                  className="flex items-center gap-1 text-indigo-200 text-sm mb-4 hover:text-white transition-colors"
                 >
                   <ArrowLeft size={16} />
                   Back
                 </button>
-                <span className="text-xl">{board.emoji}</span>
-                <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-4xl">{board.emoji}</span>
+                  <div>
+                    <h1 className="text-xl font-bold text-white leading-tight">{board.name}</h1>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {plan.days && (
+                        <span className="flex items-center gap-1 bg-white/20 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                          <Calendar size={11} />
+                          {plan.days.length} day{plan.days.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {plan.totalLocations !== undefined && (
+                        <span className="flex items-center gap-1 bg-white/20 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                          <MapPin size={11} />
+                          {plan.totalLocations} location{plan.totalLocations !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {plan.estimatedDailyDistance && (
+                        <span className="flex items-center gap-1 bg-white/20 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                          <Route size={11} />
+                          ~{plan.estimatedDailyDistance}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {plan.overview && (
+                  <p className="text-sm text-indigo-100 leading-relaxed italic">{plan.overview}</p>
+                )}
               </div>
 
-              {/* Overview */}
-              {plan.overview && (
-                <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
-              )}
-
-              {/* Summary chips */}
-              <div className="flex flex-wrap gap-2">
-                {plan.days && (
-                  <div className="flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                    <Calendar size={12} />
-                    {plan.days.length} day{plan.days.length !== 1 ? 's' : ''}
-                  </div>
-                )}
-                {plan.totalLocations !== undefined && (
-                  <div className="flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                    <MapPin size={12} />
-                    {plan.totalLocations} location{plan.totalLocations !== 1 ? 's' : ''}
-                  </div>
-                )}
-                {plan.estimatedDailyDistance && (
-                  <div className="flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                    <Route size={12} />
-                    ~{plan.estimatedDailyDistance}
-                  </div>
-                )}
-              </div>
-
-              {/* Export actions */}
+              {/* Export + share actions */}
               {planIsComplete(plan) && (
                 <div className="flex gap-2">
                   <button
@@ -466,14 +484,21 @@ export default function PlanPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  >
+                    <Share2 size={14} />
+                    Share
                   </button>
                 </div>
               )}
@@ -488,18 +513,22 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
+              {/* Day strip — horizontally scrollable with scroll-snap */}
               {plan.days && plan.days.length > 0 && (
-                <div className="overflow-x-auto pb-2 -mx-4 px-4">
+                <div
+                  className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-none"
+                  style={{ scrollSnapType: 'x mandatory' }}
+                >
                   <div className="flex gap-3" style={{ width: 'max-content' }}>
                     {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
+                      <div key={day.day} style={{ scrollSnapAlign: 'start' }}>
+                        <DayStripCard
+                          day={day}
+                          index={idx}
+                          isActive={activeDayIndex === idx}
+                          onSelect={() => setActiveDayIndex(idx)}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -548,11 +577,11 @@ export default function PlanPage() {
                           {activity.sourcedTips.map((st, sIdx) => (
                             <div
                               key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                              className="bg-indigo-50 rounded-lg px-2.5 py-2 border-l-[3px] border-indigo-400"
                             >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
+                              <p className="text-xs text-indigo-900 leading-snug font-medium">💡 {st.content}</p>
+                              <p className="text-[10px] text-indigo-500 mt-0.5 truncate italic">
+                                From your clip: {st.sourceTitle}
                               </p>
                             </div>
                           ))}

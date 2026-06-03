@@ -231,7 +231,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `haptic feedback` call via Capacitor HapticsPlugin (`Haptics.impact({ style: 'medium' })`) on successful save
 
 ### D4 — Beautiful Plan View
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
 **What to do**:
 - Add a hero section at the top of the plan with the board name, emoji, day count, and a horizontal overview map showing the full route
