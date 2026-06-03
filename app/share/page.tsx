@@ -4,10 +4,11 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemById } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard, getItemById } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { mediumImpact, successNotification } from '@/lib/haptics';
+import { suggestBoards, BoardSuggestion } from '@/lib/suggestBoards';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -34,6 +35,7 @@ function SharePageInner() {
   // Pre-created item ID — enrichment starts before board selection
   const preItemIdRef = useRef<string | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [boardSuggestions, setBoardSuggestions] = useState<BoardSuggestion[]>([]);
 
   // Load boards on mount
   useEffect(() => {
@@ -80,6 +82,11 @@ function SharePageInner() {
               tags: updated.tags,
               substance: updated.substance,
             } as ImportResult);
+
+            // Compute board suggestions from extracted data
+            const [allBoards, allItems] = await Promise.all([getAllBoards(), getAllItems()]);
+            const suggestions = suggestBoards(allBoards, allItems, updated);
+            if (suggestions.length > 0) setBoardSuggestions(suggestions);
           }
         }
         setEnrichmentLoading(false);
@@ -212,6 +219,26 @@ function SharePageInner() {
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
           <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
+
+          {/* Smart board suggestions */}
+          {boardSuggestions.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs text-indigo-500 font-semibold mb-1.5">✨ Suggested</p>
+              <div className="flex gap-2">
+                {boardSuggestions.map(({ board }) => (
+                  <button
+                    key={board.id}
+                    type="button"
+                    disabled={stage === 'saving'}
+                    onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                    className="flex-shrink-0 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap ring-2 ring-indigo-300 ring-offset-1"
+                  >
+                    {board.emoji} {board.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">

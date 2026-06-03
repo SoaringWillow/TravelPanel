@@ -291,7 +291,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Rate-limit to 20 queries/day (localStorage counter)
 
 ### E2 — Smart Board Suggestions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ImportSheet.tsx`, `app/share/page.tsx`  
 **What to do**:
 - After a clip is extracted, suggest which existing board it best fits (based on location overlap and tag matching)
