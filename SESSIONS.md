@@ -122,3 +122,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-03 10:04 | faca06b | feat(F9): keyboard-aware import sheet via Visual Viewport API
 2026-06-03 10:06 | 40ee50d | feat(F4): long-press quick actions on map pins
 2026-06-03 10:06 | 3bd607e | feat(F5): swipe between days in trip plan
+2026-06-03 10:07 | 4ef6cbd | chore: update SESSIONS.md
