@@ -315,7 +315,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only runs when user has 20+ clips and no smart collections created yet
 
 ### E2 — Share Clip as Image Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to share clips with friends ("You should visit this!"). Plain URL shares don't show the substance layer.  
 **Files**: new `app/card/[itemId]/page.tsx`, new API route  
 **What to do**:

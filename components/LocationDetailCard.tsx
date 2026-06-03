@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Share2 } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { updateItemNote } from '@/lib/db';
@@ -19,6 +19,18 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
   const [notes, setNotes]   = useState(item.notes ?? '');
   const saveTimer           = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [saved, setSaved]   = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare() {
+    const url  = `${window.location.origin}/card/${item.id}`;
+    const text = `${item.title} — via TravelPanel`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try { await navigator.share({ title: text, url }); return; } catch {}
+    }
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   const scheduleSave = useCallback((value: string) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -66,14 +78,27 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 {item.title}
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="Close"
-            >
-              <X size={18} className="text-gray-500" />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-full transition-colors"
+                aria-label="Share"
+              >
+                {copied
+                  ? <span className="text-xs font-semibold text-green-600 px-1">✓</span>
+                  : <Share2 size={16} className="text-indigo-500" />
+                }
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                aria-label="Close"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
           </div>
 
           {/* ── Scrollable body ──────────────────────────────────────────── */}
