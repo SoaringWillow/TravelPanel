@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <img src="icons/icon32.png" alt="" class="logo-icon" />
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M13.2 9.8l.5.3a.5.5 0 0 1 .2.6l-.9 1.6a.5.5 0 0 1-.6.2l-.6-.2a4.5 4.5 0 0 1-.9.5l-.1.6a.5.5 0 0 1-.5.4H8.7a.5.5 0 0 1-.5-.4l-.1-.6a4.5 4.5 0 0 1-.9-.5l-.6.2a.5.5 0 0 1-.6-.2L5.1 10.7a.5.5 0 0 1 .2-.6l.5-.3A4.6 4.6 0 0 1 5.8 9c0-.2 0-.5.1-.8l-.5-.3a.5.5 0 0 1-.2-.6l.9-1.6a.5.5 0 0 1 .6-.2l.6.2a4.5 4.5 0 0 1 .9-.5l.1-.6A.5.5 0 0 1 8.7 4h1.6a.5.5 0 0 1 .5.4l.1.6a4.5 4.5 0 0 1 .9.5l.6-.2a.5.5 0 0 1 .6.2l.9 1.6a.5.5 0 0 1-.2.6l-.5.3A4.6 4.6 0 0 1 13.2 9c0 .3 0 .5-.1.8Z" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Page info -->
+    <div class="page-info" id="page-info">
+      <div class="platform-chip" id="platform-chip"></div>
+      <p class="page-title" id="page-title">Loading…</p>
+      <p class="page-url" id="page-url"></p>
+    </div>
+
+    <!-- No-URL state -->
+    <div class="no-url" id="no-url" style="display:none">
+      <p class="no-url-text">Open a travel page to clip it.</p>
+    </div>
+
+    <!-- App URL warning -->
+    <div class="warning-banner" id="app-url-warning" style="display:none">
+      <span>⚙️ Set your TravelPanel URL in</span>
+      <button id="open-settings-inline" class="link-btn">Settings</button>
+    </div>
+
+    <!-- Action button -->
+    <button id="clip-btn" class="clip-btn" disabled>
+      <span id="clip-btn-text">Clip to TravelPanel</span>
+    </button>
+
+    <!-- Success state -->
+    <div class="success" id="success-state" style="display:none">
+      <div class="success-icon">✅</div>
+      <p class="success-text">Clipped! Opening TravelPanel…</p>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

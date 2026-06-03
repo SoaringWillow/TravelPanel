@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 28px 32px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .logo img { width: 28px; height: 28px; border-radius: 6px; }
+
+    .logo-text { font-size: 16px; font-weight: 700; color: #6366f1; }
+
+    h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+
+    .subtitle { font-size: 13px; color: #6b7280; margin-bottom: 24px; line-height: 1.5; }
+
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+
+    input[type="url"] {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: #111827;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input[type="url"]:focus { border-color: #6366f1; }
+
+    .hint { font-size: 11px; color: #9ca3af; margin-top: 6px; }
+
+    .row { display: flex; gap: 10px; margin-top: 20px; }
+
+    .save-btn {
+      flex: 1;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .save-btn:hover { background: #4f46e5; }
+
+    .toast {
+      font-size: 13px;
+      font-weight: 600;
+      color: #065f46;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      background: #d1fae5;
+      border-radius: 10px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .toast.visible { opacity: 1; }
+
+    .section-divider {
+      border: none;
+      border-top: 1px solid #f3f4f6;
+      margin: 24px 0 20px;
+    }
+
+    .help-title { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+
+    .help-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+    .help-list li {
+      font-size: 12px;
+      color: #6b7280;
+      display: flex;
+      gap: 8px;
+      line-height: 1.4;
+    }
+
+    .help-list li span { flex-shrink: 0; }
+
+    code {
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 1px 4px;
+      font-family: ui-monospace, monospace;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <img src="icons/icon48.png" alt="" />
+      <span class="logo-text">TravelPanel</span>
+    </div>
+
+    <h2>Extension Settings</h2>
+    <p class="subtitle">Configure where to send your clipped travel pages.</p>
+
+    <label for="app-url">TravelPanel App URL</label>
+    <input
+      type="url"
+      id="app-url"
+      placeholder="https://your-app.vercel.app"
+      autocomplete="off"
+    />
+    <p class="hint">The deployed URL of your TravelPanel app (without a trailing slash).</p>
+
+    <div class="row">
+      <button class="save-btn" id="save-btn">Save</button>
+      <div class="toast" id="toast">✅ Saved!</div>
+    </div>
+
+    <hr class="section-divider" />
+
+    <p class="help-title">How it works</p>
+    <ul class="help-list">
+      <li><span>1.</span> Navigate to any travel blog, Instagram post, YouTube video, or map page.</li>
+      <li><span>2.</span> Click the TravelPanel icon in your toolbar.</li>
+      <li><span>3.</span> Hit <strong>Clip to TravelPanel</strong> — the share page opens in a new tab with the URL pre-filled.</li>
+      <li><span>4.</span> Pick a board and Claude extracts locations + wisdom from the page automatically.</li>
+    </ul>
+
+    <hr class="section-divider" />
+
+    <p class="hint">Supported: Instagram, YouTube, TikTok, 小红书, Douyin, Bilibili, Twitter/X, Pinterest, TripAdvisor, Google Maps, and any web page.</p>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
