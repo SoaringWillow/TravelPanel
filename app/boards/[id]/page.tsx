@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, LayoutGrid, Clock } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+
+type ViewMode = 'grid' | 'timeline';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,7 +24,8 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]       = useState<Location | undefined>(undefined);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -164,7 +167,7 @@ export default function BoardDetailPage() {
             )}
           </div>
 
-          {/* Items grid */}
+          {/* View mode toggle + items */}
           {boardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <MapPin className="text-gray-300 mb-3" size={40} />
@@ -176,21 +179,178 @@ export default function BoardDetailPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
-                />
-              ))}
-            </div>
+            <>
+              {/* Toggle: Grid / Timeline */}
+              <div className="flex gap-1.5 mb-4 bg-gray-100 p-1 rounded-xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                    viewMode === 'grid'
+                      ? 'bg-white text-gray-800 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <LayoutGrid size={13} />
+                  Grid
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('timeline')}
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                    viewMode === 'timeline'
+                      ? 'bg-white text-gray-800 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Clock size={13} />
+                  Timeline
+                </button>
+              </div>
+
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {boardItems.map((item) => (
+                    <InboxCard
+                      key={item.id}
+                      item={item}
+                      onDelete={handleDelete}
+                      onViewOnMap={handleViewOnMap}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <TimelineView items={boardItems} onDelete={handleDelete} onViewOnMap={handleViewOnMap} />
+              )}
+            </>
           )}
         </div>
       </div>
 
       <NavBar active="boards" />
+    </div>
+  );
+}
+
+// ─── TimelineView ─────────────────────────────────────────────────────────────
+
+interface TimelineViewProps {
+  items: SavedItem[];
+  onDelete: (id: string) => Promise<void>;
+  onViewOnMap: (id: string) => void;
+}
+
+function TimelineView({ items, onDelete, onViewOnMap }: TimelineViewProps) {
+  // Sort newest-first
+  const sorted = [...items].sort((a, b) => b.savedAt - a.savedAt);
+
+  // Group by calendar day (YYYY-MM-DD)
+  const groups: { dateKey: string; label: string; items: SavedItem[] }[] = [];
+  for (const item of sorted) {
+    const d     = new Date(item.savedAt);
+    const key   = d.toISOString().slice(0, 10);
+    const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const last  = groups.at(-1);
+    if (last?.dateKey === key) {
+      last.items.push(item);
+    } else {
+      groups.push({ dateKey: key, label, items: [item] });
+    }
+  }
+
+  return (
+    <div className="space-y-0">
+      {groups.map((group, gi) => (
+        <div key={group.dateKey} className="flex gap-3">
+          {/* Left: date + timeline line */}
+          <div className="flex flex-col items-center" style={{ width: 60, flexShrink: 0 }}>
+            <div className="w-3 h-3 rounded-full bg-indigo-500 border-2 border-white shadow-sm mt-1 flex-shrink-0 z-10" />
+            {gi < groups.length - 1 && (
+              <div className="w-0.5 bg-indigo-100 flex-1 mt-1 mb-0" style={{ minHeight: 20 }} />
+            )}
+          </div>
+
+          {/* Right: date header + items */}
+          <div className="flex-1 pb-6">
+            <p className="text-xs font-semibold text-indigo-500 mb-2 mt-0.5">{group.label}</p>
+            <div className="space-y-3">
+              {group.items.map((item) => (
+                <TimelineCard
+                  key={item.id}
+                  item={item}
+                  onDelete={onDelete}
+                  onViewOnMap={onViewOnMap}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── TimelineCard (horizontal layout) ────────────────────────────────────────
+
+function TimelineCard({
+  item,
+  onDelete,
+  onViewOnMap,
+}: {
+  item: SavedItem;
+  onDelete: (id: string) => Promise<void>;
+  onViewOnMap: (id: string) => void;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex gap-0">
+      {/* Thumbnail */}
+      {item.thumbnail ? (
+        <img
+          src={item.thumbnail}
+          alt=""
+          className="w-20 h-20 object-cover flex-shrink-0"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+      ) : (
+        <div className="w-20 h-20 bg-gray-100 flex items-center justify-center flex-shrink-0">
+          <MapPin size={20} className="text-gray-300" />
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 p-3 flex flex-col justify-between">
+        <div>
+          <p className="text-xs font-semibold text-gray-700 line-clamp-2 leading-snug">
+            {item.title}
+          </p>
+          {item.locations.length > 0 && (
+            <p className="text-xs text-indigo-500 mt-0.5 line-clamp-1">
+              📍 {item.locations.map(l => l.name).join(', ')}
+            </p>
+          )}
+          {(item.substance?.length ?? 0) > 0 && (
+            <p className="text-xs text-amber-600 mt-0.5">
+              💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-1.5">
+          <button
+            type="button"
+            onClick={() => onViewOnMap(item.id)}
+            className="text-xs text-indigo-600 font-medium hover:underline"
+          >
+            Map
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(item.id)}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-auto"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
