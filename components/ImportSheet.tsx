@@ -46,6 +46,18 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [photoData, setPhotoData]             = useState<{ data: string; mime: string } | null>(null);
   const photoInputRef                         = useRef<HTMLInputElement>(null);
 
+  // Keyboard avoidance via Visual Viewport API
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  useEffect(() => {
+    const vv = (window as Window & { visualViewport?: { height: number; addEventListener: Function; removeEventListener: Function } }).visualViewport;
+    if (!vv) return;
+    function update() {
+      setKeyboardOffset(Math.max(0, window.innerHeight - (vv?.height ?? window.innerHeight)));
+    }
+    vv.addEventListener('resize', update);
+    return () => vv.removeEventListener('resize', update);
+  }, []);
+
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
@@ -216,7 +228,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           <DrawerTitle>Clip inspiration</DrawerTitle>
         </DrawerHeader>
 
-        <div className="px-4 pb-8 space-y-4">
+        <div className="px-4 space-y-4" style={{ paddingBottom: `${Math.max(32, keyboardOffset + 16)}px` }}>
           {/* ── Platform badge row ───────────────────────────────────────── */}
           <div className="flex flex-wrap gap-1.5">
             {ALL_PLATFORMS.map((p) => (

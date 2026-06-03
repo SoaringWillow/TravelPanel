@@ -449,7 +449,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only show once per item (gate with a Set of shown item IDs in a ref)
 
 ### F9 — Keyboard-Aware Import Sheet
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On iOS, the keyboard pushes the sheet content but the URL input field can get hidden behind it.  
 **Files**: `components/ImportSheet.tsx`  
 **What to do**:
