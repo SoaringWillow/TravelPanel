@@ -125,6 +125,7 @@ export interface Trip {
   plan: TripPlan | null;
   createdAt: number;
   checkedActivities?: Record<number, number[]>; // persisted day→actIdx check state
+  dayNotes?: Record<number, string>;            // free-form per-day travel notes
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

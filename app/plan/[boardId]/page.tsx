@@ -45,6 +45,7 @@ export default function PlanPage() {
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [showShareCard, setShowShareCard] = useState(false);
   const [checkedActivities, setCheckedActivities] = useState<Record<number, Set<number>>>({});
+  const [dayNotes, setDayNotes] = useState<Record<number, string>>({});
 
   // Refs for persist-on-toggle without stale closures
   const savedTripsRef = useRef(savedTrips);
@@ -184,6 +185,8 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setSelectedChips(new Set());
     setCustomNotes('');
+    setCheckedActivities({});
+    setDayNotes({});
   }, []);
 
   // Export is only meaningful for a fully-formed plan (days + activities present).
@@ -201,6 +204,20 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  function saveDayNote(dayIdx: number, note: string) {
+    const next = note.trim() ? { ...dayNotes, [dayIdx]: note.trim() } : (() => {
+      const n = { ...dayNotes };
+      delete n[dayIdx];
+      return n;
+    })();
+    setDayNotes(next);
+    const tripId = currentTripIdRef.current;
+    if (tripId) {
+      const trip = savedTripsRef.current.find((t) => t.id === tripId);
+      if (trip) saveTrip({ ...trip, dayNotes: next });
+    }
+  }
 
   function toggleActivity(dayIdx: number, actIdx: number) {
     setCheckedActivities((prev) => {
@@ -238,6 +255,11 @@ export default function PlanPage() {
       restored[Number(k)] = new Set(v);
     }
     setCheckedActivities(restored);
+    const restoredNotes: Record<number, string> = {};
+    for (const [k, v] of Object.entries(trip.dayNotes ?? {})) {
+      restoredNotes[Number(k)] = v;
+    }
+    setDayNotes(restoredNotes);
   }, []);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
@@ -586,8 +608,9 @@ export default function PlanPage() {
                   {/* Day header with progress */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                      <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                         Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                        {dayNotes[activeDayIndex] && <span title="Has notes" className="text-xs">📝</span>}
                       </h2>
                       {(checkedActivities[activeDayIndex]?.size ?? 0) > 0 && (
                         <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
@@ -660,6 +683,15 @@ export default function PlanPage() {
                   );
                   })}
                 </div>
+              )}
+
+              {/* Day notes */}
+              {activeDayPlan && (
+                <DayNotesField
+                  dayIdx={activeDayIndex}
+                  value={dayNotes[activeDayIndex] ?? ''}
+                  onSave={saveDayNote}
+                />
               )}
 
               {/* Trip tips */}
@@ -774,6 +806,39 @@ function DraggableDayStrip({ days, activeDayIndex, onSelect, onReorder }: Dragga
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─── DayNotesField ───────────────────────────────────────────────────────────
+
+interface DayNotesFieldProps {
+  dayIdx: number;
+  value: string;
+  onSave: (dayIdx: number, note: string) => void;
+}
+
+function DayNotesField({ dayIdx, value, onSave }: DayNotesFieldProps) {
+  const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
+
+  // Sync when switching days
+  useEffect(() => { setDraft(value); }, [value]);
+
+  return (
+    <div className="bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-800/30 p-3">
+      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5 flex items-center gap-1">
+        📝 Day notes
+      </p>
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => { setFocused(false); onSave(dayIdx, draft); }}
+        placeholder="Capture anything from today — real conditions, detours, discoveries…"
+        rows={focused || draft ? 3 : 1}
+        className="w-full text-xs text-amber-900 dark:text-amber-200 bg-transparent placeholder-amber-400 dark:placeholder-amber-600 resize-none focus:outline-none leading-relaxed"
+      />
     </div>
   );
 }

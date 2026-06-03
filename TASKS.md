@@ -622,7 +622,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: on iPhone SE and iPhone 13 mini, the keyboard covers the URL input and paste button, making the import flow unusable
 
 ### I6 — Trip Day Notes
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/types.ts`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Add `notes?: Record<number, string>` to the `Trip` type for per-day notes
