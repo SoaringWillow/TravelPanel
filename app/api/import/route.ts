@@ -97,8 +97,11 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageData: string | undefined;
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    ({ url } = body);
+    imageData = typeof body.imageData === 'string' ? body.imageData : undefined;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -110,14 +113,23 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const textContext = imageData
+    ? `Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable — anti-scraping blocked)'}
+Description: ${page?.description ?? '(unavailable)'}
 
-Platform: ${platform}
+An image of the post has been provided. Analyse it visually alongside the text context above.`
+    : `Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page)'}`;
+
+  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+${textContext}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -142,12 +154,32 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageData) {
+      // Vision extraction — image supplied (e.g. Xiaohongshu/WeChat screenshot)
+      // Strip data-URL prefix if present so we pass raw base64
+      const base64 = imageData.replace(/^data:[^;]+;base64,/, '');
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image', image: base64, mimeType: 'image/jpeg' },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
