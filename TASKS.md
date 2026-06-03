@@ -308,7 +308,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Extend the existing `searchItems` utility to search across board-assigned items too. Add a "Global" toggle to the search bar that searches everything, not just Inbox.
 
 ### E2 — Board Cover Customization
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Let users pick a clip thumbnail as the board cover. Store as `coverThumbnail` on the Board object (field already exists). Show in board list as a full-bleed card rather than emoji.
 
 ### E3 — Trip Itinerary Polish: Drag-Reorder Days
