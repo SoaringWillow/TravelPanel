@@ -4,12 +4,14 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Navigation2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import NearbyPanel from '@/components/NearbyPanel';
 import NavBar from '@/components/NavBar';
+import { useGeolocation } from '@/lib/useGeolocation';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,6 +24,18 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [onTripMode, setOnTripMode]     = useState(false);
+  const geo = useGeolocation();
+
+  function toggleOnTrip() {
+    if (onTripMode) {
+      geo.stop();
+      setOnTripMode(false);
+    } else {
+      geo.start();
+      setOnTripMode(true);
+    }
+  }
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,17 +85,45 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        userLocation={geo.position}
+        followUser={onTripMode && !flyTo}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+          <div className="ml-auto flex items-center gap-2">
+            {/* On-Trip mode toggle */}
+            <button
+              type="button"
+              onClick={toggleOnTrip}
+              title={onTripMode ? 'Exit on-trip mode' : 'On-trip mode — show nearby clips'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                onTripMode
+                  ? 'bg-blue-500 text-white shadow-md shadow-blue-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Navigation2 size={12} fill={onTripMode ? 'white' : 'none'} />
+              {onTripMode ? 'On Trip' : 'Go'}
+            </button>
+            <span className="text-sm text-gray-500">
+              {loading ? 'Loading…' : `${items.length} saved`}
+            </span>
           </div>
         </div>
+        {/* GPS error */}
+        {onTripMode && geo.error && (
+          <p className="mt-2 text-xs text-center text-red-500 bg-white/90 rounded-xl px-3 py-1.5 backdrop-blur-sm">
+            {geo.error}
+          </p>
+        )}
       </div>
 
       {/* Selected item detail card */}
@@ -94,8 +136,23 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
-      {/* Import FAB */}
-      {!selectedItem && (
+      {/* Nearby panel (on-trip mode) */}
+      <AnimatePresence>
+        {onTripMode && geo.position && !selectedItem && (
+          <NearbyPanel
+            items={items}
+            position={geo.position}
+            onItemClick={(item) => {
+              setSelectedItem(item);
+              if (item.locations.length > 0) setFlyTo(item.locations[0]);
+            }}
+            onClose={() => { geo.stop(); setOnTripMode(false); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Import FAB — hidden in on-trip mode */}
+      {!selectedItem && !onTripMode && (
         <button
           onClick={() => setShowImport(true)}
           className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"

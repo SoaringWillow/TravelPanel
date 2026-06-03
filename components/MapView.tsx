@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import { GeoPosition } from '@/lib/useGeolocation';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -226,16 +227,77 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
+// ─── User location dot ───────────────────────────────────────────────────────
+
+function UserLocationDot() {
+  return (
+    <div style={{ position: 'relative', width: 20, height: 20 }}>
+      {/* Pulsing ring */}
+      <div
+        style={{
+          position: 'absolute', inset: -8,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(59,130,246,0.18)',
+          animation: 'locationPulse 2s ease-out infinite',
+        }}
+      />
+      {/* Accuracy ring */}
+      <div
+        style={{
+          position: 'absolute', inset: -3,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(59,130,246,0.25)',
+        }}
+      />
+      {/* Centre dot */}
+      <div
+        style={{
+          position: 'absolute', inset: 0,
+          borderRadius: '50%',
+          backgroundColor: '#3b82f6',
+          border: '2.5px solid white',
+          boxShadow: '0 2px 8px rgba(59,130,246,0.5)',
+        }}
+      />
+      <style>{`
+        @keyframes locationPulse {
+          0%   { transform: scale(1); opacity: 0.8; }
+          70%  { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────────────
+
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: GeoPosition | null;
+  followUser?: boolean;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation, followUser }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const prevUserLocRef = useRef<GeoPosition | null>(null);
+
+  // Follow user location when followUser is true
+  useEffect(() => {
+    if (!followUser || !userLocation || !mapInstanceRef.current) return;
+    const prev = prevUserLocRef.current;
+    if (prev && prev.lat === userLocation.lat && prev.lng === userLocation.lng) return;
+    prevUserLocRef.current = userLocation;
+    mapInstanceRef.current.easeTo({
+      center: [userLocation.lng, userLocation.lat],
+      zoom: Math.max(mapInstanceRef.current.getZoom(), 13),
+      duration: 800,
+    });
+  }, [userLocation, followUser]);
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -281,6 +343,13 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         <NavigationControl position="top-right" />
 
         <MapController flyTo={flyTo} />
+
+        {/* User location pulsing dot */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <UserLocationDot />
+          </Marker>
+        )}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;
