@@ -195,6 +195,157 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Beauty & Polish (Current Sprint)
+
+> Goal: ship a beautiful, native-feeling iOS app that users love to open.
+> Every task here is implementable without Supabase keys.
+
+### D1 — iOS Safe Area + Native Feel
+**Status**: `[ ]` Not started  
+**Files**: `app/layout.tsx`, `app/globals.css`, `components/NavBar.tsx`, all page headers  
+**What to do**:
+- Add `viewport-fit=cover` to the meta viewport tag so the app fills the notch/Dynamic Island
+- Use CSS `env(safe-area-inset-top/bottom)` for the floating header and NavBar to avoid overlap
+- Add `overscroll-behavior: none` to prevent rubber-band reveal of white under dark bars
+- Add `touch-action: manipulation` to all interactive buttons to remove the 300ms tap delay
+- Ensure NavBar bottom padding accounts for the home indicator on iPhone X+
+
+### D2 — Dark Mode
+**Status**: `[ ]` Not started  
+**Files**: `app/globals.css`, `tailwind.config.js`, all components  
+**What to do**:
+- Enable Tailwind `darkMode: 'class'` (or `media`) 
+- Add a `dark:` variant for every background, text, border colour in the app
+- Store user preference in localStorage and respect `prefers-color-scheme` as the default
+- Toggle switch in Settings page (`app/settings/page.tsx`)
+- Dark map style: swap OpenFreeMap liberty style to `dark` variant for dark mode
+
+### D3 — Clip Flow Speed (Instant Save)
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, `lib/enrichItem.ts`  
+**Why**: The iOS Share Sheet flow currently saves first then enriches in the background. The enrichment is triggered but the Share Sheet closes in 3 seconds regardless. Add a "quick preview" that shows the extracted title as soon as the Share Extension is dismissed, then enriches silently.  
+**What to do**:
+- In `app/share/page.tsx`, start enrichment immediately on page load (not after board selection)
+- Show an inline progress indicator in the done state: "🔍 Extracting locations…"
+- Update the done-state card with location count when enrichment completes
+- Add `haptic feedback` call via Capacitor HapticsPlugin (`Haptics.impact({ style: 'medium' })`) on successful save
+
+### D4 — Beautiful Plan View
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
+**What to do**:
+- Add a hero section at the top of the plan with the board name, emoji, day count, and a horizontal overview map showing the full route
+- Each DayStripCard: add a subtle gradient background per day number, time-of-day icons (morning ☀️ / afternoon 🌤 / evening 🌆)
+- Sourced tips (`sourcedTips`) render in a distinct callout: indigo left-border, "From your clip:" attribution in small italic
+- Smooth scroll-snap between day cards on mobile
+- "Share plan" button that exports the plan as a beautiful image (using html2canvas or a server-side OG image endpoint)
+
+### D5 — Haptic Feedback (iOS)
+**Status**: `[ ]` Not started  
+**Files**: new `lib/haptics.ts`, used in clip save, board create, plan generate  
+**What to do**:
+- Create `lib/haptics.ts` that wraps `@capacitor/haptics` with a no-op fallback for web
+- `lightImpact()`, `mediumImpact()`, `successNotification()`, `errorNotification()`
+- Call on: clip saved (medium), board created (light), plan generated (success notification), error (error notification)
+- Install `@capacitor/haptics` and sync to iOS
+
+### D6 — Pull-to-Refresh
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Add pull-to-refresh gesture to the inbox and boards list
+- On pull: re-run the enrichment retry queue for any `pending`/`failed` items
+- Show a subtle spinner while refreshing
+- Use the Capacitor `@capacitor/motion` or a simple touch-event approach for the gesture
+
+### D7 — Clip Detail Sheet (Full-Screen Modal)
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, new `components/ClipDetailSheet.tsx`  
+**What to do**:
+- Create a full-screen bottom sheet for viewing a single clip in detail
+- Sections: hero thumbnail → platform badge + title + description → 📍 Locations (map thumbnail) → 💡 Substance (grouped by type with icons) → 🗒 Personal notes → Actions (Add to board, View on map, Share, Delete)
+- Replace the current minimal `LocationDetailCard` popup with this sheet on mobile
+- Smooth spring animation; can be dismissed by swipe-down or tap outside
+
+### D8 — App Loading Performance
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`, `app/layout.tsx`, `components/MapView.tsx`  
+**What to do**:
+- Add a splash screen overlay (matching the app's dark teal brand colour) that fades out after the map loads
+- Lazy-load the trip planner page and all heavy components
+- Add skeleton loaders to InboxCard and board cards while data loads from IndexedDB
+- Bundle analysis: run `next build --profile` and eliminate the largest unnecessary dependencies
+
+---
+
+## PHASE E — AI Enhancements
+
+### E1 — Ask About Your Clips
+**Status**: `[ ]` Not started  
+**Files**: new `app/api/ask/route.ts`, new `components/AskBar.tsx`, add to main page  
+**What to do**:
+- Add a floating search/ask bar to the map view with placeholder "Ask about your saved places…"
+- POST to `/api/ask` with the question + a summary of all the user's saved items (title, substance items, locations)
+- Claude returns a friendly answer citing specific clips ("Based on your Kyoto clip from May, the Philosopher's Path is best in early April…")
+- Show the answer in a bottom sheet with linked clip cards
+- Rate-limit to 20 queries/day (localStorage counter)
+
+### E2 — Smart Board Suggestions
+**Status**: `[ ]` Not started  
+**Files**: `components/ImportSheet.tsx`, `app/share/page.tsx`  
+**What to do**:
+- After a clip is extracted, suggest which existing board it best fits (based on location overlap and tag matching)
+- Simple client-side scoring: compare item's locations/tags against board members
+- Show the top 1–2 suggestions as highlighted chips above the full board list
+
+### E3 — Duplicate Detection
+**Status**: `[ ]` Not started  
+**Files**: `components/ImportSheet.tsx`, `lib/db.ts`  
+**What to do**:
+- Before saving a clip, check if the same URL already exists in IndexedDB
+- If found, show a banner: "You already saved this. View it?" with a link to the existing clip
+- Allow saving anyway (user may want a fresh extraction)
+
+### E4 — Substance Highlights in Plan
+**Status**: `[ ]` Not started  
+**Files**: `app/api/plan/route.ts`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Parse all `warning`-type substance items from the board's clips
+- Inject them as a "Watch out" section at the top of the generated plan
+- Render with red/orange accent in the plan UI: "⚠️ From your clips: Cash only at Ippudo. Gion gets crowded after 6pm."
+
+---
+
+## PHASE F — iOS Native Features
+
+### F1 — App Group Bridge (Capacitor Plugin)
+**Status**: `[ ]` Not started  
+**Files**: new `ios/App/App/Plugins/TravelPanelBridge/`, `CapacitorBridge.tsx`  
+**What to do**:
+- Create a minimal Capacitor plugin (Swift + JS) that exposes `readAppGroupData()` and `clearAppGroupData()`
+- Returns `{ pendingShareImage?: string, pendingShareURL?: string, pendingShareTitle?: string }` from the App Group UserDefaults
+- `CapacitorBridge.tsx` calls this on app focus and passes `pendingShareImage` to the share flow → enables B3 image vision pipeline end-to-end on iOS
+- See `ios/App/ShareExtension/ShareViewController.swift` for the writer side (already implemented in B3)
+
+### F2 — iOS Home Screen Widget
+**Status**: `[ ]` Not started  
+**Needs**: Xcode; SwiftUI widget extension  
+**What to do**:
+- Create a SwiftUI widget that shows the 3 most recently saved clips (title + thumbnail)
+- Small size: clip count + "Add clip" deep-link button
+- Medium size: 2 recent clips with thumbnails
+- Reads from App Group UserDefaults (written by the main app via the F1 bridge)
+
+### F3 — Siri Shortcut: "Clip Current URL"
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/`, register in App capabilities  
+**What to do**:
+- Donate a `INSendMessageIntent`-style shortcut: "Clip [URL] to TravelPanel"
+- User can add it to Siri: "Hey Siri, clip this to TravelPanel"
+- Shortcut opens the app with the URL pre-filled in the import sheet
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
