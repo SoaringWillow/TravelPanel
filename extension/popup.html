@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { width: 340px; }
+
+    body {
+      background: #0f172a;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .logo {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    }
+
+    .header-text { flex: 1; }
+    .header-text h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      letter-spacing: -0.01em;
+    }
+    .header-text p { font-size: 11px; color: #475569; }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+    }
+    .settings-btn:hover { color: #94a3b8; background: rgba(255,255,255,0.05); }
+
+    /* ── Content ── */
+    .content { padding: 14px 16px 16px; }
+
+    /* ── Page preview card ── */
+    .page-card {
+      background: #1e293b;
+      border-radius: 10px;
+      padding: 11px 13px 11px 16px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .page-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, #6366f1, #4f46e5);
+    }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .page-url img {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .page-url span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .platform-badge {
+      display: none;
+      align-items: center;
+      gap: 3px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-top: 6px;
+      width: fit-content;
+    }
+
+    /* ── Note input ── */
+    .note-container { margin-bottom: 12px; }
+
+    .note-label {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .note-input {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 12px;
+      padding: 8px 10px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s;
+      line-height: 1.4;
+    }
+    .note-input::placeholder { color: #334155; }
+    .note-input:focus { border-color: rgba(99, 102, 241, 0.4); }
+
+    /* ── Save button ── */
+    .save-btn {
+      width: 100%;
+      padding: 11px 16px;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
+      letter-spacing: -0.01em;
+    }
+    .save-btn:hover:not(:disabled) {
+      opacity: 0.92;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.45);
+    }
+    .save-btn:active:not(:disabled) { transform: scale(0.98); }
+    .save-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .save-btn .btn-icon { font-size: 15px; }
+
+    /* ── Status ── */
+    .status {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      text-align: center;
+      display: none;
+    }
+    .status.success {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      display: block;
+    }
+    .status.error {
+      background: rgba(239, 68, 68, 0.12);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      display: block;
+    }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .content { animation: fadeIn 0.15s ease-out; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">✈️</div>
+    <div class="header-text">
+      <h1>TravelPanel</h1>
+      <p>Clip this page</p>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="content">
+    <div class="page-card">
+      <div class="page-title" id="pageTitle">Loading page info…</div>
+      <div class="page-url">
+        <img id="favicon" src="" alt="" style="display:none">
+        <span id="pageUrlText">…</span>
+      </div>
+      <div class="platform-badge" id="platformBadge"></div>
+    </div>
+
+    <div class="note-container">
+      <label class="note-label" for="noteInput">Quick note (optional)</label>
+      <textarea
+        class="note-input"
+        id="noteInput"
+        rows="2"
+        placeholder="Why are you saving this?"
+      ></textarea>
+    </div>
+
+    <button class="save-btn" id="saveBtn">
+      <span class="btn-icon">📍</span>
+      <span id="saveBtnLabel">Save to TravelPanel</span>
+    </button>
+
+    <div class="status" id="statusMsg"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
