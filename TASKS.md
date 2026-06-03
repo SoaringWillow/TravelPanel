@@ -307,7 +307,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Allow saving anyway (user may want a fresh extraction)
 
 ### E4 — Substance Highlights in Plan
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/api/plan/route.ts`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Parse all `warning`-type substance items from the board's clips

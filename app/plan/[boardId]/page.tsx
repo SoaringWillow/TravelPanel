@@ -256,6 +256,13 @@ export default function PlanPage() {
 
   const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
 
+  // Collect all warning-type substance items from board clips for the "Watch out" banner
+  const watchOuts: Array<{ content: string; sourceTitle: string }> = boardItems.flatMap((item) =>
+    (item.substance ?? [])
+      .filter((s) => s.type === 'warning')
+      .map((s) => ({ content: s.content, sourceTitle: item.title }))
+  );
+
   if (loadingBoard) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -478,6 +485,23 @@ export default function PlanPage() {
                   <p className="text-sm text-indigo-100 leading-relaxed italic">{plan.overview}</p>
                 )}
               </div>
+
+              {/* Watch Out warnings from user's clips */}
+              {watchOuts.length > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3">
+                  <p className="text-xs font-semibold text-orange-700 flex items-center gap-1.5 mb-2">
+                    ⚠️ From your clips
+                  </p>
+                  <ul className="space-y-1.5">
+                    {watchOuts.slice(0, 5).map((w, i) => (
+                      <li key={i}>
+                        <p className="text-xs text-orange-800 leading-snug">{w.content}</p>
+                        <p className="text-[10px] text-orange-500 italic mt-0.5 truncate">— {w.sourceTitle}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Export + share actions */}
               {planIsComplete(plan) && (
