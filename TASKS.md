@@ -299,7 +299,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show the top 1–2 suggestions as highlighted chips above the full board list
 
 ### E3 — Duplicate Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ImportSheet.tsx`, `lib/db.ts`  
 **What to do**:
 - Before saving a clip, check if the same URL already exists in IndexedDB

@@ -15,6 +15,7 @@ import {
   PLATFORM_BG,
   PLATFORM_COLORS,
 } from '@/lib/parse-url';
+import { getItemByUrl } from '@/lib/db';
 
 // ─── Props / types ───────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [error, setError]       = useState('');
   const [imageData, setImageData] = useState<string | null>(null);
   const [imageFileName, setImageFileName] = useState('');
+  const [duplicate, setDuplicate] = useState<SavedItem | null>(null);
   const abortRef                = useRef<AbortController | null>(null);
   const fileInputRef            = useRef<HTMLInputElement | null>(null);
 
@@ -70,6 +72,13 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   async function handleImport() {
     if (!trimmedUrl) return;
+
+    // Check for duplicate before importing
+    const existing = await getItemByUrl(trimmedUrl);
+    if (existing) {
+      setDuplicate(existing);
+      // Still allow proceeding — show banner but don't block
+    }
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -163,6 +172,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setError('');
     setImageData(null);
     setImageFileName('');
+    setDuplicate(null);
   }
 
   function handleClose() {
@@ -262,6 +272,25 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               <ImagePlus size={13} />
               Upload screenshot (for 小红书 / WeChat)
             </button>
+          )}
+
+          {/* ── Duplicate banner ─────────────────────────────────────────── */}
+          {duplicate && stage !== 'preview' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
+              <span className="text-amber-500 text-sm flex-shrink-0 mt-0.5">⚠️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-amber-800">You already saved this</p>
+                <p className="text-xs text-amber-700 line-clamp-1 mt-0.5">{duplicate.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDuplicate(null)}
+                className="text-amber-400 hover:text-amber-600 flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
           )}
 
           {/* ── Import button (hidden during preview) ───────────────────── */}

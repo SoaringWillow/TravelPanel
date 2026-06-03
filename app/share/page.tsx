@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard, getItemById } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard, getItemById, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { mediumImpact, successNotification } from '@/lib/haptics';
@@ -36,6 +36,7 @@ function SharePageInner() {
   const preItemIdRef = useRef<string | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [boardSuggestions, setBoardSuggestions] = useState<BoardSuggestion[]>([]);
+  const [duplicateItem, setDuplicateItem] = useState<import('@/lib/types').SavedItem | null>(null);
 
   // Load boards on mount
   useEffect(() => {
@@ -64,6 +65,11 @@ function SharePageInner() {
       enrichmentStatus: 'pending',
       retryCount: 0,
     };
+
+    // Check for duplicate before creating
+    getItemByUrl(rawUrl).then((existing) => {
+      if (existing) setDuplicateItem(existing);
+    });
 
     saveItem(item).then(() => {
       setEnrichmentLoading(true);
@@ -213,6 +219,17 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Duplicate warning */}
+          {duplicateItem && (
+            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-2">
+              <span className="text-amber-500 text-sm flex-shrink-0">⚠️</span>
+              <p className="text-xs text-amber-800 flex-1">Already saved: <span className="font-semibold">{duplicateItem.title}</span></p>
+              <button type="button" onClick={() => setDuplicateItem(null)} className="text-amber-400 hover:text-amber-600">
+                <span className="text-xs">✕</span>
+              </button>
+            </div>
           )}
         </div>
 
