@@ -63,5 +63,16 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<!-- Location — required for On-Trip GPS mode and Near Me features -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TravelPanel uses your location to show nearby saved places and sort your inspiration by distance.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TravelPanel uses your location to proactively surface saved places when you arrive nearby.</string>
+	<!-- Photo Library — required for the iOS Share Extension to accept images from Xiaohongshu/WeChat -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TravelPanel can read images you share so Claude can extract travel inspiration from screenshots.</string>
+	<!-- Camera — future: clip from camera -->
+	<key>NSCameraUsageDescription</key>
+	<string>TravelPanel can use your camera to photograph menus, signs, and travel content for extraction.</string>
 </dict>
 </plist>
