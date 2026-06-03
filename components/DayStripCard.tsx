@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { DayPlan } from '@/lib/types';
+import { dayRouteKm } from '@/lib/utils';
 
 interface DayStripCardProps {
   day: DayPlan;
@@ -11,7 +12,10 @@ interface DayStripCardProps {
 }
 
 export default function DayStripCard({ day, index, isActive, onSelect }: DayStripCardProps) {
-  const stopCount = day.activities.length;
+  const stopCount  = day.activities.length;
+  const distKm     = dayRouteKm(day.locations);
+  const estHours   = Math.round(stopCount * 1.5);
+  const hasRoute   = day.locations.length >= 2;
 
   return (
     <motion.div
@@ -40,8 +44,10 @@ export default function DayStripCard({ day, index, isActive, onSelect }: DayStri
         {day.theme}
       </p>
 
-      <p className="text-xs text-gray-400 mt-1">
+      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
         {stopCount} stop{stopCount !== 1 ? 's' : ''}
+        {hasRoute && ` · ~${distKm}km`}
+        {estHours > 0 && ` · ~${estHours}h`}
       </p>
     </motion.div>
   );

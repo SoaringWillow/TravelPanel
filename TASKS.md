@@ -460,7 +460,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fall back gracefully on browsers that don't support visualViewport
 
 ### F10 — Plan Stats Bar (Distance + Time Estimate)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to know at a glance how ambitious the day is. "Day 2 · 6 stops · ~12km · 4-5h" is the kind of summary that makes a plan feel real.  
 **Files**: `components/DayStripCard.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
