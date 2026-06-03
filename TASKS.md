@@ -304,7 +304,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — Advanced Features (Future Sprint)
 
 ### E1 — AI Smart Collections
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users with 100+ clips want automatic grouping. "All my Tokyo clips" shouldn't require manual board management.  
 **Files**: new `app/api/cluster/route.ts`, `app/boards/page.tsx`  
 **What to do**:
