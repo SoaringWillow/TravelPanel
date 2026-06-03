@@ -191,6 +191,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {
     const db = await getDB();
@@ -208,4 +217,20 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+// ─── Backup / Restore ──────────────────────────────────────────────────────
+
+export async function restoreFromBackup(
+  items: SavedItem[],
+  boards: Board[],
+  trips: Trip[],
+): Promise<{ items: number; boards: number; trips: number }> {
+  const db = await getDB();
+  const tx = db.transaction(['items', 'boards', 'trips'], 'readwrite');
+  for (const item of items)   await tx.objectStore('items').put(item);
+  for (const board of boards) await tx.objectStore('boards').put(board);
+  for (const trip of trips)   await tx.objectStore('trips').put(trip);
+  await tx.done;
+  return { items: items.length, boards: boards.length, trips: trips.length };
 }
