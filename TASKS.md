@@ -206,7 +206,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > **Recommended order:** `D2 → D4 → D5 → D1 → D6 → D3 → D7 → D8`
 
 ### D1 — Haptic Feedback on Key Interactions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect physical feedback. Silent saves feel broken.  
 **Files**: `app/share/page.tsx`, `components/ImportSheet.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
