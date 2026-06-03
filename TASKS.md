@@ -488,7 +488,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Why: data loss on device wipe is existential; users need backup before switching phones
 
 ### H3 — Activity Check-in (Live Trip Mode)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Add a checkbox (or tap-to-complete) to each activity card in the plan complete view

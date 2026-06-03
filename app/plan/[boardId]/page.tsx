@@ -44,6 +44,7 @@ export default function PlanPage() {
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [checkedActivities, setCheckedActivities] = useState<Record<number, Set<number>>>({});
 
   useEffect(() => {
     async function load() {
@@ -195,6 +196,16 @@ export default function PlanPage() {
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 
+  function toggleActivity(dayIdx: number, actIdx: number) {
+    setCheckedActivities((prev) => {
+      const daySet = new Set(prev[dayIdx] ?? []);
+      if (daySet.has(actIdx)) daySet.delete(actIdx);
+      else daySet.add(actIdx);
+      return { ...prev, [dayIdx]: daySet };
+    });
+    hapticImpact('light');
+  }
+
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
     if (!trip.plan) return;
@@ -204,6 +215,7 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
     setStage('complete');
+    setCheckedActivities({});
   }, []);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
@@ -549,26 +561,63 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  {/* Day header with progress */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                        Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                      </h2>
+                      {(checkedActivities[activeDayIndex]?.size ?? 0) > 0 && (
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                          {checkedActivities[activeDayIndex]?.size} / {activeDayPlan.activities.length} done
+                        </span>
+                      )}
+                    </div>
+                    {(checkedActivities[activeDayIndex]?.size ?? 0) > 0 && (
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                          style={{ width: `${((checkedActivities[activeDayIndex]?.size ?? 0) / activeDayPlan.activities.length) * 100}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const isChecked = checkedActivities[activeDayIndex]?.has(aIdx) ?? false;
+                    return (
                     <div
                       key={aIdx}
-                      className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-white/10 space-y-1"
+                      className={`rounded-2xl p-3 shadow-sm border space-y-1 transition-all ${
+                        isChecked
+                          ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/40 opacity-75'
+                          : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10'
+                      }`}
                     >
                       <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        {/* Check-in button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleActivity(activeDayIndex, aIdx)}
+                          className={`flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${
+                            isChecked
+                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                              : 'border-gray-300 dark:border-gray-600 hover:border-emerald-400'
+                          }`}
+                          aria-label={isChecked ? 'Mark as not done' : 'Mark as done'}
+                        >
+                          {isChecked && <span style={{ fontSize: 10, lineHeight: 1 }}>✓</span>}
+                        </button>
+                        <span className="flex-shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.time}
                         </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
+                        <div className={`flex-1 min-w-0 ${isChecked ? 'line-through opacity-60' : ''}`}>
+                          <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
                             {activity.location.name}
                           </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200">{activity.name}</p>
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        <span className="flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.duration}
                         </span>
                       </div>
@@ -600,7 +649,8 @@ export default function PlanPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
 

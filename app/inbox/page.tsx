@@ -269,6 +269,7 @@ export default function InboxPage() {
             </div>
           ) : (
             <EmptyState variant="inbox" onCta={() => router.push('/')} />
+          )
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>

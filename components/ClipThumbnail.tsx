@@ -20,7 +20,7 @@ export default function ClipThumbnail({ src, alt, platform, title, className, st
 
   const color = PLATFORM_COLORS[platform];
   const initials = title
-    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
     .trim()
     .split(/\s+/)
     .slice(0, 2)
