@@ -17,7 +17,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 ## PHASE D — iOS Quality & Polish (Current Sprint)
 
 ### D1 — Notes on Clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: The single most common user request for a save-later app. Users need to annotate clips with personal context ("this was the one my friend recommended") and planning notes ("need to book 2 weeks in advance"). Without this, the app feels read-only.  
 **Files to change**: `lib/types.ts` (already has `notes?: string` on `SavedItem`), `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
@@ -28,7 +28,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 - Style with a subtle yellow/amber accent to distinguish from AI-extracted content
 
 ### D2 — Tags Filter in Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Users with 50+ clips can't navigate by theme. Tags (food, nature, culture, etc.) are already extracted by Claude but not surfaced as filters. This unlocks the clip library.  
 **Files to change**: `app/inbox/page.tsx`, `components/TagFilterBar.tsx` (new)  
 **What to do**:

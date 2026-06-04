@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import TagFilterBar from '@/components/TagFilterBar';
 import { ProactiveSurface } from '@/components/ProactiveSurface';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -37,6 +38,7 @@ export default function InboxPage() {
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -58,7 +60,12 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const tagFiltered =
+    activeTag === null
+      ? platformFiltered
+      : platformFiltered.filter((i) => (i.tags ?? []).includes(activeTag));
+
+  const filtered = searchItems(tagFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -120,7 +127,7 @@ export default function InboxPage() {
         </div>
 
         {/* Platform filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {PLATFORM_FILTERS.map((p) => {
             const count =
               p.key === 'all'
@@ -142,6 +149,13 @@ export default function InboxPage() {
             );
           })}
         </div>
+
+        {/* Tag filter bar */}
+        <TagFilterBar
+          items={platformFiltered}
+          activeTag={activeTag}
+          onTagSelect={setActiveTag}
+        />
       </div>
 
       {/* Content */}
