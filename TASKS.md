@@ -204,7 +204,7 @@ The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users 
 **Files**: new `components/ClipEditSheet.tsx`, `app/inbox/page.tsx`, `app/boards/[id]/page.tsx`
 
 ### D5 — Native App Icon & Splash Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app currently shows a generic WebView icon. A real branded icon is required before App Store submission and makes the home screen presence feel intentional.  
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/` (PNG generation script), update launch storyboard
 
