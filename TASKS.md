@@ -198,7 +198,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The check is async (IndexedDB) — show a brief loading state ("Checking…") while it resolves
 
 ### D2 — Restore from Backup
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: B5 added export. Without import/restore, data loss on device wipe is still existential. The pair completes the backup story.  
 **Files to change**: `app/settings/page.tsx`, `lib/exportData.ts`  
 **What to do**:
