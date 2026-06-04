@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import OnboardingOverlay from '@/components/OnboardingOverlay';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -114,6 +115,9 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+
+      {/* First-launch onboarding overlay */}
+      <OnboardingOverlay />
     </main>
   );
 }

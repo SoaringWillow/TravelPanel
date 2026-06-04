@@ -72,7 +72,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 - Keep spinners only for async actions (plan generation, enrichment)
 
 ### D6 — Improved Onboarding Flow
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: New users see an empty map with a FAB and no context. The seed boards help but there's no narrative. App Store reviewers + first-time users need a clear first-run experience.  
 **Files to change**: new `components/OnboardingOverlay.tsx`, `app/page.tsx`  
 **What to do**:
