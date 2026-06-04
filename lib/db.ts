@@ -209,3 +209,32 @@ export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
 }
+
+// ─── Backup export ─────────────────────────────────────────────────────────
+
+export async function exportAllData() {
+  const db = await getDB();
+  const [items, boards, trips] = await Promise.all([
+    db.getAll('items'),
+    db.getAll('boards'),
+    db.getAll('trips'),
+  ]);
+  return { items, boards, trips };
+}
+
+// ─── Demo data cleanup ──────────────────────────────────────────────────────
+
+export async function deleteDemoData(): Promise<number> {
+  const db = await getDB();
+  const [items, boards] = await Promise.all([db.getAll('items'), db.getAll('boards')]);
+
+  const demoItemIds = new Set(items.filter((i) => i.isDemo).map((i) => i.id));
+  const demoBoardIds = new Set(boards.filter((b) => b.isDemo).map((b) => b.id));
+
+  const tx = db.transaction(['items', 'boards'], 'readwrite');
+  for (const id of demoItemIds) await tx.objectStore('items').delete(id);
+  for (const id of demoBoardIds) await tx.objectStore('boards').delete(id);
+  await tx.done;
+
+  return demoItemIds.size + demoBoardIds.size;
+}
