@@ -29,12 +29,25 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image payload forwarded by iOS Share Extension via App Group → sessionStorage
+  const pendingImageRef = useRef<{ base64: string; mimeType: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    // Consume any image stored by CapacitorBridge from the iOS Share Extension
+    try {
+      const raw = sessionStorage.getItem('pendingShareImage');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { base64: string; mimeType: string };
+        if (parsed.base64) pendingImageRef.current = parsed;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage not available or stale data — ignore
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +101,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image payload for Xiaohongshu / Vision path
+    const img = pendingImageRef.current;
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, img?.base64, img?.mimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
