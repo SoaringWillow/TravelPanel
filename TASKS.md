@@ -289,7 +289,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep the existing "Clip" button flow unchanged; the preview is purely visual, no data passed from it
 
 ### D9 — Map Pin Visual Improvements
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: All map pins currently look identical. Platform-colored pins and better tap targets make the map readable at a glance — "I can see I have 5 food places and 2 nature spots in Tokyo."  
 **Files to change**: `components/MapView.tsx`  
 **What to do**:

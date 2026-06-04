@@ -9,7 +9,25 @@ import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
-// ─── Tag → emoji map ─────────────────────────────────────────────────────────
+// ─── Tag → color + emoji maps ────────────────────────────────────────────────
+
+const TAG_COLORS: Record<string, string> = {
+  food:         '#f97316',
+  beach:        '#0ea5e9',
+  nature:       '#22c55e',
+  culture:      '#8b5cf6',
+  history:      '#8b5cf6',
+  adventure:    '#f59e0b',
+  art:          '#ec4899',
+  architecture: '#6366f1',
+  shopping:     '#f43f5e',
+  nightlife:    '#a855f7',
+  mountain:     '#64748b',
+  photography:  '#0891b2',
+  city:         '#475569',
+  relaxation:   '#10b981',
+  rural:        '#84cc16',
+};
 
 const TAG_EMOJI: Record<string, string> = {
   beach:        '🏖',
@@ -35,6 +53,14 @@ function getPinEmoji(tags: string[]): string | null {
     if (emoji) return emoji;
   }
   return null;
+}
+
+function getPinColor(item: SavedItem): string {
+  for (const tag of item.tags) {
+    const color = TAG_COLORS[tag.toLowerCase()];
+    if (color) return color;
+  }
+  return PLATFORM_COLORS[item.platform] ?? '#6366f1';
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -90,12 +116,21 @@ interface PinProps {
 
 function Pin({ item, locName, onClick }: PinProps) {
   const [hovered, setHovered] = useState(false);
+  const [tapped, setTapped]   = useState(false);
   const emoji = getPinEmoji(item.tags);
+  const pinColor = getPinColor(item);
+
+  function handleClick() {
+    setTapped(true);
+    setTimeout(() => { setTapped(false); onClick(); }, 180);
+  }
+
+  const scale = tapped ? 1.25 : hovered ? 1.15 : 1;
 
   return (
     <div style={{ position: 'relative' }}>
       {/* Hover label */}
-      {hovered && (
+      {hovered && !tapped && (
         <div
           style={{
             position:     'absolute',
@@ -128,7 +163,7 @@ function Pin({ item, locName, onClick }: PinProps) {
         <button
           type="button"
           aria-label={`${item.title} – ${locName}`}
-          onClick={onClick}
+          onClick={handleClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           style={{
@@ -136,12 +171,12 @@ function Pin({ item, locName, onClick }: PinProps) {
             height:       36,
             borderRadius: 8,
             overflow:     'hidden',
-            border:       '2.5px solid white',
+            border:       `2.5px solid ${pinColor}`,
             boxShadow:    hovered ? '0 4px 12px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.25)',
             cursor:       'pointer',
             padding:      0,
             display:      'block',
-            transform:    hovered ? 'scale(1.15)' : 'scale(1)',
+            transform:    `scale(${scale})`,
             transition:   'all 0.15s ease',
           }}
         >
@@ -150,37 +185,62 @@ function Pin({ item, locName, onClick }: PinProps) {
             alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             onError={(e) => {
-              // Fallback: hide image, show emoji circle instead
               (e.currentTarget.closest('button') as HTMLButtonElement).style.display = 'none';
             }}
           />
         </button>
-      ) : (
-        /* Emoji / color circle pin */
+      ) : emoji ? (
+        /* Emoji circle pin */
         <button
           type="button"
           aria-label={`${item.title} – ${locName}`}
-          onClick={onClick}
+          onClick={handleClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           style={{
-            width:           emoji ? 34 : 26,
-            height:          emoji ? 34 : 26,
+            width:           34,
+            height:          34,
             borderRadius:    '50%',
-            backgroundColor: emoji ? 'white' : PLATFORM_COLORS[item.platform],
-            border:          `2.5px solid ${emoji ? PLATFORM_COLORS[item.platform] : 'white'}`,
+            backgroundColor: 'white',
+            border:          `2.5px solid ${pinColor}`,
             boxShadow:       hovered ? '0 4px 12px rgba(0,0,0,0.30)' : '0 2px 8px rgba(0,0,0,0.22)',
             cursor:          'pointer',
             padding:         0,
             display:         'flex',
             alignItems:      'center',
             justifyContent:  'center',
-            fontSize:        emoji ? 16 : 0,
-            transform:       hovered ? 'scale(1.2)' : 'scale(1)',
+            fontSize:        16,
+            transform:       `scale(${scale})`,
             transition:      'all 0.15s ease',
           }}
         >
-          {emoji ?? ''}
+          {emoji}
+        </button>
+      ) : (
+        /* Solid color circle pin with white dot */
+        <button
+          type="button"
+          aria-label={`${item.title} – ${locName}`}
+          onClick={handleClick}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{
+            width:           24,
+            height:          24,
+            borderRadius:    '50%',
+            backgroundColor: pinColor,
+            border:          '2.5px solid white',
+            boxShadow:       hovered ? '0 4px 12px rgba(0,0,0,0.30)' : '0 2px 8px rgba(0,0,0,0.22)',
+            cursor:          'pointer',
+            padding:         0,
+            display:         'flex',
+            alignItems:      'center',
+            justifyContent:  'center',
+            transform:       `scale(${scale})`,
+            transition:      'all 0.15s ease',
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'white', display: 'block' }} />
         </button>
       )}
     </div>
