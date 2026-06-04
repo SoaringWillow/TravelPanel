@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, PencilLine } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -9,9 +10,26 @@ import SubstanceList from './SubstanceList';
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
+  onItemUpdate?: (updated: SavedItem) => void;
 }
 
-export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onItemUpdate }: LocationDetailCardProps) {
+  const [localNotes, setLocalNotes]       = useState(item.notes ?? '');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persistNotes = useCallback(async (value: string) => {
+    const { updateItemNotes } = await import('@/lib/db');
+    await updateItemNotes(item.id, value);
+    onItemUpdate?.({ ...item, notes: value.trim() || undefined });
+  }, [item, onItemUpdate]);
+
+  function handleNotesBlur() {
+    setIsEditingNotes(false);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => persistNotes(localNotes), 300);
+  }
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -127,13 +145,55 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+            {/* Notes — editable */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  My notes
+                </p>
+                {localNotes && !isEditingNotes && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingNotes(true)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Edit notes"
+                  >
+                    <PencilLine size={13} />
+                  </button>
+                )}
               </div>
-            )}
+
+              {isEditingNotes ? (
+                <textarea
+                  autoFocus
+                  value={localNotes}
+                  onChange={(e) => setLocalNotes(e.target.value)}
+                  onBlur={handleNotesBlur}
+                  placeholder="Add your own notes, tips, or reminders…"
+                  rows={3}
+                  className="w-full text-sm text-gray-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-amber-400 placeholder:text-gray-400 transition-colors"
+                />
+              ) : localNotes ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingNotes(true)}
+                  className="w-full text-left bg-amber-50 rounded-xl px-3 py-2.5"
+                >
+                  <p className="text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
+                    {localNotes}
+                  </p>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingNotes(true)}
+                  className="text-xs text-gray-400 hover:text-indigo-500 transition-colors flex items-center gap-1"
+                >
+                  <PencilLine size={12} />
+                  Add a note…
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

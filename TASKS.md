@@ -213,7 +213,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
   - Confirm dialog before importing: "This will add N items to your library. Existing items won't be overwritten."
 
 ### D3 — Clip Notes / Personal Annotation
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The `notes` field already exists on `SavedItem` but is never exposed. Users want to add their own context ("Friend recommended this", "Call ahead to book"). This turns clips from pure extracts into personal travel intelligence.  
 **Files to change**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
