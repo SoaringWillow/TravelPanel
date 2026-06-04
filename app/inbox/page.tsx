@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import SearchBar from '@/components/SearchBar';
+import TagFilterBar from '@/components/TagFilterBar';
 import NavBar from '@/components/NavBar';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -39,6 +40,7 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
   const handleSearch = useCallback((q: string) => {
@@ -54,7 +56,22 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const tagCounts = new Map<string, number>();
+  for (const item of platformFiltered) {
+    for (const tag of item.tags) {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    }
+  }
+  const availableTags = [...tagCounts.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .map(([tag]) => tag);
+
+  const tagFiltered = selectedTag
+    ? platformFiltered.filter((i) => i.tags.includes(selectedTag))
+    : platformFiltered;
+
+  const filtered = searchItems(tagFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -114,6 +131,17 @@ export default function InboxPage() {
         <div className="mb-3">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {/* Tag filter bar */}
+        {availableTags.length > 0 && (
+          <div className="mb-3">
+            <TagFilterBar
+              tags={availableTags}
+              selectedTag={selectedTag}
+              onSelect={setSelectedTag}
+            />
+          </div>
+        )}
 
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">

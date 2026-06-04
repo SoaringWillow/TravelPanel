@@ -227,7 +227,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Notes are included in the full-text search in `SearchBar` (already searches `substance` — add `notes` to the search fields)
 
 ### D4 — Rich Clip Cards with Thumbnail (InboxCard Redesign)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Current InboxCard shows a plain card with text. Top travel apps (Romy, Wanderlog) have rich visual cards. The substance count badge is buried. This is the #1 visual impression the user has of their saved content.  
 **Files to change**: `components/InboxCard.tsx`  
 **What to do**:
