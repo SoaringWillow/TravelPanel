@@ -81,38 +81,9 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompt builders ─────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
-## Layer 1 — Spots (geographic skeleton)
-Extract real, identifiable locations with GPS coordinates you are confident about.
-If the post doesn't mention specific named places, return an empty locations array.
-Do NOT invent or guess coordinates.
-
-## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+const SUBSTANCE_INSTRUCTIONS = `## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
 This is what competitors miss. Examples of what to capture:
 - "Arrive before 8am to beat the queue" → tip
@@ -128,14 +99,101 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+function buildTextPrompt(
+  platform: string,
+  url: string,
+  page: { title: string; description: string; textContent: string } | null,
+) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+If the post doesn't mention specific named places, return an empty locations array.
+Do NOT invent or guess coordinates.
+
+${SUBSTANCE_INSTRUCTIONS}`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  return `You are a travel content analyzer. The attached image is a screenshot of a ${platform} travel post (URL: ${url}).
+
+Extract TWO layers from what you can read and see in the screenshot:
+
+## Layer 1 — Spots (geographic skeleton)
+Identify every real, named location visible in the post (in text, captions, or on any embedded map).
+Return GPS coordinates you are confident about. Do NOT guess.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Read all text visible in the screenshot — captions, comments, overlays, hashtags — and extract every piece of actionable insight.
+
+${SUBSTANCE_INSTRUCTIONS}
+
+Also infer the title and a brief description from what you can see.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType = 'image/jpeg';
+
+  try {
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = body.imageBase64 ?? undefined;
+    imageMimeType = body.imageMimeType ?? 'image/jpeg';
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: screenshot provided (e.g. Xiaohongshu blocks scraping)
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageBase64,
+                mimeType: imageMimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+              },
+              {
+                type: 'text',
+                text: buildVisionPrompt(platform, url),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(platform, url, page),
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

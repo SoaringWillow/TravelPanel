@@ -14,6 +14,25 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 type Stage = 'picking' | 'saving' | 'done';
 
+// Platforms that block HTML scraping — we offer a paste-screenshot shortcut for these.
+const SCRAPING_BLOCKED = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
+async function resizeImageIfNeeded(base64: string, maxBytes = 1.8 * 1024 * 1024): Promise<string> {
+  if (base64.length * 0.75 <= maxBytes) return base64;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const scale = Math.sqrt(maxBytes / (img.width * img.height * 3));
+      canvas.width = Math.round(img.width * Math.min(scale, 1));
+      canvas.height = Math.round(img.height * Math.min(scale, 1));
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+    };
+    img.src = `data:image/jpeg;base64,${base64}`;
+  });
+}
+
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function SharePageInner() {
@@ -29,12 +48,44 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotB64, setScreenshotB64]     = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Pick up a screenshot written to sessionStorage by CapacitorBridge (iOS App Group path)
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        setScreenshotB64(stored);
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch { /* sessionStorage not available */ }
+  }, []);
+
+  // Listen for clipboard paste (desktop and iPad)
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const file = Array.from(e.clipboardData?.files ?? []).find((f) =>
+        f.type.startsWith('image/'),
+      );
+      if (!file) return;
+      e.preventDefault();
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const raw = (reader.result as string).split(',')[1];
+        const resized = await resizeImageIfNeeded(raw);
+        setScreenshotB64(resized);
+      };
+      reader.readAsDataURL(file);
+    };
+    document.addEventListener('paste', handlePaste as EventListener);
+    return () => document.removeEventListener('paste', handlePaste as EventListener);
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +139,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot for vision-blocked platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotB64 ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -166,6 +217,57 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Screenshot paste zone — shown for platforms that block scraping */}
+        {SCRAPING_BLOCKED.has(platform) && (
+          <div className="mt-3">
+            {screenshotB64 ? (
+              <div className="relative rounded-xl overflow-hidden border-2 border-green-400 bg-green-50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:image/jpeg;base64,${screenshotB64}`}
+                  alt="Screenshot"
+                  className="w-full max-h-32 object-cover"
+                />
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-1 bg-green-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                  ✓ Screenshot ready
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setScreenshotB64(null)}
+                  className="absolute bottom-1.5 right-1.5 bg-white/80 text-gray-600 text-xs px-2 py-0.5 rounded-full hover:bg-white transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const items = await navigator.clipboard.read();
+                    for (const item of items) {
+                      const imgType = item.types.find((t) => t.startsWith('image/'));
+                      if (imgType) {
+                        const blob = await item.getType(imgType);
+                        const buf = await blob.arrayBuffer();
+                        const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+                        const resized = await resizeImageIfNeeded(b64);
+                        setScreenshotB64(resized);
+                        return;
+                      }
+                    }
+                  } catch { /* clipboard access denied or no image */ }
+                }}
+                className="w-full border-2 border-dashed border-amber-300 bg-amber-50 rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm text-amber-700 hover:border-amber-400 hover:bg-amber-100 transition-colors"
+              >
+                <span className="text-base">📸</span>
+                <span className="flex-1 text-left font-medium">Paste screenshot for better extraction</span>
+                <span className="text-xs text-amber-500 font-mono">⌘V</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
