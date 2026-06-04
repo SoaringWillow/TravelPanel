@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Copy } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -34,12 +34,14 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]               = useState(initialUrl);
+  const [notes, setNotes]           = useState('');
+  const [stage, setStage]           = useState<Stage>('idle');
+  const [preview, setPreview]       = useState<ImportResult | null>(null);
+  const [error, setError]           = useState('');
+  const [duplicate, setDuplicate]   = useState<import('@/lib/types').SavedItem | null>(null);
+  const abortRef                    = useRef<AbortController | null>(null);
+  const skipDupeRef                 = useRef(false);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -52,6 +54,18 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   async function handleImport() {
     if (!trimmedUrl) return;
+
+    // Duplicate URL check (skip when user has explicitly chosen "Save anyway")
+    if (!skipDupeRef.current) {
+      const { getItemByUrl } = await import('@/lib/db');
+      const existing = await getItemByUrl(trimmedUrl);
+      if (existing) {
+        setDuplicate(existing);
+        return;
+      }
+    }
+    skipDupeRef.current = false;
+    setDuplicate(null);
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -134,6 +148,12 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     resetState();
   }
 
+  function handleSaveAnywayImport() {
+    skipDupeRef.current = true;
+    setDuplicate(null);
+    handleImport();
+  }
+
   function resetState() {
     abortRef.current?.abort();
     setUrl('');
@@ -141,6 +161,8 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setDuplicate(null);
+    skipDupeRef.current = false;
   }
 
   function handleClose() {
@@ -207,8 +229,37 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             />
           </div>
 
-          {/* ── Import button (hidden during preview) ───────────────────── */}
-          {stage !== 'preview' && (
+          {/* ── Duplicate URL banner ─────────────────────────────────────── */}
+          {duplicate && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+              <p className="text-sm text-amber-800 font-medium">
+                Already saved
+              </p>
+              <p className="text-xs text-amber-700 line-clamp-1">
+                {duplicate.title || duplicate.url} · {new Date(duplicate.savedAt).toLocaleDateString()}
+              </p>
+              <div className="flex gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleSaveAnywayImport}
+                  className="flex-1 py-2 text-xs font-semibold text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-100 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Copy size={12} />
+                  Save a copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { resetState(); onClose(); }}
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Import button (hidden during preview or duplicate warning) ── */}
+          {stage !== 'preview' && !duplicate && (
             <button
               type="button"
               onClick={handleImport}
@@ -226,7 +277,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             </button>
           )}
 
-          {/* ── Error message + save-anyway fallback ─────────────────────── */}
+          {/* ── Error message + save-anyway fallback ────────────────────── */}
           {error && (
             <div className="space-y-2">
               <p className="text-sm text-red-500">{error}</p>

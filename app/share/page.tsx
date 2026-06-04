@@ -30,6 +30,8 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [sharedImage, setSharedImage]         = useState<{ base64: string; mimeType: string } | null>(null);
+  const [duplicate, setDuplicate]             = useState<SavedItem | null>(null);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,6 +39,19 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Duplicate URL check
+  useEffect(() => {
+    if (!rawUrl) return;
+    import('@/lib/db').then(({ getItemByUrl }) => {
+      getItemByUrl(rawUrl).then((existing) => {
+        if (existing) {
+          setDuplicate(existing);
+          setShowDuplicateWarning(true);
+        }
+      });
+    });
+  }, [rawUrl]);
 
   // Read image payload written by CapacitorBridge from the iOS Share Extension
   useEffect(() => {
@@ -182,6 +197,32 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Duplicate URL warning banner */}
+        {showDuplicateWarning && duplicate && (
+          <div className="mx-0 px-0 bg-amber-50 border-b border-amber-200 px-4 py-3">
+            <p className="text-xs font-semibold text-amber-700 mb-1">Already saved</p>
+            <p className="text-xs text-amber-600 line-clamp-1 mb-2">
+              {duplicate.title || duplicate.url} · {new Date(duplicate.savedAt).toLocaleDateString()}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDuplicateWarning(false)}
+                className="flex-1 py-1.5 text-xs font-semibold text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-100 transition-colors"
+              >
+                Save anyway
+              </button>
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="flex-1 py-1.5 text-xs font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
+              >
+                Go back
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">

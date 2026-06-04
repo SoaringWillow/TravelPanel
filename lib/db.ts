@@ -12,6 +12,7 @@ interface TravelPanelDB extends DBSchema {
       'by-date': number;
       'by-board': string;
       'by-status': string;
+      'by-url': string;
     };
   };
   boards: {
@@ -33,7 +34,7 @@ function getDB() {
     throw new Error('IndexedDB unavailable server-side');
   }
   if (!dbPromise) {
-    dbPromise = openDB<TravelPanelDB>('travel-panel', 2, {
+    dbPromise = openDB<TravelPanelDB>('travel-panel', 3, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const itemStore = db.createObjectStore('items', { keyPath: 'id' });
@@ -52,6 +53,12 @@ function getDB() {
           boardStore.createIndex('by-date', 'createdAt');
           const tripStore = db.createObjectStore('trips', { keyPath: 'id' });
           tripStore.createIndex('by-board', 'boardId');
+        }
+        if (oldVersion < 3) {
+          const itemStore = tx.objectStore('items');
+          if (!itemStore.indexNames.contains('by-url')) {
+            itemStore.createIndex('by-url', 'url');
+          }
         }
       },
     });
@@ -74,6 +81,17 @@ export async function getAllItems(): Promise<SavedItem[]> {
 export async function getItemById(id: string): Promise<SavedItem | undefined> {
   const db = await getDB();
   return db.get('items', id);
+}
+
+export async function getItemByUrl(url: string): Promise<SavedItem | undefined> {
+  try {
+    const db = await getDB();
+    const results = await db.getAllFromIndex('items', 'by-url', url);
+    // Return the most recently saved one if duplicates somehow exist
+    return results.sort((a, b) => b.savedAt - a.savedAt)[0];
+  } catch {
+    return undefined;
+  }
 }
 
 export async function saveItem(item: SavedItem): Promise<void> {

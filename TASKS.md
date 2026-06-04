@@ -188,7 +188,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > is beautiful, and the app competes visually with top-tier travel apps.
 
 ### D1 — Duplicate URL Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Saving the same URL twice silently creates two cards. Users with 50+ clips start seeing duplicates; data quality suffers and the inbox gets noisy.  
 **Files to change**: `lib/db.ts`, `components/ImportSheet.tsx`, `app/share/page.tsx`  
 **What to do**:
