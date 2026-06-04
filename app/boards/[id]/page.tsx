@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ScrollText } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -132,28 +132,27 @@ export default function BoardDetailPage() {
         )}
 
         <div className="px-4 py-4">
-          {/* Plan this trip CTA */}
-          <div className="mb-4">
+          {/* Plan this trip + Timeline CTAs */}
+          <div className="mb-4 flex gap-2">
             {hasLocations ? (
               <button
                 type="button"
                 onClick={() => router.push(`/plan/${boardId}`)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
+                className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
               >
                 <Rocket size={18} />
-                Plan this trip
+                Plan trip
               </button>
             ) : (
-              <div className="relative group">
+              <div className="relative group flex-1">
                 <button
                   type="button"
                   disabled
                   className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
                 >
                   <Rocket size={18} />
-                  Plan this trip
+                  Plan trip
                 </button>
-                {/* Tooltip */}
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
                   <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
                     Add items with identified locations to plan a trip
@@ -161,6 +160,17 @@ export default function BoardDetailPage() {
                   </div>
                 </div>
               </div>
+            )}
+            {/* Timeline button */}
+            {boardItems.length > 0 && (
+              <button
+                type="button"
+                onClick={() => router.push(`/boards/${boardId}/timeline`)}
+                className="flex items-center justify-center gap-1.5 border-2 border-gray-200 text-gray-600 font-semibold py-3.5 px-4 rounded-2xl hover:border-indigo-300 hover:text-indigo-600 active:scale-[0.98] transition-all"
+              >
+                <ScrollText size={18} />
+                Timeline
+              </button>
             )}
           </div>
 
