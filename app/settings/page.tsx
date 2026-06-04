@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Trash2, Info, Database } from 'lucide-react';
+import { Download, Trash2, Info, Database, Moon } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getTripsForBoard, deleteDemoData } from '@/lib/db';
+import { useTheme, type ThemePreference } from '@/hooks/useTheme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ export default function SettingsPage() {
     }
   }
 
+  const { preference: themePreference, setPreference: setTheme } = useTheme();
   const hasDemoData = (stats?.demoItems ?? 0) + (stats?.demoBoards ?? 0) > 0;
 
   return (
@@ -160,6 +162,33 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
+        {/* Appearance section */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 flex items-center gap-2">
+            <Moon size={15} className="text-gray-400" />
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Appearance</span>
+          </div>
+          <div className="px-4 py-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Theme</p>
+            <div className="grid grid-cols-3 gap-2">
+              {(['system', 'light', 'dark'] as ThemePreference[]).map((pref) => (
+                <button
+                  key={pref}
+                  type="button"
+                  onClick={() => setTheme(pref)}
+                  className={`py-2.5 rounded-xl text-sm font-medium capitalize border transition-all ${
+                    themePreference === pref
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
+                  }`}
+                >
+                  {pref === 'system' ? 'System' : pref === 'light' ? '☀️ Light' : '🌙 Dark'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* About section */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">

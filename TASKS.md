@@ -87,7 +87,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 - Skip link in the top-right corner
 
 ### D7 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: iOS users expect dark mode. Without it the app burns white in bed. The tailwind config must enable `class` strategy, and key components need `dark:` variants.  
 **Files to change**: `tailwind.config.ts`, `app/globals.css`, major components  
 **What to do**:
