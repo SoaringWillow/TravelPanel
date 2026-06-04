@@ -252,7 +252,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Include notes in JSON export (already included by default)
 
 ### D5 — Tag Management (Add / Remove Tags on Clips)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: AI-extracted tags aren't always right. Users should be able to add "honeymoon" or remove "shopping" from a food clip. Custom tags power future filtering and search.  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:

@@ -132,6 +132,13 @@ export async function updateItemNotes(id: string, notes: string): Promise<void> 
   await db.put('items', { ...item, notes });
 }
 
+export async function updateItemTags(id: string, tags: string[]): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, tags });
+}
+
 // ─── Boards ────────────────────────────────────────────────────────────────
 
 export async function getAllBoards(): Promise<Board[]> {
