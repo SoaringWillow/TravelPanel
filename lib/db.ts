@@ -125,6 +125,13 @@ export async function updateItemEnrichment(
   });
 }
 
+export async function updateItemNotes(id: string, notes: string): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, notes });
+}
+
 // ─── Boards ────────────────────────────────────────────────────────────────
 
 export async function getAllBoards(): Promise<Board[]> {

@@ -240,7 +240,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Works alongside the existing tap-to-view behaviour
 
 ### D4 — Personal Notes on Clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users discover things from a clip ("bring cash", "visit on Tuesday") that aren't in the extracted substance. They need somewhere to put personal annotations.  
 **Files**: `lib/types.ts` (notes field already exists on SavedItem), `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
