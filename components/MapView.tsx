@@ -6,10 +6,9 @@ import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
-import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
-// ─── Tag → emoji map ─────────────────────────────────────────────────────────
+// ─── Tag → emoji + color maps ────────────────────────────────────────────────
 
 const TAG_EMOJI: Record<string, string> = {
   beach:        '🏖',
@@ -29,12 +28,40 @@ const TAG_EMOJI: Record<string, string> = {
   rural:        '🌾',
 };
 
+const TAG_COLOR: Record<string, string> = {
+  food:         '#f97316', // orange
+  nature:       '#22c55e', // green
+  culture:      '#a855f7', // purple
+  history:      '#d97706', // amber
+  beach:        '#06b6d4', // cyan
+  city:         '#64748b', // slate
+  photography:  '#ec4899', // pink
+  shopping:     '#f43f5e', // rose
+  nightlife:    '#8b5cf6', // violet
+  adventure:    '#ef4444', // red
+  art:          '#e879f9', // fuchsia
+  mountain:     '#10b981', // emerald
+  relaxation:   '#06b6d4', // cyan
+  architecture: '#0ea5e9', // sky
+  rural:        '#84cc16', // lime
+};
+
+const DEFAULT_PIN_COLOR = '#6366f1'; // indigo
+
 function getPinEmoji(tags: string[]): string | null {
   for (const tag of tags) {
     const emoji = TAG_EMOJI[tag.toLowerCase()];
     if (emoji) return emoji;
   }
   return null;
+}
+
+function getPinColor(tags: string[]): string {
+  for (const tag of tags) {
+    const color = TAG_COLOR[tag.toLowerCase()];
+    if (color) return color;
+  }
+  return DEFAULT_PIN_COLOR;
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -91,6 +118,7 @@ interface PinProps {
 function Pin({ item, locName, onClick }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
+  const tagColor = getPinColor(item.tags);
 
   return (
     <div style={{ position: 'relative' }}>
@@ -167,9 +195,9 @@ function Pin({ item, locName, onClick }: PinProps) {
             width:           emoji ? 34 : 26,
             height:          emoji ? 34 : 26,
             borderRadius:    '50%',
-            backgroundColor: emoji ? 'white' : PLATFORM_COLORS[item.platform],
-            border:          `2.5px solid ${emoji ? PLATFORM_COLORS[item.platform] : 'white'}`,
-            boxShadow:       hovered ? '0 4px 12px rgba(0,0,0,0.30)' : '0 2px 8px rgba(0,0,0,0.22)',
+            backgroundColor: emoji ? 'white' : tagColor,
+            border:          `2.5px solid ${tagColor}`,
+            boxShadow:       hovered ? `0 4px 12px ${tagColor}55` : `0 2px 8px ${tagColor}44`,
             cursor:          'pointer',
             padding:         0,
             display:         'flex',

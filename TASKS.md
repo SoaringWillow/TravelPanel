@@ -219,7 +219,7 @@ The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users 
 **Files**: `app/boards/[id]/page.tsx`
 
 ### D8 — Map Marker Polish & Category Colors
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: All map pins are the same indigo dot. Color-coding by the clip's primary tag (food=orange, nature=green, culture=purple) gives the map visual hierarchy and scanability at a glance.  
 **Files**: `components/MapView.tsx`
 
