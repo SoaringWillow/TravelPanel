@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: #fff;
+      color: #111827;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .header-logo {
+      width: 24px; height: 24px;
+      background: #111827;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .header-logo svg { width: 14px; height: 14px; color: #fff; }
+    .header-brand {
+      font-weight: 600;
+      font-size: 14px;
+      color: #111827;
+      flex: 1;
+    }
+    .icon-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 4px; border-radius: 6px; color: #6b7280;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .icon-btn:hover { background: #f3f4f6; color: #111827; }
+    .icon-btn svg { width: 16px; height: 16px; }
+
+    /* ── Page preview ── */
+    .page-preview {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+    }
+    .page-favicon-wrap {
+      width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 8px;
+      border: 1px solid #f3f4f6;
+      background: #f9fafb;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .page-favicon-wrap img { width: 20px; height: 20px; object-fit: contain; }
+    .page-favicon-wrap .fallback-icon { font-size: 18px; }
+    .page-meta { flex: 1; min-width: 0; }
+    .page-title {
+      font-weight: 500;
+      font-size: 13px;
+      color: #111827;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .page-url {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Platform badge ── */
+    .platform-row {
+      padding: 0 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .platform-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .platform-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #9ca3af;
+    }
+    .platform-badge.youtube .platform-dot { background: #ef4444; }
+    .platform-badge.instagram .platform-dot { background: #a855f7; }
+    .platform-badge.xiaohongshu .platform-dot { background: #ef4444; }
+
+    /* ── Action buttons ── */
+    .actions {
+      padding: 0 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 10px 16px;
+      background: #111827;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover { background: #1f2937; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { background: #d1d5db; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      width: 100%;
+      padding: 8px 16px;
+      background: #f9fafb;
+      color: #374151;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 400;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #f3f4f6; }
+
+    /* ── Success screen ── */
+    #screen-success .success-body {
+      padding: 24px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+    }
+    .success-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: #dcfce7;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .success-icon svg { width: 22px; height: 22px; color: #16a34a; }
+    .success-title { font-weight: 600; font-size: 15px; color: #111827; }
+    .success-sub { font-size: 12px; color: #6b7280; }
+
+    /* ── Error banner ── */
+    .error-banner {
+      margin: 0 16px 12px;
+      padding: 10px 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #b91c1c;
+      display: none;
+    }
+    .error-banner.visible { display: block; }
+
+    /* ── Not-configured screen ── */
+    #screen-setup .setup-body {
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .setup-body p { font-size: 13px; color: #4b5563; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
+    .input-group label { font-size: 12px; font-weight: 500; color: #374151; }
+    .input-group input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #111827;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input-group input:focus { border-color: #9ca3af; }
+    .input-hint { font-size: 11px; color: #9ca3af; }
+
+    /* ── Options screen ── */
+    #screen-options .options-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .options-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .options-header button {
+      background: none; border: none; cursor: pointer;
+      color: #6b7280; font-size: 13px; padding: 2px 0;
+    }
+    .options-header button:hover { color: #111827; }
+    .options-title { font-weight: 600; font-size: 14px; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: #f3f4f6; margin: 0 16px; }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- ── Main screen ── -->
+<div id="screen-main" class="screen active">
+  <div class="header">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <span class="header-brand">TravelPanel</span>
+    <button class="icon-btn" id="btn-open-options" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="page-preview">
+    <div class="page-favicon-wrap">
+      <img id="page-favicon" src="" alt="" style="display:none">
+      <span class="fallback-icon" id="favicon-fallback">🌍</span>
+    </div>
+    <div class="page-meta">
+      <div class="page-title" id="page-title">Loading page…</div>
+      <div class="page-url" id="page-url"></div>
+    </div>
+  </div>
+
+  <div class="platform-row">
+    <div class="platform-badge" id="platform-badge">
+      <div class="platform-dot"></div>
+      <span id="platform-label">Web</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="actions" style="padding-top: 14px;">
+    <div class="error-banner" id="error-banner"></div>
+    <button class="btn-primary" id="btn-clip">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5" fill="currentColor" stroke="none"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+    <button class="btn-secondary" id="btn-open-app">
+      Open TravelPanel
+    </button>
+  </div>
+</div>
+
+<!-- ── Success screen ── -->
+<div id="screen-success" class="screen">
+  <div class="header">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <span class="header-brand">TravelPanel</span>
+  </div>
+  <div class="success-body">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </div>
+    <div class="success-title">Clip saved!</div>
+    <div class="success-sub" id="success-sub">Opening TravelPanel to add details…</div>
+  </div>
+</div>
+
+<!-- ── First-run / setup screen ── -->
+<div id="screen-setup" class="screen">
+  <div class="header">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <span class="header-brand">TravelPanel</span>
+  </div>
+  <div class="setup-body">
+    <p>Enter your TravelPanel URL to start clipping travel inspiration.</p>
+    <div class="input-group">
+      <label for="setup-url">TravelPanel URL</label>
+      <input type="url" id="setup-url" placeholder="https://your-app.vercel.app" autocomplete="off">
+      <span class="input-hint">Found in your Vercel deployment or use http://localhost:3000 for local dev.</span>
+    </div>
+    <button class="btn-primary" id="btn-save-setup">Save &amp; Continue</button>
+  </div>
+</div>
+
+<!-- ── Options screen ── -->
+<div id="screen-options" class="screen">
+  <div class="options-header">
+    <button id="btn-back-from-options">← Back</button>
+    <span class="options-title">Settings</span>
+  </div>
+  <div class="options-body">
+    <div class="input-group">
+      <label for="options-url">TravelPanel URL</label>
+      <input type="url" id="options-url" placeholder="https://your-app.vercel.app">
+    </div>
+    <button class="btn-primary" id="btn-save-options">Save</button>
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
