@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { Board } from '@/lib/types';
 
 const EMOJI_PRESETS = ['🗺', '🏖', '🏔', '🌸', '🍜', '🏛', '🎭', '🌿'];
 
@@ -16,33 +17,41 @@ interface CreateBoardModalProps {
   open: boolean;
   onClose: () => void;
   onCreate: (name: string, emoji: string) => void;
+  onEdit?: (name: string, emoji: string) => void;
+  board?: Board;
 }
 
-export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoardModalProps) {
+export default function CreateBoardModal({ open, onClose, onCreate, onEdit, board }: CreateBoardModalProps) {
+  const isEdit = !!board;
   const [name, setName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🗺');
 
-  function handleCreate() {
+  useEffect(() => {
+    if (open) {
+      setName(board?.name ?? '');
+      setSelectedEmoji(board?.emoji ?? '🗺');
+    }
+  }, [open, board]);
+
+  function handleSubmit() {
     if (!name.trim()) return;
-    onCreate(name.trim(), selectedEmoji);
-    setName('');
-    setSelectedEmoji('🗺');
+    if (isEdit) {
+      onEdit?.(name.trim(), selectedEmoji);
+    } else {
+      onCreate(name.trim(), selectedEmoji);
+    }
     onClose();
   }
 
   function handleOpenChange(isOpen: boolean) {
-    if (!isOpen) {
-      setName('');
-      setSelectedEmoji('🗺');
-      onClose();
-    }
+    if (!isOpen) onClose();
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-sm mx-4">
         <DialogHeader>
-          <DialogTitle>New Board</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit board' : 'New Board'}</DialogTitle>
         </DialogHeader>
 
         {/* Emoji picker */}
@@ -72,7 +81,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
             placeholder="e.g. Japan Trip, Weekend Eats…"
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate();
+              if (e.key === 'Enter') handleSubmit();
             }}
             autoFocus
           />
@@ -89,11 +98,11 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
           </DialogClose>
           <button
             type="button"
-            onClick={handleCreate}
+            onClick={handleSubmit}
             disabled={!name.trim()}
             className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Create
+            {isEdit ? 'Save' : 'Create'}
           </button>
         </DialogFooter>
       </DialogContent>

@@ -266,7 +266,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fire `hapticLight()` in `NavBar` on each navigation tap (via `onClick` handlers)
 
 ### D7 — Board Management Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Boards can be created but not renamed, re-emojied, or archived. After a few trips users want to reorganize. The boards page is a dead end once boards exist.  
 **Files to change**: `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `components/CreateBoardModal.tsx` (extend to edit mode), `lib/db.ts`  
 **What to do**:

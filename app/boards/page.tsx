@@ -4,29 +4,43 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
-import { useSavedItems } from '@/hooks/useSavedItems';
+import { Board } from '@/lib/types';
+import { deleteItem } from '@/lib/db';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
-  const { items } = useSavedItems();
+  const { boards, loading: boardsLoading, createBoard, editBoard, removeBoard } = useBoards();
   const router = useRouter();
-  const [showCreate, setShowCreate] = useState(false);
 
-  function getItemCount(boardId: string): number {
-    const board = boards.find((b) => b.id === boardId);
-    return board ? board.itemIds.length : 0;
-  }
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
+  const [deleteMode, setDeleteMode] = useState<'board-only' | 'everything' | null>(null);
 
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
   }
 
-  async function handleDelete(id: string) {
-    await removeBoard(id);
+  async function handleEdit(name: string, emoji: string) {
+    if (!editingBoard) return;
+    await editBoard(editingBoard.id, { name, emoji });
+    setEditingBoard(null);
+  }
+
+  async function handleDeleteBoardOnly(board: Board) {
+    await removeBoard(board.id);
+    setDeletingBoard(null);
+  }
+
+  async function handleDeleteEverything(board: Board) {
+    for (const itemId of board.itemIds) {
+      await deleteItem(itemId);
+    }
+    await removeBoard(board.id);
+    setDeletingBoard(null);
   }
 
   return (
@@ -80,9 +94,10 @@ export default function BoardsPage() {
               <BoardCard
                 key={board.id}
                 board={board}
-                itemCount={getItemCount(board.id)}
+                itemCount={board.itemIds.length}
                 onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
+                onEdit={() => setEditingBoard(board)}
+                onDelete={() => setDeletingBoard(board)}
               />
             ))}
           </div>
@@ -95,6 +110,59 @@ export default function BoardsPage() {
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
       />
+
+      {/* Edit board modal */}
+      <CreateBoardModal
+        open={!!editingBoard}
+        onClose={() => setEditingBoard(null)}
+        onCreate={() => {}}
+        onEdit={handleEdit}
+        board={editingBoard ?? undefined}
+      />
+
+      {/* Delete confirmation sheet */}
+      {deletingBoard && (
+        <>
+          <div
+            className="fixed inset-0 z-[1999] bg-black/40"
+            onClick={() => setDeletingBoard(null)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl p-5 pb-8 space-y-4">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-2" />
+            <div>
+              <p className="font-semibold text-gray-800 text-base">
+                Delete "{deletingBoard.emoji} {deletingBoard.name}"?
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                This board has {deletingBoard.itemIds.length} clip{deletingBoard.itemIds.length !== 1 ? 's' : ''}.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleDeleteBoardOnly(deletingBoard)}
+                className="w-full py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+              >
+                Delete board only — keep clips in inbox
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteEverything(deletingBoard)}
+                className="w-full py-3 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
+              >
+                Delete board + all {deletingBoard.itemIds.length} clip{deletingBoard.itemIds.length !== 1 ? 's' : ''}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeletingBoard(null)}
+                className="w-full py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       <NavBar active="boards" />
     </div>
