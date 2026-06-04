@@ -96,3 +96,20 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-04 20:28 | fda1a2e | feat(B2): add browser extension + CORS support for import API
+2026-06-04 20:34 | 38b2211 | feat(B3): Claude Vision extraction for Xiaohongshu + image-based clips
+2026-06-04 20:36 | f1831b3 | feat(B5): data export/import + Settings page
+2026-06-04 20:38 | dcd1dad | feat(C1): On-Trip GPS mode — nearby spots with live distance + navigation
+2026-06-04 20:42 | 3f5a697 | feat(C2): post-trip timeline — mark activities visited + add memories
+2026-06-04 20:44 | ffea63b | feat(C3): shared boards via link — no server required
+2026-06-04 20:45 | f2d0a8d | feat(C4): proactive proximity resurfacing — passive nearby-spot banner
+2026-06-04 20:53 | 70b11db | feat(D1): dark mode support via system prefers-color-scheme
+2026-06-04 20:55 | 2065e68 | feat(D2): pull-to-refresh for Inbox and Boards
+2026-06-04 20:56 | 21bd43b | feat(D3): swipe-to-delete on inbox cards
+2026-06-04 20:58 | 9fe8a07 | feat(D4): personal notes on clips
+2026-06-04 20:58 | 6729829 | feat(D5): tag management — add/remove tags on clips
+2026-06-04 21:00 | 19f8abb | feat(D6): save trip plan spots as a new board
+2026-06-04 21:02 | 4df2fbd | feat(D7): offline thumbnail caching via Cache API
+2026-06-04 21:03 | 84d7c7b | feat(D8): iOS Add to Home Screen prompt
+2026-06-04 21:04 | 22cc717 | feat(D9): first-run onboarding overlay
+2026-06-04 21:06 | 37f508c | feat(D10): iOS app icon, splash screen assets + generation script
