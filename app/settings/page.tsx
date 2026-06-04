@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Download, Upload, Database, Info, ChevronRight } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Download, Upload, Database, Info, ChevronRight, Sun, Moon, Monitor } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { buildExport, downloadJSON, importFromJSON } from '@/lib/exportData';
 
@@ -65,6 +65,21 @@ function SettingsRow({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
+    setTheme(stored ?? 'system');
+  }, []);
+
+  function applyTheme(value: 'light' | 'dark' | 'system') {
+    setTheme(value);
+    localStorage.setItem('theme', value);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = value === 'dark' || (value === 'system' && prefersDark);
+    document.documentElement.classList.toggle('dark', isDark);
+  }
+
   const [exportState, setExportState] = useState<ExportState>('idle');
   const [exportSummary, setExportSummary] = useState('');
 
@@ -148,7 +163,7 @@ export default function SettingsPage() {
     : undefined;
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-24">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
         <h1 className="text-xl font-bold text-gray-900">Settings</h1>
@@ -192,6 +207,33 @@ export default function SettingsPage() {
         onChange={handleFileSelect}
         aria-hidden="true"
       />
+
+      {/* Appearance section */}
+      <SectionHeader>Appearance</SectionHeader>
+      <div className="rounded-xl overflow-hidden mx-3 shadow-sm bg-white">
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-indigo-50">
+            {theme === 'dark' ? <Moon size={17} className="text-indigo-600" /> : theme === 'light' ? <Sun size={17} className="text-indigo-600" /> : <Monitor size={17} className="text-indigo-600" />}
+          </span>
+          <span className="flex-1 text-sm font-medium text-gray-800">Theme</span>
+          <div className="flex gap-1">
+            {(['light', 'system', 'dark'] as const).map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => applyTheme(val)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  theme === val
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {val === 'light' ? '☀️' : val === 'dark' ? '🌙' : '⚙️'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Data section */}
       <SectionHeader>Data</SectionHeader>

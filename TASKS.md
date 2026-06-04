@@ -315,7 +315,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Streaming state: show a pulsing skeleton card for the day currently being generated
 
 ### D11 — Dark Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (core surfaces; full audit can deepen coverage)  
 **Why**: Dark mode is expected on iOS apps. Without it the app looks unfinished. The CSS variables for dark mode are already declared in `globals.css` (shadcn/ui defaults) — the work is adding `dark:` variants to each component.  
 **Files to change**: `app/globals.css`, `app/layout.tsx`, all page and component files  
 **What to do**:

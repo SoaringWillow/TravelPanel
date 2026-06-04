@@ -44,7 +44,7 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
         <div className="flex items-center justify-between">

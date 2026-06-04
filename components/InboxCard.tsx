@@ -66,7 +66,7 @@ export default function InboxCard({
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden animate-pulse">
           <div className="w-full aspect-video bg-gray-200" />
           <div className="p-3 space-y-2.5">
             <div className="h-3 bg-gray-200 rounded-full w-4/5" />
@@ -144,7 +144,7 @@ export default function InboxCard({
   const date = new Date(item.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
       {/* ── Thumbnail ──────────────────────────────────────────────────── */}
       <button
         type="button"
@@ -187,10 +187,10 @@ export default function InboxCard({
         onClick={() => onSelect?.(item)}
         className="flex-1 p-3 pb-0 text-left focus:outline-none space-y-1 group"
       >
-        <h3 className="font-semibold text-gray-800 text-[13px] leading-snug line-clamp-2 group-active:text-indigo-700 transition-colors">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-[13px] leading-snug line-clamp-2 group-active:text-indigo-700 transition-colors">
           {item.title}
         </h3>
-        <p className="text-[11px] text-gray-400 truncate">{domain(item.url)}</p>
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{domain(item.url)}</p>
         <SubstanceChips item={item} />
       </button>
 
