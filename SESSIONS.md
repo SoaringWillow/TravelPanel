@@ -96,3 +96,22 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-04 19:34 | ade0b12 | feat(B2): add Chrome/Safari browser extension for URL clipping
+2026-06-04 19:40 | 5bd820b | feat(B3): Xiaohongshu/Vision fix — image-powered extraction for scrape-blocked platforms
+2026-06-04 19:42 | 55974dd | feat(B5): data backup export/import + Settings page
+2026-06-04 19:46 | 1e623c8 | feat(D1+D2): swipe-to-delete inbox cards + Web Share API
+2026-06-04 19:48 | 2c47720 | feat(D3+D6): pull-to-refresh inbox + branded empty state illustrations
+2026-06-04 19:54 | aa254cd | D4: Clip Edit Modal — bottom sheet for editing title, tags, board
+2026-06-04 19:55 | 4291d33 | D7: Board detail UI polish — hero cover, stats row, EmptyState
+2026-06-04 19:56 | 1bb2ffb | D8: Map marker category colors — tag-based pin color system
+2026-06-04 19:56 | cdf5d7e | fix: correct IndexedDB name in browser extension (travel-panel)
+2026-06-04 19:59 | 47b39d8 | D5: Native app icon & splash screen — indigo map-pin brand
+2026-06-04 20:01 | 1ca135c | chore: add Phase E tasks — iOS App-Store polish sprint
+2026-06-04 20:03 | e74ff10 | E1: Boards list page polish — stats row, EmptyState component
+2026-06-04 20:04 | d832cda | E2: Haptic feedback — native iOS tactile responses on key actions
+2026-06-04 20:06 | 7f16cb6 | E3: Safe-area inset audit — adaptive header/footer for all iPhones
+2026-06-04 20:06 | 4ea219e | E4: ClipEditSheet keyboard avoidance via visualViewport API
+2026-06-04 20:07 | 3223246 | E5: SwipeToDelete on board cards — consistent with inbox
+2026-06-04 20:07 | 75e512a | E6: Substance list visual polish — colored accents + stagger animation
+2026-06-04 20:08 | 7c6a6fd | E7: Pull-to-refresh on boards page — consistent with inbox
+2026-06-04 20:10 | 0706145 | E8+E9: App review prompt + offline mode indicator
