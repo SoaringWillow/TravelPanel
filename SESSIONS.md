@@ -96,3 +96,19 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-04 13:27 | 23b9308 | feat(B2): browser extension — clip any URL into TravelPanel boards
+2026-06-04 13:33 | 7070376 | feat(B3): Claude Vision support for Xiaohongshu / anti-scraping platforms
+2026-06-04 13:35 | 80c173d | feat(B5): cloud backup export + settings page
+2026-06-04 13:38 | c19fcff | chore: new Phase D (iOS polish) + Phase E (cloud) task roadmap
+2026-06-04 13:41 | dd7a199 | feat(D1): duplicate URL detection in import sheet and share page
+2026-06-04 13:42 | 6eeaa78 | feat(D2): restore from backup (complement to B5 export)
+2026-06-04 13:44 | a45160c | feat(D3): editable clip notes in detail card
+2026-06-04 13:48 | 67226c5 | D4: Rich InboxCard redesign with thumbnail, substance chips, and tap-to-detail
+2026-06-04 13:49 | ba6f7a2 | D5: Tag filter bar for inbox and map views
+2026-06-04 13:51 | 48bc293 | D6: Haptic feedback for iOS native touch responses
+2026-06-04 13:54 | 92446de | D7: Board management polish — edit, rename, delete confirmation
+2026-06-04 13:54 | 30d4f20 | D8: Import Sheet URL preview (og:image + title on paste)
+2026-06-04 13:56 | 19945dc | D9: Map pin visual improvements — tag colors, inner dot, tap animation
+2026-06-04 13:57 | 04f9397 | D10: Plan view visual redesign — gradient day cards, timeline activities, floating export bar
+2026-06-04 14:00 | 7c576e9 | D11: Dark mode — CSS variables, theme toggle in settings, dark: variants on core surfaces
+2026-06-04 14:02 | 253d903 | D12: Share Extension native board picker — no WebView cold-start
