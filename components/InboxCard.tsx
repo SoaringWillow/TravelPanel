@@ -1,8 +1,9 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Share2 } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { shareClip } from '@/lib/share';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -298,6 +299,16 @@ export default function InboxCard({
                 <LayoutGrid size={13} />
               </button>
             )}
+
+            {/* Share */}
+            <button
+              type="button"
+              onClick={() => shareClip({ title: item.title, url: item.url, description: item.description })}
+              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              aria-label="Share"
+            >
+              <Share2 size={13} />
+            </button>
 
             {/* Delete */}
             <button

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" fill="#6366f1"/>
+          <path d="M12 5C9.24 5 7 7.24 7 10c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5c-.83 0-1.5-.67-1.5-1.5S11.17 8.5 12 8.5s1.5.67 1.5 1.5S12.83 11.5 12 11.5z" fill="white"/>
+        </svg>
+        <div>
+          <div class="logo-name">TravelPanel Clipper</div>
+          <div class="logo-sub">Settings</div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+
+      <div class="card">
+        <div class="card-title">App URL</div>
+        <p class="card-desc">Enter the URL where your TravelPanel app is running. The extension syncs clips to this app when you visit it.</p>
+
+        <label class="field-label" for="appUrlInput">TravelPanel URL</label>
+        <input
+          type="url"
+          id="appUrlInput"
+          class="field-input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        >
+
+        <div class="quick-urls">
+          <span class="quick-url-label">Quick set:</span>
+          <button class="quick-btn" data-url="http://localhost:3000">localhost dev</button>
+          <button class="quick-btn" data-url="https://travelpanel.vercel.app">Vercel prod</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Pending Clips</div>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-num" id="pendingCount">0</div>
+            <div class="stat-label">pending sync</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="boardsCount">0</div>
+            <div class="stat-label">boards cached</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="totalClipped">0</div>
+            <div class="stat-label">total clipped</div>
+          </div>
+        </div>
+        <button class="danger-btn" id="clearPendingBtn" style="display:none">
+          Clear pending clips
+        </button>
+      </div>
+
+      <div class="card info-card">
+        <div class="card-title">How it works</div>
+        <ol class="steps">
+          <li>Click the extension icon on any travel page</li>
+          <li>Choose a board and click <strong>Clip to TravelPanel</strong></li>
+          <li>Open TravelPanel — clips sync automatically and AI enriches them</li>
+        </ol>
+        <p class="tip">Tip: Right-click any link and choose <em>Clip link to TravelPanel</em> for quick saves.</p>
+      </div>
+
+      <button class="save-btn" id="saveBtn">Save Settings</button>
+      <div class="saved-msg" id="savedMsg" style="display:none">✓ Settings saved</div>
+
+    </main>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

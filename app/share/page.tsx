@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const rawImage        = searchParams.get('image') ?? undefined;
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -90,7 +91,7 @@ function SharePageInner() {
 
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, rawImage)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

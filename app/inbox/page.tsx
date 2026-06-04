@@ -15,6 +15,9 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { SwipeToDelete } from '@/components/SwipeToDelete';
+import { PullToRefresh } from '@/components/PullToRefresh';
+import { EmptyState } from '@/components/EmptyState';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,7 +32,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -139,49 +142,60 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <PullToRefresh onRefresh={refresh} className="flex-1 px-4 py-4 pb-24">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          query.trim() ? (
+            <EmptyState
+              illustration="search"
+              title="No matches found"
+              subtitle={`No clips match "${query.trim()}". Try a different search term.`}
+            />
+          ) : activePlatform !== 'all' ? (
+            <EmptyState
+              illustration="inbox"
+              title={`No ${PLATFORM_LABELS[activePlatform as Platform]} clips`}
+              subtitle="Share a post from this platform to add your first clip."
+            />
+          ) : (
+            <EmptyState
+              illustration="inbox"
+              title="Your inbox is empty"
+              subtitle="Share any travel post from Instagram, YouTube, or Xiaohongshu to get started. The iOS Share Sheet does the rest."
+            />
+          )
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             <AnimatePresence>
               {filtered.map((item) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  exit={{ opacity: 0, x: -200, transition: { duration: 0.18 } }}
                   transition={{ duration: 0.2 }}
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
+                  <SwipeToDelete
+                    onDelete={() => removeItem(item.id)}
+                    disabled={!!movingItemId}
+                  >
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  </SwipeToDelete>
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
         )}
-      </div>
+      </PullToRefresh>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>
