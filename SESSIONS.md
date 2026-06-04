@@ -115,3 +115,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-04 18:05 | 3edbddb | D11+D12: When-to-visit insight card and budget tier tags
 2026-06-04 18:06 | dc48cdf | D13: Nearby clips suggestion in detail card
 2026-06-04 18:08 | 4cae5c2 | D14+D15: Virtual scroll for large lists and iOS app review prompt
+2026-06-04 18:13 | 452c363 | Fix build errors: type corrections across haptics, timeline, share
