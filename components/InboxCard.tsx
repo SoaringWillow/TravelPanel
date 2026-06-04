@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { useCachedImage } from '@/hooks/useCachedImage';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ export default function InboxCard({
   onRetry,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
+  const thumbnailSrc = useCachedImage(item.thumbnail);
 
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
@@ -191,9 +193,9 @@ export default function InboxCard({
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
+      {thumbnailSrc ? (
         <img
-          src={item.thumbnail}
+          src={thumbnailSrc}
           alt={item.title}
           className="w-full h-32 object-cover"
           onError={(e) => {

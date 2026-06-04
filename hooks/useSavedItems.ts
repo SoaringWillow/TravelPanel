@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SavedItem } from '@/lib/types';
 import { getAllItems, saveItem, deleteItem, getItemById } from '@/lib/db';
+import { cacheImage, evictImage } from '@/lib/imageCache';
 
 export function useSavedItems() {
   const [items, setItems] = useState<SavedItem[]>([]);
@@ -17,10 +18,13 @@ export function useSavedItems() {
   const addItem = useCallback(async (item: SavedItem) => {
     await saveItem(item);
     setItems((prev) => [item, ...prev]);
+    if (item.thumbnail) cacheImage(item.thumbnail); // pre-warm thumbnail cache
   }, []);
 
   const removeItem = useCallback(async (id: string) => {
+    const item = await getItemById(id);
     await deleteItem(id);
+    if (item?.thumbnail) evictImage(item.thumbnail); // clean up cached thumbnail
     setItems((prev) => prev.filter((i) => i.id !== id));
   }, []);
 

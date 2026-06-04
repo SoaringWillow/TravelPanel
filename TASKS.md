@@ -276,7 +276,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a toast: "New board created with X spots from your plan"
 
 ### D7 — Offline Thumbnail Caching
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Thumbnails currently load from the original CDN URL every time. On poor connectivity (in-flight, rural), cards show broken images. Critical for a travel app used on-the-go.  
 **Files**: `public/sw.js`, `components/InboxCard.tsx`, new `lib/imageCache.ts`  
 **What to do**:
