@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="logo">✈️</span>
+      <div>
+        <h1>TravelPanel Clipper</h1>
+        <p class="subtitle">Extension Settings</p>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="api-url">TravelPanel URL</label>
+      <p class="help">The URL of your TravelPanel instance.</p>
+      <input
+        type="url"
+        id="api-url"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+      />
+      <p id="status" class="status"></p>
+      <button id="save-btn">Save Settings</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="info-section">
+      <h2>How it works</h2>
+      <ul>
+        <li>Click the extension icon to clip the current page to TravelPanel</li>
+        <li>Right-click any link or page and choose "Clip to TravelPanel"</li>
+        <li>AI extracts locations, tips, warnings, and other wisdom from each clip</li>
+        <li>Clips sync with your TravelPanel boards</li>
+      </ul>
+    </div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

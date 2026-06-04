@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Loading -->
+    <div id="loading" class="screen">
+      <div class="center-content">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <!-- Setup: first-run URL configuration -->
+    <div id="setup" class="screen hidden">
+      <div class="setup-header">
+        <span class="setup-logo">✈️</span>
+        <h1 class="setup-title">TravelPanel Clipper</h1>
+        <p class="setup-subtitle">Enter your TravelPanel URL to start clipping</p>
+      </div>
+      <div class="setup-body">
+        <input
+          type="url"
+          id="api-url-input"
+          class="url-input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+        />
+        <button id="save-settings-btn" class="btn-primary">Connect</button>
+      </div>
+    </div>
+
+    <!-- Main: board selector + clip action -->
+    <div id="main" class="screen hidden">
+      <div class="top-bar">
+        <span class="brand">✈️ TravelPanel</span>
+        <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+      </div>
+
+      <div class="page-preview">
+        <img id="page-favicon" class="favicon" src="" alt="" />
+        <div class="page-info">
+          <div id="page-title" class="page-title">Loading…</div>
+          <div id="page-url" class="page-url">…</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <p class="section-label">Save to</p>
+        <div id="board-list" class="board-list"></div>
+        <button id="new-board-btn" class="new-board-trigger">＋ New board</button>
+        <div id="new-board-form" class="new-board-form hidden">
+          <input
+            type="text"
+            id="new-board-name"
+            class="board-name-input"
+            placeholder="Board name"
+            maxlength="40"
+          />
+          <button id="create-board-btn" class="btn-create">Create</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="clip-btn" class="btn-clip">
+          <span>📌</span>
+          Clip Page
+        </button>
+      </div>
+
+      <div class="footer">
+        <a id="open-app-link" href="#" target="_blank" class="footer-link">Open in TravelPanel ↗</a>
+      </div>
+    </div>
+
+    <!-- Saving: AI extraction in progress -->
+    <div id="saving" class="screen hidden">
+      <div class="center-content">
+        <div class="spinner large"></div>
+        <p class="saving-title">Extracting spots & wisdom…</p>
+        <p class="saving-subtitle">AI is reading the page</p>
+      </div>
+    </div>
+
+    <!-- Success -->
+    <div id="success" class="screen hidden">
+      <div class="center-content">
+        <div class="success-icon">✅</div>
+        <p class="success-title">Clipped!</p>
+        <p id="success-detail" class="success-detail">Saved to Inbox</p>
+        <div id="success-stats" class="success-stats hidden">
+          <span id="location-count" class="stat">0 spots</span>
+          <span class="stat-divider">·</span>
+          <span id="substance-count" class="stat">0 tips</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="error" class="screen hidden">
+      <div class="center-content">
+        <div class="error-icon">⚠️</div>
+        <p id="error-message" class="error-message">Something went wrong.</p>
+        <button id="retry-btn" class="btn-primary" style="margin-bottom:8px">Try again</button>
+        <button id="save-anyway-btn" class="btn-ghost">Save URL only</button>
+      </div>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

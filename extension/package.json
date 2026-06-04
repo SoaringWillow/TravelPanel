@@ -1,0 +1,16 @@
+{
+  "name": "travelpanel-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/generate-icons.mjs && node build.mjs",
+    "build:js": "node build.mjs",
+    "icons": "node scripts/generate-icons.mjs"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "esbuild": "^0.19.12",
+    "typescript": "^5.3.3"
+  }
+}
