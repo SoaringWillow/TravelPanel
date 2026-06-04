@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -49,6 +49,7 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [screenshotB64, setScreenshotB64]     = useState<string | null>(null);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -56,6 +57,14 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Check for duplicate URL
+  useEffect(() => {
+    if (!rawUrl) return;
+    getItemByUrl(rawUrl).then((existing) => {
+      if (existing) setDuplicateItem(existing);
+    }).catch(() => {});
+  }, [rawUrl]);
 
   // Pick up a screenshot written to sessionStorage by CapacitorBridge (iOS App Group path)
   useEffect(() => {
@@ -216,6 +225,26 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Duplicate warning */}
+          {duplicateItem && (
+            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
+              <span className="text-base leading-none mt-0.5">⚠️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-amber-800">Already saved!</p>
+                <p className="text-xs text-amber-700 mt-0.5 line-clamp-1">
+                  "{duplicateItem.title}"
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDuplicateItem(null)}
+                className="text-xs text-amber-600 font-medium hover:text-amber-800 flex-shrink-0 mt-0.5"
+              >
+                Save anyway
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Screenshot paste zone — shown for platforms that block scraping */}
@@ -278,7 +307,7 @@ function SharePageInner() {
             {/* Inbox chip */}
             <button
               type="button"
-              disabled={stage === 'saving'}
+              disabled={stage === 'saving' || !!duplicateItem}
               onClick={() => handleSave(undefined, 'Inbox')}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
@@ -290,7 +319,7 @@ function SharePageInner() {
               <button
                 key={board.id}
                 type="button"
-                disabled={stage === 'saving'}
+                disabled={stage === 'saving' || !!duplicateItem}
                 onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
                 className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >

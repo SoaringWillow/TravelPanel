@@ -63,7 +63,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Add a dark mode toggle button to the settings page
 
 ### D5 — Edit Clip Metadata (Title + Notes + Tags)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Currently clips can only be deleted. Users need to correct titles, add personal notes, and adjust tags.  
 **Files to change**: `components/LocationDetailCard.tsx`, `lib/db.ts`, `lib/types.ts`  
 **What to do**:
@@ -75,7 +75,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Keep edit mode state local to the component (no extra prop drilling)
 
 ### D6 — Duplicate URL Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Users accidentally save the same URL multiple times. Each duplicate wastes an API call and clutters the library.  
 **Files to change**: `app/share/page.tsx`, `lib/db.ts`  
 **What to do**:
