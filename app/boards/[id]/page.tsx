@@ -1,16 +1,59 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Rocket, MapPin, Share2 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { reorderBoardItems } from '@/lib/db';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+// ─── Sortable card wrapper ────────────────────────────────────────────────────
+
+function SortableInboxCard({
+  item,
+  onDelete,
+  onViewOnMap,
+}: {
+  item: SavedItem;
+  onDelete: (id: string) => void;
+  onViewOnMap: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      {...attributes}
+      {...listeners}
+    >
+      <InboxCard item={item} onDelete={onDelete} onViewOnMap={onViewOnMap} />
+    </div>
+  );
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -24,6 +67,30 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [shareToast, setShareToast] = useState<string | null>(null);
+  const [localItemIds, setLocalItemIds] = useState<string[]>([]);
+
+  // Sync local order with board.itemIds when board changes
+  useEffect(() => {
+    if (board) setLocalItemIds(board.itemIds);
+  }, [board]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = localItemIds.indexOf(active.id as string);
+      const newIndex = localItemIds.indexOf(over.id as string);
+      const newIds = arrayMove(localItemIds, oldIndex, newIndex);
+      setLocalItemIds(newIds);
+      await reorderBoardItems(boardId, newIds);
+    },
+    [localItemIds, boardId]
+  );
 
   async function handleShare() {
     const { shareBoard } = await import('@/lib/shareBoard');
@@ -35,9 +102,10 @@ export default function BoardDetailPage() {
   }
 
   const board = boards.find((b) => b.id === boardId);
-  const boardItems: SavedItem[] = board
-    ? items.filter((item) => board.itemIds.includes(item.id))
-    : [];
+  const itemMap = new Map(items.map((i) => [i.id, i]));
+  const boardItems: SavedItem[] = localItemIds
+    .map((id) => itemMap.get(id))
+    .filter((i): i is SavedItem => !!i);
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
 
@@ -204,16 +272,20 @@ export default function BoardDetailPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
-                />
-              ))}
-            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={localItemIds} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-2 gap-3">
+                  {boardItems.map((item) => (
+                    <SortableInboxCard
+                      key={item.id}
+                      item={item}
+                      onDelete={handleDelete}
+                      onViewOnMap={handleViewOnMap}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </div>

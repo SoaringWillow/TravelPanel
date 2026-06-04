@@ -99,7 +99,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 - Settings page: add a theme toggle (System / Light / Dark)
 
 ### D8 — Drag-to-Reorder Clips in Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Users organize boards deliberately. Being able to reorder clips within a board is expected functionality for a collection app.  
 **Files to change**: `app/boards/[id]/page.tsx`, `lib/db.ts`  
 **What to do**:
