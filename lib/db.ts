@@ -125,6 +125,20 @@ export async function updateItemEnrichment(
   });
 }
 
+export async function updateItemNotes(id: string, notes: string): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, notes });
+}
+
+export async function updateItemTags(id: string, tags: string[]): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, tags });
+}
+
 // ─── Boards ────────────────────────────────────────────────────────────────
 
 export async function getAllBoards(): Promise<Board[]> {
@@ -208,4 +222,20 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
+export async function updateTripVisitLog(tripId: string, visitLog: import('./types').VisitRecord[]): Promise<void> {
+  const db = await getDB();
+  const trip = await db.get('trips', tripId);
+  if (!trip) return;
+  await db.put('trips', { ...trip, visitLog });
 }

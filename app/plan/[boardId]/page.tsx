@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
-import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, CheckCircle2, Clock3, BookmarkPlus } from 'lucide-react';
+import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, VisitRecord, Location, Platform, EnrichmentStatus } from '@/lib/types';
+import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, updateTripVisitLog, saveItem, saveBoard } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -13,6 +13,8 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import { PostTripTimeline } from '@/components/PostTripTimeline';
+import { AnimatePresence } from 'framer-motion';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -38,6 +40,9 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [showTimeline, setShowTimeline]   = useState(false);
+  const [visitLog, setVisitLog]           = useState<VisitRecord[]>([]);
+  const [boardSavedToast, setBoardSavedToast] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -138,10 +143,12 @@ export default function PlanPage() {
                 agentSteps: collectedSteps,
                 plan: latestPlan as TripPlan,
                 createdAt: Date.now(),
+                visitLog: [],
               };
               await saveTrip(trip);
               setSavedTrips((prev) => [...prev, trip]);
               setCurrentTripId(trip.id);
+              setVisitLog([]);
             }
           }
           if (msg.t === 'plan') {
@@ -192,8 +199,37 @@ export default function PlanPage() {
     setDays(trip.days);
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
+    setVisitLog(trip.visitLog ?? []);
     setStage('complete');
   }, []);
+
+  // Toggle a single activity's visited state and persist to IndexedDB.
+  const toggleVisit = useCallback(async (dayIndex: number, activityIndex: number) => {
+    if (!currentTripId) return;
+    setVisitLog((prev) => {
+      const exists = prev.findIndex(
+        (v) => v.dayIndex === dayIndex && v.activityIndex === activityIndex
+      );
+      const next = exists >= 0
+        ? prev.filter((_, i) => i !== exists)
+        : [...prev, { dayIndex, activityIndex, visitedAt: Date.now() }];
+      // Fire-and-forget persist
+      updateTripVisitLog(currentTripId, next).catch(() => {});
+      return next;
+    });
+  }, [currentTripId]);
+
+  // Add or update a note on a visited activity.
+  const addNote = useCallback(async (dayIndex: number, activityIndex: number, note: string) => {
+    if (!currentTripId) return;
+    setVisitLog((prev) => {
+      const next = prev.map((v) =>
+        v.dayIndex === dayIndex && v.activityIndex === activityIndex ? { ...v, note } : v
+      );
+      updateTripVisitLog(currentTripId, next).catch(() => {});
+      return next;
+    });
+  }, [currentTripId]);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
     const trip = savedTrips.find((t) => t.id === tripId);
@@ -216,6 +252,61 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setCurrentTripId(null);
   }, []);
+
+  const handleSaveAsBoard = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+
+    const seen = new Set<string>();
+    const uniqueLocations: Location[] = [];
+    for (const day of plan.days) {
+      for (const activity of day.activities) {
+        const key = `${activity.location.lat},${activity.location.lng}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueLocations.push(activity.location);
+        }
+      }
+    }
+    if (uniqueLocations.length === 0) return;
+
+    const newBoardId = crypto.randomUUID();
+    const now = Date.now();
+    const newItems: SavedItem[] = uniqueLocations.map((loc) => ({
+      id: crypto.randomUUID(),
+      url: '',
+      platform: 'other' as Platform,
+      title: loc.name,
+      description: loc.address ?? '',
+      locations: [loc],
+      activities: [],
+      tags: [],
+      substance: [],
+      savedAt: now,
+      enrichmentStatus: 'done' as EnrichmentStatus,
+      retryCount: 0,
+      boardId: newBoardId,
+      source: 'plan' as const,
+    }));
+
+    const newBoard: Board = {
+      id: newBoardId,
+      name: `${board.name} — Plan Spots`,
+      emoji: '📍',
+      itemIds: newItems.map((i) => i.id),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    for (const item of newItems) await saveItem(item);
+    await saveBoard(newBoard);
+
+    track('plan_saved_as_board', { boardId, spotCount: uniqueLocations.length });
+    setBoardSavedToast(`Board created with ${uniqueLocations.length} spot${uniqueLocations.length !== 1 ? 's' : ''}!`);
+    setTimeout(() => {
+      setBoardSavedToast(null);
+      router.push(`/boards/${newBoardId}`);
+    }, 1400);
+  }, [plan, board, boardId, router]);
 
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
@@ -259,6 +350,13 @@ export default function PlanPage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+      {/* Board-saved toast */}
+      {boardSavedToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[2000] bg-gray-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg whitespace-nowrap">
+          {boardSavedToast}
+        </div>
+      )}
+
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -458,7 +556,7 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Export actions */}
+              {/* Export + Timeline actions */}
               {planIsComplete(plan) && (
                 <div className="flex gap-2">
                   <button
@@ -466,14 +564,25 @@ export default function PlanPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={() => setShowTimeline(true)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-xl active:scale-[0.98] transition-all ${
+                      visitLog.length > 0
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Clock3 size={14} />
+                    Timeline{visitLog.length > 0 ? ` (${visitLog.length})` : ''}
                   </button>
                 </div>
               )}
@@ -512,10 +621,16 @@ export default function PlanPage() {
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const isVisited = visitLog.some(
+                      (v) => v.dayIndex === activeDayIndex && v.activityIndex === aIdx
+                    );
+                    return (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className={`bg-white rounded-2xl p-3 shadow-sm border space-y-1 transition-colors ${
+                        isVisited ? 'border-green-200 bg-green-50/30' : 'border-gray-100'
+                      }`}
                     >
                       <div className="flex items-start gap-2">
                         <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
@@ -527,9 +642,25 @@ export default function PlanPage() {
                           </p>
                           <p className="text-sm text-gray-800">{activity.name}</p>
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className="bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.duration}
+                          </span>
+                          {/* Mark visited */}
+                          {currentTripId && (
+                            <button
+                              onClick={() => toggleVisit(activeDayIndex, aIdx)}
+                              className={`p-1 rounded-lg transition-all active:scale-90 ${
+                                isVisited
+                                  ? 'text-green-600 bg-green-100'
+                                  : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+                              }`}
+                              title={isVisited ? 'Mark as not visited' : 'Mark as visited'}
+                            >
+                              <CheckCircle2 size={16} strokeWidth={2} />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {activity.tips.length > 0 && (
@@ -559,7 +690,8 @@ export default function PlanPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -580,6 +712,17 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* Save spots as new board */}
+              {planIsComplete(plan) && (
+                <button
+                  onClick={handleSaveAsBoard}
+                  className="w-full flex items-center justify-center gap-2 border border-indigo-200 text-indigo-600 text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
+                >
+                  <BookmarkPlus size={15} />
+                  Save spots as new board
+                </button>
+              )}
+
               {/* Start Over */}
               <button
                 onClick={handleStartOver}
@@ -593,6 +736,18 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {/* Post-Trip Timeline overlay */}
+      <AnimatePresence>
+        {showTimeline && planIsComplete(plan) && (
+          <PostTripTimeline
+            plan={plan}
+            visitLog={visitLog}
+            onClose={() => setShowTimeline(false)}
+            onAddNote={addNote}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

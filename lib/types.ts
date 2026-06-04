@@ -50,6 +50,7 @@ export interface SavedItem {
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
+  source?: 'clip' | 'plan'; // how this item was created
   isDemo?: boolean; // onboarding seed content — removable in one tap
 }
 
@@ -114,6 +115,14 @@ export interface TripPlan {
   tips: string[];
 }
 
+// A single activity that the user marked as visited during the actual trip.
+export interface VisitRecord {
+  dayIndex: number;
+  activityIndex: number;
+  visitedAt: number; // epoch ms
+  note?: string;     // optional freeform note added post-visit
+}
+
 export interface Trip {
   id: string;
   boardId: string;
@@ -124,6 +133,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  visitLog?: VisitRecord[]; // populated during/after the real trip
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

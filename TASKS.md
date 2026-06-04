@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,7 +174,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
@@ -182,16 +182,147 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
+
+---
+
+## PHASE D — iOS Polish + Product Completion (New Sprint, 2026-06-04)
+
+> **Goal**: Elevate TravelPanel from a working MVP to a beautiful, polished iOS app
+> that users instinctively trust and return to. Every task here directly addresses
+> a gap between "it works" and "it feels great."
+>
+> **Priority**: D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10
+
+### D1 — Dark Mode Support
+**Status**: `[x]` Done  
+**Why**: Most iOS users enable system dark mode. The current app is all-white — jarring at night. This is a basic quality bar for any modern iOS app.  
+**Files to change**: `app/globals.css`, `tailwind.config.js`, every component that uses hard-coded `bg-white`, `text-gray-X`, `bg-gray-50`  
+**What to do**:
+- Add `darkMode: 'class'` to `tailwind.config.js`
+- Add a `ThemeProvider` in `app/layout.tsx` that reads `prefers-color-scheme` and sets a `dark` class on `<html>`
+- Audit all pages and components: replace `bg-white` → `bg-white dark:bg-gray-900`, `text-gray-900` → `dark:text-white`, etc.
+- Map tiles: MapLibre supports dark style — switch to `demotiles.net` dark tile when in dark mode
+- Key pages: home, inbox, boards, plan, share, settings — all need dark variants
+- Test in iOS Safari dark mode
+
+### D2 — Pull-to-Refresh in Inbox & Boards
+**Status**: `[x]` Done  
+**Why**: Standard iOS pattern. Without it the app feels web-like. Triggers re-enrichment of any failed/pending items.  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, new `components/PullToRefresh.tsx`  
+**What to do**:
+- Create `PullToRefresh.tsx` using touch events (`touchstart`/`touchmove`/`touchend`) on the scroll container
+- Show a spinner animation when pulled > 60px
+- On release: call the supplied `onRefresh` callback (re-query DB + trigger retry queue)
+- Include spring-back animation using Framer Motion
+- Capacitor `@capacitor/push-notifications` style haptic on trigger (`Haptics.impact`)
+- Wire into inbox and boards list views
+
+### D3 — Swipe-to-Delete on Cards
+**Status**: `[x]` Done  
+**Why**: iOS users expect swipe-left to reveal delete. Tap-and-hold is not discoverable. This reduces friction for library curation.  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Add touch swipe detection: if user swipes left > 60px, reveal a red "Delete" button
+- Use Framer Motion `drag` with `dragConstraints` for smooth feel
+- Snap to open (showing delete) or closed on release based on velocity
+- Tapping the red button calls `onDelete`
+- Swipe right or tap elsewhere to close
+- Works alongside the existing tap-to-view behaviour
+
+### D4 — Personal Notes on Clips
+**Status**: `[x]` Done  
+**Why**: Users discover things from a clip ("bring cash", "visit on Tuesday") that aren't in the extracted substance. They need somewhere to put personal annotations.  
+**Files**: `lib/types.ts` (notes field already exists on SavedItem), `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- `SavedItem.notes?: string` already exists in the type — wire it up
+- In `LocationDetailCard`, add a "Notes" section below substance
+- Tapping the section opens an inline text area (expandable, auto-saves on blur)
+- `updateItemNotes(id, notes)` DB helper writes the note to IndexedDB
+- Show a small 📝 indicator on InboxCard when a note exists
+- Include notes in JSON export (already included by default)
+
+### D5 — Tag Management (Add / Remove Tags on Clips)
+**Status**: `[x]` Done  
+**Why**: AI-extracted tags aren't always right. Users should be able to add "honeymoon" or remove "shopping" from a food clip. Custom tags power future filtering and search.  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- In the detail card, make tag chips tappable/removable (× button on each)
+- Add an "+ Add tag" chip that opens an inline text input (Enter to confirm)
+- `updateItemTags(id, tags)` DB helper
+- Show a pencil icon next to the tags section to signal editability
+- Limit tags to 20 chars each, max 10 tags per item
+
+### D6 — Create Board from Trip Plan
+**Status**: `[x]` Done  
+**Why**: After generating a plan, users often want to collect the recommended spots as a board for future clipping. This bridges the planner → clipper loop.  
+**Files**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
+**What to do**:
+- In the trip plan COMPLETE state, add a "Save spots as new board" button
+- Collects all unique `location` objects from the plan's activities
+- Creates new `SavedItem` records for each spot (status: done, no URL, source: 'plan')
+- Creates a new `Board` with those items
+- Updates `lib/types.ts` if needed: add `source?: 'clip' | 'plan'` to SavedItem
+- Navigate to the new board on completion
+- Show a toast: "New board created with X spots from your plan"
+
+### D7 — Offline Thumbnail Caching
+**Status**: `[x]` Done  
+**Why**: Thumbnails currently load from the original CDN URL every time. On poor connectivity (in-flight, rural), cards show broken images. Critical for a travel app used on-the-go.  
+**Files**: `public/sw.js`, `components/InboxCard.tsx`, new `lib/imageCache.ts`  
+**What to do**:
+- In the service worker (`public/sw.js`), add a cache-first strategy for image requests that match thumbnail URLs
+- In `lib/imageCache.ts`, on save of a new item, `fetch(thumbnail)` and store in a `Cache.open('thumbnails')` cache entry keyed by item ID
+- `InboxCard` and `LocationDetailCard`: use a `useCachedImage(url)` hook that checks Cache API first, then network
+- Include a "cache size" display in Settings (nice-to-have)
+- Automatically evict thumbnails for deleted items
+
+### D8 — iOS "Add to Home Screen" Prompt
+**Status**: `[x]` Done  
+**Why**: Without Capacitor native install, Safari users run the web app. "Add to Home Screen" is the only way to get app-quality on web. We never prompt for it.  
+**Files**: new `components/A2HSBanner.tsx`, `app/layout.tsx` or `app/page.tsx`  
+**What to do**:
+- Detect if running in Safari on iOS (`navigator.userAgent` includes `Safari`, `!navigator.standalone`)
+- Show a bottom banner on 3rd app open (track count in localStorage): "Add TravelPanel to your home screen for the full experience"
+- Include an animated arrow pointing to the Share button at the bottom of Safari
+- "Remind me later" / "Got it!" dismiss options
+- Don't show if already installed as PWA (`window.navigator.standalone === true`) or on native Capacitor app
+
+### D9 — First-Run Onboarding Tutorial
+**Status**: `[x]` Done  
+**Why**: New users land on an empty map with no guidance. Seed boards help (A8) but don't explain the core clip → plan flow. Churn at session 1 is the biggest retention risk.  
+**Files**: new `components/OnboardingOverlay.tsx`, `app/page.tsx`  
+**What to do**:
+- On first launch (no items, `hasCompletedOnboarding` not in localStorage), show a 3-step overlay:
+  - Step 1: "Clip inspiration" — highlight the + FAB, show a demo of saving a URL
+  - Step 2: "AI extracts spots + wisdom" — animated card showing extraction
+  - Step 3: "Plan your trip" — show the plan button and AI planner
+- Each step has a "Got it" tap or auto-advance after 4s
+- Skip button always visible
+- On completion, set `hasCompletedOnboarding = true` and dismiss
+- Use Framer Motion for transitions; must look stunning
+
+### D10 — iOS App Icon + Splash Screen
+**Status**: `[x]` Done  
+**Why**: The current Capacitor placeholder icon (generic blue square) looks unfinished. The app icon is the first thing users see on their home screen. Essential for TestFlight/App Store submission.  
+**Files**: `ios/App/App/Assets.xcassets/`, `ios/App/App/Assets.xcassets/Splash.imageset/`  
+**What to do**:
+- Design a map-pin-based icon: indigo background (#6366f1), white pin with a subtle travel motif
+- Generate all required iOS icon sizes (1024×1024 master → all @1x/@2x/@3x variants)
+- Can be done with a Node script using `sharp` (npm package) to resize from a 1024px master SVG
+- Create a `scripts/generate-icons.ts` script that reads `public/icon-master.svg` and outputs all sizes to `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
+- Splash screen: indigo background, centered white pin icon, fade in/out
+- Update `Contents.json` files in the xcassets to reference the new images
+- Also update the web app manifest (`public/manifest.json`) with the new icons
 
 ---
 

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    :root {
+      --bg: #0d0f1a;
+      --surface: #161929;
+      --surface-2: #1e2238;
+      --border: rgba(255,255,255,0.08);
+      --text: #eef0ff;
+      --text-muted: #7c7fa8;
+      --accent: #6366f1;
+      --accent-dark: #4f52d9;
+      --success: #22c55e;
+      --error: #ef4444;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .page { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 32px; }
+
+    /* ── Header ── */
+    .header { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 44px; height: 44px;
+      background: rgba(99,102,241,0.15);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+    }
+    .header-text h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; }
+    .header-text p  { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); }
+
+    /* ── Form field ── */
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 14px; font-weight: 500; }
+    .field-hint { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+    .input {
+      background: var(--surface-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input::placeholder { color: var(--text-muted); }
+    .input:focus { border-color: var(--accent); }
+
+    /* ── Button row ── */
+    .btn-row { display: flex; gap: 10px; }
+
+    .btn {
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 10px 18px;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-ghost {
+      background: var(--surface-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); background: var(--border); }
+
+    /* ── Status pill ── */
+    .status { display: none; align-items: center; gap: 6px; font-size: 13px; padding: 8px 12px; border-radius: var(--radius-sm); }
+    .status.visible { display: flex; }
+    .status.success { background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
+    .status.error   { background: rgba(239,68,68,0.1);  color: var(--error);   border: 1px solid rgba(239,68,68,0.2);  }
+
+    /* ── Instructions ── */
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step { display: flex; gap: 12px; }
+    .step-num {
+      width: 24px; height: 24px; flex-shrink: 0;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: white;
+      margin-top: 1px;
+    }
+    .step-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+    .step-text strong { color: var(--text); }
+    code {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>TravelPanel Clipper</h1>
+        <p>Browser extension settings</p>
+      </div>
+    </div>
+
+    <!-- Config card -->
+    <div class="card">
+      <div class="card-title">Connection</div>
+
+      <div class="field">
+        <label for="panelUrlInput">Your TravelPanel URL</label>
+        <input
+          type="url"
+          id="panelUrlInput"
+          class="input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="field-hint">
+          Paste the URL where your TravelPanel is deployed.
+          This is where clipped pages will be saved.
+        </div>
+      </div>
+
+      <div id="statusMsg" class="status"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="saveBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          Save
+        </button>
+        <button class="btn btn-ghost" id="testBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <polyline points="9 11 12 14 22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Test connection
+        </button>
+      </div>
+    </div>
+
+    <!-- How to load -->
+    <div class="card">
+      <div class="card-title">Loading the extension in Chrome</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">Open <strong>chrome://extensions</strong> in a new tab</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">Enable <strong>Developer mode</strong> (top-right toggle)</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">Click <strong>Load unpacked</strong> and select the <code>browser-extension/</code> folder from the TravelPanel repo</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">The TravelPanel Clipper icon will appear in your toolbar. Click it to start clipping!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context menu tip -->
+    <div class="card">
+      <div class="card-title">Pro tip</div>
+      <div class="step-text">
+        You can also <strong>right-click any page or link</strong> and choose
+        <strong>"Clip to TravelPanel"</strong> — no popup needed.
+      </div>
+    </div>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+    <linearGradient id="pin-shine" x1="0%" y1="0%" x2="60%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#e0e7ff" stop-opacity="0.85"/>
+    </linearGradient>
+    <filter id="pin-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#1e1b4b" flood-opacity="0.35"/>
+    </filter>
+    <filter id="map-lines">
+      <feColorMatrix type="matrix" values="1 0 0 0 1  0 1 0 0 1  0 0 1 0 1  0 0 0 0.06 0"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Subtle map grid lines in background -->
+  <g filter="url(#map-lines)">
+    <!-- Horizontal lines -->
+    <line x1="0" y1="200" x2="1024" y2="200" stroke="white" stroke-width="2.5"/>
+    <line x1="0" y1="400" x2="1024" y2="400" stroke="white" stroke-width="2.5"/>
+    <line x1="0" y1="600" x2="1024" y2="600" stroke="white" stroke-width="2.5"/>
+    <line x1="0" y1="800" x2="1024" y2="800" stroke="white" stroke-width="2.5"/>
+    <!-- Vertical lines -->
+    <line x1="200" y1="0" x2="200" y2="1024" stroke="white" stroke-width="2.5"/>
+    <line x1="400" y1="0" x2="400" y2="1024" stroke="white" stroke-width="2.5"/>
+    <line x1="600" y1="0" x2="600" y2="1024" stroke="white" stroke-width="2.5"/>
+    <line x1="800" y1="0" x2="800" y2="1024" stroke="white" stroke-width="2.5"/>
+  </g>
+
+  <!-- Map pin shape (teardrop) -->
+  <g filter="url(#pin-shadow)">
+    <!-- Pin head circle -->
+    <circle cx="512" cy="390" r="195" fill="url(#pin-shine)"/>
+    <!-- Pin tail triangle -->
+    <path d="M 335 490 Q 512 760 512 760 Q 512 760 689 490 Z" fill="url(#pin-shine)"/>
+  </g>
+
+  <!-- Inner colored dot (the "you are here" dot) -->
+  <circle cx="512" cy="390" r="88" fill="#4338ca"/>
+
+  <!-- Small white globe inside the dot -->
+  <!-- Globe circle -->
+  <circle cx="512" cy="390" r="52" fill="none" stroke="white" stroke-width="6"/>
+  <!-- Globe horizontal line -->
+  <line x1="460" y1="390" x2="564" y2="390" stroke="white" stroke-width="5"/>
+  <!-- Globe vertical line -->
+  <line x1="512" y1="338" x2="512" y2="442" stroke="white" stroke-width="5"/>
+  <!-- Globe left arc -->
+  <path d="M 512 338 Q 480 390 512 442" fill="none" stroke="white" stroke-width="5"/>
+  <!-- Globe right arc -->
+  <path d="M 512 338 Q 544 390 512 442" fill="none" stroke="white" stroke-width="5"/>
+</svg>

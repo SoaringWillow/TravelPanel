@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { buildShareLink, estimateShareSize } from '@/lib/shareBoard';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -23,6 +24,7 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [shareToast, setShareToast] = useState<string | null>(null);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -49,6 +51,28 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShare() {
+    if (!board) return;
+    const sizeBytes = estimateShareSize(board, boardItems);
+    if (sizeBytes > 1_500_000) {
+      setShareToast('Board is too large to share as a link (>1.5 MB). Try removing some items.');
+      setTimeout(() => setShareToast(null), 4000);
+      return;
+    }
+    const link = buildShareLink(board, boardItems);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${board.emoji} ${board.name} — TravelPanel`, url: link });
+      } else {
+        await navigator.clipboard.writeText(link);
+        setShareToast('Share link copied to clipboard!');
+        setTimeout(() => setShareToast(null), 3000);
+      }
+    } catch {
+      // share was cancelled or clipboard failed
+    }
   }
 
   if (loading) {
@@ -110,8 +134,25 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+            aria-label="Share board"
+            title="Share board"
+          >
+            <Share2 size={18} />
+          </button>
         </div>
       </div>
+
+      {/* Share toast */}
+      {shareToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[2000] bg-gray-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg whitespace-nowrap">
+          {shareToast}
+        </div>
+      )}
 
       {/* Scrollable content below header */}
       <div className="flex-1 overflow-y-auto pb-24">
