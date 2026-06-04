@@ -11,6 +11,16 @@ import {
 } from '@/lib/db';
 import { track } from '@/lib/analytics';
 
+async function syncBoardsToAppGroup(boards: Board[]) {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const payload = boards.slice(0, 8).map((b) => ({ id: b.id, name: b.name, emoji: b.emoji }));
+    await Preferences.set({ key: 'recentBoards', value: JSON.stringify(payload) });
+  } catch {
+    // Not in Capacitor — silently skip
+  }
+}
+
 export function useBoards() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +29,7 @@ export function useBoards() {
     getAllBoards().then((fetchedBoards) => {
       setBoards(fetchedBoards);
       setLoading(false);
+      syncBoardsToAppGroup(fetchedBoards);
     });
   }, []);
 
@@ -34,7 +45,11 @@ export function useBoards() {
     };
     await saveBoard(board);
     track('board_created');
-    setBoards((prev) => [board, ...prev]);
+    setBoards((prev) => {
+      const next = [board, ...prev];
+      syncBoardsToAppGroup(next);
+      return next;
+    });
     return board;
   }, []);
 

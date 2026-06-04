@@ -327,7 +327,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test all pages: map, inbox, boards, plan, share, settings
 
 ### D12 — Share Extension Native Board Picker (iOS)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The current Share Extension opens the full web app to pick a board. This is slow (WebView cold-start ~1-2s) and visually jarring. A native mini-UI in the extension itself would let users tap a board and close in under 0.5s — matching the speed of iOS-native apps like Pocket.  
 **Files to change**: `ios/App/ShareExtension/ShareViewController.swift` (UI redesign), possibly new `MainInterface.storyboard`  
 **What to do**:
