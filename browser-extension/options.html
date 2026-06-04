@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="icons/icon48.png" class="logo" alt="">
+      <div>
+        <h1>TravelPanel Clipper</h1>
+        <p class="subtitle">Browser Extension Settings</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">App Connection</h2>
+      <p class="section-desc">
+        Enter the URL of your deployed TravelPanel app. The extension will open your
+        <code>/share</code> page to save clips.
+      </p>
+
+      <div class="field">
+        <label class="label" for="app-url">TravelPanel URL</label>
+        <input
+          type="url"
+          id="app-url"
+          class="text-input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="field-hint">Must be the root URL of your TravelPanel deployment (no trailing slash needed).</p>
+      </div>
+
+      <div id="save-status" class="save-status hidden"></div>
+
+      <button class="btn-primary" id="save-btn">Save Settings</button>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">How It Works</h2>
+      <ol class="how-list">
+        <li>Browse to any travel article, video, or social media post.</li>
+        <li>Click the TravelPanel Clipper icon in your browser toolbar.</li>
+        <li>Click <strong>Clip to TravelPanel</strong> — the page opens in TravelPanel's share flow.</li>
+        <li>Choose a board and save. Claude AI extracts locations, tips, and wisdom from the page automatically.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Keyboard Shortcut</h2>
+      <p class="section-desc">
+        You can assign a keyboard shortcut to open the extension popup in
+        <strong>chrome://extensions/shortcuts</strong> (Chrome) or via Safari Extension settings.
+      </p>
+    </div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

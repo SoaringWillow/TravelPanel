@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="brand">
+        <img src="icons/icon32.png" class="brand-icon" alt="">
+        <span class="brand-name">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="settings-btn" title="Settings" aria-label="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Setup state: app URL not configured -->
+    <div id="setup-state" class="state hidden">
+      <div class="setup-body">
+        <div class="setup-icon">🗺️</div>
+        <p class="setup-title">Connect to TravelPanel</p>
+        <p class="setup-desc">Enter the URL of your TravelPanel app to start clipping pages.</p>
+        <input
+          type="url"
+          id="setup-url-input"
+          class="text-input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div id="setup-error" class="error-msg hidden"></div>
+        <button class="btn-primary" id="save-setup-btn">Connect</button>
+      </div>
+    </div>
+
+    <!-- Clip state: ready to clip current page -->
+    <div id="clip-state" class="state hidden">
+      <div class="page-card">
+        <div class="page-favicon-wrap">
+          <img id="page-favicon" class="page-favicon" src="" alt="" />
+          <div id="page-favicon-fallback" class="page-favicon-fallback hidden">🌐</div>
+        </div>
+        <div class="page-info">
+          <div class="page-title" id="page-title">Loading…</div>
+          <div class="page-url" id="page-url">…</div>
+        </div>
+      </div>
+
+      <div class="platform-tag hidden" id="platform-tag"></div>
+
+      <button class="btn-primary btn-clip" id="clip-btn">
+        <span class="clip-icon">📌</span>
+        <span>Clip to TravelPanel</span>
+      </button>
+
+      <div class="footer-links">
+        <button class="link-btn" id="open-app-btn">Open TravelPanel</button>
+      </div>
+    </div>
+
+    <!-- Success state -->
+    <div id="success-state" class="state hidden">
+      <div class="success-body">
+        <div class="success-check">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="15" fill="#6366f1"/>
+            <path d="M9 16.5l5 5 9-9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="success-title">Clipped!</p>
+        <p class="success-desc">Opening TravelPanel to save your clip…</p>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" class="state hidden">
+      <div class="error-body">
+        <div class="error-icon">⚠️</div>
+        <p class="error-title">Something went wrong</p>
+        <p class="error-msg-text" id="error-msg-text">Please try again.</p>
+        <button class="btn-secondary" id="retry-btn">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
