@@ -75,7 +75,7 @@ export default function SettingsPage() {
   const busy = state !== 'idle';
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 left-4 right-4 z-50 flex items-start gap-3 p-4 rounded-2xl shadow-lg text-sm font-medium animate-in slide-in-from-top-2 duration-200 ${
@@ -89,7 +89,7 @@ export default function SettingsPage() {
       )}
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-14 pb-4">
+      <div className="bg-white border-b border-gray-100 px-4 pb-4" style={{ paddingTop: 'max(3.5rem, env(safe-area-inset-top))' }}>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your data and preferences</p>
       </div>

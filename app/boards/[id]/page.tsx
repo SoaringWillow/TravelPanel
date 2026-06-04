@@ -161,7 +161,7 @@ export default function BoardDetailPage() {
       </div>
 
       {/* Scrollable content below header */}
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>
         {/* Map section */}
         {boardItems.length > 0 && (
           <div

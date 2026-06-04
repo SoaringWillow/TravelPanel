@@ -266,7 +266,7 @@ Goal: close every gap between "web app in Capacitor" and "premium iOS app users 
 - Fire `notificationError()` when enrichment fails permanently
 
 ### E3 — Safe-Area Inset Audit
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Several pages use hardcoded `pt-12` for status bar clearance. On iPhone 15 Pro with Dynamic Island, `pt-12` (48px) may be insufficient. CSS `env(safe-area-inset-top)` adapts automatically to every device.
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/settings/page.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:
