@@ -35,9 +35,10 @@ export function markReviewPrompted(): void {
 export async function requestAppReview(): Promise<void> {
   markReviewPrompted();
   try {
-    // Attempt to use @capacitor-community/app-review if available
-    const { AppReview } = await import('@capacitor-community/app-review' as string);
-    await (AppReview as { requestReview: () => Promise<void> }).requestReview();
+    // Dynamically load optional native plugin — gracefully no-ops if not installed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await new Function('spec', 'return import(spec)')('@capacitor-community/app-review');
+    await mod?.AppReview?.requestReview?.();
   } catch {
     // Plugin not available — no-op on web
   }

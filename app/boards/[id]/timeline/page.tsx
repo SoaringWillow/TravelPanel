@@ -129,14 +129,13 @@ function PlanTimeline({ trip, boardItems }: { trip: Trip; boardItems: SavedItem[
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
             <div>
-              <h3 className="font-bold text-gray-900">{day.title}</h3>
-              {day.theme && <p className="text-xs text-indigo-500 mt-0.5">{day.theme}</p>}
+              <h3 className="font-bold text-gray-900">{day.theme ?? `Day ${day.day}`}</h3>
             </div>
 
             {day.activities.map((act, j) => (
               <div key={j} className="border-l-2 border-indigo-100 pl-3 space-y-1">
                 <p className="text-sm font-semibold text-gray-800">{act.name}</p>
-                <p className="text-xs text-gray-500 leading-relaxed">{act.description}</p>
+                {act.duration && <p className="text-xs text-gray-500 leading-relaxed">{act.duration}</p>}
                 {act.sourcedTips && act.sourcedTips.length > 0 && (
                   <div className="space-y-1">
                     {act.sourcedTips.slice(0, 2).map((tip, k) => (

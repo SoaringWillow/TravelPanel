@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
               {
                 type: 'image',
                 image: imageBase64,
-                mimeType: imageMimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+                mediaType: imageMimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
               },
               {
                 type: 'text',

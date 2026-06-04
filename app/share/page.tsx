@@ -95,8 +95,8 @@ function SharePageInner() {
       };
       reader.readAsDataURL(file);
     };
-    document.addEventListener('paste', handlePaste as EventListener);
-    return () => document.removeEventListener('paste', handlePaste as EventListener);
+    document.addEventListener('paste', handlePaste as unknown as EventListener);
+    return () => document.removeEventListener('paste', handlePaste as unknown as EventListener);
   }, []);
 
   // Auto-dismiss when done
@@ -144,7 +144,7 @@ function SharePageInner() {
     };
 
     await saveItem(item);
-    hapticImpact('LIGHT');
+    hapticImpact('Light');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     // Track non-demo saves and prompt for review after 10th clip
@@ -178,7 +178,7 @@ function SharePageInner() {
             } as ImportResult);
           }
         }
-        if (success) hapticNotification('SUCCESS');
+        if (success) hapticNotification('Success');
         setEnrichmentLoading(false);
       });
 
@@ -290,7 +290,8 @@ function SharePageInner() {
                       if (imgType) {
                         const blob = await item.getType(imgType);
                         const buf = await blob.arrayBuffer();
-                        const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+                        const bytes = new Uint8Array(buf);
+                        const b64 = btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(''));
                         const resized = await resizeImageIfNeeded(b64);
                         setScreenshotB64(resized);
                         return;

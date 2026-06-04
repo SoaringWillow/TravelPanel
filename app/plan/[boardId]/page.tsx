@@ -126,7 +126,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
-              if (msg.step.type === 'done') hapticNotification('SUCCESS');
+              if (msg.step.type === 'done') hapticNotification('Success');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -177,14 +177,14 @@ export default function PlanPage() {
   const handleExportPDF = useCallback(async () => {
     if (!planIsComplete(plan) || !board) return;
     await exportPlanToPDF(plan, board.name, board.emoji);
-    hapticImpact('MEDIUM');
+    hapticImpact('Medium');
     track('plan_exported', { format: 'pdf', boardId });
   }, [plan, board, boardId]);
 
   const handleExportICS = useCallback(() => {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
-    hapticImpact('MEDIUM');
+    hapticImpact('Medium');
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 

@@ -2,8 +2,8 @@
 
 import { Capacitor } from '@capacitor/core';
 
-type ImpactStyle = 'LIGHT' | 'MEDIUM' | 'HEAVY';
-type NotificationType = 'SUCCESS' | 'WARNING' | 'ERROR';
+type ImpactStyle = 'Light' | 'Medium' | 'Heavy';
+type NotificationType = 'Success' | 'Warning' | 'Error';
 
 async function getHaptics() {
   if (!Capacitor.isNativePlatform()) return null;
@@ -15,7 +15,7 @@ async function getHaptics() {
   }
 }
 
-export async function hapticImpact(style: ImpactStyle = 'LIGHT') {
+export async function hapticImpact(style: ImpactStyle = 'Light') {
   const Haptics = await getHaptics();
   if (!Haptics) return;
   try {
@@ -24,7 +24,7 @@ export async function hapticImpact(style: ImpactStyle = 'LIGHT') {
   } catch { /* noop */ }
 }
 
-export async function hapticNotification(type: NotificationType = 'SUCCESS') {
+export async function hapticNotification(type: NotificationType = 'Success') {
   const Haptics = await getHaptics();
   if (!Haptics) return;
   try {

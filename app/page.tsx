@@ -113,7 +113,7 @@ function HomePageInner() {
       {/* Map fills entire screen */}
       <MapView
         items={mapItems}
-        onPinClick={(item) => { hapticImpact('LIGHT'); setSelectedItem(item); }}
+        onPinClick={(item) => { hapticImpact('Light'); setSelectedItem(item); }}
         flyTo={flyTo}
         userLocation={userLocation}
       />

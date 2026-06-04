@@ -96,3 +96,22 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-04 17:26 | aabf94a | feat(B2): add Chrome/Safari browser extension for one-click URL clipping
+2026-06-04 17:32 | 1402db1 | feat(B3): Claude Vision extraction from screenshots for Xiaohongshu/WeChat
+2026-06-04 17:34 | 198fd6f | feat(B5): settings page with JSON export/import backup
+2026-06-04 17:37 | 14dac1a | feat(B4): AI vibe search with Claude query expansion
+2026-06-04 17:39 | 537cc6a | feat(C1): on-trip GPS mode with live location dot and proximity alerts
+2026-06-04 17:41 | 29dd75e | feat(C2): post-trip timeline view per board
+2026-06-04 17:43 | fe22546 | feat(C3): shared boards v1 — snapshot sharing via Web Share API + import
+2026-06-04 17:45 | 2e234d7 | feat(C4): proactive resurfacing — surface timely clips in inbox
+2026-06-04 17:47 | adf7ab7 | docs: new Phase D+E task queue — iOS polish and cloud sprint
+2026-06-04 17:50 | 2c52fa9 | D1: Replace list-view spinners with skeleton screen cards
+2026-06-04 17:54 | 1379600 | D2+D3: Swipe-to-delete on inbox cards and pull-to-refresh on lists
+2026-06-04 17:56 | 45cd55b | D5+D6: Edit clip metadata inline and duplicate URL detection
+2026-06-04 17:57 | 37394bf | D7: Board cover photo editor
+2026-06-04 17:58 | 50697a3 | D8: Tag filter chips on map view
+2026-06-04 18:00 | d647b38 | D9: Haptic feedback for iOS via @capacitor/haptics
+2026-06-04 18:02 | 90bcb59 | D10: Rich empty states with SVG illustrations
+2026-06-04 18:05 | 3edbddb | D11+D12: When-to-visit insight card and budget tier tags
+2026-06-04 18:06 | dc48cdf | D13: Nearby clips suggestion in detail card
+2026-06-04 18:08 | 4cae5c2 | D14+D15: Virtual scroll for large lists and iOS app review prompt
