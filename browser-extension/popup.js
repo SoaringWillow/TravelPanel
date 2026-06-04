@@ -1,7 +1,7 @@
 /* popup.js — TravelPanel Clipper */
 'use strict';
 
-const DB_NAME = 'TravelPanelDB';
+const DB_NAME = 'travel-panel';
 const DB_VERSION = 2;
 
 const PLATFORM_MAP = {
@@ -47,7 +47,7 @@ function showView(id) {
 // NOTE: This function is serialised and sent to the page — no closure access.
 function injectedSync(pendingClips) {
   return new Promise(resolve => {
-    const req = indexedDB.open('TravelPanelDB', 2);
+    const req = indexedDB.open('travel-panel', 2);
 
     req.onerror = () => resolve({ ok: false, boards: [], imported: 0, error: req.error?.message });
 
