@@ -184,7 +184,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: Ship an iOS app that feels as native and polished as Apple Maps. Every interaction should be fast, beautiful, and intentional. These tasks make the current feature set production-quality.
 
 ### C1 — Wisdom Tab per Board
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The Wisdom view is the third primary surface (alongside Map and Plan). Currently substance is visible only in the clip detail card — users never discover the full power of their substance corpus across a whole board.  
 **Files**: new `app/boards/[id]/page.tsx` or update `app/boards/page.tsx`, new `components/WisdomTab.tsx`  
 **What to do**:
