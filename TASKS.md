@@ -22,7 +22,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 ## PHASE D — Beautiful & Native iOS (Polish Sprint)
 
 ### D1 — Skeleton Screen Loading Cards 🔴 HIGHEST IMPACT
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: The app shows bare spinners while data loads. Skeleton screens make it feel instant and premium — this is the #1 visual polish change.  
 **Files to change**: `components/InboxCard.tsx`, `components/BoardCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -14,6 +14,7 @@ import { searchItems, rankItemsByVibeTerms } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import { getTripsForBoard } from '@/lib/db';
 import InboxCard from '@/components/InboxCard';
+import { SkeletonGrid } from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import ResurfaceBanner from '@/components/ResurfaceBanner';
 import NavBar from '@/components/NavBar';
@@ -183,9 +184,7 @@ export default function InboxPage() {
         )}
         <div className="px-4">
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-          </div>
+          <SkeletonGrid count={6} variant="inbox" />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">
