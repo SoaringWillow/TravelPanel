@@ -12,8 +12,10 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/li
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems, rankItemsByVibeTerms } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { getTripsForBoard } from '@/lib/db';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
+import ResurfaceBanner from '@/components/ResurfaceBanner';
 import NavBar from '@/components/NavBar';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -39,6 +41,17 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [vibeResult, setVibeResult] = useState<{ terms: string[]; intent: string } | null>(null);
+  const [allTrips, setAllTrips] = useState<import('@/lib/types').Trip[]>([]);
+
+  useEffect(() => {
+    async function loadTrips() {
+      const { getAllBoards } = await import('@/lib/db');
+      const bs = await getAllBoards();
+      const trips = (await Promise.all(bs.map((b) => getTripsForBoard(b.id)))).flat();
+      setAllTrips(trips);
+    }
+    loadTrips().catch(() => {});
+  }, []);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -156,7 +169,19 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div className="flex-1 overflow-y-auto py-4 pb-24">
+        {/* Proactive resurfacing — only shown when not actively searching */}
+        {!query && !vibeResult && (
+          <ResurfaceBanner
+            items={items}
+            trips={allTrips}
+            onSelectItem={(item) => {
+              // Navigate to map with item selected
+              window.location.href = `/?flyTo=${item.locations[0]?.lat ?? 0},${item.locations[0]?.lng ?? 0}&itemId=${item.id}`;
+            }}
+          />
+        )}
+        <div className="px-4">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -202,6 +227,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
+        </div>
       </div>
 
       {/* Board selector bottom sheet */}
