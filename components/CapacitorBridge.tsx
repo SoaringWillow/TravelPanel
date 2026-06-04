@@ -53,8 +53,10 @@ export function CapacitorBridge() {
             const shareTitle = parsed.searchParams.get('title');
 
             if (shareUrl) {
+              const shareImage = parsed.searchParams.get('image');
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              if (shareImage) qs.set('image', shareImage);
               router.push(`/share?${qs.toString()}`);
             }
           } catch {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
+import type { CoreUserMessage } from 'ai';
 import { z } from 'zod';
 import { detectPlatform } from '@/lib/parse-url';
 import { ImportResult } from '@/lib/types';
@@ -81,12 +82,34 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Multimodal message builder ──────────────────────────────────────────────
+
+function buildMessage(prompt: string, imageBase64?: string): CoreUserMessage {
+  if (!imageBase64) {
+    return { role: 'user', content: prompt };
+  }
+  // Strip data URI prefix if present; keep only the raw base64 payload
+  const raw = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+  return {
+    role: 'user',
+    content: [
+      {
+        type: 'image',
+        image: Buffer.from(raw, 'base64'),
+        mimeType: 'image/jpeg' as const,
+      },
+      { type: 'text', text: prompt },
+    ],
+  };
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,14 +121,17 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
+  const hasImage = !!imageBase64;
+  const noTextContent = !page?.textContent && !page?.title && !page?.description;
+
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${hasImage ? 'Visual content: [image attached — analyze the screenshot/thumbnail for all visible text, captions, location names, and travel wisdom]' : `Page content:\n${page?.textContent ?? '(could not fetch page)'}`}
+${noTextContent && !hasImage ? '\nNOTE: This platform (e.g. Xiaohongshu/Douyin) blocks web scraping. Extract what you can from the URL and any available metadata.' : ''}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -133,7 +159,7 @@ Never return an empty substance array for a real travel post.`;
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      messages: [buildMessage(prompt, imageBase64)],
     });
     claudeResult = object;
   } catch {

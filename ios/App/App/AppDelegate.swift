@@ -34,9 +34,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Called when the app was launched with a url. Feel free to add additional processing here,
-        // but if you want the App API to support tracking app url opens, make sure to keep this call
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        // For TravelPanel share deep links, inject any screenshot saved by the Share Extension
+        // so the web layer can pass it to Claude Vision for Xiaohongshu/Douyin posts that
+        // block normal web scraping.
+        let finalURL = injectPendingImage(into: url)
+        return ApplicationDelegateProxy.shared.application(app, open: finalURL, options: options)
+    }
+
+    private func injectPendingImage(into url: URL) -> URL {
+        guard url.scheme == "travelpanel", url.host == "share",
+              let defaults = UserDefaults(suiteName: "group.com.travelpanel.app"),
+              let base64Image = defaults.string(forKey: "pendingShareImage") else {
+            return url
+        }
+        // Consume the stored image — it belongs to this share session only
+        defaults.removeObject(forKey: "pendingShareImage")
+        defaults.synchronize()
+
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        var items = components?.queryItems ?? []
+        items.append(URLQueryItem(name: "image", value: base64Image))
+        components?.queryItems = items
+        return components?.url ?? url
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
