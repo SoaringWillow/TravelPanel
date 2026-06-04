@@ -9,6 +9,7 @@ import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } fro
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { tapLight, tapSuccess, tapWarning } from '@/lib/haptics';
 import { useGPS } from '@/hooks/useGPS';
 import { haversineKm, formatDistance } from '@/lib/distance';
 import { type NextStopRef } from '@/components/RouteMapView';
@@ -93,8 +94,8 @@ export default function PlanPage() {
   function markNextAsVisited() {
     if (!nextStop) return;
     setVisitedStops((prev) => new Set(prev).add(`${nextStop.dayIndex}-${nextStop.locIndex}`));
-    // Switch the active day view to match next stop
     setActiveDayIndex(nextStop.dayIndex);
+    tapSuccess();
   }
 
   useEffect(() => {
@@ -131,6 +132,7 @@ export default function PlanPage() {
         `Unlimited plans coming in Pro — stay tuned!`
       );
       track('plan_limit_hit', { boardId });
+      tapWarning();
       return;
     }
 
@@ -183,6 +185,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') tapSuccess();
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -276,6 +279,7 @@ export default function PlanPage() {
   }, []);
 
   function toggleChip(chip: string) {
+    tapLight();
     setSelectedChips((prev) => {
       const next = new Set(prev);
       if (next.has(chip)) next.delete(chip);

@@ -50,7 +50,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 - Show "Re-extract" button that re-runs `/api/import` and merges new data (keeps user edits to title/notes)
 
 ### D4 — Haptic Feedback (iOS native feel)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Every iOS user expects haptic feedback. Without it the app feels like a web page rather than a native app. Capacitor has a haptics plugin that's already listed in the project.  
 **Files to change**: new `lib/haptics.ts`, `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
