@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Copy } from 'lucide-react';
+import { hapticLight, hapticSuccess } from '@/lib/haptics';
 import {
   Drawer,
   DrawerContent,
@@ -34,16 +35,45 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]               = useState(initialUrl);
+  const [notes, setNotes]           = useState('');
+  const [stage, setStage]           = useState<Stage>('idle');
+  const [preview, setPreview]       = useState<ImportResult | null>(null);
+  const [error, setError]           = useState('');
+  const [duplicate, setDuplicate]   = useState<import('@/lib/types').SavedItem | null>(null);
+  const [urlPreview, setUrlPreview] = useState<{ title: string | null; thumbnail: string | null; platform: string } | null>(null);
+  const abortRef                    = useRef<AbortController | null>(null);
+  const skipDupeRef                 = useRef(false);
+  const previewTimerRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
+
+  // Debounced og:preview fetch when URL is pasted
+  useEffect(() => {
+    const trimmed = url.trim();
+    if (!trimmed || stage !== 'idle') {
+      setUrlPreview(null);
+      return;
+    }
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/preview?url=${encodeURIComponent(trimmed)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.title || data.thumbnail) setUrlPreview(data);
+          else setUrlPreview(null);
+        }
+      } catch {
+        setUrlPreview(null);
+      }
+    }, 400);
+    return () => {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    };
+  }, [url, stage]);
 
   const trimmedUrl       = url.trim();
   const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
@@ -52,6 +82,18 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   async function handleImport() {
     if (!trimmedUrl) return;
+
+    // Duplicate URL check (skip when user has explicitly chosen "Save anyway")
+    if (!skipDupeRef.current) {
+      const { getItemByUrl } = await import('@/lib/db');
+      const existing = await getItemByUrl(trimmedUrl);
+      if (existing) {
+        setDuplicate(existing);
+        return;
+      }
+    }
+    skipDupeRef.current = false;
+    setDuplicate(null);
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -106,6 +148,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    hapticSuccess();
     onSaved(item);
     resetState();
   }
@@ -134,6 +177,12 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     resetState();
   }
 
+  function handleSaveAnywayImport() {
+    skipDupeRef.current = true;
+    setDuplicate(null);
+    handleImport();
+  }
+
   function resetState() {
     abortRef.current?.abort();
     setUrl('');
@@ -141,6 +190,9 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setDuplicate(null);
+    setUrlPreview(null);
+    skipDupeRef.current = false;
   }
 
   function handleClose() {
@@ -207,11 +259,61 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             />
           </div>
 
-          {/* ── Import button (hidden during preview) ───────────────────── */}
-          {stage !== 'preview' && (
+          {/* ── URL og:preview card ──────────────────────────────────────── */}
+          {urlPreview && stage === 'idle' && !duplicate && (
+            <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5 animate-in fade-in duration-150">
+              {urlPreview.thumbnail && (
+                <img
+                  src={urlPreview.thumbnail}
+                  alt=""
+                  className="w-16 h-12 object-cover rounded-lg flex-shrink-0"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                {urlPreview.title && (
+                  <p className="text-xs font-semibold text-gray-700 line-clamp-2 leading-snug">
+                    {urlPreview.title}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Duplicate URL banner ─────────────────────────────────────── */}
+          {duplicate && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+              <p className="text-sm text-amber-800 font-medium">
+                Already saved
+              </p>
+              <p className="text-xs text-amber-700 line-clamp-1">
+                {duplicate.title || duplicate.url} · {new Date(duplicate.savedAt).toLocaleDateString()}
+              </p>
+              <div className="flex gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleSaveAnywayImport}
+                  className="flex-1 py-2 text-xs font-semibold text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-100 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Copy size={12} />
+                  Save a copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { resetState(); onClose(); }}
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Import button (hidden during preview or duplicate warning) ── */}
+          {stage !== 'preview' && !duplicate && (
             <button
               type="button"
-              onClick={handleImport}
+              onClick={() => { hapticLight(); handleImport(); }}
               disabled={!trimmedUrl || stage === 'loading'}
               className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
@@ -226,7 +328,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             </button>
           )}
 
-          {/* ── Error message + save-anyway fallback ─────────────────────── */}
+          {/* ── Error message + save-anyway fallback ────────────────────── */}
           {error && (
             <div className="space-y-2">
               <p className="text-sm text-red-500">{error}</p>

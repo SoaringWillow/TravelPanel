@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { hapticLight, hapticSuccess } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -29,12 +30,43 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [sharedImage, setSharedImage]         = useState<{ base64: string; mimeType: string } | null>(null);
+  const [duplicate, setDuplicate]             = useState<SavedItem | null>(null);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Duplicate URL check
+  useEffect(() => {
+    if (!rawUrl) return;
+    import('@/lib/db').then(({ getItemByUrl }) => {
+      getItemByUrl(rawUrl).then((existing) => {
+        if (existing) {
+          setDuplicate(existing);
+          setShowDuplicateWarning(true);
+        }
+      });
+    });
+  }, [rawUrl]);
+
+  // Read image payload written by CapacitorBridge from the iOS Share Extension
+  useEffect(() => {
+    try {
+      const base64   = sessionStorage.getItem('pendingShareImage');
+      const mime     = sessionStorage.getItem('pendingShareImageMime') ?? 'image/jpeg';
+      if (base64) {
+        setSharedImage({ base64, mimeType: mime });
+        sessionStorage.removeItem('pendingShareImage');
+        sessionStorage.removeItem('pendingShareImageMime');
+      }
+    } catch {
+      // sessionStorage not available (e.g. private browsing)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +120,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image payload for vision analysis when available
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, sharedImage?.base64, sharedImage?.mimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -113,6 +145,7 @@ function SharePageInner() {
       });
 
     setSavedToName(boardDisplayName ?? 'Inbox');
+    hapticSuccess();
     setStage('done');
   }
 
@@ -167,6 +200,32 @@ function SharePageInner() {
           )}
         </div>
 
+        {/* Duplicate URL warning banner */}
+        {showDuplicateWarning && duplicate && (
+          <div className="mx-0 px-0 bg-amber-50 border-b border-amber-200 px-4 py-3">
+            <p className="text-xs font-semibold text-amber-700 mb-1">Already saved</p>
+            <p className="text-xs text-amber-600 line-clamp-1 mb-2">
+              {duplicate.title || duplicate.url} · {new Date(duplicate.savedAt).toLocaleDateString()}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDuplicateWarning(false)}
+                className="flex-1 py-1.5 text-xs font-semibold text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-100 transition-colors"
+              >
+                Save anyway
+              </button>
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="flex-1 py-1.5 text-xs font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
+              >
+                Go back
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
           <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
@@ -177,7 +236,7 @@ function SharePageInner() {
             <button
               type="button"
               disabled={stage === 'saving'}
-              onClick={() => handleSave(undefined, 'Inbox')}
+              onClick={() => { hapticLight(); handleSave(undefined, 'Inbox'); }}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox
@@ -189,7 +248,7 @@ function SharePageInner() {
                 key={board.id}
                 type="button"
                 disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                onClick={() => { hapticLight(); handleSave(board.id, `${board.emoji} ${board.name}`); }}
                 className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}

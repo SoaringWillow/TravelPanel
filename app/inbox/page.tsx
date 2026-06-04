@@ -6,14 +6,16 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import LocationDetailCard from '@/components/LocationDetailCard';
 import SearchBar from '@/components/SearchBar';
+import TagFilterBar from '@/components/TagFilterBar';
 import NavBar from '@/components/NavBar';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -37,6 +39,8 @@ export default function InboxPage() {
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
   const handleSearch = useCallback((q: string) => {
@@ -52,7 +56,22 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const tagCounts = new Map<string, number>();
+  for (const item of platformFiltered) {
+    for (const tag of item.tags) {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    }
+  }
+  const availableTags = [...tagCounts.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .map(([tag]) => tag);
+
+  const tagFiltered = selectedTag
+    ? platformFiltered.filter((i) => i.tags.includes(selectedTag))
+    : platformFiltered;
+
+  const filtered = searchItems(tagFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -97,9 +116,9 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -112,6 +131,17 @@ export default function InboxPage() {
         <div className="mb-3">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {/* Tag filter bar */}
+        {availableTags.length > 0 && (
+          <div className="mb-3">
+            <TagFilterBar
+              tags={availableTags}
+              selectedTag={selectedTag}
+              onSelect={setSelectedTag}
+            />
+          </div>
+        )}
 
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
@@ -175,6 +205,7 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    onSelect={setSelectedItem}
                   />
                 </motion.div>
               ))}
@@ -259,6 +290,20 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Item detail overlay */}
+      <AnimatePresence>
+        {selectedItem && (
+          <LocationDetailCard
+            item={selectedItem}
+            onClose={() => setSelectedItem(null)}
+            onItemUpdate={(updated) => {
+              setSelectedItem(updated);
+              refreshItem(updated.id);
+            }}
+          />
         )}
       </AnimatePresence>
 

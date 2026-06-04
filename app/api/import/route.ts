@@ -85,8 +85,10 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let mimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, mimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -106,7 +108,10 @@ Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
 ${page?.textContent ?? '(could not fetch page)'}
-
+${imageBase64 ? `
+## Visual Content
+An image from this post is attached. Analyze it carefully — it may contain the full post text, photos of locations, or screenshots of content that could not be fetched from the URL. For Chinese-language platforms (Xiaohongshu, WeChat), the image may be the primary content source. Read all visible text in the image.
+` : ''}
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
@@ -130,11 +135,29 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
+    const { object } = imageBase64
+      ? await generateObject({
+          model: models.enrichment,
+          schema: importSchema,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: imageBase64,
+                  mimeType: (mimeType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                },
+                { type: 'text', text: prompt },
+              ],
+            },
+          ],
+        })
+      : await generateObject({
+          model: models.enrichment,
+          schema: importSchema,
+          prompt,
+        });
     claudeResult = object;
   } catch {
     // Fall through to defaults

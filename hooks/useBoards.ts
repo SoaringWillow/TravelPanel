@@ -4,11 +4,22 @@ import { Board } from '@/lib/types';
 import {
   getAllBoards,
   saveBoard,
+  updateBoard as dbUpdateBoard,
   deleteBoard,
   addItemToBoard as dbAddItemToBoard,
   removeItemFromBoard as dbRemoveItemFromBoard,
 } from '@/lib/db';
 import { track } from '@/lib/analytics';
+
+async function syncBoardsToAppGroup(boards: Board[]) {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const payload = boards.slice(0, 8).map((b) => ({ id: b.id, name: b.name, emoji: b.emoji }));
+    await Preferences.set({ key: 'recentBoards', value: JSON.stringify(payload) });
+  } catch {
+    // Not in Capacitor — silently skip
+  }
+}
 
 export function useBoards() {
   const [boards, setBoards] = useState<Board[]>([]);
@@ -18,6 +29,7 @@ export function useBoards() {
     getAllBoards().then((fetchedBoards) => {
       setBoards(fetchedBoards);
       setLoading(false);
+      syncBoardsToAppGroup(fetchedBoards);
     });
   }, []);
 
@@ -33,8 +45,17 @@ export function useBoards() {
     };
     await saveBoard(board);
     track('board_created');
-    setBoards((prev) => [board, ...prev]);
+    setBoards((prev) => {
+      const next = [board, ...prev];
+      syncBoardsToAppGroup(next);
+      return next;
+    });
     return board;
+  }, []);
+
+  const editBoard = useCallback(async (id: string, patch: Partial<Pick<Board, 'name' | 'emoji'>>): Promise<void> => {
+    await dbUpdateBoard(id, patch);
+    setBoards((prev) => prev.map((b) => b.id === id ? { ...b, ...patch, updatedAt: Date.now() } : b));
   }, []);
 
   const removeBoard = useCallback(async (id: string): Promise<void> => {
@@ -50,5 +71,5 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  return { boards, loading, createBoard, editBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
 }

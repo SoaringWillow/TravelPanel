@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Pencil } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import CreateBoardModal from '@/components/CreateBoardModal';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -19,10 +20,11 @@ export default function BoardDetailPage() {
   const boardId = params.id as string;
   const router = useRouter();
 
-  const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
+  const { boards, loading: boardsLoading, removeItemFromBoard, editBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [showEdit, setShowEdit] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -49,6 +51,11 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleEdit(name: string, emoji: string) {
+    await editBoard(boardId, { name, emoji });
+    setShowEdit(false);
   }
 
   if (loading) {
@@ -107,8 +114,17 @@ export default function BoardDetailPage() {
             </h1>
           </div>
 
+          <button
+            type="button"
+            onClick={() => setShowEdit(true)}
+            className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0"
+            aria-label="Edit board"
+          >
+            <Pencil size={16} />
+          </button>
+
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
-            {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
+            {boardItems.length} clip{boardItems.length !== 1 ? 's' : ''}
           </span>
         </div>
       </div>
@@ -189,6 +205,15 @@ export default function BoardDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit board modal */}
+      <CreateBoardModal
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
+        onCreate={() => {}}
+        onEdit={handleEdit}
+        board={board}
+      />
 
       <NavBar active="boards" />
     </div>
