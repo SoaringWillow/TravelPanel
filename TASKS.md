@@ -216,7 +216,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test in iOS Safari dark mode
 
 ### D2 — Pull-to-Refresh in Inbox & Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Standard iOS pattern. Without it the app feels web-like. Triggers re-enrichment of any failed/pending items.  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, new `components/PullToRefresh.tsx`  
 **What to do**:
