@@ -6,13 +6,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import LocationDetailCard from '@/components/LocationDetailCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
@@ -37,6 +38,7 @@ export default function InboxPage() {
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [query, setQuery] = useState('');
 
   const handleSearch = useCallback((q: string) => {
@@ -175,6 +177,7 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    onSelect={setSelectedItem}
                   />
                 </motion.div>
               ))}
@@ -259,6 +262,20 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Item detail overlay */}
+      <AnimatePresence>
+        {selectedItem && (
+          <LocationDetailCard
+            item={selectedItem}
+            onClose={() => setSelectedItem(null)}
+            onItemUpdate={(updated) => {
+              setSelectedItem(updated);
+              refreshItem(updated.id);
+            }}
+          />
         )}
       </AnimatePresence>
 
