@@ -209,7 +209,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Don't build a manual toggle — system preference is enough for v1
 
 ### C3 — Haptic Feedback on Key iOS Interactions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Native iOS apps feel alive because of haptics. A travel app that saves a clip should feel satisfying — the Save confirmation is a moment of delight.  
 **Files**: `app/share/page.tsx`, `components/ImportSheet.tsx`, `lib/haptics.ts` (new)  
 **What to do**:

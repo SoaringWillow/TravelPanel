@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem, type EnrichOptions } from '@/lib/enrichItem';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -78,6 +79,7 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    hapticImpact('medium');
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -132,6 +134,7 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    hapticNotification('success');
   }
 
   // ── Create new board + save ───────────────────────────────────────────────
