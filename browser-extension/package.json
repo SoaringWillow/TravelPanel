@@ -1,0 +1,10 @@
+{
+  "name": "travelpanel-browser-extension",
+  "version": "1.0.0",
+  "description": "Clip travel inspiration from any webpage into TravelPanel boards",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/generate-icons.js",
+    "prebuild": "echo 'Generating PNG icons from scratch (no npm deps needed)...'"
+  }
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Background rounded rect -->
+  <rect width="128" height="128" rx="28" fill="#6366f1"/>
+  <!-- Pin body (outer circle) -->
+  <circle cx="64" cy="52" r="28" fill="white" opacity="0.95"/>
+  <!-- Pin inner dot -->
+  <circle cx="64" cy="52" r="12" fill="#6366f1"/>
+  <!-- Pin tail -->
+  <path d="M64 76 L78 96 L64 108 L50 96 Z" fill="white" opacity="0.95"/>
+</svg>
