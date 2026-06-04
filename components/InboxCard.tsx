@@ -250,7 +250,7 @@ export default function InboxCard({
 
         {/* Tags (first 3) */}
         {item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="flex flex-wrap gap-1 mb-2">
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
@@ -260,6 +260,13 @@ export default function InboxCard({
               </span>
             ))}
           </div>
+        )}
+
+        {/* Notes preview */}
+        {item.notes && (
+          <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1 mb-2 line-clamp-1 italic">
+            {item.notes.length > 60 ? item.notes.slice(0, 60) + '…' : item.notes}
+          </p>
         )}
 
         {/* Footer */}

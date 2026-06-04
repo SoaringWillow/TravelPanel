@@ -1,9 +1,11 @@
 'use client';
 
+import { useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, StickyNote } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { updateItemField } from '@/lib/db';
 import SubstanceList from './SubstanceList';
 
 interface LocationDetailCardProps {
@@ -12,6 +14,26 @@ interface LocationDetailCardProps {
 }
 
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const [notes, setNotes] = useState(item.notes ?? '');
+  const [editing, setEditing] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleNotesChange = useCallback(
+    (value: string) => {
+      setNotes(value);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        updateItemField(item.id, { notes: value }).catch(() => {});
+      }, 800);
+    },
+    [item.id]
+  );
+
+  const handleNotesBlur = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    updateItemField(item.id, { notes }).catch(() => {});
+  }, [item.id, notes]);
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -127,13 +149,39 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+            {/* Notes — editable */}
+            <div className="bg-amber-50 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <StickyNote size={12} className="text-amber-500" />
+                <p className="text-xs font-semibold text-amber-700">Notes</p>
               </div>
-            )}
+              {editing ? (
+                <textarea
+                  autoFocus
+                  value={notes}
+                  onChange={(e) => handleNotesChange(e.target.value)}
+                  onBlur={() => {
+                    handleNotesBlur();
+                    setEditing(false);
+                  }}
+                  placeholder="Add a personal note…"
+                  rows={3}
+                  className="w-full text-sm text-amber-900 bg-transparent resize-none outline-none placeholder-amber-300 leading-relaxed"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="w-full text-left"
+                >
+                  {notes ? (
+                    <p className="text-sm text-amber-800 leading-relaxed">{notes}</p>
+                  ) : (
+                    <p className="text-sm text-amber-300 italic">Add a note…</p>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
