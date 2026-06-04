@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, ScrollText } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ScrollText, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { shareBoardViaWebShare } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -23,6 +24,7 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -107,10 +109,26 @@ export default function BoardDetailPage() {
             </h1>
           </div>
 
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              title="Share board"
+              onClick={async () => {
+                const ok = await shareBoardViaWebShare(board, window.location.origin);
+                setShareMsg(ok ? 'Link copied!' : null);
+                if (ok) setTimeout(() => setShareMsg(null), 2500);
+              }}
+              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+            >
+              <Share2 size={18} />
+            </button>
+          )}
+
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
         </div>
+        {shareMsg && <p className="text-xs text-green-600 text-right mt-1">{shareMsg}</p>}
       </div>
 
       {/* Scrollable content below header */}
