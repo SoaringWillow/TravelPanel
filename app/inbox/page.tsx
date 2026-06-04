@@ -212,23 +212,64 @@ export default function InboxPage() {
         {loading ? (
           <SkeletonGrid count={6} variant="inbox" />
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">
-              {vibeResult ? '✨' : query.trim() ? '🔍' : '📥'}
+          vibeResult || query.trim() ? (
+            <div className="flex flex-col items-center justify-center h-60 text-center px-4">
+              <div className="text-5xl mb-4">{vibeResult ? '✨' : '🔍'}</div>
+              <h3 className="font-semibold text-gray-700 mb-2">No matches found.</h3>
+              <p className="text-sm text-gray-500 max-w-xs">
+                {vibeResult
+                  ? `No clips match the vibe "${vibeResult.intent}". Try different words.`
+                  : `No clips match "${query.trim()}". Try a different search.`}
+              </p>
             </div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {vibeResult || query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {vibeResult
-                ? `No clips match the vibe "${vibeResult.intent}". Try different words.`
-                : query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          ) : activePlatform !== 'all' ? (
+            <div className="flex flex-col items-center justify-center h-60 text-center px-4">
+              <div className="text-5xl mb-4">📭</div>
+              <h3 className="font-semibold text-gray-700 mb-2">No {PLATFORM_LABELS[activePlatform as Platform]} clips yet.</h3>
+              <p className="text-sm text-gray-500 max-w-xs">Save content from this platform to see it here.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+              {/* Travel illustration */}
+              <svg width="140" height="110" viewBox="0 0 140 110" fill="none" className="mb-6 opacity-90">
+                {/* Map background */}
+                <rect x="10" y="20" width="120" height="80" rx="12" fill="#EEF2FF" stroke="#C7D2FE" strokeWidth="2"/>
+                {/* Map grid lines */}
+                <line x1="10" y1="50" x2="130" y2="50" stroke="#C7D2FE" strokeWidth="1" strokeDasharray="4 4"/>
+                <line x1="10" y1="72" x2="130" y2="72" stroke="#C7D2FE" strokeWidth="1" strokeDasharray="4 4"/>
+                <line x1="45" y1="20" x2="45" y2="100" stroke="#C7D2FE" strokeWidth="1" strokeDasharray="4 4"/>
+                <line x1="80" y1="20" x2="80" y2="100" stroke="#C7D2FE" strokeWidth="1" strokeDasharray="4 4"/>
+                <line x1="110" y1="20" x2="110" y2="100" stroke="#C7D2FE" strokeWidth="1" strokeDasharray="4 4"/>
+                {/* Route path */}
+                <path d="M30 80 Q50 55 70 60 Q90 65 110 40" stroke="#818CF8" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="6 3" fill="none"/>
+                {/* Pin 1 */}
+                <circle cx="30" cy="80" r="5" fill="#6366F1"/>
+                <circle cx="30" cy="80" r="2.5" fill="white"/>
+                {/* Pin 2 */}
+                <circle cx="70" cy="60" r="5" fill="#6366F1"/>
+                <circle cx="70" cy="60" r="2.5" fill="white"/>
+                {/* Pin 3 — destination */}
+                <path d="M110 40 C110 33 103 28 110 22 C117 28 110 33 110 40Z" fill="#4F46E5"/>
+                <circle cx="110" cy="31" r="3" fill="white"/>
+                {/* Compass */}
+                <circle cx="20" cy="30" r="10" fill="white" stroke="#C7D2FE" strokeWidth="1.5"/>
+                <path d="M20 22 L22 30 L20 38 L18 30 Z" fill="#4F46E5" opacity="0.8"/>
+                <path d="M12 30 L20 28 L28 30 L20 32 Z" fill="#CBD5E1"/>
+                <circle cx="20" cy="30" r="2" fill="#4F46E5"/>
+              </svg>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">Ready for your first adventure?</h3>
+              <p className="text-sm text-gray-500 max-w-xs leading-relaxed mb-6">
+                Share a travel post from Xiaohongshu, WeChat, or Douyin — we&apos;ll extract locations and tips for you.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push('/')}
+                className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-3 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200"
+              >
+                Save your first clip →
+              </button>
+            </div>
+          )
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>

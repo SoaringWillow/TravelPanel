@@ -116,7 +116,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Guard all calls with `Capacitor.isNativePlatform()` to avoid errors on web
 
 ### D10 — Improved Empty States with Illustrations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Replace the "📥 Your inbox is empty." text with a richer empty state:
