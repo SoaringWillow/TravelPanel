@@ -287,7 +287,7 @@ Goal: close every gap between "web app in Capacitor" and "premium iOS app users 
 - Ensure the sheet's `maxHeight` shrinks so content doesn't overflow: `maxHeight: 85vh - keyboardHeight`
 
 ### E5 — SwipeToDelete on Board Cards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Boards page has no swipe-to-delete. Users who want to remove a board have to tap a small delete icon. Consistency with the inbox increases discoverability.
 **Files**: `app/boards/page.tsx`, `components/BoardCard.tsx`
 **What to do**:

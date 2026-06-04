@@ -10,6 +10,7 @@ import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { EmptyState } from '@/components/EmptyState';
+import { SwipeToDelete } from '@/components/SwipeToDelete';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
@@ -86,15 +87,15 @@ export default function BoardsPage() {
             {boards.map((board) => {
               const stats = getBoardStats(board.id);
               return (
-              <BoardCard
-                key={board.id}
-                board={board}
-                itemCount={stats.itemCount}
-                locationCount={stats.locationCount}
-                tipCount={stats.tipCount}
-                onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
-              />
+              <SwipeToDelete key={board.id} onDelete={() => handleDelete(board.id)}>
+                <BoardCard
+                  board={board}
+                  itemCount={stats.itemCount}
+                  locationCount={stats.locationCount}
+                  tipCount={stats.tipCount}
+                  onClick={() => router.push(`/boards/${board.id}`)}
+                />
+              </SwipeToDelete>
               );
             })}
           </div>
