@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      width: 360px;
+      background: #ffffff;
+      color: #111827;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: #4F46E5;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .logo-text {
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9CA3AF;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+    }
+    .settings-btn:hover { color: #6B7280; background: #F9FAFB; }
+
+    /* ── Main content ───────────────────────────────────────────── */
+    .content {
+      padding: 14px 16px 16px;
+    }
+
+    /* Platform badge */
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+      color: #fff;
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+    .platform-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.7);
+    }
+
+    /* Page info */
+    .page-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    .page-url {
+      font-size: 11px;
+      color: #9CA3AF;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 16px;
+    }
+
+    /* Clip button */
+    .clip-btn {
+      width: 100%;
+      background: #4F46E5;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: -0.01em;
+    }
+    .clip-btn:hover { background: #4338CA; }
+    .clip-btn:active { transform: scale(0.98); }
+    .clip-btn:disabled { background: #C7D2FE; cursor: not-allowed; transform: none; }
+
+    .clip-btn-icon { font-size: 18px; line-height: 1; }
+
+    /* ── Loading state ──────────────────────────────────────────── */
+    #view-loading {
+      text-align: center;
+      padding: 32px 16px;
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #E0E7FF;
+      border-top-color: #4F46E5;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-size: 13px;
+      color: #6B7280;
+    }
+
+    /* ── Success state ──────────────────────────────────────────── */
+    #view-success {
+      text-align: center;
+      padding: 28px 16px 20px;
+    }
+    .success-icon {
+      font-size: 52px;
+      line-height: 1;
+      margin-bottom: 12px;
+      animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes pop {
+      from { transform: scale(0.3); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .success-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+    .success-subtitle {
+      font-size: 12px;
+      color: #9CA3AF;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .success-open-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #EEF2FF;
+      color: #4338CA;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .success-open-btn:hover { background: #E0E7FF; }
+
+    /* ── Error state ────────────────────────────────────────────── */
+    #view-error {
+      padding: 20px 16px;
+    }
+    .error-msg {
+      background: #FEF2F2;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #DC2626;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .retry-btn {
+      width: 100%;
+      background: none;
+      border: 2px solid #E5E7EB;
+      border-radius: 10px;
+      padding: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6B7280;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .retry-btn:hover { border-color: #9CA3AF; }
+
+    /* ── Empty (no-URL) state ────────────────────────────────────── */
+    #view-empty {
+      text-align: center;
+      padding: 32px 16px;
+    }
+    .empty-icon { font-size: 36px; margin-bottom: 10px; }
+    .empty-text { font-size: 13px; color: #9CA3AF; line-height: 1.5; }
+
+    /* ── Utility ─────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">✈</div>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button class="settings-btn" id="settings-btn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- View: main clip UI -->
+  <div id="view-main" class="content">
+    <div id="platform-badge" class="platform-badge">
+      <span class="platform-dot"></span>
+      <span id="platform-label">Web</span>
+    </div>
+    <div id="page-title" class="page-title">Loading page info…</div>
+    <div id="page-url" class="page-url"></div>
+    <button id="clip-btn" class="clip-btn" disabled>
+      <span class="clip-btn-icon">✈</span>
+      <span>Clip to TravelPanel</span>
+    </button>
+  </div>
+
+  <!-- View: loading -->
+  <div id="view-loading" class="hidden">
+    <div class="spinner"></div>
+    <p class="loading-text">Opening TravelPanel…</p>
+  </div>
+
+  <!-- View: success -->
+  <div id="view-success" class="hidden">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Clip saved!</div>
+    <div class="success-subtitle" id="success-subtitle">Opening TravelPanel to complete saving…</div>
+    <button class="success-open-btn" id="open-app-btn">
+      Open TravelPanel →
+    </button>
+  </div>
+
+  <!-- View: error -->
+  <div id="view-error" class="hidden">
+    <div class="error-msg" id="error-msg">Something went wrong. Please try again.</div>
+    <button class="retry-btn" id="retry-btn">Try again</button>
+  </div>
+
+  <!-- View: empty (non-clippable page) -->
+  <div id="view-empty" class="hidden">
+    <div class="empty-icon">🗺️</div>
+    <p class="empty-text">Navigate to a travel page on<br>Instagram, YouTube, Xiaohongshu,<br>or any travel site to clip it.</p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
