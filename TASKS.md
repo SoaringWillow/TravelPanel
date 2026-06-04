@@ -194,7 +194,7 @@ The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users 
 **Files**: `lib/share.ts` (new), `components/InboxCard.tsx`, `app/plan/[boardId]/page.tsx`
 
 ### D3 — Pull-to-Refresh on Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect pull-to-refresh. It also triggers re-enrichment of any failed clips, replacing the current manual retry flow.  
 **Files**: `app/inbox/page.tsx`, new `components/PullToRefresh.tsx`
 
@@ -209,7 +209,7 @@ The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users 
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/` (PNG generation script), update launch storyboard
 
 ### D6 — Empty State Illustrations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Empty map, empty inbox, empty boards all show minimal text. Branded illustrations + actionable CTAs ("Share your first inspiration") dramatically improve first-run experience.  
 **Files**: `components/EmptyState.tsx` (new), update map/inbox/boards pages
 
