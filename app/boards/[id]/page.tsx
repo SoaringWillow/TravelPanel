@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Lightbulb } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 import { ClipEditSheet } from '@/components/ClipEditSheet';
+import { EmptyState } from '@/components/EmptyState';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -32,6 +33,11 @@ export default function BoardDetailPage() {
     : [];
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
+
+  // Stats
+  const totalLocations = boardItems.reduce((sum, i) => sum + i.locations.length, 0);
+  const totalTips = boardItems.reduce((sum, i) => sum + (i.substance?.length ?? 0), 0);
+  const coverThumbnail = boardItems.find((i) => i.thumbnail)?.thumbnail;
 
   const loading = boardsLoading || itemsLoading;
 
@@ -97,29 +103,60 @@ export default function BoardDetailPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
-        <div className="flex items-center gap-3">
+      {/* Hero header */}
+      <div className="relative bg-indigo-700 z-10" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        {/* Cover image */}
+        {coverThumbnail && (
+          <img
+            src={coverThumbnail}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 w-full h-full object-cover opacity-30"
+          />
+        )}
+
+        {/* Back button */}
+        <div className="relative flex items-center px-4 pt-12 pb-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors -ml-1"
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors -ml-1"
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
+        </div>
 
-          <span className="text-2xl leading-none">{board.emoji}</span>
-
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-gray-800 leading-tight truncate">
+        {/* Board name + stats */}
+        <div className="relative px-5 pb-5">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl leading-none">{board.emoji}</span>
+            <h1 className="text-xl font-bold text-white leading-tight truncate">
               {board.name}
             </h1>
           </div>
 
-          <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
-            {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
-          </span>
+          {/* Stats row */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 text-white/80">
+              <span className="text-sm font-semibold text-white">{boardItems.length}</span>
+              <span className="text-xs">clip{boardItems.length !== 1 ? 's' : ''}</span>
+            </div>
+            {totalLocations > 0 && (
+              <div className="flex items-center gap-1.5 text-white/80">
+                <MapPin size={12} className="text-white/60" />
+                <span className="text-sm font-semibold text-white">{totalLocations}</span>
+                <span className="text-xs">location{totalLocations !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+            {totalTips > 0 && (
+              <div className="flex items-center gap-1.5 text-white/80">
+                <Lightbulb size={12} className="text-amber-300" />
+                <span className="text-sm font-semibold text-white">{totalTips}</span>
+                <span className="text-xs">tip{totalTips !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -129,7 +166,7 @@ export default function BoardDetailPage() {
         {boardItems.length > 0 && (
           <div
             className="relative w-full bg-gray-200"
-            style={{ height: 'min(240px, 35vh)' }}
+            style={{ height: 'min(220px, 32vh)' }}
           >
             <MapView
               items={boardItems}
@@ -143,48 +180,45 @@ export default function BoardDetailPage() {
 
         <div className="px-4 py-4">
           {/* Plan this trip CTA */}
-          <div className="mb-4">
-            {hasLocations ? (
-              <button
-                type="button"
-                onClick={() => router.push(`/plan/${boardId}`)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
-              >
-                <Rocket size={18} />
-                Plan this trip
-              </button>
-            ) : (
-              <div className="relative group">
+          {boardItems.length > 0 && (
+            <div className="mb-4">
+              {hasLocations ? (
                 <button
                   type="button"
-                  disabled
-                  className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                  onClick={() => router.push(`/plan/${boardId}`)}
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
                 >
                   <Rocket size={18} />
                   Plan this trip
                 </button>
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
-                  <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-                    Add items with identified locations to plan a trip
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+              ) : (
+                <div className="relative group">
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                  >
+                    <Rocket size={18} />
+                    Plan this trip
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
+                    <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                      Add items with identified locations to plan a trip
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Items grid */}
           {boardItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                No places saved to this board yet.
-              </p>
-              <p className="text-sm text-gray-400">
-                Go to Inbox to add items.
-              </p>
-            </div>
+            <EmptyState
+              illustration="boards"
+              title="No clips yet"
+              subtitle="Go to Inbox and move clips to this collection to start building your trip."
+            />
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {boardItems.map((item) => (

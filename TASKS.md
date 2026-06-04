@@ -214,7 +214,7 @@ The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users 
 **Files**: `components/EmptyState.tsx` (new), update map/inbox/boards pages
 
 ### D7 — Board Detail UI Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Board detail page currently shows a basic card grid. Add a hero cover image, stats row (N clips, N locations, N substance tips), and a "Plan trip" CTA that pre-selects this board.  
 **Files**: `app/boards/[id]/page.tsx`
 
