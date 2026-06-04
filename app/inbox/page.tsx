@@ -16,6 +16,7 @@ import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { PullToRefresh } from '@/components/PullToRefresh';
+import { SwipeableCard } from '@/components/SwipeableCard';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -170,13 +171,15 @@ export default function InboxPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
+                  <SwipeableCard onDelete={() => removeItem(item.id)}>
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  </SwipeableCard>
                 </motion.div>
               ))}
             </AnimatePresence>

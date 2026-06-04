@@ -228,7 +228,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Wire into inbox and boards list views
 
 ### D3 — Swipe-to-Delete on Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect swipe-left to reveal delete. Tap-and-hold is not discoverable. This reduces friction for library curation.  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:
