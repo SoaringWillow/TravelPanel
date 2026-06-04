@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .logo-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-wordmark { font-size: 15px; font-weight: 700; color: #fff; }
+    .logo-wordmark span { color: #818cf8; }
+
+    .header-spacer { flex: 1; }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
+    }
+    .settings-btn:hover { color: #94a3b8; }
+
+    /* ── Setup prompt ───────────────────────────────────────────── */
+    #setup-prompt {
+      padding: 20px 16px;
+      text-align: center;
+    }
+    #setup-prompt p {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    /* ── Page info ──────────────────────────────────────────────── */
+    #page-info {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .page-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+
+    .page-url {
+      font-size: 12px;
+      color: #475569;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Action area ────────────────────────────────────────────── */
+    #action-area {
+      padding: 14px 16px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #4f46e5, #6d28d9);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+      line-height: 1;
+    }
+    .btn-primary:hover { opacity: 0.92; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled {
+      background: #1e293b;
+      color: #334155;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      background: none;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { background: #1e293b; color: #e2e8f0; }
+
+    /* ── Status / results ───────────────────────────────────────── */
+    #results-area {
+      display: none;
+      padding: 0 16px 14px;
+      border-top: 1px solid #1e293b;
+    }
+
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #64748b;
+      padding: 5px 0;
+    }
+    .result-row.done { color: #6ee7b7; }
+    .result-row.info { color: #94a3b8; }
+    .result-row.error { color: #f87171; }
+    .result-row.spinning { color: #818cf8; }
+
+    .result-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #334155;
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Tags strip ─────────────────────────────────────────────── */
+    .tags-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 0 16px 14px;
+    }
+    .tag {
+      background: #1e293b;
+      color: #94a3b8;
+      border-radius: 20px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid #334155;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px 12px;
+      border-top: 1px solid #1e293b;
+    }
+
+    .footer-link {
+      background: none;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .footer-link:hover { color: #94a3b8; }
+
+    /* ── Misc ───────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    #not-configed-notice {
+      font-size: 12px;
+      color: #475569;
+      text-align: center;
+      padding: 12px 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+    </div>
+    <div class="logo-wordmark">Travel<span>Panel</span></div>
+    <div class="header-spacer"></div>
+    <button class="settings-btn" id="settings-btn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Setup prompt (shown when no URL configured) -->
+  <div id="setup-prompt" class="hidden">
+    <p>Set your TravelPanel URL in Settings to start clipping.</p>
+    <button class="btn-primary" id="go-settings-btn">
+      ⚙️ Open Settings
+    </button>
+  </div>
+
+  <!-- Page info -->
+  <div id="page-info">
+    <div class="page-title" id="page-title">Loading…</div>
+    <div class="page-url"   id="page-url"></div>
+  </div>
+
+  <!-- Action area -->
+  <div id="action-area">
+    <button class="btn-primary" id="clip-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 4c-2 0-4 1-5.5 2.5L10 10 1.8 6.2c-.6-.3-1.2.1-1.2.7v2.3c0 .4.2.8.5 1l4.7 2.9L7 16H4l-1.5 1.5L5 19l1.5 2.5L8 20v-3l4.5-2h.1l2.9 4.7c.2.3.6.5 1 .5h2.3c.6 0 1-.6.7-1.2z"/>
+      </svg>
+      Clip This Page
+    </button>
+  </div>
+
+  <!-- Results area (hidden until clip is triggered) -->
+  <div id="results-area"></div>
+  <div id="tags-area"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button class="footer-link" id="open-tp-btn">
+      Open TravelPanel
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/>
+      </svg>
+    </button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

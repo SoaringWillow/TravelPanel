@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 520px;
+      border: 1px solid #334155;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .logo-text { font-size: 18px; font-weight: 700; color: #fff; }
+    .logo-text span { color: #818cf8; }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    input[type="url"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #f1f5f9;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    input[type="url"]:focus { border-color: #6366f1; }
+    input[type="url"]::placeholder { color: #475569; }
+
+    .hint {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .hint a { color: #818cf8; text-decoration: none; }
+    .hint a:hover { text-decoration: underline; }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn-save {
+      flex: 1;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save:hover { background: #4338ca; }
+
+    .status {
+      font-size: 13px;
+      color: #10b981;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    .status.error { color: #f87171; }
+    .status.show { display: flex; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #334155;
+      margin: 28px 0;
+    }
+
+    .info-section h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 12px;
+    }
+
+    .info-item {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .info-item .icon { flex-shrink: 0; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">T</div>
+      <div class="logo-text">Travel<span>Panel</span></div>
+    </div>
+
+    <h2>Settings</h2>
+    <p class="subtitle">Configure where the extension saves your travel clips.</p>
+
+    <label for="tp-url">Your TravelPanel URL</label>
+    <input
+      type="url"
+      id="tp-url"
+      placeholder="https://your-app.vercel.app"
+      spellcheck="false"
+      autocomplete="off"
+    >
+    <p class="hint">
+      Enter the URL where TravelPanel is deployed. This is the Vercel URL or your
+      custom domain. Leave off the trailing slash.
+    </p>
+
+    <div class="actions">
+      <button class="btn-save" id="save-btn">Save Settings</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="info-section">
+      <h3>How to use</h3>
+      <div class="info-item">
+        <span class="icon">🖱️</span>
+        <span>Click the TravelPanel icon in your toolbar to clip the current page.</span>
+      </div>
+      <div class="info-item">
+        <span class="icon">🖱️</span>
+        <span>Right-click any page or link and choose "Clip to TravelPanel ✈️".</span>
+      </div>
+      <div class="info-item">
+        <span class="icon">🤖</span>
+        <span>Claude AI extracts locations, tips, warnings, and wisdom from the page — not just pins.</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

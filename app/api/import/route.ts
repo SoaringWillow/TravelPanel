@@ -81,6 +81,28 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── CORS (browser extensions) ───────────────────────────────────────────────
+
+function corsHeaders(origin: string | null): Record<string, string> {
+  if (!origin) return {};
+  const isBrowserExtension =
+    origin.startsWith('chrome-extension://') ||
+    origin.startsWith('moz-extension://') ||
+    origin.startsWith('safari-web-extension://') ||
+    origin.startsWith('safari-extension://');
+  if (!isBrowserExtension) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
+
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get('origin');
+  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -151,5 +173,6 @@ Never return an empty substance array for a real travel post.`;
     substance: claudeResult?.substance ?? [],
   };
 
-  return NextResponse.json(result);
+  const origin = req.headers.get('origin');
+  return NextResponse.json(result, { headers: corsHeaders(origin) });
 }

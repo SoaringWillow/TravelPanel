@@ -1,12 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { SavedItem, Location } from '@/lib/types';
+import { SavedItem, Location, ImportResult } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -22,6 +22,39 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const autoClipProcessed               = useRef(false);
+
+  // Handle ?autoClip= from the browser extension — pre-extracted result, auto-save
+  useEffect(() => {
+    if (autoClipProcessed.current) return;
+    const autoClip = searchParams.get('autoClip');
+    const sourceUrl = searchParams.get('source');
+    if (!autoClip || !sourceUrl) return;
+    autoClipProcessed.current = true;
+    try {
+      const importResult = JSON.parse(decodeURIComponent(escape(atob(autoClip)))) as ImportResult;
+      const item: SavedItem = {
+        id: crypto.randomUUID(),
+        url: decodeURIComponent(sourceUrl),
+        platform: importResult.platform,
+        title: importResult.title,
+        description: importResult.description,
+        thumbnail: importResult.thumbnail,
+        locations: importResult.locations,
+        activities: importResult.activities,
+        tags: importResult.tags,
+        substance: importResult.substance,
+        savedAt: Date.now(),
+        enrichmentStatus: 'done',
+        retryCount: 0,
+      };
+      addItem(item);
+      window.history.replaceState({}, '', '/');
+      if (item.locations.length > 0) setFlyTo(item.locations[0]);
+    } catch {
+      // Malformed autoClip data — ignore silently
+    }
+  }, [searchParams, addItem]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
