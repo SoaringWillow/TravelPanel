@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import { OnTripPanel } from '@/components/OnTripPanel';
+import { ProximityBanner } from '@/components/ProximityBanner';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -95,6 +96,14 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Passive proximity alert — shown once per session when near a saved spot */}
+      {!onTrip && (
+        <ProximityBanner
+          items={items}
+          onFlyTo={(loc) => { setFlyTo(loc); setSelectedItem(null); }}
+        />
+      )}
 
       {/* On-Trip panel */}
       <AnimatePresence>
