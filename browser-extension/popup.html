@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #ffffff;
+      color: #111827;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 16px 14px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .header-logo {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.2px;
+    }
+
+    .header-spacer { flex: 1; }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9ca3af;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    .settings-btn:hover { color: #6b7280; background: #f9fafb; }
+
+    /* Body */
+    .body { padding: 14px 16px; }
+
+    /* URL card */
+    .url-card {
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .url-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #3b82f6;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 3px;
+    }
+
+    .url-text {
+      font-size: 12px;
+      color: #1e40af;
+      word-break: break-all;
+      line-height: 1.4;
+      max-height: 48px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+
+    /* Title field */
+    .field { margin-bottom: 12px; }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .field input, .field textarea {
+      width: 100%;
+      font-size: 13px;
+      font-family: inherit;
+      color: #111827;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      resize: none;
+    }
+    .field input:focus, .field textarea:focus {
+      border-color: #3b82f6;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+
+    .field textarea { height: 56px; line-height: 1.4; }
+
+    /* Clip button */
+    .clip-btn {
+      width: 100%;
+      padding: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      color: #fff;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-bottom: 8px;
+    }
+    .clip-btn:hover:not(:disabled) { opacity: 0.92; }
+    .clip-btn:active:not(:disabled) { transform: scale(0.98); }
+    .clip-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .clip-btn svg { flex-shrink: 0; }
+
+    /* Status messages */
+    .status {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .status.visible { display: flex; }
+    .status.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .status.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+    /* Platform chip */
+    .platform-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 100px;
+      background: #f3f4f6;
+      color: #4b5563;
+      margin-bottom: 10px;
+    }
+    .platform-chip.instagram { background: #fdf2f8; color: #be185d; }
+    .platform-chip.youtube   { background: #fef2f2; color: #dc2626; }
+    .platform-chip.xiaohongshu { background: #fef2f2; color: #e11d48; }
+    .platform-chip.tiktok    { background: #f0fdf4; color: #15803d; }
+
+    /* Footer */
+    .footer {
+      padding: 10px 16px 12px;
+      border-top: 1px solid #f3f4f6;
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: center;
+    }
+    .footer a { color: #3b82f6; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <svg class="header-logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="8" fill="#3B82F6"/>
+      <path d="M16 7C12.134 7 9 10.134 9 14c0 5.25 7 15 7 15s7-9.75 7-15c0-3.866-3.134-7-7-7z" fill="white"/>
+      <circle cx="16" cy="14" r="2.8" fill="#3B82F6"/>
+    </svg>
+    <span class="header-title">TravelPanel</span>
+    <div class="header-spacer"></div>
+    <button class="settings-btn" id="settings-btn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <div id="platform-chip" class="platform-chip" style="display:none;"></div>
+
+    <div class="url-card">
+      <div class="url-label">Page URL</div>
+      <div class="url-text" id="url-display">Loading...</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="title-input">Title (optional)</label>
+      <input type="text" id="title-input" placeholder="Override the page title…" maxlength="200" />
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="notes-input">Notes (optional)</label>
+      <textarea id="notes-input" placeholder="Add a quick note…" maxlength="500"></textarea>
+    </div>
+
+    <button class="clip-btn" id="clip-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+      </svg>
+      Save to TravelPanel
+    </button>
+
+    <div class="status" id="status-msg"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" id="config-footer">
+    <a href="#" id="open-options">Configure TravelPanel URL</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
