@@ -241,6 +241,102 @@ The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users 
 
 ---
 
+## PHASE E — iOS App-Store Polish (Current Sprint)
+
+Goal: close every gap between "web app in Capacitor" and "premium iOS app users want on their home screen." Work top-to-bottom.
+
+### E1 — Boards List Page Polish
+**Status**: `[ ]` Not started
+**Why**: Boards page uses a bespoke inline empty state instead of the shared `EmptyState` component, and `BoardCard` doesn't show substance tip counts or location counts like the board detail hero.
+**Files**: `app/boards/page.tsx`, `components/BoardCard.tsx`
+**What to do**:
+- Replace the inline empty state block with `<EmptyState illustration="boards" title="No boards yet" subtitle="Create your first collection to organise your travel ideas." action={<button…>Create a Board</button>} />`
+- In `BoardCard`, add a stats mini-row below the board name: show clip count, location count (sum across items), and tip count (sum of substance items)
+- Fetch the extra stats by passing `items` array from `useSavedItems()` into `BoardCard` (or compute a `boardStats` map in `BoardsPage`)
+
+### E2 — Haptic Feedback on Key Actions
+**Status**: `[ ]` Not started
+**Why**: Without haptics, the app feels like a website. Native iOS apps give tactile feedback on significant actions. Capacitor ships `@capacitor/haptics` — it no-ops in the browser so no conditional needed.
+**Files**: new `lib/haptics.ts`, `components/SwipeToDelete.tsx`, `components/ClipEditSheet.tsx`, `app/share/page.tsx`
+**What to do**:
+- Create `lib/haptics.ts` with `impactLight()`, `impactMedium()`, `notificationSuccess()`, `notificationError()` wrappers around `@capacitor/haptics` (import dynamically to avoid SSR errors)
+- Fire `impactMedium()` when swipe-to-delete threshold is crossed (inside `SwipeToDelete`)
+- Fire `notificationSuccess()` when a clip is saved successfully (in `app/share/page.tsx` after enrichment starts)
+- Fire `notificationSuccess()` when ClipEditSheet saves
+- Fire `notificationError()` when enrichment fails permanently
+
+### E3 — Safe-Area Inset Audit
+**Status**: `[ ]` Not started
+**Why**: Several pages use hardcoded `pt-12` for status bar clearance. On iPhone 15 Pro with Dynamic Island, `pt-12` (48px) may be insufficient. CSS `env(safe-area-inset-top)` adapts automatically to every device.
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/settings/page.tsx`, `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Add `viewport-fit=cover` to the `<meta name="viewport">` tag in `app/layout.tsx` if not already present
+- Replace `pt-12` with `pt-[max(3rem,env(safe-area-inset-top))]` on each page header (or use a Tailwind plugin `safe-top` utility via arbitrary value)
+- The board detail hero already uses `env(safe-area-inset-top)` — confirm it's correct and use as reference pattern
+- Verify NavBar bottom clearance: replace hardcoded `pb-24` with `pb-[calc(1.5rem+env(safe-area-inset-bottom))]`
+
+### E4 — ClipEditSheet Keyboard Avoidance
+**Status**: `[ ]` Not started
+**Why**: When the iOS keyboard appears over the bottom sheet, the title input is hidden behind it. This is the most common frustration with web-in-WebView forms.
+**Files**: `components/ClipEditSheet.tsx`
+**What to do**:
+- Listen to `visualViewport.resize` (or `window.resize`) to detect keyboard appearance
+- When keyboard is visible, shift the sheet up by `window.innerHeight - visualViewport.height` px using a CSS `transform: translateY()`
+- Animate the shift with a spring (or `transition: transform 0.3s ease`)
+- Reset shift on `visualViewport.resize` when keyboard hides
+- Ensure the sheet's `maxHeight` shrinks so content doesn't overflow: `maxHeight: 85vh - keyboardHeight`
+
+### E5 — SwipeToDelete on Board Cards
+**Status**: `[ ]` Not started
+**Why**: Boards page has no swipe-to-delete. Users who want to remove a board have to tap a small delete icon. Consistency with the inbox increases discoverability.
+**Files**: `app/boards/page.tsx`, `components/BoardCard.tsx`
+**What to do**:
+- Wrap each `BoardCard` in the existing `SwipeToDelete` component (same as inbox)
+- Pass `onDelete={() => handleDelete(board.id)}` 
+- On delete animation complete, call `removeBoard`
+- Confirm the swipe direction doesn't conflict with horizontal board card overflow
+
+### E6 — LocationDetailCard Substance Visual Polish
+**Status**: `[ ]` Not started
+**Why**: The substance section in `LocationDetailCard` exists but feels like an afterthought — plain text list with no visual hierarchy. This is the product's #1 moat and should look premium.
+**Files**: `components/LocationDetailCard.tsx`, `components/SubstanceList.tsx`
+**What to do**:
+- In `SubstanceList`, add a left-accent colored bar per substance type (tip=indigo, warning=amber, opinion=purple, wisdom=emerald, context=sky, recommendation=rose)
+- Each substance item: rounded card with a colored left border, type icon, bold content, and source_quote in italic gray below
+- Add a subtle section header "✦ Insights from this clip" above the list
+- Add entrance animation (stagger with Framer Motion: each card fades+slides in with 50ms delay)
+
+### E7 — Pull-to-Refresh on Boards Page
+**Status**: `[ ]` Not started
+**Why**: The Boards page doesn't have pull-to-refresh. Consistency with Inbox means users expect it everywhere.
+**Files**: `app/boards/page.tsx`
+**What to do**:
+- Wrap the boards list content in `<PullToRefresh onRefresh={async () => { await refreshBoards(); }}>` 
+- Add a `refreshBoards` callback to `useBoards` hook (re-reads boards from IndexedDB)
+- Keep the `OnboardingSeed` banner outside the pull-to-refresh area (above it, in the header zone)
+
+### E8 — App Review Prompt
+**Status**: `[ ]` Not started
+**Why**: App Store ratings are critical for discoverability. The optimal time to ask is after the user successfully generates their first trip plan — they've seen the product's value.
+**Files**: new `lib/appReview.ts`, `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Create `lib/appReview.ts` that calls `@capacitor-community/app-review` (or the native iOS `SKStoreReviewController` via a Capacitor plugin) after the first plan is generated successfully
+- Gate the prompt: only show once, only after `planGenerationCount >= 1`, store the flag in localStorage
+- On web/browser (no Capacitor plugin), this is a no-op
+- Install: check if `@capacitor-community/app-review` is in `package.json`; if not, note that it must be added
+
+### E9 — Offline Mode Indicator
+**Status**: `[ ]` Not started
+**Why**: The app stores everything locally but the enrichment and planning features require network. When offline, buttons should indicate why they're disabled.
+**Files**: new `hooks/useOnlineStatus.ts`, `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Create `hooks/useOnlineStatus.ts`: returns `{ isOnline: boolean }` using `navigator.onLine` + `window` `online`/`offline` events
+- In the share/import flow: when offline, disable the submit button and show "You're offline — connect to save" 
+- In the plan page: when offline, show a subtle banner at the top "No internet — plan generation unavailable"
+- In plan button CTA on board detail: show a subtle offline indicator next to the button when offline
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
