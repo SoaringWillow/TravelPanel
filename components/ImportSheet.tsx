@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Copy } from 'lucide-react';
+import { hapticLight, hapticSuccess } from '@/lib/haptics';
 import {
   Drawer,
   DrawerContent,
@@ -120,6 +121,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    hapticSuccess();
     onSaved(item);
     resetState();
   }
@@ -262,7 +264,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           {stage !== 'preview' && !duplicate && (
             <button
               type="button"
-              onClick={handleImport}
+              onClick={() => { hapticLight(); handleImport(); }}
               disabled={!trimmedUrl || stage === 'loading'}
               className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >

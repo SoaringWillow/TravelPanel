@@ -240,7 +240,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The card tap target should open `LocationDetailCard` — ensure the whole card is tappable, not just the title
 
 ### D5 — Tag Filter Bar (Inbox + Map)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: At 50+ clips, users need to filter by category. Tags already exist on every clip but are never surfaced for filtering. "Show me only food clips" is a common mental query.  
 **Files to change**: `app/inbox/page.tsx`, `app/page.tsx` (map view)  
 **What to do**:
@@ -252,7 +252,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Empty state: "No [tag] clips yet" with the existing empty state component
 
 ### D6 — Haptic Feedback (iOS Native)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Every premium iOS app uses haptics. Saves feel physical; confirmations feel real. This is the cheapest "this feels native" improvement available.  
 **Files to change**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/ImportSheet.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
