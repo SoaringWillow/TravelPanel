@@ -5,6 +5,17 @@ import { detectPlatform } from '@/lib/parse-url';
 import { ImportResult } from '@/lib/types';
 import { models } from '@/lib/models';
 
+// Allow browser extensions and PWA clients to call this endpoint cross-origin.
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
 const locationSchema = z.object({
@@ -151,5 +162,5 @@ Never return an empty substance array for a real travel post.`;
     substance: claudeResult?.substance ?? [],
   };
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: CORS_HEADERS });
 }
