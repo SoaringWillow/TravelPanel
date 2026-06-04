@@ -9,7 +9,12 @@ import UniformTypeIdentifiers
 // the main TravelPanel app with the travelpanel://share?url=...&title=...
 // URL scheme, which the CapacitorBridge component routes to /share.
 //
-// Supported source types: URLs, plain text containing a URL, web pages.
+// Supported source types: URLs, plain text containing a URL, web pages, images.
+//
+// For Xiaohongshu / WeChat shares (which are often screenshots):
+// The image is compressed to JPEG, base64-encoded, and stored in the App Group
+// UserDefaults under "pendingShareImage". The deep-link URL includes hasImage=1
+// so CapacitorBridge knows to read and forward the image to the share page.
 
 class ShareViewController: UIViewController {
 
@@ -34,7 +39,7 @@ class ShareViewController: UIViewController {
                         guard let self else { return }
                         if let url = data as? URL {
                             let title = item.attributedContentText?.string ?? url.host ?? ""
-                            self.openApp(url: url.absoluteString, title: title)
+                            self.openApp(url: url.absoluteString, title: title, imageBase64: nil)
                         } else {
                             self.finish()
                         }
@@ -49,10 +54,39 @@ class ShareViewController: UIViewController {
                     attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
                         guard let self else { return }
                         if let text = data as? String, let url = self.extractURL(from: text) {
-                            self.openApp(url: url, title: text)
+                            self.openApp(url: url, title: text, imageBase64: nil)
                         } else {
                             self.finish()
                         }
+                    }
+                    return
+                }
+            }
+
+            // Priority 3: image attachment (Xiaohongshu / WeChat screenshots)
+            for attachment in attachments {
+                if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { [weak self] data, _ in
+                        guard let self else { return }
+                        var uiImage: UIImage?
+                        if let img = data as? UIImage {
+                            uiImage = img
+                        } else if let url = data as? URL,
+                                  let imgData = try? Data(contentsOf: url) {
+                            uiImage = UIImage(data: imgData)
+                        }
+
+                        guard let uiImage else { self.finish(); return }
+
+                        // Compress to JPEG (quality 0.6) to keep the payload reasonable
+                        guard let jpegData = uiImage.jpegData(compressionQuality: 0.6) else {
+                            self.finish(); return
+                        }
+                        let base64 = jpegData.base64EncodedString()
+                        let caption = item.attributedContentText?.string ?? "Xiaohongshu clip"
+                        // Use a placeholder URL so the share page knows the platform
+                        let placeholderUrl = "xiaohongshu://screenshot"
+                        self.openApp(url: placeholderUrl, title: caption, imageBase64: base64)
                     }
                     return
                 }
@@ -68,18 +102,28 @@ class ShareViewController: UIViewController {
         return matches?.first.flatMap { $0.url?.absoluteString }
     }
 
-    private func openApp(url: String, title: String) {
-        var components = URLComponents()
-        components.scheme = "travelpanel"
-        components.host = "share"
-        components.queryItems = [
+    private func openApp(url: String, title: String, imageBase64: String?) {
+        var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "url", value: url),
             URLQueryItem(name: "title", value: title),
         ]
+        if imageBase64 != nil {
+            queryItems.append(URLQueryItem(name: "hasImage", value: "1"))
+        }
+
+        var components = URLComponents()
+        components.scheme = "travelpanel"
+        components.host = "share"
+        components.queryItems = queryItems
 
         guard let deepLink = components.url else {
             finish()
             return
+        }
+
+        // Store image in App Group before opening the app
+        if let image = imageBase64 {
+            savePendingShareToAppGroup(url: url, title: title, imageBase64: image)
         }
 
         // Open the main app with the deep link.
@@ -96,17 +140,20 @@ class ShareViewController: UIViewController {
         }
 
         // Fallback: write to App Group and let the main app pick it up on next launch
-        savePendingShareToAppGroup(url: url, title: title)
+        savePendingShareToAppGroup(url: url, title: title, imageBase64: imageBase64)
         finish()
     }
 
-    private func savePendingShareToAppGroup(url: String, title: String) {
+    private func savePendingShareToAppGroup(url: String, title: String, imageBase64: String?) {
         // App Group identifier must match the one configured in Xcode capabilities.
         // See ios-setup.md for configuration instructions.
         guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
         defaults.set(url, forKey: "pendingShareURL")
         defaults.set(title, forKey: "pendingShareTitle")
         defaults.set(Date(), forKey: "pendingShareDate")
+        if let image = imageBase64 {
+            defaults.set(image, forKey: "pendingShareImage")
+        }
         defaults.synchronize()
     }
 

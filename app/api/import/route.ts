@@ -85,27 +85,31 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  if ((!url || typeof url !== 'string') && !imageBase64) {
+    return NextResponse.json({ error: 'URL or image required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const platform = detectPlatform(url ?? '');
+
+  // Skip HTML fetch for platforms that block scraping, or when an image is provided
+  const skipFetch = !!imageBase64 || platform === 'xiaohongshu' || platform === 'wechat';
+  const page = skipFetch ? null : await fetchPageData(url);
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+URL: ${url ?? '(image share)'}
+Title: ${page?.title ?? '(unavailable — analyzing image directly)'}
 Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ? `Page content:\n${page.textContent}` : '(Content extracted from screenshot — read the image carefully for all text, locations, and travel tips)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,19 +134,47 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: image screenshot provided (Xiaohongshu, WeChat, etc.)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const imageBytes = (globalThis as any).Buffer
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? (globalThis as any).Buffer.from(imageBase64, 'base64')
+        : Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageBytes,
+                mimeType: (imageMimeType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+              },
+              { type: 'text', text: prompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: use scraped HTML content
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
+    title: (claudeResult?.title || page?.title || url || 'Xiaohongshu clip').slice(0, 200),
     description: (claudeResult?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],

@@ -2,7 +2,8 @@ import { Platform } from './types';
 
 export function detectPlatform(url: string): Platform {
   if (url.includes('weixin.qq.com') || url.includes('mp.weixin')) return 'wechat';
-  if (url.includes('xiaohongshu.com') || url.includes('xhslink.com') || url.includes('xhs.link')) return 'xiaohongshu';
+  // xiaohongshu:// is the placeholder scheme used when sharing a screenshot via iOS
+  if (url.includes('xiaohongshu.com') || url.includes('xhslink.com') || url.includes('xhs.link') || url.startsWith('xiaohongshu://')) return 'xiaohongshu';
   if (url.includes('douyin.com') || url.includes('iesdouyin.com') || url.includes('tiktok.com')) return 'douyin';
   if (url.includes('bilibili.com') || url.includes('b23.tv')) return 'bilibili';
   return 'other';
