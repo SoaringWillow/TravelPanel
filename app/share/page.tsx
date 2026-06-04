@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const rawNotes        = searchParams.get('notes') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -76,6 +77,7 @@ function SharePageInner() {
       tags: [],
       substance: [],
       savedAt: Date.now(),
+      notes: rawNotes || undefined,
       enrichmentStatus: 'pending',
       retryCount: 0,
       boardId: selectedBoardId,
