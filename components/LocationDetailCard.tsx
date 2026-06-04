@@ -7,6 +7,7 @@ import { SavedItem, SubstanceItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { saveItem } from '@/lib/db';
 import { computeWhenToVisit, MONTH_LABELS, type MonthStatus } from '@/lib/whenToVisit';
+import { distanceMetres, formatDistance } from '@/hooks/useGeolocation';
 import SubstanceList from './SubstanceList';
 
 // ─── When to Visit sub-component ────────────────────────────────────────────
@@ -55,9 +56,11 @@ interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
   onUpdate?: (updated: SavedItem) => void;
+  allItems?: SavedItem[];
+  onSelectItem?: (item: SavedItem) => void;
 }
 
-export default function LocationDetailCard({ item, onClose, onUpdate }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onUpdate, allItems = [], onSelectItem }: LocationDetailCardProps) {
   const [editing, setEditing] = useState(false);
   const [localItem, setLocalItem] = useState(item);
 
@@ -68,6 +71,21 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
   const [tagInput, setTagInput] = useState('');
 
   const tagInputRef = useRef<HTMLInputElement>(null);
+
+  // Nearby clips — other items with a location within 5km of any of this item's locations
+  const nearbyClips = (() => {
+    if (localItem.locations.length === 0 || allItems.length === 0) return [];
+    const myLoc = localItem.locations[0];
+    return allItems
+      .filter((other) => other.id !== localItem.id && other.locations.length > 0 && other.enrichmentStatus === 'done')
+      .map((other) => ({
+        item: other,
+        dist: Math.min(...other.locations.map((loc) => distanceMetres(myLoc, loc))),
+      }))
+      .filter(({ dist }) => dist <= 5000)
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 3);
+  })();
 
   function startEdit() {
     setDraftTitle(localItem.title);
@@ -323,6 +341,36 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
                   rows={3}
                   className="w-full text-sm text-gray-700 bg-amber-50 rounded-xl p-3 outline-none border-2 border-transparent focus:border-amber-300 resize-none placeholder:text-gray-400 leading-relaxed"
                 />
+              </div>
+            )}
+
+            {/* Nearby clips */}
+            {!editing && nearbyClips.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  Also nearby
+                </p>
+                <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-1 px-1">
+                  {nearbyClips.map(({ item: nearby, dist }) => (
+                    <button
+                      key={nearby.id}
+                      type="button"
+                      onClick={() => onSelectItem?.(nearby)}
+                      className="flex-shrink-0 w-32 bg-gray-50 rounded-xl overflow-hidden hover:bg-indigo-50 transition-colors text-left"
+                    >
+                      {nearby.thumbnail ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={nearby.thumbnail} alt="" className="w-full h-20 object-cover" />
+                      ) : (
+                        <div className="w-full h-20 bg-gray-200 flex items-center justify-center text-2xl">🗺️</div>
+                      )}
+                      <div className="p-1.5">
+                        <p className="text-xs font-medium text-gray-700 line-clamp-1">{nearby.title}</p>
+                        <p className="text-[10px] text-indigo-500 font-medium mt-0.5">{formatDistance(dist)}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 

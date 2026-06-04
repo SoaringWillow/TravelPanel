@@ -145,7 +145,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Add budget filter to the inbox filter chips (alongside platform filters)
 
 ### D13 — Nearby Clips Suggestion in Detail Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `components/LocationDetailCard.tsx`  
 **What to do**:
 - At the bottom of LocationDetailCard, show up to 3 "Also nearby" clips (other saved items with a location within 5km)

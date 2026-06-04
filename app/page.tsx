@@ -209,6 +209,8 @@ function HomePageInner() {
               setSelectedItem(updated);
               refreshItem(updated.id);
             }}
+            allItems={items}
+            onSelectItem={(nearby) => setSelectedItem(nearby)}
           />
         )}
       </AnimatePresence>
