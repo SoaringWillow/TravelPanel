@@ -12,6 +12,7 @@ import LocationDetailCard from '@/components/LocationDetailCard';
 import { OnTripPanel } from '@/components/OnTripPanel';
 import { ProximityBanner } from '@/components/ProximityBanner';
 import { A2HSBanner } from '@/components/A2HSBanner';
+import { OnboardingOverlay } from '@/components/OnboardingOverlay';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -155,6 +156,7 @@ function HomePageInner() {
 
       <NavBar active="home" />
       <A2HSBanner />
+      {!loading && items.length === 0 && <OnboardingOverlay />}
     </main>
   );
 }

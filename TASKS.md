@@ -298,7 +298,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Don't show if already installed as PWA (`window.navigator.standalone === true`) or on native Capacitor app
 
 ### D9 — First-Run Onboarding Tutorial
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: New users land on an empty map with no guidance. Seed boards help (A8) but don't explain the core clip → plan flow. Churn at session 1 is the biggest retention risk.  
 **Files**: new `components/OnboardingOverlay.tsx`, `app/page.tsx`  
 **What to do**:
