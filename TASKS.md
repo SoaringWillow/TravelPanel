@@ -287,7 +287,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Automatically evict thumbnails for deleted items
 
 ### D8 — iOS "Add to Home Screen" Prompt
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Without Capacitor native install, Safari users run the web app. "Add to Home Screen" is the only way to get app-quality on web. We never prompt for it.  
 **Files**: new `components/A2HSBanner.tsx`, `app/layout.tsx` or `app/page.tsx`  
 **What to do**:
