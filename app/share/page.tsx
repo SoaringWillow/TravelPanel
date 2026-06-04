@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { hapticImpact, hapticNotification } from '@/lib/haptics';
+import { incrementClipCount, shouldPromptReview, requestAppReview } from '@/lib/appReview';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -145,6 +146,12 @@ function SharePageInner() {
     await saveItem(item);
     hapticImpact('LIGHT');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+
+    // Track non-demo saves and prompt for review after 10th clip
+    const count = incrementClipCount();
+    if (count === 10 || shouldPromptReview()) {
+      setTimeout(() => requestAppReview(), 1500);
+    }
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);

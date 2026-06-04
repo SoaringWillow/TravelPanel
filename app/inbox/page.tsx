@@ -54,6 +54,8 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [activeBudget, setActiveBudget] = useState<BudgetTier | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(20);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [vibeResult, setVibeResult] = useState<{ terms: string[]; intent: string } | null>(null);
   const [allTrips, setAllTrips] = useState<import('@/lib/types').Trip[]>([]);
@@ -98,6 +100,30 @@ export default function InboxPage() {
   const filtered = vibeResult
     ? rankItemsByVibeTerms(budgetFiltered, vibeResult.terms)
     : searchItems(budgetFiltered, query);
+
+  // Reset virtual window when filter changes
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [activePlatform, activeBudget, query, vibeResult]);
+
+  // Auto-load more when sentinel comes into view (only when > 100 items)
+  useEffect(() => {
+    if (filtered.length <= 100) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((v) => Math.min(v + 20, filtered.length));
+        }
+      },
+      { rootMargin: '300px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filtered.length]);
+
+  const displayedItems = filtered.length > 100 ? filtered.slice(0, visibleCount) : filtered;
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -300,27 +326,41 @@ export default function InboxPage() {
             </div>
           )
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <AnimatePresence>
+                {displayedItems.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            {/* Virtual scroll sentinel / load-more */}
+            {filtered.length > 100 && visibleCount < filtered.length && (
+              <div ref={sentinelRef} className="py-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((v) => Math.min(v + 20, filtered.length))}
+                  className="text-xs text-indigo-600 font-medium hover:underline"
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+                  Load more ({filtered.length - visibleCount} remaining)
+                </button>
+              </div>
+            )}
+          </>
         )}
         </div>
       </div>

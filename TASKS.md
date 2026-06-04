@@ -154,7 +154,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Tapping a nearby card opens that item's detail card
 
 ### D14 — Virtual Scroll for Large Lists (>100 items)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Loading all items at once causes jank when a user has 200+ clips.  
 **Files to change**: `app/inbox/page.tsx`  
 **What to do**:
@@ -164,7 +164,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Show a "Load more" button or auto-load when scrolled to 80% of rendered list
 
 ### D15 — App Review Prompt (iOS)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `lib/db.ts` or new `lib/appReview.ts`, `app/share/page.tsx`  
 **What to do**:
 - After a user successfully saves their 10th clip (non-demo), prompt for an App Store review
