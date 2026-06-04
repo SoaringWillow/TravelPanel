@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, Trip } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, getAllTrips } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { ProactiveSurface } from '@/components/ProactiveSurface';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -38,6 +39,11 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [trips, setTrips] = useState<Trip[]>([]);
+
+  useEffect(() => {
+    getAllTrips().then(setTrips).catch(() => setTrips([]));
+  }, []);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -140,6 +146,11 @@ export default function InboxPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Proactive nudges — only shown when not searching */}
+        {!loading && !query.trim() && activePlatform === 'all' && (
+          <ProactiveSurface items={items} boards={boards} trips={trips} />
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
