@@ -41,12 +41,39 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [preview, setPreview]       = useState<ImportResult | null>(null);
   const [error, setError]           = useState('');
   const [duplicate, setDuplicate]   = useState<import('@/lib/types').SavedItem | null>(null);
+  const [urlPreview, setUrlPreview] = useState<{ title: string | null; thumbnail: string | null; platform: string } | null>(null);
   const abortRef                    = useRef<AbortController | null>(null);
   const skipDupeRef                 = useRef(false);
+  const previewTimerRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
+
+  // Debounced og:preview fetch when URL is pasted
+  useEffect(() => {
+    const trimmed = url.trim();
+    if (!trimmed || stage !== 'idle') {
+      setUrlPreview(null);
+      return;
+    }
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/preview?url=${encodeURIComponent(trimmed)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.title || data.thumbnail) setUrlPreview(data);
+          else setUrlPreview(null);
+        }
+      } catch {
+        setUrlPreview(null);
+      }
+    }, 400);
+    return () => {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    };
+  }, [url, stage]);
 
   const trimmedUrl       = url.trim();
   const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
@@ -164,6 +191,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setStage('idle');
     setError('');
     setDuplicate(null);
+    setUrlPreview(null);
     skipDupeRef.current = false;
   }
 
@@ -230,6 +258,27 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
             />
           </div>
+
+          {/* ── URL og:preview card ──────────────────────────────────────── */}
+          {urlPreview && stage === 'idle' && !duplicate && (
+            <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5 animate-in fade-in duration-150">
+              {urlPreview.thumbnail && (
+                <img
+                  src={urlPreview.thumbnail}
+                  alt=""
+                  className="w-16 h-12 object-cover rounded-lg flex-shrink-0"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                {urlPreview.title && (
+                  <p className="text-xs font-semibold text-gray-700 line-clamp-2 leading-snug">
+                    {urlPreview.title}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ── Duplicate URL banner ─────────────────────────────────────── */}
           {duplicate && (

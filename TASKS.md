@@ -278,7 +278,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Board item count: show "N clips" under the board name on the boards list
 
 ### D8 — Import Sheet URL Preview
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When users paste a URL in the Import Sheet, they see nothing until the enrichment completes. Showing the og:image thumbnail instantly makes the capture feel fast and confirms they pasted the right URL.  
 **Files to change**: `components/ImportSheet.tsx`  
 **What to do**:
