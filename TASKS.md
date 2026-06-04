@@ -297,7 +297,7 @@ Goal: close every gap between "web app in Capacitor" and "premium iOS app users 
 - Confirm the swipe direction doesn't conflict with horizontal board card overflow
 
 ### E6 — LocationDetailCard Substance Visual Polish
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The substance section in `LocationDetailCard` exists but feels like an afterthought — plain text list with no visual hierarchy. This is the product's #1 moat and should look premium.
 **Files**: `components/LocationDetailCard.tsx`, `components/SubstanceList.tsx`
 **What to do**:
