@@ -9,6 +9,7 @@ import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } fro
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -125,6 +126,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') hapticNotification('Success');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -175,12 +177,14 @@ export default function PlanPage() {
   const handleExportPDF = useCallback(async () => {
     if (!planIsComplete(plan) || !board) return;
     await exportPlanToPDF(plan, board.name, board.emoji);
+    hapticImpact('Medium');
     track('plan_exported', { format: 'pdf', boardId });
   }, [plan, board, boardId]);
 
   const handleExportICS = useCallback(() => {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
+    hapticImpact('Medium');
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 
@@ -357,11 +361,24 @@ export default function PlanPage() {
                 />
               </div>
 
-              {/* Warning if no locations */}
+              {/* Rich empty state if no locations */}
               {!hasLocations && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
-                  <MapPin size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>Add items with identified locations to plan a trip.</span>
+                <div className="flex flex-col items-center text-center py-4 px-2 bg-gray-50 rounded-2xl">
+                  <svg width="90" height="70" viewBox="0 0 90 70" fill="none" className="mb-3 opacity-80">
+                    <rect x="5" y="15" width="80" height="50" rx="8" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="1.5"/>
+                    <circle cx="45" cy="38" r="14" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="4 3"/>
+                    <path d="M45 27 L47 35 L45 43 L43 35 Z" fill="#94A3B8"/>
+                    <path d="M36 38 L44 36 L54 38 L44 40 Z" fill="#CBD5E1"/>
+                    <circle cx="45" cy="38" r="3" fill="#64748B"/>
+                    <path d="M10 5 L80 5" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round"/>
+                    <circle cx="10" cy="5" r="3" fill="#CBD5E1"/>
+                    <circle cx="45" cy="5" r="3" fill="#CBD5E1"/>
+                    <circle cx="80" cy="5" r="3" fill="#CBD5E1"/>
+                  </svg>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">No locations to plan</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Save clips from travel posts and let us extract the locations. Then come back here to plan your trip.
+                  </p>
                 </div>
               )}
 

@@ -27,6 +27,28 @@ class ShareViewController: UIViewController {
         for item in items {
             guard let attachments = item.attachments else { continue }
 
+            // Opportunistically capture any image attachment (e.g. Xiaohongshu screenshots).
+            // This runs in the background and stores the result in App Group for the vision path.
+            for attachment in attachments {
+                if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { [weak self] data, _ in
+                        guard let self else { return }
+                        let image: UIImage?
+                        if let img = data as? UIImage {
+                            image = img
+                        } else if let url = data as? URL {
+                            image = UIImage(contentsOfFile: url.path)
+                        } else {
+                            image = nil
+                        }
+                        if let img = image, let jpeg = img.jpegData(compressionQuality: 0.65) {
+                            self.savePendingImageToAppGroup(jpeg)
+                        }
+                    }
+                    break
+                }
+            }
+
             // Priority 1: a direct URL attachment
             for attachment in attachments {
                 if attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
@@ -60,6 +82,13 @@ class ShareViewController: UIViewController {
         }
 
         finish()
+    }
+
+    private func savePendingImageToAppGroup(_ jpeg: Data) {
+        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+        // Store as base64 string so the web layer can read it directly
+        defaults.set(jpeg.base64EncodedString(), forKey: "pendingShareImage")
+        defaults.synchronize()
     }
 
     private func extractURL(from text: String) -> String? {

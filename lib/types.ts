@@ -34,6 +34,8 @@ export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'other
 // failed   → failed after retries
 export type EnrichmentStatus = 'pending' | 'processing' | 'done' | 'failed';
 
+export type BudgetTier = 'budget' | 'mid-range' | 'splurge';
+
 export interface SavedItem {
   id: string;
   url: string;
@@ -47,6 +49,7 @@ export interface SavedItem {
   substance: SubstanceItem[]; // wisdom layer — tips, warnings, opinions from the post
   savedAt: number;
   notes?: string;
+  budgetTier?: BudgetTier;
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
@@ -137,6 +140,7 @@ export interface ImportResult {
   activities: string[];
   tags: string[];
   substance: SubstanceItem[];
+  budgetTier?: BudgetTier;
 }
 
 // NDJSON messages streamed from /api/plan
