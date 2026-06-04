@@ -307,7 +307,7 @@ Goal: close every gap between "web app in Capacitor" and "premium iOS app users 
 - Add entrance animation (stagger with Framer Motion: each card fades+slides in with 50ms delay)
 
 ### E7 — Pull-to-Refresh on Boards Page
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The Boards page doesn't have pull-to-refresh. Consistency with Inbox means users expect it everywhere.
 **Files**: `app/boards/page.tsx`
 **What to do**:
