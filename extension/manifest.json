@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "version": "1.0.0",
+  "description": "Save travel inspiration from any web page directly to TravelPanel",
+  "permissions": ["activeTab", "contextMenus", "storage", "tabs"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Save to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
