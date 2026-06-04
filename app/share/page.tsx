@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -13,6 +13,9 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Stage = 'picking' | 'saving' | 'done';
+
+// Platforms that block HTML scraping — show screenshot upload UI for these
+const VISION_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -29,6 +32,10 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Screenshot for vision-based extraction (Xiaohongshu, WeChat)
+  const [screenshotB64, setScreenshotB64]     = useState<string | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +43,46 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Retrieve screenshot passed from CapacitorBridge (iOS App Group fallback)
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        sessionStorage.removeItem('pendingShareImage');
+        setScreenshotB64(stored);
+        setScreenshotPreview(`data:image/jpeg;base64,${stored}`);
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+  }, []);
+
+  // Handle image file selection or paste
+  const handleImageFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const base64 = dataUrl.split(',')[1];
+      setScreenshotB64(base64);
+      setScreenshotPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Global paste handler — capture pasted screenshots
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const items = Array.from(e.clipboardData?.items ?? []);
+      const imgItem = items.find((i) => i.type.startsWith('image/'));
+      if (imgItem) {
+        const file = imgItem.getAsFile();
+        if (file) handleImageFile(file);
+      }
+    }
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [handleImageFile]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +135,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot for vision-capable platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotB64 ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +211,56 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot zone — shown for platforms that block HTML scraping */}
+          {VISION_PLATFORMS.has(platform) && (
+            <div className="mt-3">
+              {screenshotPreview ? (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={screenshotPreview}
+                    alt="Screenshot"
+                    className="w-full max-h-40 object-cover rounded-xl border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setScreenshotB64(null); setScreenshotPreview(null); }}
+                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                  <p className="text-xs text-green-600 font-medium mt-1">
+                    ✓ Screenshot ready — AI will read it directly
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="w-full flex items-center gap-2 justify-center border-2 border-dashed border-red-200 bg-red-50 text-red-600 text-sm font-medium py-3 px-4 rounded-xl hover:bg-red-100 active:scale-95 transition-all"
+                >
+                  <Camera size={16} />
+                  Add screenshot for better extraction
+                </button>
+              )}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageFile(file);
+                }}
+              />
+              {!screenshotPreview && (
+                <p className="text-xs text-gray-400 mt-1 text-center">
+                  小红书 blocks scraping — add a screenshot for AI to read the post
+                </p>
+              )}
+            </div>
           )}
         </div>
 
