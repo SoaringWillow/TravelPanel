@@ -312,7 +312,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use Framer Motion for transitions; must look stunning
 
 ### D10 — iOS App Icon + Splash Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The current Capacitor placeholder icon (generic blue square) looks unfinished. The app icon is the first thing users see on their home screen. Essential for TestFlight/App Store submission.  
 **Files**: `ios/App/App/Assets.xcassets/`, `ios/App/App/Assets.xcassets/Splash.imageset/`  
 **What to do**:
