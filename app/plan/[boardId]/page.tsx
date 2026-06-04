@@ -406,6 +406,23 @@ export default function PlanPage() {
 
               <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
 
+              {/* Pulsing skeleton day cards */}
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                {Array.from({ length: days }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 rounded-2xl overflow-hidden animate-pulse"
+                    style={{ minWidth: 130 }}
+                  >
+                    <div className="h-14 bg-indigo-200/60" />
+                    <div className="bg-gray-100 p-3 space-y-1.5">
+                      <div className="h-2.5 bg-gray-200 rounded-full w-4/5" />
+                      <div className="h-2 bg-gray-200 rounded-full w-2/5" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <button
                 onClick={handleCancel}
                 className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
@@ -459,25 +476,7 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Export actions */}
-              {planIsComplete(plan) && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <Download size={14} />
-                    Export PDF
-                  </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
-                </div>
-              )}
+              {/* (Export actions moved to floating bottom bar) */}
 
               {/* Saved plan versions */}
               <PlanVersionBar
@@ -506,61 +505,77 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Active day activities */}
+              {/* Active day activities — timeline layout */}
               {activeDayPlan && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                <div>
+                  <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">
+                    Day {activeDayIndex + 1} · {activeDayPlan.theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
+                  <div className="relative">
+                    {/* Vertical timeline line */}
+                    <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-indigo-100" />
 
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
+                    <div className="space-y-0">
+                      {activeDayPlan.activities.map((activity, aIdx) => (
+                        <div key={aIdx} className="flex gap-3 pb-4 last:pb-0">
+                          {/* Timeline dot */}
+                          <div className="flex-shrink-0 w-10 flex flex-col items-center">
+                            <div className="w-5 h-5 rounded-full bg-indigo-500 border-2 border-white shadow-sm flex items-center justify-center mt-0.5">
+                              <span className="text-white text-[8px] font-bold">{aIdx + 1}</span>
                             </div>
-                          ))}
+                          </div>
+
+                          {/* Activity card */}
+                          <div className="flex-1 bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1.5 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide truncate">
+                                  {activity.time}
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800 leading-snug">
+                                  {activity.name}
+                                </p>
+                                <p className="text-xs text-gray-400 truncate mt-0.5">
+                                  📍 {activity.location.name}
+                                </p>
+                              </div>
+                              <span className="flex-shrink-0 bg-gray-100 text-gray-500 text-[10px] font-medium px-2 py-0.5 rounded-full mt-0.5">
+                                {activity.duration}
+                              </span>
+                            </div>
+
+                            {activity.tips.length > 0 && (
+                              <ul className="space-y-0.5">
+                                {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                                  <li key={tIdx} className="text-xs text-gray-500 leading-snug flex gap-1">
+                                    <span className="text-gray-300">·</span>
+                                    <span>{tip}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+
+                            {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                              <div className="space-y-1">
+                                {activity.sourcedTips.map((st, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    className="bg-emerald-50 rounded-xl px-2.5 py-2 border-l-[3px] border-emerald-400"
+                                  >
+                                    <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
+                                    <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
+                                      from: {st.sourceTitle}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
 
@@ -588,6 +603,29 @@ export default function PlanPage() {
               >
                 <RotateCcw size={15} />
                 Start Over
+              </button>
+
+              {/* Spacer for floating bar */}
+              <div className="h-14" />
+            </div>
+          )}
+
+          {/* ── FLOATING EXPORT BAR (complete state only) ── */}
+          {stage === 'complete' && plan && planIsComplete(plan) && (
+            <div className="fixed bottom-0 left-0 right-0 z-[900] bg-white/95 backdrop-blur-md border-t border-gray-100 px-4 py-2 flex gap-2 shadow-lg">
+              <button
+                onClick={handleExportPDF}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-semibold py-2.5 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all"
+              >
+                <Download size={14} />
+                Export PDF
+              </button>
+              <button
+                onClick={handleExportICS}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
+              >
+                <CalendarPlus size={14} />
+                Add to Calendar
               </button>
             </div>
           )}

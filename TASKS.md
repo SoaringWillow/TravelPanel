@@ -301,7 +301,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Cluster markers: keep the existing count badge but color them dark indigo
 
 ### D10 — Plan View Visual Redesign
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The trip planner's output is the payoff for all the substance extraction. Currently it renders as a plain list. A card-based visual layout with timeline, location thumbnails, and highlighted substance citations will make users want to generate plans just to see the output.  
 **Files to change**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
 **What to do**:
