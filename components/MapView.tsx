@@ -6,6 +6,7 @@ import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
+import { GeoPoint } from '@/hooks/useGeolocation';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
@@ -230,9 +231,10 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: GeoPoint | null;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -328,6 +330,34 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* User location dot */}
+        {userLocation && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28 }}>
+              <div
+                className="animate-ping"
+                style={{
+                  position: 'absolute',
+                  width: 24, height: 24,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(59,130,246,0.35)',
+                }}
+              />
+              <div
+                style={{
+                  width: 14, height: 14,
+                  borderRadius: '50%',
+                  backgroundColor: '#3b82f6',
+                  border: '3px solid white',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  position: 'relative',
+                  zIndex: 1,
+                }}
+              />
+            </div>
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
