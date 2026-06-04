@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </div>
+      TravelPanel
+    </div>
+    <button class="icon-btn" id="openOptions" title="Settings">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Page info bar -->
+  <div class="page-info">
+    <img class="favicon" id="favicon" src="" alt="" width="18" height="18">
+    <div class="page-meta">
+      <div class="page-title" id="pageTitle">Loading…</div>
+      <div class="page-url" id="pageUrl"></div>
+    </div>
+  </div>
+
+  <!-- State: idle -->
+  <div class="state" id="stateIdle">
+    <button class="btn btn-primary" id="clipBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+    <p class="idle-hint">Opens the TravelPanel share screen</p>
+  </div>
+
+  <!-- State: loading -->
+  <div class="state hidden" id="stateLoading">
+    <div class="spinner-ring"></div>
+    <div class="loading-label">Opening TravelPanel…</div>
+    <div class="loading-phase" id="loadingPhase">Preparing share screen</div>
+  </div>
+
+  <!-- State: success -->
+  <div class="state hidden" id="stateSuccess">
+    <div class="success-icon">
+      <div class="success-circle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+    </div>
+    <p class="success-msg">TravelPanel opened!</p>
+    <p class="success-sub">Pick a board to save this clip in the new tab.</p>
+    <div class="success-actions">
+      <button class="btn btn-ghost" id="clipAnotherBtn">
+        ← Back to clip another page
+      </button>
+    </div>
+  </div>
+
+  <!-- State: error -->
+  <div class="state hidden" id="stateError">
+    <div class="error-icon">
+      <div class="error-circle">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </div>
+    </div>
+    <p class="error-msg" id="errorMsg">
+      Could not open TravelPanel. Make sure the app URL is set correctly in settings.
+    </p>
+    <button class="btn btn-secondary" id="retryBtn">Try again</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
