@@ -218,3 +218,10 @@ export async function getAllTrips(): Promise<Trip[]> {
     return [];
   }
 }
+
+export async function updateTripVisitLog(tripId: string, visitLog: import('./types').VisitRecord[]): Promise<void> {
+  const db = await getDB();
+  const trip = await db.get('trips', tripId);
+  if (!trip) return;
+  await db.put('trips', { ...trip, visitLog });
+}

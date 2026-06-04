@@ -114,6 +114,14 @@ export interface TripPlan {
   tips: string[];
 }
 
+// A single activity that the user marked as visited during the actual trip.
+export interface VisitRecord {
+  dayIndex: number;
+  activityIndex: number;
+  visitedAt: number; // epoch ms
+  note?: string;     // optional freeform note added post-visit
+}
+
 export interface Trip {
   id: string;
   boardId: string;
@@ -124,6 +132,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  visitLog?: VisitRecord[]; // populated during/after the real trip
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────
