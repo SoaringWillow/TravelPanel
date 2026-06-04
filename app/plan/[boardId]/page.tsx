@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, CheckCircle2, Clock3 } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, VisitRecord } from '@/lib/types';
-import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, updateTripVisitLog } from '@/lib/db';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, CheckCircle2, Clock3, BookmarkPlus } from 'lucide-react';
+import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip, VisitRecord, Location, Platform, EnrichmentStatus } from '@/lib/types';
+import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, updateTripVisitLog, saveItem, saveBoard } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -42,6 +42,7 @@ export default function PlanPage() {
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [showTimeline, setShowTimeline]   = useState(false);
   const [visitLog, setVisitLog]           = useState<VisitRecord[]>([]);
+  const [boardSavedToast, setBoardSavedToast] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -252,6 +253,61 @@ export default function PlanPage() {
     setCurrentTripId(null);
   }, []);
 
+  const handleSaveAsBoard = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+
+    const seen = new Set<string>();
+    const uniqueLocations: Location[] = [];
+    for (const day of plan.days) {
+      for (const activity of day.activities) {
+        const key = `${activity.location.lat},${activity.location.lng}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueLocations.push(activity.location);
+        }
+      }
+    }
+    if (uniqueLocations.length === 0) return;
+
+    const newBoardId = crypto.randomUUID();
+    const now = Date.now();
+    const newItems: SavedItem[] = uniqueLocations.map((loc) => ({
+      id: crypto.randomUUID(),
+      url: '',
+      platform: 'other' as Platform,
+      title: loc.name,
+      description: loc.address ?? '',
+      locations: [loc],
+      activities: [],
+      tags: [],
+      substance: [],
+      savedAt: now,
+      enrichmentStatus: 'done' as EnrichmentStatus,
+      retryCount: 0,
+      boardId: newBoardId,
+      source: 'plan' as const,
+    }));
+
+    const newBoard: Board = {
+      id: newBoardId,
+      name: `${board.name} — Plan Spots`,
+      emoji: '📍',
+      itemIds: newItems.map((i) => i.id),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    for (const item of newItems) await saveItem(item);
+    await saveBoard(newBoard);
+
+    track('plan_saved_as_board', { boardId, spotCount: uniqueLocations.length });
+    setBoardSavedToast(`Board created with ${uniqueLocations.length} spot${uniqueLocations.length !== 1 ? 's' : ''}!`);
+    setTimeout(() => {
+      setBoardSavedToast(null);
+      router.push(`/boards/${newBoardId}`);
+    }, 1400);
+  }, [plan, board, boardId, router]);
+
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
       const next = new Set(prev);
@@ -294,6 +350,13 @@ export default function PlanPage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+      {/* Board-saved toast */}
+      {boardSavedToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[2000] bg-gray-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg whitespace-nowrap">
+          {boardSavedToast}
+        </div>
+      )}
+
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -647,6 +710,17 @@ export default function PlanPage() {
                     ))}
                   </ul>
                 </div>
+              )}
+
+              {/* Save spots as new board */}
+              {planIsComplete(plan) && (
+                <button
+                  onClick={handleSaveAsBoard}
+                  className="w-full flex items-center justify-center gap-2 border border-indigo-200 text-indigo-600 text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
+                >
+                  <BookmarkPlus size={15} />
+                  Save spots as new board
+                </button>
               )}
 
               {/* Start Over */}

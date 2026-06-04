@@ -50,6 +50,7 @@ export interface SavedItem {
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
+  source?: 'clip' | 'plan'; // how this item was created
   isDemo?: boolean; // onboarding seed content — removable in one tap
 }
 

@@ -263,7 +263,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Limit tags to 20 chars each, max 10 tags per item
 
 ### D6 — Create Board from Trip Plan
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After generating a plan, users often want to collect the recommended spots as a board for future clipping. This bridges the planner → clipper loop.  
 **Files**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
 **What to do**:
