@@ -1,7 +1,9 @@
 'use client';
 
+import { useRef } from 'react';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
+import { impactMedium, notificationSuccess } from '@/lib/haptics';
 
 // How far left (px) before the delete commits on release
 const DELETE_THRESHOLD = -88;
@@ -17,6 +19,7 @@ interface SwipeToDeleteProps {
 
 export function SwipeToDelete({ onDelete, children, disabled }: SwipeToDeleteProps) {
   const x = useMotionValue(0);
+  const thresholdFiredRef = useRef(false);
 
   // Red background reveals as card slides left
   const deleteOpacity = useTransform(x, [-100, -24], [1, 0]);
@@ -25,6 +28,7 @@ export function SwipeToDelete({ onDelete, children, disabled }: SwipeToDeletePro
 
   async function handleDragEnd(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
     if (info.offset.x < DELETE_THRESHOLD) {
+      notificationSuccess();
       await animate(x, EXIT_DISTANCE, { type: 'tween', duration: 0.22, ease: 'easeIn' });
       onDelete();
     } else {
@@ -52,6 +56,14 @@ export function SwipeToDelete({ onDelete, children, disabled }: SwipeToDeletePro
         dragConstraints={{ right: 0 }}
         dragElastic={{ left: 0.25, right: 0.05 }}
         dragDirectionLock
+        onDrag={(_, info) => {
+          if (info.offset.x < DELETE_THRESHOLD && !thresholdFiredRef.current) {
+            thresholdFiredRef.current = true;
+            impactMedium();
+          } else if (info.offset.x >= DELETE_THRESHOLD) {
+            thresholdFiredRef.current = false;
+          }
+        }}
         onDragEnd={handleDragEnd}
         className="relative touch-pan-y select-none"
       >

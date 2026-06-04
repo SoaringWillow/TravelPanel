@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check } from 'lucide-react';
 import { SavedItem, Board } from '@/lib/types';
 import { saveItem, addItemToBoard, removeItemFromBoard } from '@/lib/db';
+import { notificationSuccess } from '@/lib/haptics';
 
 interface ClipEditSheetProps {
   item: SavedItem;
@@ -47,6 +48,7 @@ export function ClipEditSheet({ item, boards, onClose, onSaved }: ClipEditSheetP
       }
 
       await saveItem(updated);
+      notificationSuccess();
       onSaved(updated);
       onClose();
     } finally {

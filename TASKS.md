@@ -255,7 +255,7 @@ Goal: close every gap between "web app in Capacitor" and "premium iOS app users 
 - Fetch the extra stats by passing `items` array from `useSavedItems()` into `BoardCard` (or compute a `boardStats` map in `BoardsPage`)
 
 ### E2 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Without haptics, the app feels like a website. Native iOS apps give tactile feedback on significant actions. Capacitor ships `@capacitor/haptics` — it no-ops in the browser so no conditional needed.
 **Files**: new `lib/haptics.ts`, `components/SwipeToDelete.tsx`, `components/ClipEditSheet.tsx`, `app/share/page.tsx`
 **What to do**:
