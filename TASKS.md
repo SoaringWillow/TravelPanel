@@ -95,7 +95,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Selecting a thumbnail updates `board.coverThumbnail` via `saveBoard()`
 
 ### D8 — Tag Filter Chips on Map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `app/page.tsx`, `components/MapView.tsx`  
 **What to do**:
 - Add a horizontally scrollable row of tag filter chips below the top bar on the map (appears only when clips have tags)

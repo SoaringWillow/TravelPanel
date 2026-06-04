@@ -23,7 +23,21 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [activeTag, setActiveTag]       = useState<string | null>(null);
   const { location: userLocation, tracking, error: gpsError, startTracking, stopTracking } = useGeolocation();
+
+  // Unique tags sorted by frequency
+  const tagFrequency = items.reduce<Record<string, number>>((acc, item) => {
+    item.tags.forEach((t) => { acc[t] = (acc[t] ?? 0) + 1; });
+    return acc;
+  }, {});
+  const sortedTags = Object.entries(tagFrequency)
+    .sort((a, b) => b[1] - a[1])
+    .map(([tag]) => tag);
+
+  const mapItems = activeTag
+    ? items.filter((i) => i.tags.includes(activeTag))
+    : items;
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -96,7 +110,7 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} userLocation={userLocation} />
+      <MapView items={mapItems} onPinClick={setSelectedItem} flyTo={flyTo} userLocation={userLocation} />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -129,6 +143,37 @@ function HomePageInner() {
         {gpsError && (
           <div className="mt-2 bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-xl">
             📍 {gpsError}
+          </div>
+        )}
+
+        {/* Tag filter chips — only when clips have tags */}
+        {sortedTags.length > 0 && (
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setActiveTag(null)}
+              className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                activeTag === null
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white/90 text-gray-700 hover:bg-white'
+              }`}
+            >
+              All
+            </button>
+            {sortedTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                  activeTag === tag
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-white/90 text-gray-700 hover:bg-white'
+                }`}
+              >
+                #{tag}
+              </button>
+            ))}
           </div>
         )}
 
