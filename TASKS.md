@@ -40,7 +40,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 - Show tag counts: "food (12)"
 
 ### D3 — Clip Editing (title + thumbnail)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Claude sometimes extracts a wrong or awkward title. Users need to correct it. Also, some clips have no thumbnail — users should be able to set one from the source URL.  
 **Files to change**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:

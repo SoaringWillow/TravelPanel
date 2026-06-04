@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, StickyNote } from 'lucide-react';
+import { X, MapPin, StickyNote, Pencil, Check } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { updateItemField } from '@/lib/db';
@@ -14,9 +14,23 @@ interface LocationDetailCardProps {
 }
 
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const [title, setTitle] = useState(item.title);
+  const [editingTitle, setEditingTitle] = useState(false);
   const [notes, setNotes] = useState(item.notes ?? '');
-  const [editing, setEditing] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveTitle = useCallback(
+    (value: string) => {
+      const trimmed = value.trim();
+      if (trimmed && trimmed !== item.title) {
+        updateItemField(item.id, { title: trimmed }).catch(() => {});
+        setTitle(trimmed);
+      }
+      setEditingTitle(false);
+    },
+    [item.id, item.title]
+  );
 
   const handleNotesChange = useCallback(
     (value: string) => {
@@ -63,9 +77,43 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               >
                 {PLATFORM_LABELS[item.platform]}
               </span>
-              <h3 className="font-bold text-gray-800 text-base leading-snug line-clamp-2">
-                {item.title}
-              </h3>
+              {editingTitle ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    onBlur={(e) => saveTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveTitle(title);
+                      if (e.key === 'Escape') { setTitle(item.title); setEditingTitle(false); }
+                    }}
+                    className="flex-1 font-bold text-gray-800 text-base leading-snug outline-none border-b-2 border-indigo-400 bg-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => saveTitle(title)}
+                    className="p-1 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors flex-shrink-0"
+                  >
+                    <Check size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-start gap-1.5">
+                  <h3 className="font-bold text-gray-800 text-base leading-snug line-clamp-2 flex-1">
+                    {title}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setEditingTitle(true)}
+                    className="p-1 text-gray-300 hover:text-gray-500 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0 mt-0.5"
+                    aria-label="Edit title"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -155,14 +203,14 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 <StickyNote size={12} className="text-amber-500" />
                 <p className="text-xs font-semibold text-amber-700">Notes</p>
               </div>
-              {editing ? (
+              {editingNotes ? (
                 <textarea
                   autoFocus
                   value={notes}
                   onChange={(e) => handleNotesChange(e.target.value)}
                   onBlur={() => {
                     handleNotesBlur();
-                    setEditing(false);
+                    setEditingNotes(false);
                   }}
                   placeholder="Add a personal note…"
                   rows={3}
@@ -171,7 +219,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               ) : (
                 <button
                   type="button"
-                  onClick={() => setEditing(true)}
+                  onClick={() => setEditingNotes(true)}
                   className="w-full text-left"
                 >
                   {notes ? (
