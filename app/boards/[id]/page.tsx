@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -23,6 +23,16 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [shareToast, setShareToast] = useState<string | null>(null);
+
+  async function handleShare() {
+    const { shareBoard } = await import('@/lib/shareBoard');
+    const result = await shareBoard(board!, boardItems);
+    if (result === 'copied') {
+      setShareToast('Link copied to clipboard!');
+      setTimeout(() => setShareToast(null), 2500);
+    }
+  }
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -110,7 +120,25 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={handleShare}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+              aria-label="Share board"
+            >
+              <Share2 size={18} />
+            </button>
+          )}
         </div>
+
+        {/* Share toast */}
+        {shareToast && (
+          <div className="mt-2 text-xs text-center text-green-600 bg-green-50 rounded-lg py-1.5 px-3">
+            {shareToast}
+          </div>
+        )}
       </div>
 
       {/* Scrollable content below header */}
