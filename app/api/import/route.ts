@@ -97,8 +97,10 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMediaType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMediaType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -110,14 +112,20 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
+  const hasImage = !!imageBase64;
+  const imageContext = hasImage
+    ? `An image from the post is attached. This is the PRIMARY source — read all visible text, captions, and scene details from it.${!page?.textContent ? ' Page scraping was blocked (anti-scraping), so the image is the only content available.' : ''}`
+    : '';
+
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
+${imageContext}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — rely on the attached image if present)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -140,12 +148,24 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  // Build multimodal content: attach image when available (e.g. Xiaohongshu/WeChat
+  // posts that block page scraping — the image IS the post content).
+  const messageContent = hasImage
+    ? [
+        {
+          type: 'image' as const,
+          image: `data:${imageMediaType ?? 'image/jpeg'};base64,${imageBase64}`,
+        },
+        { type: 'text' as const, text: prompt },
+      ]
+    : [{ type: 'text' as const, text: prompt }];
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      messages: [{ role: 'user', content: messageContent }],
     });
     claudeResult = object;
   } catch {

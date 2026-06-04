@@ -29,12 +29,25 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [sharedImage, setSharedImage]         = useState<{ base64: string; mediaType: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Read image stored by CapacitorBridge from the iOS Share Extension (via App Group).
+  // Image is too large for URL params, so it's stashed in sessionStorage.
+  useEffect(() => {
+    const imageBase64 = sessionStorage.getItem('pendingShareImage');
+    if (imageBase64) {
+      const mediaType = sessionStorage.getItem('pendingShareImageType') ?? 'image/jpeg';
+      sessionStorage.removeItem('pendingShareImage');
+      sessionStorage.removeItem('pendingShareImageType');
+      setSharedImage({ base64: imageBase64, mediaType });
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +101,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if available (e.g. Xiaohongshu screenshots)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, sharedImage?.base64, sharedImage?.mediaType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
