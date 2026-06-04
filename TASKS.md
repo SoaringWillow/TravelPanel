@@ -106,7 +106,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Position the chip row between the top bar and map (floating, with backdrop blur)
 
 ### D9 — Haptic Feedback (iOS)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `app/share/page.tsx`, `components/InboxCard.tsx`, `app/page.tsx`  
 **What to do**:
 - Create a `lib/haptics.ts` wrapper around `@capacitor/haptics` that no-ops on web/desktop

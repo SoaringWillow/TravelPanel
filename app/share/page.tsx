@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -142,6 +143,7 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    hapticImpact('LIGHT');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
@@ -169,6 +171,7 @@ function SharePageInner() {
             } as ImportResult);
           }
         }
+        if (success) hapticNotification('SUCCESS');
         setEnrichmentLoading(false);
       });
 

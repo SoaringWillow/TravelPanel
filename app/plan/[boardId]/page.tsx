@@ -9,6 +9,7 @@ import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } fro
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -125,6 +126,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') hapticNotification('SUCCESS');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -175,12 +177,14 @@ export default function PlanPage() {
   const handleExportPDF = useCallback(async () => {
     if (!planIsComplete(plan) || !board) return;
     await exportPlanToPDF(plan, board.name, board.emoji);
+    hapticImpact('MEDIUM');
     track('plan_exported', { format: 'pdf', boardId });
   }, [plan, board, boardId]);
 
   const handleExportICS = useCallback(() => {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
+    hapticImpact('MEDIUM');
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 

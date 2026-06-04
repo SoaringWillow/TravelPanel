@@ -11,6 +11,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import { useGeolocation, distanceMetres, formatDistance } from '@/hooks/useGeolocation';
+import { hapticImpact, hapticSelectionChanged } from '@/lib/haptics';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -110,7 +111,12 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={mapItems} onPinClick={setSelectedItem} flyTo={flyTo} userLocation={userLocation} />
+      <MapView
+        items={mapItems}
+        onPinClick={(item) => { hapticImpact('LIGHT'); setSelectedItem(item); }}
+        flyTo={flyTo}
+        userLocation={userLocation}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -151,7 +157,7 @@ function HomePageInner() {
           <div className="mt-2 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             <button
               type="button"
-              onClick={() => setActiveTag(null)}
+              onClick={() => { hapticSelectionChanged(); setActiveTag(null); }}
               className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
                 activeTag === null
                   ? 'bg-indigo-600 text-white shadow-sm'
@@ -164,7 +170,7 @@ function HomePageInner() {
               <button
                 key={tag}
                 type="button"
-                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                onClick={() => { hapticSelectionChanged(); setActiveTag(activeTag === tag ? null : tag); }}
                 className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
                   activeTag === tag
                     ? 'bg-indigo-600 text-white shadow-sm'
