@@ -26,10 +26,19 @@ function isValidLoc(loc: { lat?: number; lng?: number } | null | undefined): boo
   return !!loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng);
 }
 
+export interface NextStopRef {
+  dayIndex: number;
+  locIndex: number;
+}
+
 interface RouteMapViewProps {
   items: SavedItem[];
   plan: Partial<TripPlan> | null;
   activeDayIndex: number;
+  /** Current GPS position — renders a pulsing blue dot when provided. */
+  currentPosition?: { lat: number; lng: number } | null;
+  /** Highlights a specific stop as the "next" target. */
+  nextStop?: NextStopRef | null;
 }
 
 interface BoundsControllerProps {
@@ -85,7 +94,7 @@ function BoundsController({ plan, items }: BoundsControllerProps) {
   return null;
 }
 
-export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapViewProps) {
+export default function RouteMapView({ items, plan, activeDayIndex, currentPosition, nextStop }: RouteMapViewProps) {
   const days = plan?.days ?? [];
 
   const allItemLocations = useMemo(
@@ -185,36 +194,98 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
           const size     = isActive ? 28 : 20;
           const opacity  = isActive ? 1 : 0.5;
 
-          return locations.map((loc, locIdx) => (
-            <Marker
-              key={`day-${dayIdx}-loc-${locIdx}`}
-              longitude={loc.lng}
-              latitude={loc.lat}
-              anchor="center"
-            >
-              <div
-                style={{
-                  width:           size,
-                  height:          size,
-                  borderRadius:    '50%',
-                  backgroundColor: color,
-                  border:          '3px solid white',
-                  boxShadow:       '0 2px 8px rgba(0,0,0,0.3)',
-                  opacity,
-                  display:         'flex',
-                  alignItems:      'center',
-                  justifyContent:  'center',
-                  color:           'white',
-                  fontSize:        isActive ? 11 : 9,
-                  fontWeight:      700,
-                  transition:      'all 0.25s ease',
-                }}
+          return locations.map((loc, locIdx) => {
+            const isNextStop = nextStop?.dayIndex === dayIdx && nextStop?.locIndex === locIdx;
+            return (
+              <Marker
+                key={`day-${dayIdx}-loc-${locIdx}`}
+                longitude={loc.lng}
+                latitude={loc.lat}
+                anchor="center"
               >
-                {locIdx + 1}
-              </div>
-            </Marker>
-          ));
+                <div style={{ position: 'relative' }}>
+                  {/* Pulsing ring for next stop */}
+                  {isNextStop && (
+                    <div
+                      style={{
+                        position:        'absolute',
+                        inset:           -8,
+                        borderRadius:    '50%',
+                        border:          `3px solid ${color}`,
+                        opacity:         0.6,
+                        animation:       'tripPing 1.5s ease-out infinite',
+                      }}
+                    />
+                  )}
+                  <div
+                    style={{
+                      width:           size,
+                      height:          size,
+                      borderRadius:    '50%',
+                      backgroundColor: color,
+                      border:          isNextStop ? `3px solid ${color}` : '3px solid white',
+                      boxShadow:       isNextStop
+                        ? `0 0 0 3px white, 0 4px 12px ${color}80`
+                        : '0 2px 8px rgba(0,0,0,0.3)',
+                      opacity,
+                      display:         'flex',
+                      alignItems:      'center',
+                      justifyContent:  'center',
+                      color:           'white',
+                      fontSize:        isActive ? 11 : 9,
+                      fontWeight:      700,
+                      transition:      'all 0.25s ease',
+                    }}
+                  >
+                    {locIdx + 1}
+                  </div>
+                </div>
+              </Marker>
+            );
+          });
         })}
+
+      {/* Current GPS position — pulsing blue dot */}
+      {currentPosition && (
+        <Marker
+          longitude={currentPosition.lng}
+          latitude={currentPosition.lat}
+          anchor="center"
+        >
+          <div style={{ position: 'relative', width: 20, height: 20 }}>
+            {/* Outer pulse ring */}
+            <div
+              style={{
+                position:        'absolute',
+                inset:           -6,
+                borderRadius:    '50%',
+                backgroundColor: 'rgba(59,130,246,0.25)',
+                animation:       'tripPing 2s ease-out infinite',
+              }}
+            />
+            {/* Solid blue dot */}
+            <div
+              style={{
+                width:           20,
+                height:          20,
+                borderRadius:    '50%',
+                backgroundColor: '#3b82f6',
+                border:          '3px solid white',
+                boxShadow:       '0 2px 8px rgba(59,130,246,0.5)',
+              }}
+            />
+          </div>
+        </Marker>
+      )}
+
+      {/* Keyframe for pulse animation */}
+      <style>{`
+        @keyframes tripPing {
+          0%   { transform: scale(1);   opacity: 0.6; }
+          80%  { transform: scale(1.8); opacity: 0;   }
+          100% { transform: scale(1.8); opacity: 0;   }
+        }
+      `}</style>
     </Map>
   );
 }

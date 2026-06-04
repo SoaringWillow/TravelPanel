@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, NavigationOff, CheckCircle2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { useGPS } from '@/hooks/useGPS';
+import { haversineKm, formatDistance } from '@/lib/distance';
+import { type NextStopRef } from '@/components/RouteMapView';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -38,6 +41,61 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+
+  // ── On-Trip GPS mode ─────────────────────────────────────────────────────
+  const gps = useGPS();
+  const [tripModeActive, setTripModeActive]   = useState(false);
+  const [visitedStops, setVisitedStops]       = useState<Set<string>>(new Set());
+
+  // Derive next unvisited stop across all days
+  const nextStop = useMemo<NextStopRef | null>(() => {
+    if (!tripModeActive || !plan?.days) return null;
+    for (let d = 0; d < plan.days.length; d++) {
+      const locs = (plan.days[d]?.locations ?? []).filter(
+        (l) => Number.isFinite(l.lat) && Number.isFinite(l.lng)
+      );
+      for (let l = 0; l < locs.length; l++) {
+        if (!visitedStops.has(`${d}-${l}`)) return { dayIndex: d, locIndex: l };
+      }
+    }
+    return null; // all visited
+  }, [tripModeActive, plan, visitedStops]);
+
+  // Distance to the next stop (when GPS is active)
+  const distanceToNext = useMemo<number | null>(() => {
+    if (!gps.position || !nextStop || !plan?.days) return null;
+    const locs = plan.days[nextStop.dayIndex]?.locations ?? [];
+    const loc  = locs[nextStop.locIndex];
+    if (!loc) return null;
+    return haversineKm(gps.position.lat, gps.position.lng, loc.lat, loc.lng);
+  }, [gps.position, nextStop, plan]);
+
+  const nextStopName = useMemo<string | null>(() => {
+    if (!nextStop || !plan?.days) return null;
+    const locs = plan.days[nextStop.dayIndex]?.locations ?? [];
+    return locs[nextStop.locIndex]?.name ?? null;
+  }, [nextStop, plan]);
+
+  function startTripMode() {
+    setTripModeActive(true);
+    setVisitedStops(new Set());
+    gps.startTracking();
+    track('trip_mode_started', { boardId });
+  }
+
+  function endTripMode() {
+    setTripModeActive(false);
+    gps.stopTracking();
+    setVisitedStops(new Set());
+    track('trip_mode_ended', { boardId });
+  }
+
+  function markNextAsVisited() {
+    if (!nextStop) return;
+    setVisitedStops((prev) => new Set(prev).add(`${nextStop.dayIndex}-${nextStop.locIndex}`));
+    // Switch the active day view to match next stop
+    setActiveDayIndex(nextStop.dayIndex);
+  }
 
   useEffect(() => {
     async function load() {
@@ -271,6 +329,8 @@ export default function PlanPage() {
             items={boardItems}
             plan={plan}
             activeDayIndex={activeDayIndex}
+            currentPosition={tripModeActive ? gps.position : null}
+            nextStop={tripModeActive ? nextStop : null}
           />
         )}
       </div>
@@ -458,9 +518,68 @@ export default function PlanPage() {
                 )}
               </div>
 
+              {/* ── GPS Trip Mode banner ── */}
+              {tripModeActive && (
+                <div className="rounded-2xl overflow-hidden border border-blue-200 bg-blue-50">
+                  {gps.error ? (
+                    <div className="px-3 py-2.5 flex items-center gap-2">
+                      <NavigationOff size={15} className="text-red-500 flex-shrink-0" />
+                      <p className="text-xs text-red-600 flex-1">{gps.error}</p>
+                      <button onClick={endTripMode} className="text-xs text-red-500 font-medium">Exit</button>
+                    </div>
+                  ) : nextStop === null ? (
+                    <div className="px-3 py-2.5 flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" />
+                      <p className="text-xs text-green-700 flex-1 font-medium">All stops visited — trip complete!</p>
+                      <button onClick={endTripMode} className="text-xs text-blue-500 font-medium">Exit</button>
+                    </div>
+                  ) : (
+                    <div className="px-3 py-2.5 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <Navigation size={15} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-blue-800 truncate">
+                            Next: {nextStopName}
+                          </p>
+                          <p className="text-xs text-blue-600">
+                            {gps.position && distanceToNext !== null
+                              ? formatDistance(distanceToNext)
+                              : 'Getting your location…'}
+                          </p>
+                        </div>
+                        <button onClick={endTripMode} className="text-xs text-blue-400 font-medium flex-shrink-0">Exit</button>
+                      </div>
+                      {/* Mark as visited — prominent when within 300m */}
+                      <button
+                        onClick={markNextAsVisited}
+                        className={`w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-xl transition-all active:scale-[0.98] ${
+                          distanceToNext !== null && distanceToNext < 0.3
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-white border border-blue-200 text-blue-600'
+                        }`}
+                      >
+                        <CheckCircle2 size={13} />
+                        {distanceToNext !== null && distanceToNext < 0.3
+                          ? "You're here — Mark as visited!"
+                          : 'Mark as visited'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Export actions */}
               {planIsComplete(plan) && (
                 <div className="flex gap-2">
+                  {!tripModeActive ? (
+                    <button
+                      onClick={startTripMode}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold py-2 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all"
+                    >
+                      <Navigation size={14} />
+                      Start Trip
+                    </button>
+                  ) : null}
                   <button
                     onClick={handleExportPDF}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
