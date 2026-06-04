@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2 } from 'lucide-react';
@@ -10,6 +10,8 @@ import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rate
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { sharePlan } from '@/lib/share';
 import { track } from '@/lib/analytics';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { maybeRequestReview } from '@/lib/appReview';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -24,6 +26,8 @@ export default function PlanPage() {
   const params = useParams();
   const router = useRouter();
   const boardId = params.boardId as string;
+
+  const isOnline = useOnlineStatus();
 
   const [board, setBoard] = useState<Board | null>(null);
   const [boardItems, setBoardItems] = useState<SavedItem[]>([]);
@@ -129,6 +133,7 @@ export default function PlanPage() {
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              maybeRequestReview();
               const trip: Trip = {
                 id: crypto.randomUUID(),
                 boardId,
@@ -384,10 +389,18 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
+              {/* Offline warning */}
+              {!isOnline && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
+                  <span>⚠</span>
+                  <span>You're offline — connect to generate a plan</span>
+                </div>
+              )}
+
               {/* Generate button */}
               <button
                 onClick={generatePlan}
-                disabled={!hasLocations}
+                disabled={!hasLocations || !isOnline}
                 className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ✨ Begin planning

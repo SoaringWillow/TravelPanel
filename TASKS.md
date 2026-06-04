@@ -316,7 +316,7 @@ Goal: close every gap between "web app in Capacitor" and "premium iOS app users 
 - Keep the `OnboardingSeed` banner outside the pull-to-refresh area (above it, in the header zone)
 
 ### E8 — App Review Prompt
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: App Store ratings are critical for discoverability. The optimal time to ask is after the user successfully generates their first trip plan — they've seen the product's value.
 **Files**: new `lib/appReview.ts`, `app/plan/[boardId]/page.tsx`
 **What to do**:
@@ -326,7 +326,7 @@ Goal: close every gap between "web app in Capacitor" and "premium iOS app users 
 - Install: check if `@capacitor-community/app-review` is in `package.json`; if not, note that it must be added
 
 ### E9 — Offline Mode Indicator
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The app stores everything locally but the enrichment and planning features require network. When offline, buttons should indicate why they're disabled.
 **Files**: new `hooks/useOnlineStatus.ts`, `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:

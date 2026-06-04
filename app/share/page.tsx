@@ -10,6 +10,7 @@ import { track } from '@/lib/analytics';
 import { notificationSuccess } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,8 @@ function SharePageInner() {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
   }, [stage]);
+
+  const isOnline = useOnlineStatus();
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
@@ -169,6 +172,14 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Offline banner */}
+        {!isOnline && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
+            <span>⚠</span>
+            <span>You're offline — clip will be saved but analysis needs connection</span>
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
