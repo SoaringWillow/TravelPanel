@@ -179,6 +179,52 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & App-Store Ready
+
+The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users want to put on their home screens. Each task targets a specific gap between "web app in Capacitor shell" and "premium iOS app".
+
+### D1 — Swipe-to-Delete on Inbox Cards
+**Status**: `[x]` Done  
+**Why**: The trash-icon tap is hidden and un-discoverable. Swipe-left-to-delete is the universal iOS gesture for removing list items — doing this in-web with Framer Motion requires zero new packages.  
+**Files**: `components/SwipeToDelete.tsx` (new), `app/inbox/page.tsx` (wrap cards, switch to 1-col list)
+
+### D2 — Web Share API (share clips & plans natively)
+**Status**: `[x]` Done  
+**Why**: Users should be able to share a saved clip or trip plan via the iOS Share Sheet from inside the app. `navigator.share` works natively in Capacitor WKWebView.  
+**Files**: `lib/share.ts` (new), `components/InboxCard.tsx`, `app/plan/[boardId]/page.tsx`
+
+### D3 — Pull-to-Refresh on Inbox
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect pull-to-refresh. It also triggers re-enrichment of any failed clips, replacing the current manual retry flow.  
+**Files**: `app/inbox/page.tsx`, new `components/PullToRefresh.tsx`
+
+### D4 — Clip Edit Modal
+**Status**: `[ ]` Not started  
+**Why**: Users can't fix a wrong title, add tags, or change the board after saving. Long-press or swipe-to-reveal "Edit" action opens a bottom sheet editor.  
+**Files**: new `components/ClipEditSheet.tsx`, `app/inbox/page.tsx`, `app/boards/[id]/page.tsx`
+
+### D5 — Native App Icon & Splash Screen
+**Status**: `[ ]` Not started  
+**Why**: The app currently shows a generic WebView icon. A real branded icon is required before App Store submission and makes the home screen presence feel intentional.  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/` (PNG generation script), update launch storyboard
+
+### D6 — Empty State Illustrations
+**Status**: `[ ]` Not started  
+**Why**: Empty map, empty inbox, empty boards all show minimal text. Branded illustrations + actionable CTAs ("Share your first inspiration") dramatically improve first-run experience.  
+**Files**: `components/EmptyState.tsx` (new), update map/inbox/boards pages
+
+### D7 — Board Detail UI Polish
+**Status**: `[ ]` Not started  
+**Why**: Board detail page currently shows a basic card grid. Add a hero cover image, stats row (N clips, N locations, N substance tips), and a "Plan trip" CTA that pre-selects this board.  
+**Files**: `app/boards/[id]/page.tsx`
+
+### D8 — Map Marker Polish & Category Colors
+**Status**: `[ ]` Not started  
+**Why**: All map pins are the same indigo dot. Color-coding by the clip's primary tag (food=orange, nature=green, culture=purple) gives the map visual hierarchy and scanability at a glance.  
+**Files**: `components/MapView.tsx`
+
+---
+
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
