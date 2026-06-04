@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check } from 'lucide-react';
 import { SavedItem, Board } from '@/lib/types';
@@ -21,6 +21,19 @@ export function ClipEditSheet({ item, boards, onClose, onSaved }: ClipEditSheetP
   const [tags, setTags] = useState<string[]>(item.tags);
   const [boardId, setBoardId] = useState(item.boardId ?? '');
   const [saving, setSaving] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  // Shift sheet up when iOS keyboard appears
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    function onResize() {
+      const keyboardH = window.innerHeight - vv!.height - vv!.offsetTop;
+      setKeyboardOffset(Math.max(0, keyboardH));
+    }
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, []);
 
   function toggleTag(tag: string) {
     setTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
@@ -71,11 +84,11 @@ export function ClipEditSheet({ item, boards, onClose, onSaved }: ClipEditSheetP
         <motion.div
           key="sheet"
           initial={{ y: '100%' }}
-          animate={{ y: 0 }}
+          animate={{ y: -keyboardOffset }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 30, stiffness: 350 }}
           className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
-          style={{ maxHeight: '85vh', overflowY: 'auto' }}
+          style={{ maxHeight: `min(85vh, calc(85vh - ${keyboardOffset}px))`, overflowY: 'auto' }}
         >
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-1">

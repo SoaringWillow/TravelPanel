@@ -276,7 +276,7 @@ Goal: close every gap between "web app in Capacitor" and "premium iOS app users 
 - Verify NavBar bottom clearance: replace hardcoded `pb-24` with `pb-[calc(1.5rem+env(safe-area-inset-bottom))]`
 
 ### E4 — ClipEditSheet Keyboard Avoidance
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: When the iOS keyboard appears over the bottom sheet, the title input is hidden behind it. This is the most common frustration with web-in-WebView forms.
 **Files**: `components/ClipEditSheet.tsx`
 **What to do**:
