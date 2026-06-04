@@ -7,7 +7,7 @@ import { X, Loader2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { Platform } from '@/lib/types';
+import { Platform, BudgetTier } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
@@ -52,6 +52,7 @@ export default function InboxPage() {
   const { refreshing, pullY } = usePullToRefresh(handleRefresh, scrollRef);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
+  const [activeBudget, setActiveBudget] = useState<BudgetTier | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [vibeResult, setVibeResult] = useState<{ terms: string[]; intent: string } | null>(null);
@@ -89,9 +90,14 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
+  const budgetFiltered =
+    activeBudget === 'all'
+      ? platformFiltered
+      : platformFiltered.filter((i) => i.budgetTier === activeBudget);
+
   const filtered = vibeResult
-    ? rankItemsByVibeTerms(platformFiltered, vibeResult.terms)
-    : searchItems(platformFiltered, query);
+    ? rankItemsByVibeTerms(budgetFiltered, vibeResult.terms)
+    : searchItems(budgetFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -180,6 +186,29 @@ export default function InboxPage() {
             );
           })}
         </div>
+
+        {/* Budget filter chips — only shown when at least one item has a budgetTier */}
+        {inboxItems.some((i) => i.budgetTier) && (
+          <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+            {(['all', 'budget', 'mid-range', 'splurge'] as const).map((tier) => {
+              const label = tier === 'all' ? 'Any price' : tier === 'budget' ? '$ Budget' : tier === 'mid-range' ? '$$ Mid-range' : '$$$ Splurge';
+              const isActive = activeBudget === tier;
+              return (
+                <button
+                  key={tier}
+                  onClick={() => setActiveBudget(tier)}
+                  className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Content */}

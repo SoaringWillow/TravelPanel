@@ -3,10 +3,53 @@
 import { useState, useRef, KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
 import { X, MapPin, Pencil, Check, Plus } from 'lucide-react';
-import { SavedItem } from '@/lib/types';
+import { SavedItem, SubstanceItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { saveItem } from '@/lib/db';
+import { computeWhenToVisit, MONTH_LABELS, type MonthStatus } from '@/lib/whenToVisit';
 import SubstanceList from './SubstanceList';
+
+// ─── When to Visit sub-component ────────────────────────────────────────────
+
+const STATUS_COLOR: Record<NonNullable<MonthStatus>, string> = {
+  peak:  'bg-green-400 text-white',
+  avoid: 'bg-red-400 text-white',
+  ok:    'bg-gray-200 text-gray-500',
+};
+
+function WhenToVisitRow({ substance }: { substance: SubstanceItem[] }) {
+  const months = computeWhenToVisit(substance);
+  if (!months) return null;
+
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+        Best time to visit
+      </p>
+      <div className="flex gap-1">
+        {months.map((status, i) => (
+          <div
+            key={i}
+            className={`flex-1 flex flex-col items-center gap-0.5`}
+          >
+            <div
+              className={`w-full h-5 rounded-sm flex items-center justify-center text-[9px] font-bold ${
+                status ? STATUS_COLOR[status] : 'bg-gray-100 text-gray-300'
+              }`}
+            >
+            </div>
+            <span className="text-[8px] text-gray-400 font-medium">{MONTH_LABELS[i]}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-3 mt-1.5">
+        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-green-400" /><span className="text-[10px] text-gray-400">Peak</span></div>
+        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-red-400" /><span className="text-[10px] text-gray-400">Avoid</span></div>
+        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-gray-200" /><span className="text-[10px] text-gray-400">OK</span></div>
+      </div>
+    </div>
+  );
+}
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -196,6 +239,9 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
 
             {/* Substance — the Wisdom view (the moat) */}
             {!editing && <SubstanceList items={localItem.substance ?? []} />}
+
+            {/* When to Visit */}
+            {!editing && <WhenToVisitRow substance={localItem.substance ?? []} />}
 
             {/* Tags */}
             <div>

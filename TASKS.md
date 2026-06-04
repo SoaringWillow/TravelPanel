@@ -127,7 +127,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Plan empty state: "No locations to plan" with instructions to add clips with locations
 
 ### D11 — "When to Visit" Insight Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `components/LocationDetailCard.tsx`, `lib/types.ts`  
 **What to do**:
 - Parse the `substance` array for season/timing wisdom (look for context items with "best time", "avoid", "peak season")
@@ -136,7 +136,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Use a simple regex/keyword approach: don't call Claude for this
 
 ### D12 — Budget Tier Tag
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `app/api/import/route.ts`, `lib/types.ts`, `components/InboxCard.tsx`  
 **What to do**:
 - Extend the import schema with `budgetTier: 'budget' | 'mid-range' | 'splurge' | null`

@@ -256,12 +256,25 @@ export default function InboxCard({
         )}
 
         <div className="p-4">
-          {/* Platform badge */}
-          <span
-            className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full inline-block mb-2`}
-          >
-            {PLATFORM_LABELS[item.platform]}
-          </span>
+          {/* Platform badge + budget tier */}
+          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+            <span
+              className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full`}
+            >
+              {PLATFORM_LABELS[item.platform]}
+            </span>
+            {item.budgetTier && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                item.budgetTier === 'budget'
+                  ? 'bg-green-100 text-green-700'
+                  : item.budgetTier === 'mid-range'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-purple-100 text-purple-700'
+              }`}>
+                {item.budgetTier === 'budget' ? '$' : item.budgetTier === 'mid-range' ? '$$' : '$$$'}
+              </span>
+            )}
+          </div>
 
           {/* Title */}
           <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">

@@ -38,6 +38,7 @@ export async function enrichItem(id: string, url: string, imageBase64?: string):
       tags: data.tags,
       substance: data.substance,
       platform: data.platform,
+      budgetTier: data.budgetTier,
     });
     track('clip_enriched', {
       platform: data.platform,

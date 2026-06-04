@@ -35,6 +35,9 @@ const importSchema = z.object({
     'A post titled "35 mistakes to avoid in Hawaii" should produce 35 substance items. ' +
     'Aim for 2–8 items for a typical post; more for list-style content.'
   ),
+  budgetTier: z.enum(['budget', 'mid-range', 'splurge']).nullable().describe(
+    'Overall budget level inferred from prices, michelin mentions, "affordable", "expensive", "cash-only", etc. null if unclear.'
+  ),
 });
 
 // ─── Page fetcher ────────────────────────────────────────────────────────────
@@ -207,6 +210,7 @@ export async function POST(req: NextRequest) {
     activities: claudeResult?.activities ?? [],
     tags: claudeResult?.tags ?? [],
     substance: claudeResult?.substance ?? [],
+    budgetTier: claudeResult?.budgetTier ?? undefined,
   };
 
   return NextResponse.json(result);
