@@ -24,13 +24,15 @@
         <dict>
             <key>NSExtensionActivationRule</key>
             <dict>
-                <!-- Accept URLs and web pages from any app -->
+                <!-- Accept URLs, web pages, plain text, and images (for Xiaohongshu/WeChat vision) -->
                 <key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
                 <integer>1</integer>
                 <key>NSExtensionActivationSupportsWebPageWithMaxCount</key>
                 <integer>1</integer>
                 <key>NSExtensionActivationSupportsText</key>
                 <true/>
+                <key>NSExtensionActivationSupportsImageWithMaxCount</key>
+                <integer>1</integer>
             </dict>
         </dict>
         <key>NSExtensionPointIdentifier</key>

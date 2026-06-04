@@ -85,8 +85,10 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,14 +100,16 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
+  const textContext = `Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+Title: ${page?.title ?? '(unavailable — anti-scraping blocked the page)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — use the image if provided)'}`;
+
+  const instructions = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+${textContext}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -126,16 +130,38 @@ This is what competitors miss. Examples of what to capture:
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
-Never return an empty substance array for a real travel post.`;
+Never return an empty substance array for a real travel post.${imageBase64 ? '\n\nAn image of the post is attached. Read ALL visible text in the image (including Chinese/Japanese/Korean characters), use it to improve title, description, substance extraction, and location identification.' : ''}`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: Xiaohongshu/WeChat block HTML fetching, but the iOS Share
+      // Sheet captures the post image — use Claude Vision to read visible text.
+      const mimeType = (imageMimeType === 'image/png' ? 'image/png' : 'image/jpeg') as
+        | 'image/jpeg'
+        | 'image/png';
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: instructions },
+              { type: 'image', image: imageBase64, mimeType },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: instructions,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

@@ -21,6 +21,7 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const hasImage        = searchParams.get('hasImage') === '1';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -88,9 +89,18 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
+    // Consume pending image stashed by CapacitorBridge (Xiaohongshu/WeChat vision fix)
+    let imageBase64: string | undefined;
+    if (hasImage) {
+      try {
+        imageBase64 = sessionStorage.getItem('pendingClipImage') ?? undefined;
+        sessionStorage.removeItem('pendingClipImage');
+      } catch { /* sessionStorage unavailable */ }
+    }
+
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64 ? { imageBase64, imageMimeType: 'image/jpeg' } : undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
