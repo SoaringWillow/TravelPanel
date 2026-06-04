@@ -96,3 +96,9 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-04 21:23 | e74686a | feat(B2): add Chrome browser extension for one-click URL clipping
+2026-06-04 21:29 | 7a8e686 | feat(B3): Claude Vision fallback for anti-scraping platforms (Xiaohongshu, WeChat)
+2026-06-04 21:31 | 9587905 | feat(B5): data export + settings sheet (Download all data as JSON)
+2026-06-04 21:33 | b5c6c46 | chore: expand TASKS.md with Phase C/D/E for iOS app production readiness
+2026-06-04 21:35 | a44cbeb | feat(C1): Wisdom tab on board detail — substance library across all clips
+2026-06-04 21:37 | 4dc8fb2 | feat(C3): haptic feedback on clip save and board selection (iOS)
