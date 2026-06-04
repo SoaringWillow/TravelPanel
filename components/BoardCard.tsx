@@ -1,17 +1,19 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { Trash2, MapPin, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Board } from '@/lib/types';
 
 interface BoardCardProps {
   board: Board;
   itemCount: number;
+  locationCount?: number;
+  tipCount?: number;
   onClick: () => void;
   onDelete?: () => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, locationCount = 0, tipCount = 0, onClick, onDelete }: BoardCardProps) {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -42,10 +44,24 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
           {board.name}
         </h3>
 
-        {/* Item count */}
-        <p className="text-sm text-gray-400">
-          {itemCount} place{itemCount !== 1 ? 's' : ''}
-        </p>
+        {/* Stats row */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="text-xs text-gray-400">
+            {itemCount} clip{itemCount !== 1 ? 's' : ''}
+          </span>
+          {locationCount > 0 && (
+            <span className="text-xs text-gray-400 flex items-center gap-0.5">
+              <MapPin size={9} className="text-indigo-400" />
+              {locationCount}
+            </span>
+          )}
+          {tipCount > 0 && (
+            <span className="text-xs text-amber-500 flex items-center gap-0.5">
+              <Lightbulb size={9} />
+              {tipCount}
+            </span>
+          )}
+        </div>
 
         {/* Delete button bottom-right */}
         {onDelete && (

@@ -246,7 +246,7 @@ The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users 
 Goal: close every gap between "web app in Capacitor" and "premium iOS app users want on their home screen." Work top-to-bottom.
 
 ### E1 — Boards List Page Polish
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Boards page uses a bespoke inline empty state instead of the shared `EmptyState` component, and `BoardCard` doesn't show substance tip counts or location counts like the board detail hero.
 **Files**: `app/boards/page.tsx`, `components/BoardCard.tsx`
 **What to do**:

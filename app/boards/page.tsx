@@ -9,6 +9,7 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import { EmptyState } from '@/components/EmptyState';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
@@ -16,9 +17,15 @@ export default function BoardsPage() {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
 
-  function getItemCount(boardId: string): number {
+  function getBoardStats(boardId: string) {
     const board = boards.find((b) => b.id === boardId);
-    return board ? board.itemIds.length : 0;
+    if (!board) return { itemCount: 0, locationCount: 0, tipCount: 0 };
+    const boardItems = items.filter((i) => board.itemIds.includes(i.id));
+    return {
+      itemCount: boardItems.length,
+      locationCount: boardItems.reduce((s, i) => s + i.locations.length, 0),
+      tipCount: boardItems.reduce((s, i) => s + (i.substance?.length ?? 0), 0),
+    };
   }
 
   async function handleCreate(name: string, emoji: string) {
@@ -59,32 +66,37 @@ export default function BoardsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
-            >
-              <Plus size={16} />
-              Create a Board
-            </button>
-          </div>
+          <EmptyState
+            illustration="boards"
+            title="No boards yet"
+            subtitle="Create your first collection to organise your travel ideas."
+            action={
+              <button
+                type="button"
+                onClick={() => setShowCreate(true)}
+                className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
+              >
+                <Plus size={16} />
+                Create a Board
+              </button>
+            }
+          />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {boards.map((board) => (
+            {boards.map((board) => {
+              const stats = getBoardStats(board.id);
+              return (
               <BoardCard
                 key={board.id}
                 board={board}
-                itemCount={getItemCount(board.id)}
+                itemCount={stats.itemCount}
+                locationCount={stats.locationCount}
+                tipCount={stats.tipCount}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
               />
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
