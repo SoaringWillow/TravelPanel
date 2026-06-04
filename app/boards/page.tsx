@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Loader2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
@@ -12,10 +13,13 @@ import NavBar from '@/components/NavBar';
 import { SkeletonGrid } from '@/components/SkeletonCard';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [showCreate, setShowCreate] = useState(false);
+
+  const { refreshing, pullY } = usePullToRefresh(refresh, scrollRef);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -54,7 +58,20 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Pull-to-refresh indicator */}
+        {(pullY > 0 || refreshing) && (
+          <div
+            className="flex items-center justify-center transition-all"
+            style={{ height: refreshing ? 40 : pullY, overflow: 'hidden' }}
+          >
+            <Loader2
+              size={20}
+              className={`text-indigo-500 ${refreshing ? 'animate-spin' : ''}`}
+              style={{ opacity: refreshing ? 1 : pullY / 64 }}
+            />
+          </div>
+        )}
         {boardsLoading ? (
           <SkeletonGrid count={6} variant="board" />
         ) : boards.length === 0 ? (

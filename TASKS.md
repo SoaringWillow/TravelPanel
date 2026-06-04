@@ -32,7 +32,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Keep the detail-view spinner for the plan/trip pages (skeleton is harder there)
 
 ### D2 — Swipe-to-Delete on Inbox Cards 🔴 HIGH PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: The current delete flow requires opening a menu. Swipe-to-delete is a core iOS pattern and makes clip management feel native.  
 **Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
 **What to do**:
@@ -44,7 +44,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Keep existing tap behavior (open detail) intact
 
 ### D3 — Pull-to-Refresh on Lists
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Add pull-to-refresh using touch events (overscroll detection) on the scrollable list containers

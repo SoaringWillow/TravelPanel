@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
@@ -32,11 +33,23 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
+
+  const handleRefresh = useCallback(async () => {
+    await refresh();
+    // Retry any failed items
+    const failedItems = items.filter((i) => i.enrichmentStatus === 'failed' || i.enrichmentStatus === 'pending');
+    for (const item of failedItems) {
+      retryItem(item.id, item.url);
+    }
+  }, [refresh, items, retryItem]);
+
+  const { refreshing, pullY } = usePullToRefresh(handleRefresh, scrollRef);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -170,7 +183,20 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-4 pb-24">
+        {/* Pull-to-refresh indicator */}
+        {(pullY > 0 || refreshing) && (
+          <div
+            className="flex items-center justify-center transition-all"
+            style={{ height: refreshing ? 40 : pullY, overflow: 'hidden' }}
+          >
+            <Loader2
+              size={20}
+              className={`text-indigo-500 ${refreshing ? 'animate-spin' : ''}`}
+              style={{ opacity: refreshing ? 1 : pullY / 64 }}
+            />
+          </div>
+        )}
         {/* Proactive resurfacing — only shown when not actively searching */}
         {!query && !vibeResult && (
           <ResurfaceBanner
