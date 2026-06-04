@@ -62,7 +62,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
   - Warning: rate limit hit, enrichment failed
 
 ### D5 — Loading Skeletons
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Spinning circles feel unpolished. Skeleton loaders communicate structure and make waits feel shorter. Essential for App Store-quality feel.  
 **Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/timeline/page.tsx`  
 **What to do**:

@@ -7,6 +7,7 @@ import { BookOpen, Calendar, MapPin, ChevronRight, Route } from 'lucide-react';
 import { Trip } from '@/lib/types';
 import { getAllTrips } from '@/lib/db';
 import NavBar from '@/components/NavBar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -166,11 +167,12 @@ export default function TimelinePage() {
 
       <div className="max-w-lg mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
-                <div className="h-4 bg-gray-100 rounded w-2/3 mb-2" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2.5">
+                <Skeleton className="h-4 w-2/3 rounded-full" />
+                <Skeleton className="h-3 w-1/2 rounded-full" />
+                <Skeleton className="h-3 w-3/4 rounded-full" />
               </div>
             ))}
           </div>

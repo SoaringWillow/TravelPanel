@@ -13,6 +13,7 @@ import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import InboxCardSkeleton from '@/components/InboxCardSkeleton';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import TagFilterBar from '@/components/TagFilterBar';
@@ -166,8 +167,10 @@ export default function InboxPage() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <InboxCardSkeleton key={i} />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
