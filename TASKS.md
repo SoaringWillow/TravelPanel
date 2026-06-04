@@ -86,7 +86,7 @@ The core feature set is built. The app can clip, enrich, plan, export, search (k
 - Skip duplicate check for `isDemo` items
 
 ### D7 — Board Cover Photo Editor
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Files to change**: `app/boards/[id]/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Show the board cover thumbnail at the top of the board detail page (full-width banner, ~180px tall, object-cover)

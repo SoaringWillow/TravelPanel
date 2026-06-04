@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, ScrollText, Share2 } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ScrollText, Share2, Camera, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -20,11 +20,12 @@ export default function BoardDetailPage() {
   const boardId = params.id as string;
   const router = useRouter();
 
-  const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
+  const { boards, loading: boardsLoading, removeItemFromBoard, updateBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -49,9 +50,19 @@ export default function BoardDetailPage() {
     await removeItem(id);
   }
 
-  async function handleMoveToBoard(id: string) {
+  async function handleMoveToBoard(_id: string) {
     // No-op on board detail page — removal handled by handleDelete
   }
+
+  async function handleSetCover(thumbnail: string) {
+    if (!board) return;
+    await updateBoard({ ...board, coverThumbnail: thumbnail });
+    setShowCoverPicker(false);
+  }
+
+  const coverThumbnails = boardItems
+    .map((i) => i.thumbnail)
+    .filter((t): t is string => !!t);
 
   if (loading) {
     return (
@@ -133,6 +144,72 @@ export default function BoardDetailPage() {
 
       {/* Scrollable content below header */}
       <div className="flex-1 overflow-y-auto pb-24">
+        {/* Cover banner */}
+        <div className="relative w-full" style={{ height: 180 }}>
+          {board.coverThumbnail ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={board.coverThumbnail}
+              alt="Board cover"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 flex items-center justify-center">
+              <span className="text-6xl drop-shadow">{board.emoji}</span>
+            </div>
+          )}
+          {/* Change cover button */}
+          <button
+            type="button"
+            onClick={() => setShowCoverPicker(true)}
+            className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full hover:bg-black/60 transition-colors"
+          >
+            <Camera size={13} />
+            Change cover
+          </button>
+        </div>
+
+        {/* Cover picker modal */}
+        {showCoverPicker && (
+          <div className="fixed inset-0 z-[2000] bg-black/50 flex items-end">
+            <div className="w-full bg-white rounded-t-3xl p-5 max-h-[60vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Choose cover photo</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCoverPicker(false)}
+                  className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={18} className="text-gray-500" />
+                </button>
+              </div>
+              {coverThumbnails.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-8">
+                  No photos available. Clips need images to set a cover.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {coverThumbnails.map((url, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleSetCover(url)}
+                      className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                        board.coverThumbnail === url
+                          ? 'border-indigo-500 scale-95'
+                          : 'border-transparent hover:border-indigo-300'
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Map section */}
         {boardItems.length > 0 && (
           <div
