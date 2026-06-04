@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #293548;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --success: #34d399;
+      --danger: #f87171;
+      --radius: 10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── Section ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    /* ── Form fields ── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .label-hint {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input[type="url"]:focus,
+    input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+
+    input::placeholder {
+      color: var(--muted);
+    }
+
+    /* ── Save button ── */
+    .save-btn {
+      padding: 11px 24px;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: opacity 0.15s;
+    }
+
+    .save-btn:hover { opacity: 0.9; }
+    .save-btn:active { opacity: 0.8; }
+
+    /* ── Toast ── */
+    .toast {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--success);
+    }
+
+    /* ── Info box ── */
+    .info-box {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .info-box strong { color: var(--text); }
+
+    /* ── Preset buttons ── */
+    .preset-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      padding: 5px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .preset-btn:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    /* ── Platform list ── */
+    .platform-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .platform-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: var(--surface2);
+      border-radius: 8px;
+    }
+
+    .platform-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .platform-name {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .platform-domain {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+      font-family: monospace;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="page-title">TravelPanel Clipper</div>
+        <div class="page-subtitle">Settings — save travel inspiration from any page</div>
+      </div>
+    </div>
+
+    <!-- App URL section -->
+    <div class="section">
+      <div class="section-title">App Connection</div>
+
+      <div class="field">
+        <label>
+          TravelPanel URL
+          <span class="label-hint">— where your app is hosted</span>
+        </label>
+        <input
+          type="url"
+          id="appUrl"
+          placeholder="https://your-app.vercel.app"
+        />
+      </div>
+
+      <div class="preset-row">
+        <button class="preset-btn" data-url="http://localhost:3000">localhost:3000</button>
+        <button class="preset-btn" data-url="http://localhost:3001">localhost:3001</button>
+      </div>
+
+      <div class="info-box">
+        <strong>Not sure what to enter?</strong> If you're developing locally, use
+        <code>http://localhost:3000</code>. For a deployed app, paste your Vercel URL
+        (e.g., <code>https://travelpanel-xyz.vercel.app</code>).
+      </div>
+
+      <div id="toast" class="toast">
+        ✓ Settings saved
+      </div>
+
+      <button class="save-btn" id="saveBtn">Save Settings</button>
+    </div>
+
+    <!-- Supported platforms -->
+    <div class="section">
+      <div class="section-title">Supported Platforms</div>
+      <div class="platform-list">
+        <div class="platform-item">
+          <div class="platform-dot" style="background:#e1306c"></div>
+          <span class="platform-name">Instagram</span>
+          <span class="platform-domain">instagram.com</span>
+        </div>
+        <div class="platform-item">
+          <div class="platform-dot" style="background:#ff0000"></div>
+          <span class="platform-name">YouTube</span>
+          <span class="platform-domain">youtube.com</span>
+        </div>
+        <div class="platform-item">
+          <div class="platform-dot" style="background:#fe2c55"></div>
+          <span class="platform-name">小红书 (Xiaohongshu)</span>
+          <span class="platform-domain">xiaohongshu.com</span>
+        </div>
+        <div class="platform-item">
+          <div class="platform-dot" style="background:#00a1d6"></div>
+          <span class="platform-name">Bilibili</span>
+          <span class="platform-domain">bilibili.com</span>
+        </div>
+        <div class="platform-item">
+          <div class="platform-dot" style="background:#1da1f2"></div>
+          <span class="platform-name">X / Twitter</span>
+          <span class="platform-domain">x.com</span>
+        </div>
+        <div class="platform-item">
+          <div class="platform-dot" style="background:#94a3b8"></div>
+          <span class="platform-name">Any travel blog or website</span>
+          <span class="platform-domain">*.*</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to use -->
+    <div class="section">
+      <div class="section-title">How It Works</div>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted)">
+        <li>Browse any travel page (Instagram post, YouTube video, blog article…)</li>
+        <li>Click the <strong style="color:var(--text)">TravelPanel Clipper</strong> icon in your toolbar</li>
+        <li>Review the URL and title, then click <strong style="color:var(--text)">Clip to TravelPanel</strong></li>
+        <li>TravelPanel opens, extracts locations and travel wisdom from the page using AI</li>
+        <li>Save it to a board — and it's ready to plan your trip from</li>
+      </ol>
+
+      <p style="font-size:12px;color:var(--muted)">
+        You can also right-click any page or link and choose
+        <em>"Clip to TravelPanel"</em> from the context menu.
+      </p>
+    </div>
+
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
