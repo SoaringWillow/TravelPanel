@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
-import { enrichItem } from '@/lib/enrichItem';
+import { enrichItem, type EnrichOptions } from '@/lib/enrichItem';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -16,10 +17,27 @@ type Stage = 'picking' | 'saving' | 'done';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
+// Reads a pending image stored by the iOS Share Extension (via App Group Preferences).
+// Only runs in native Capacitor context. Clears the key after reading.
+async function readPendingImage(): Promise<EnrichOptions | undefined> {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+    if (!imageBase64) return undefined;
+    const { value: imageMediaType } = await Preferences.get({ key: 'pendingShareImageType' });
+    await Preferences.remove({ key: 'pendingShareImageBase64' });
+    await Preferences.remove({ key: 'pendingShareImageType' });
+    return { imageBase64, imageMediaType: imageMediaType ?? 'image/jpeg' };
+  } catch {
+    return undefined;
+  }
+}
+
 function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -61,6 +79,7 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    hapticImpact('medium');
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -88,9 +107,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — with optional image for anti-scraping platforms (Xiaohongshu, WeChat)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const imageOpts = hasImage ? await readPendingImage() : undefined;
+    enrichItem(itemId, rawUrl, imageOpts)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -114,6 +134,7 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    hapticNotification('success');
   }
 
   // ── Create new board + save ───────────────────────────────────────────────

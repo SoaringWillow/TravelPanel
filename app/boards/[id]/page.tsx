@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import WisdomTab from '@/components/WisdomTab';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -23,6 +24,7 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<'clips' | 'wisdom'>('clips');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -30,6 +32,11 @@ export default function BoardDetailPage() {
     : [];
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
+
+  const wisdomCount = useMemo(
+    () => boardItems.reduce((sum, item) => sum + (item.substance?.length ?? 0), 0),
+    [boardItems]
+  );
 
   const loading = boardsLoading || itemsLoading;
 
@@ -111,15 +118,50 @@ export default function BoardDetailPage() {
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
         </div>
+
+        {/* Tab bar */}
+        {boardItems.length > 0 && (
+          <div className="flex mt-3 border-b border-gray-100">
+            <button
+              type="button"
+              onClick={() => setActiveTab('clips')}
+              className={`flex-1 text-sm font-semibold pb-2 border-b-2 transition-colors ${
+                activeTab === 'clips'
+                  ? 'text-indigo-600 border-indigo-600'
+                  : 'text-gray-400 border-transparent hover:text-gray-600'
+              }`}
+            >
+              Clips
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('wisdom')}
+              className={`flex-1 text-sm font-semibold pb-2 border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
+                activeTab === 'wisdom'
+                  ? 'text-indigo-600 border-indigo-600'
+                  : 'text-gray-400 border-transparent hover:text-gray-600'
+              }`}
+            >
+              🧠 Wisdom
+              {wisdomCount > 0 && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === 'wisdom' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {wisdomCount}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Scrollable content below header */}
       <div className="flex-1 overflow-y-auto pb-24">
-        {/* Map section */}
-        {boardItems.length > 0 && (
+        {/* Map section (only on Clips tab) */}
+        {activeTab === 'clips' && boardItems.length > 0 && (
           <div
             className="relative w-full bg-gray-200"
-            style={{ height: 'min(240px, 35vh)' }}
+            style={{ height: 'min(220px, 32vh)' }}
           >
             <MapView
               items={boardItems}
@@ -131,63 +173,70 @@ export default function BoardDetailPage() {
           </div>
         )}
 
-        <div className="px-4 py-4">
-          {/* Plan this trip CTA */}
-          <div className="mb-4">
-            {hasLocations ? (
-              <button
-                type="button"
-                onClick={() => router.push(`/plan/${boardId}`)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
-              >
-                <Rocket size={18} />
-                Plan this trip
-              </button>
-            ) : (
-              <div className="relative group">
+        {/* Wisdom tab */}
+        {activeTab === 'wisdom' && (
+          <WisdomTab boardItems={boardItems} />
+        )}
+
+        {/* Clips tab */}
+        {activeTab === 'clips' && (
+          <div className="px-4 py-4">
+            {/* Plan this trip CTA */}
+            <div className="mb-4">
+              {hasLocations ? (
                 <button
                   type="button"
-                  disabled
-                  className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                  onClick={() => router.push(`/plan/${boardId}`)}
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
                 >
                   <Rocket size={18} />
                   Plan this trip
                 </button>
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
-                  <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-                    Add items with identified locations to plan a trip
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+              ) : (
+                <div className="relative group">
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                  >
+                    <Rocket size={18} />
+                    Plan this trip
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
+                    <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                      Add items with identified locations to plan a trip
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                    </div>
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Items grid */}
+            {boardItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 text-center">
+                <MapPin className="text-gray-300 mb-3" size={40} />
+                <p className="text-sm font-medium text-gray-600 mb-1">
+                  No places saved to this board yet.
+                </p>
+                <p className="text-sm text-gray-400">
+                  Go to Inbox to add items.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {boardItems.map((item) => (
+                  <InboxCard
+                    key={item.id}
+                    item={item}
+                    onDelete={handleDelete}
+                    onViewOnMap={handleViewOnMap}
+                  />
+                ))}
               </div>
             )}
           </div>
-
-          {/* Items grid */}
-          {boardItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                No places saved to this board yet.
-              </p>
-              <p className="text-sm text-gray-400">
-                Go to Inbox to add items.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       <NavBar active="boards" />
