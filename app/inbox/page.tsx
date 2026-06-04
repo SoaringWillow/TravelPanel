@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
@@ -18,6 +18,7 @@ import NavBar from '@/components/NavBar';
 import { SwipeToDelete } from '@/components/SwipeToDelete';
 import { PullToRefresh } from '@/components/PullToRefresh';
 import { EmptyState } from '@/components/EmptyState';
+import { ClipEditSheet } from '@/components/ClipEditSheet';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [editingItem, setEditingItem] = useState<SavedItem | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -98,6 +100,14 @@ export default function InboxPage() {
     },
     [movingItemId, items, router]
   );
+
+  function handleEdit(item: SavedItem) {
+    setEditingItem(item);
+  }
+
+  function handleItemSaved(updated: SavedItem) {
+    refreshItem(updated.id);
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -188,6 +198,7 @@ export default function InboxPage() {
                       onViewOnMap={handleViewOnMap}
                       onMoveToBoard={handleMoveToBoard}
                       onRetry={retryItem}
+                      onEdit={handleEdit}
                     />
                   </SwipeToDelete>
                 </motion.div>
@@ -277,6 +288,15 @@ export default function InboxPage() {
       </AnimatePresence>
 
       <NavBar active="inbox" />
+
+      {editingItem && (
+        <ClipEditSheet
+          item={editingItem}
+          boards={boards}
+          onClose={() => setEditingItem(null)}
+          onSaved={handleItemSaved}
+        />
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { ClipEditSheet } from '@/components/ClipEditSheet';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -20,9 +21,10 @@ export default function BoardDetailPage() {
   const router = useRouter();
 
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
-  const { items, loading: itemsLoading, removeItem } = useSavedItems();
+  const { items, loading: itemsLoading, removeItem, refreshItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [editingItem, setEditingItem] = useState<SavedItem | null>(null);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -49,6 +51,14 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  function handleEdit(item: SavedItem) {
+    setEditingItem(item);
+  }
+
+  function handleItemSaved(updated: SavedItem) {
+    refreshItem(updated.id);
   }
 
   if (loading) {
@@ -183,6 +193,7 @@ export default function BoardDetailPage() {
                   item={item}
                   onDelete={handleDelete}
                   onViewOnMap={handleViewOnMap}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>
@@ -191,6 +202,15 @@ export default function BoardDetailPage() {
       </div>
 
       <NavBar active="boards" />
+
+      {editingItem && (
+        <ClipEditSheet
+          item={editingItem}
+          boards={boards}
+          onClose={() => setEditingItem(null)}
+          onSaved={handleItemSaved}
+        />
+      )}
     </div>
   );
 }

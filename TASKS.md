@@ -199,7 +199,7 @@ The goal of Phase D is a **beautiful, fully native-feeling iOS app** that users 
 **Files**: `app/inbox/page.tsx`, new `components/PullToRefresh.tsx`
 
 ### D4 — Clip Edit Modal
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users can't fix a wrong title, add tags, or change the board after saving. Long-press or swipe-to-reveal "Edit" action opens a bottom sheet editor.  
 **Files**: new `components/ClipEditSheet.tsx`, `app/inbox/page.tsx`, `app/boards/[id]/page.tsx`
 
