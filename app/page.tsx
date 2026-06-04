@@ -4,11 +4,12 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Compass } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import { OnTripPanel } from '@/components/OnTripPanel';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -22,6 +23,7 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [onTrip, setOnTrip]             = useState(false);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -94,15 +96,43 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
-      {/* Import FAB */}
+      {/* On-Trip panel */}
+      <AnimatePresence>
+        {onTrip && (
+          <OnTripPanel
+            items={items}
+            onFlyTo={(loc) => { setFlyTo(loc); setSelectedItem(null); }}
+            onClose={() => setOnTrip(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* FABs — hidden while detail card is open */}
       {!selectedItem && (
-        <button
-          onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          aria-label="Clip inspiration"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="absolute bottom-24 right-4 z-[1000] flex flex-col items-end gap-3">
+          {/* On-Trip toggle */}
+          <button
+            onClick={() => setOnTrip((v) => !v)}
+            className={`rounded-full p-3 shadow-xl active:scale-95 transition-all ${
+              onTrip
+                ? 'bg-indigo-700 text-white ring-2 ring-indigo-300'
+                : 'bg-white text-indigo-600 hover:bg-indigo-50'
+            }`}
+            aria-label="On-Trip GPS mode"
+            title="On-Trip GPS mode"
+          >
+            <Compass size={20} />
+          </button>
+
+          {/* Clip FAB */}
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            aria-label="Clip inspiration"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       )}
 
       {/* Import Sheet */}
