@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,8 +174,116 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
+
+---
+
+## PHASE D — iOS Polish & Visual Quality
+
+> Goal: make the app beautiful and native-feeling on iPhone. These tasks require no external keys.
+> Execute in order: D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10
+
+### D1 — Thumbnail Images on InboxCard
+**Status**: `[x]` Done  
+**Why**: The API extracts `thumbnail` URLs but `InboxCard` never renders them. Cards look bare. Showing the actual post image makes the inbox feel like a real travel feed.  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Render `item.thumbnail` as a leading image on the card (rounded, ~80×80, object-cover)
+- Graceful fallback if thumbnail is missing: show a platform-colored icon placeholder
+- Lazy-load with `loading="lazy"` and a skeleton pulse while loading
+- Keep the existing enrichment-pending skeleton state unchanged
+
+### D2 — Swipe-to-Delete on InboxCard
+**Status**: `[x]` Done  
+**Why**: iOS users expect swipe-left to reveal delete. The current tap-then-confirm flow is two steps more than necessary.  
+**Files**: `components/InboxCard.tsx`, possibly a new `components/SwipeableCard.tsx`  
+**What to do**:
+- Add a swipe-left gesture that reveals a red Delete action button
+- Use `framer-motion` drag with a threshold: release before 40% of card width → snap back; release after 40% → confirm delete
+- On delete: show a brief "Deleting…" micro-animation before calling `onDelete`
+- Keep the existing action row (map / move / delete buttons) for non-touch contexts
+
+### D3 — Dark Mode Support
+**Status**: `[x]` Done  
+**Why**: iOS auto-switches to dark mode; the app currently shows blinding white in dark mode.  
+**Files**: `app/globals.css`, `tailwind.config.js`, all page/component files with hardcoded `bg-white` / `text-gray-900`  
+**What to do**:
+- Enable Tailwind's `darkMode: 'media'` (system-preference-based)
+- Add `dark:` variants to all major backgrounds, text, border, and card colors
+- Key surfaces: navbar bg, card bg, sheet bg, map overlay, plan view
+- Test: map overlay, InboxCard, LocationDetailCard, share page, settings page
+
+### D4 — Import Data from Backup
+**Status**: `[x]` Done  
+**Why**: Without import, the backup export (B5) is a write-only safety net. Users need restore.  
+**Files**: `app/settings/page.tsx`, `lib/exportData.ts`  
+**What to do**:
+- Add an "Import from backup" section below the export button in `/settings`
+- File input that accepts `.json`
+- Parse and validate as `ExportBundle` (check `version === 2`, required fields)
+- Merge strategy: skip items/boards/trips that already exist (by `id`) — no duplicates
+- Show a summary: "Imported 12 clips, 3 collections, 1 plan. 4 skipped (already existed)."
+
+### D5 — Pull-to-Refresh on Inbox + Boards
+**Status**: `[x]` Done  
+**Why**: Standard iOS gesture — users expect it. Currently the only way to refresh is reloading.  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Implement a pull-to-refresh with a spinner using `framer-motion` drag + overscroll detection
+- On release: re-run pending enrichment retries + reload items from IndexedDB
+- Keep the motion subtle: a small circular spinner that drops in at the top
+
+### D6 — Haptic Feedback on Key Actions
+**Status**: `[x]` Done  
+**Why**: Haptics make the app feel native on iOS. Saving a clip, creating a board, and completing a plan should all feel satisfying.  
+**Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` wrapping `@capacitor/haptics` with a no-op fallback for web
+- `HapticsImpactStyle.Medium` on clip saved
+- `HapticsImpactStyle.Light` on board created
+- `HapticsNotificationType.Success` on plan generation complete
+- No-op gracefully outside Capacitor (browser does nothing, no errors)
+
+### D7 — Richer Board Cards (clip count + thumbnails mosaic)
+**Status**: `[x]` Done  
+**Why**: Board cards show only the board name + emoji. A 2×2 thumbnail mosaic from the first 4 clips gives boards visual identity and makes the collections view look like a polished travel app.  
+**Files**: `components/BoardCard.tsx`  
+**What to do**:
+- Show a 2×2 grid of thumbnails from the first 4 clips in the board (use `item.thumbnail`)
+- If fewer than 4 clips: fill empty cells with the board's emoji on a gradient background
+- Overlay the board name + clip count badge at the bottom of the mosaic
+- Smooth skeleton loading state while thumbnails fetch
+
+### D8 — Offline Banner
+**Status**: `[x]` Done  
+**Why**: When the user is offline, clip enrichment silently fails. A subtle banner tells them why.  
+**Files**: new `components/OfflineBanner.tsx`, `app/layout.tsx`  
+**What to do**:
+- Listen to `window.navigator.onLine` + `online`/`offline` events
+- Show a slim amber banner at the top: "You're offline — new clips will enrich when back online"
+- Banner slides in/out with framer-motion
+- Auto-hide 3s after going back online
+
+### D9 — Share Plan as Text
+**Status**: `[x]` Done  
+**Why**: Users want to share itineraries with travel companions via WhatsApp/iMessage. Currently only PDF/ICS export exists.  
+**Files**: `app/plan/[boardId]/page.tsx`, `lib/exportPlan.ts`  
+**What to do**:
+- Add "Share as text" button to the plan export options
+- Generates a clean Markdown-style text: Day 1\n• 9am: Venue (from clip: "title")\n  💡 tip...
+- On iOS/desktop: uses `navigator.share()` if available, falls back to copy-to-clipboard
+- Show "Copied to clipboard!" toast on fallback
+
+### D10 — Map Style Toggle (Satellite / Standard)
+**Status**: `[x]` Done  
+**Why**: Satellite view is invaluable for nature spots and remote hikes. One tap to toggle.  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Add a small style toggle button (map icon / satellite icon) in the top-right corner of the map
+- Switch between OpenFreeMap's `liberty` style (standard) and a satellite tile layer
+- Store the preference in localStorage so it persists between sessions
+- Smooth transition with a brief fade
 
 ---
 

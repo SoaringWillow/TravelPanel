@@ -8,10 +8,11 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
+import PullToRefresh from '@/components/PullToRefresh';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -19,6 +20,15 @@ export default function BoardsPage() {
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
     return board ? board.itemIds.length : 0;
+  }
+
+  function getPreviewItems(boardId: string) {
+    const board = boards.find((b) => b.id === boardId);
+    if (!board) return [];
+    return board.itemIds
+      .slice(0, 4)
+      .map(id => items.find(i => i.id === id))
+      .filter((i): i is NonNullable<typeof i> => !!i);
   }
 
   async function handleCreate(name: string, emoji: string) {
@@ -53,7 +63,8 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <PullToRefresh onRefresh={refreshBoards} className="flex-1">
+      <div className="px-4 py-4 pb-24">
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -81,6 +92,7 @@ export default function BoardsPage() {
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
+                previewItems={getPreviewItems(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
               />
@@ -88,6 +100,7 @@ export default function BoardsPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Create board modal */}
       <CreateBoardModal

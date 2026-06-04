@@ -9,6 +9,28 @@ import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
+// ─── Map style URLs ───────────────────────────────────────────────────────────
+
+const MAP_STYLES = {
+  standard: 'https://tiles.openfreemap.org/styles/liberty',
+  // Raster satellite tiles wrapped in a minimal MapLibre style
+  satellite: {
+    version: 8 as const,
+    sources: {
+      satellite: {
+        type: 'raster' as const,
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '© OpenStreetMap contributors',
+        maxzoom: 19,
+      },
+    },
+    layers: [{ id: 'satellite-layer', type: 'raster' as const, source: 'satellite' }],
+  },
+} as const;
+
+type StyleKey = keyof typeof MAP_STYLES;
+
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
 const TAG_EMOJI: Record<string, string> = {
@@ -237,6 +259,19 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
+  const [styleKey, setStyleKey] = useState<StyleKey>(() => {
+    if (typeof localStorage !== 'undefined') {
+      return (localStorage.getItem('mapStyle') as StyleKey) ?? 'standard';
+    }
+    return 'standard';
+  });
+
+  function toggleStyle() {
+    const next: StyleKey = styleKey === 'standard' ? 'satellite' : 'standard';
+    setStyleKey(next);
+    try { localStorage.setItem('mapStyle', next); } catch { /* quota */ }
+  }
+
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
     (m, c) => (c.properties.cluster ? Math.max(m, (c.properties.point_count as number) || 0) : m),
@@ -269,9 +304,36 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {/* Style toggle button */}
+      <button
+        type="button"
+        onClick={toggleStyle}
+        title={styleKey === 'standard' ? 'Switch to satellite' : 'Switch to standard'}
+        style={{
+          position: 'absolute',
+          bottom: 96,
+          right: 12,
+          zIndex: 1000,
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          background: 'rgba(255,255,255,0.95)',
+          border: '1px solid rgba(0,0,0,0.12)',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 16,
+        }}
+        aria-label="Toggle map style"
+      >
+        {styleKey === 'standard' ? '🛰' : '🗺'}
+      </button>
+
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={MAP_STYLES[styleKey] as string}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps

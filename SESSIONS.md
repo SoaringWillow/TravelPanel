@@ -96,3 +96,16 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-02 15:23 | 3212515 | feat(B2): add TravelPanel Clipper browser extension
+2026-06-02 15:27 | 072c80d | feat(B3): Xiaohongshu Vision fix — capture image from iOS Share Sheet
+2026-06-02 15:29 | 50c0e98 | feat(B5): add Settings page with JSON data export
+2026-06-02 15:31 | ed186c2 | feat(D1): lazy-loaded thumbnails with skeleton and platform placeholder
+2026-06-02 15:32 | 3d8b229 | feat(D2): swipe-to-delete on InboxCard
+2026-06-02 15:34 | dff15f8 | feat(D3): dark mode support across all key surfaces
+2026-06-02 15:35 | b38841f | feat(D4): import data from JSON backup in Settings
+2026-06-02 15:37 | e450078 | feat(D5): pull-to-refresh on Inbox and Boards
+2026-06-02 15:39 | 38eadf9 | feat(D6): haptic feedback on clip save, board create, plan complete
+2026-06-02 15:39 | d7d13b4 | feat(D7): 2x2 thumbnail mosaic on board cards
+2026-06-02 15:40 | 5570d8d | feat(D8): offline banner with spring animation
+2026-06-02 15:41 | 923cbf0 | feat(D9): Share Plan as Text button in plan export
+2026-06-02 15:42 | b13f989 | feat(D10): satellite/standard map style toggle

@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { hapticSave, hapticSuccess } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -82,17 +83,22 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    hapticSave();
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pick up any image stored by CapacitorBridge
+    const imageBase64 = sessionStorage.getItem('pendingShareImage') ?? undefined;
+    if (imageBase64) sessionStorage.removeItem('pendingShareImage');
+
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
+          hapticSuccess();
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
