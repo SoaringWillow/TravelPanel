@@ -398,7 +398,7 @@ export default function PlanPage() {
 
           {/* ── GENERATING STATE ── */}
           {stage === 'generating' && (
-            <div className="space-y-4">
+            <div className="space-y-4" aria-live="polite" aria-label="Plan generation progress">
               {/* Back / board name */}
               <div className="flex items-center gap-2">
                 <span className="text-xl">{board.emoji}</span>

@@ -227,6 +227,7 @@ function SharePageInner() {
               <button
                 type="button"
                 onClick={() => setScreenshotBase64(null)}
+                aria-label="Remove screenshot"
                 className="absolute top-1.5 right-1.5 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70"
               >
                 <X size={12} />
@@ -376,7 +377,7 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
+            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2" role="status" aria-live="polite">
               <span className="text-sm animate-pulse">🔍 Finding locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (

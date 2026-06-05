@@ -18,7 +18,7 @@ export default function NearbyBanner({ results, onItemClick }: NearbyBannerProps
   if (visible.length === 0) return null;
 
   return (
-    <div className="absolute left-4 right-4 z-[900]" style={{ bottom: 88 }}>
+    <div className="absolute left-4 right-4 z-[900]" style={{ bottom: 88 }} aria-live="polite" aria-label="Nearby clips">
       <AnimatePresence>
         {visible.slice(0, 1).map((result) => (
           <motion.div
@@ -32,6 +32,7 @@ export default function NearbyBanner({ results, onItemClick }: NearbyBannerProps
             <button
               type="button"
               onClick={() => onItemClick(result.item.id)}
+              aria-label={`Nearby: ${result.locationName}, ${result.distanceM} metres away. Tap to view on map.`}
               className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               {/* Thumbnail */}

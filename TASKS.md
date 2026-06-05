@@ -183,7 +183,7 @@ All Phase A–C tasks are complete. The app has:
 - Combine filters with existing text search
 
 ### E6 — Accessibility Pass
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: Multiple components  
 **What to do**:
 - Audit all interactive elements for aria-label, role, and keyboard nav

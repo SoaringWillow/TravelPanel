@@ -437,6 +437,7 @@ export default function MapView({
             type="button"
             onClick={cycleMapStyle}
             title={`Style: ${currentStyle.label} (tap to change)`}
+            aria-label={`Map style: ${currentStyle.label}. Tap to change.`}
             style={{
               width: 40,
               height: 40,
@@ -465,6 +466,7 @@ export default function MapView({
             type="button"
             onClick={onToggleNearMe}
             title={nearMeActive ? 'Stop tracking' : 'Near me'}
+            aria-label={nearMeActive ? 'Stop location tracking' : 'Show nearby clips'}
             style={{
               width: 40,
               height: 40,
@@ -489,7 +491,7 @@ export default function MapView({
 
           {/* Error tooltip */}
           {geoStatus === 'error' && geoError && (
-            <div style={{
+            <div role="alert" aria-live="assertive" style={{
               position: 'absolute',
               bottom: '110%',
               right: 0,
