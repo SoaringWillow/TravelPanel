@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus, Navigation, X, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -14,6 +14,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import ResurfacingBanner from '@/components/ResurfacingBanner';
 import NavBar from '@/components/NavBar';
+import { hasOnboarded } from '@/lib/hasSeenOnboarding';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -21,6 +22,7 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 function HomePageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { items, loading, addItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
@@ -30,6 +32,11 @@ function HomePageInner() {
 
   const { position, error: gpsError, watching, loading: gpsLoading, start: startGPS, stop: stopGPS } = useGeolocation();
   const { signal: resurface, dismiss: dismissResurface } = useProactiveResurfacing(items);
+
+  // Redirect to onboarding on first launch
+  useEffect(() => {
+    if (!hasOnboarded()) router.replace('/onboarding');
+  }, [router]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
