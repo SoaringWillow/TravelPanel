@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+// framer-motion is still used for the board selector bottom sheet below
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform, Trip } from '@/lib/types';
@@ -38,6 +40,7 @@ export default function InboxPage() {
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -67,6 +70,19 @@ export default function InboxPage() {
       : platformFiltered.filter((i) => (i.tags ?? []).includes(activeTag));
 
   const filtered = searchItems(tagFiltered, query);
+
+  // Build rows of 2 for the virtualizer
+  const rows: (typeof filtered)[] = [];
+  for (let i = 0; i < filtered.length; i += 2) {
+    rows.push(filtered.slice(i, i + 2));
+  }
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 296, // approx card height + gap
+    overscan: 3,
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -160,7 +176,7 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {/* Proactive nudges — only shown when not searching */}
         {!loading && !query.trim() && activePlatform === 'all' && (
           <ProactiveSurface items={items} boards={boards} trips={trips} />
@@ -187,26 +203,38 @@ export default function InboxPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
+          <div
+            style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+          >
+            {virtualizer.getVirtualItems().map((vRow) => {
+              const rowItems = rows[vRow.index];
+              return (
+                <div
+                  key={vRow.key}
+                  data-index={vRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${vRow.start}px)`,
+                  }}
+                  className="grid grid-cols-2 gap-3 pb-3"
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  {rowItems.map((item) => (
+                    <InboxCard
+                      key={item.id}
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -139,7 +139,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 ## PHASE E — Performance, Scale & Distribution
 
 ### E1 — Virtualized Clip List (200+ clips)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: At 200+ clips, the DOM becomes too heavy. Must paginate or virtualize.  
 **What to do**: Use `@tanstack/react-virtual` to virtualize the inbox grid; keep scroll position on re-renders.
 
