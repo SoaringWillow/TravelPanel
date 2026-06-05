@@ -68,10 +68,10 @@ export default function SettingsPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 page-content">
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-14 pb-4 safe-top">
+      <div className="bg-white border-b border-gray-100 px-4 page-header pb-4">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">Your data stays on this device</p>
       </div>

@@ -71,3 +71,14 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/*
+ * Page-layout helpers
+ * page-header: top padding = safe area (notch/Dynamic Island) + 1rem visual gap
+ * page-content: bottom padding = nav bar height (4.5rem) + safe area + 0.5rem buffer
+ */
+.page-header  { padding-top: calc(env(safe-area-inset-top) + 0.75rem); }
+.page-content { padding-bottom: calc(env(safe-area-inset-bottom) + 5rem); }
+
+/* NavBar inner bottom padding so items sit above the home indicator */
+.navbar-safe  { padding-bottom: env(safe-area-inset-bottom); }
