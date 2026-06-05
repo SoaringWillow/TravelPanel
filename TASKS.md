@@ -209,7 +209,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Import `@capacitor/haptics` dynamically to keep bundle clean
 
 ### D2 — Clip Card Redesign (InboxCard polish)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:
 - Add a platform-color accent strip (3px left border) matching `PLATFORM_COLORS`
