@@ -125,7 +125,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Save each as a separate item with the same board assignment
 
 ### E3 — Smart Day-by-Day Route Optimization
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/api/plan/route.ts`  
 **What to do**:
 - Currently the planner distributes locations across days arbitrarily

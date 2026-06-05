@@ -20,6 +20,28 @@ function wmoToCondition(code: number): string {
   return WMO_CODES[code] ?? '🌡 Variable';
 }
 
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function buildDistanceContext(locs: Array<{ name: string; lat: number; lng: number }>): string {
+  if (locs.length <= 1) return '';
+  const lines: string[] = ['Pairwise distances (km):'];
+  for (let i = 0; i < locs.length; i++) {
+    for (let j = i + 1; j < locs.length; j++) {
+      const km = haversineKm(locs[i].lat, locs[i].lng, locs[j].lat, locs[j].lng).toFixed(1);
+      lines.push(`  ${locs[i].name} ↔ ${locs[j].name}: ${km} km`);
+    }
+  }
+  return lines.join('\n');
+}
+
 async function fetchWeather(lat: number, lng: number, daysCount: number): Promise<WeatherDay[]> {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
@@ -149,7 +171,14 @@ export async function POST(req: NextRequest) {
               locationNames: z.array(z.string()),
             })),
           }),
-          prompt: `Cluster these ${resolvedLocs.locations.length} locations into ${days} geographic day groups, minimising travel distance each day. Give each day a short theme.\n\nLocations:\n${JSON.stringify(resolvedLocs.locations)}`,
+          prompt: `Cluster these ${resolvedLocs.locations.length} locations into ${days} geographic day groups using a greedy nearest-neighbor approach to minimise intra-day travel. Each day should visit locations that are close to each other. Give each day a short theme.
+
+Locations:
+${JSON.stringify(resolvedLocs.locations)}
+
+${buildDistanceContext(resolvedLocs.locations)}
+
+Group nearby locations into the same day. Locations far apart should be on different days.`,
         });
         if (process.env.NODE_ENV === 'development') {
           console.log('[plan/cluster] tokens:', clusterResult.usage);
