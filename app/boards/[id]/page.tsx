@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Rocket, MapPin, Loader2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { enrichItem } from '@/lib/enrichItem';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -42,9 +43,10 @@ export default function BoardDetailPage() {
   const router = useRouter();
 
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
-  const { items, loading: itemsLoading, removeItem } = useSavedItems();
+  const { items, loading: itemsLoading, removeItem, refreshItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -55,8 +57,29 @@ export default function BoardDetailPage() {
   const stillEnriching = boardItems.some(
     (item) => item.enrichmentStatus === 'pending' || item.enrichmentStatus === 'processing'
   );
+  const needsEnrichment = boardItems.some(
+    (item) => item.enrichmentStatus === 'pending' || item.enrichmentStatus === 'failed'
+  );
 
   const loading = boardsLoading || itemsLoading;
+
+  const handleBatchReenrich = useCallback(async () => {
+    const toProcess = boardItems.filter(
+      (i) => i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'failed'
+    );
+    if (toProcess.length === 0 || batchProgress) return;
+    setBatchProgress({ done: 0, total: toProcess.length });
+    for (let idx = 0; idx < toProcess.length; idx++) {
+      const item = toProcess[idx];
+      await enrichItem(item.id, item.url);
+      await refreshItem(item.id);
+      setBatchProgress({ done: idx + 1, total: toProcess.length });
+      if (idx < toProcess.length - 1) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 500));
+      }
+    }
+    setBatchProgress(null);
+  }, [boardItems, batchProgress, refreshItem]);
 
   function handleViewOnMap(id: string) {
     const item = boardItems.find((i) => i.id === id);
@@ -146,6 +169,43 @@ export default function BoardDetailPage() {
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
         </div>
+
+        {/* Batch re-extract row */}
+        <AnimatePresence>
+          {(needsEnrichment || batchProgress) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-2 pb-0 flex items-center justify-between">
+                {batchProgress ? (
+                  <span className="text-xs text-indigo-600 font-medium flex items-center gap-1.5">
+                    <Loader2 size={12} className="animate-spin" />
+                    {batchProgress.done}/{batchProgress.total} extracted
+                  </span>
+                ) : (
+                  <span className="text-xs text-amber-600 font-medium">
+                    {boardItems.filter(i => i.enrichmentStatus === 'failed').length > 0
+                      ? '⚠ Some clips failed extraction'
+                      : '⏳ Some clips not extracted yet'}
+                  </span>
+                )}
+                {!batchProgress && (
+                  <button
+                    type="button"
+                    onClick={handleBatchReenrich}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors px-2 py-1 rounded-lg hover:bg-indigo-50 -mr-1"
+                  >
+                    Re-extract all
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Scrollable content */}

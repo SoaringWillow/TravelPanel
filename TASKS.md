@@ -298,7 +298,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — Smart Features
 
 ### E1 — Batch re-enrich from board
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`  
 **What to do**:
 - "Re-extract all" button in board detail header (appears when ≥1 clip has failed/pending enrichment)
