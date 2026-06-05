@@ -243,7 +243,7 @@ All Phase A–E tasks are complete. The app has:
 - Test that external links in clip descriptions open Safari rather than navigating the WKWebView
 
 ### F3 — Enrichment Failure UX
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: When enrichment fails silently, users don't know if their clip was processed. This kills trust and forces churn.
 **Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx`
 **What to do**:

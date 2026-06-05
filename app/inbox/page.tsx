@@ -252,6 +252,7 @@ export default function InboxPage() {
 
   // Cards mode: only unassigned items. Timeline mode: all items sorted by savedAt.
   const inboxItems = items.filter((i) => i.boardId === undefined);
+  const failedItems = inboxItems.filter((i) => i.enrichmentStatus === 'failed');
   const timelineItems = [...items].sort((a, b) => b.savedAt - a.savedAt);
 
   const platformFiltered =
@@ -330,6 +331,11 @@ export default function InboxPage() {
           {viewMode === 'cards' && (
             <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
               {inboxItems.length} unsorted
+            </span>
+          )}
+          {viewMode === 'cards' && failedItems.length > 0 && (
+            <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1" aria-live="polite">
+              ⚠️ {failedItems.length} need retry
             </span>
           )}
           {viewMode === 'timeline' && (
