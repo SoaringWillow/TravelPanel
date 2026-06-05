@@ -252,7 +252,7 @@ All Phase A–E tasks are complete. The app has:
 - Show "N clips need attention" amber text link in the header that smoothly scrolls to the first failed card
 
 ### F4 — Image Lazy Loading & Map Performance
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The inbox with 50+ clips loads all thumbnails eagerly, causing scroll jank on low-end iPhones.
 **Files to change**: `components/InboxCard.tsx`, `components/MapView.tsx`
 **What to do**:

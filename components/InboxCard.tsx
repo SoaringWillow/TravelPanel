@@ -292,7 +292,7 @@ function SwipeableCard({
         dragConstraints={{ left: -160, right: 0 }}
         dragElastic={{ left: 0.2, right: 0 }}
         onDragEnd={!selectionMode ? handleDragEnd : undefined}
-        style={{ x: selectionMode ? 0 : x }}
+        style={{ x: selectionMode ? 0 : x, willChange: 'transform' }}
         onPointerDown={handlePointerDown}
         onPointerUp={cancelLongPress}
         onPointerMove={cancelLongPress}
@@ -303,6 +303,8 @@ function SwipeableCard({
         <img
           src={item.thumbnail}
           alt={item.title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-32 object-cover"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = 'none';

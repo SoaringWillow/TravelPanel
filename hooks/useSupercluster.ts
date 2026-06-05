@@ -4,7 +4,6 @@ import { useMemo, useState, useCallback } from 'react';
 import Supercluster from 'supercluster';
 import type { SavedItem, Location } from '@/lib/types';
 
-// One map point = one (item, location) pair.
 export interface PointProps {
   cluster: false;
   item: SavedItem;
@@ -21,9 +20,12 @@ export interface ViewState {
   bounds: [number, number, number, number]; // [west, south, east, north]
 }
 
-// Builds a supercluster index from all valid item locations and exposes the
-// clusters/points visible in the current viewport. Keeps the rich HTML pins:
-// leaves render as our custom Pin, clusters render as a count badge.
+function radiusForZoom(zoom: number): number {
+  if (zoom < 8) return 60;
+  if (zoom <= 12) return 40;
+  return 20;
+}
+
 export function useSupercluster(items: SavedItem[]) {
   const [view, setView] = useState<ViewState | null>(null);
 
@@ -42,18 +44,21 @@ export function useSupercluster(items: SavedItem[]) {
     return feats;
   }, [items]);
 
+  // Rebuild index when zoom changes enough to cross a radius breakpoint.
+  const radiusBucket = view ? radiusForZoom(view.zoom) : 60;
+
   const index = useMemo(() => {
-    const sc = new Supercluster<PointProps>({ radius: 60, maxZoom: 16 });
+    const sc = new Supercluster<PointProps>({ radius: radiusBucket, maxZoom: 16 });
     sc.load(points);
     return sc;
-  }, [points]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, radiusBucket]);
 
   const clusters = useMemo<ClusterOrPoint[]>(() => {
     if (!view) return [];
     return index.getClusters(view.bounds, Math.round(view.zoom));
   }, [index, view]);
 
-  // Returns the zoom level at which the given cluster expands.
   const getExpansionZoom = useCallback(
     (clusterId: number) => Math.min(index.getClusterExpansionZoom(clusterId), 16),
     [index],
