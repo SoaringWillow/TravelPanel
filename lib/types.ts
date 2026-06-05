@@ -97,6 +97,7 @@ export interface Activity {
   duration: string;
   tips: string[];
   sourcedTips?: SourcedTip[]; // wisdom drawn from the user's own clips, cited
+  estimatedCost?: { amount: number; currency: string }; // rough cost estimate
 }
 
 export interface DayPlan {

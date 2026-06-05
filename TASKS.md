@@ -123,7 +123,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 - Show distance badge on each nearby clip card ("0.8 km away")
 
 ### D10 — Trip Budget Tracker
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Users planning trips need cost estimation. Adding budget tracking to the planner makes it a complete trip planning tool.  
 **Files to change**: `app/plan/[boardId]/page.tsx`, `lib/types.ts`, `app/api/plan/route.ts`  
 **What to do**:

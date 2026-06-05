@@ -36,6 +36,8 @@ export default function PlanPage() {
   const [days, setDays] = useState(3);
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
+  const [tripBudget, setTripBudget] = useState('');
+  const [currency, setCurrency] = useState('USD');
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
@@ -153,6 +155,8 @@ export default function PlanPage() {
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
         ].join('. '),
+        tripBudget: tripBudget ? Number(tripBudget) : undefined,
+        currency: currency || 'USD',
       }),
     });
 
@@ -419,6 +423,28 @@ export default function PlanPage() {
                   rows={2}
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
                 />
+
+                {/* Budget input */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">💰</span>
+                    <input
+                      type="number"
+                      value={tripBudget}
+                      onChange={(e) => setTripBudget(e.target.value)}
+                      placeholder="Trip budget (optional)"
+                      min={0}
+                      className="w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value.toUpperCase().slice(0, 3))}
+                    placeholder="USD"
+                    className="w-20 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-center font-mono"
+                  />
+                </div>
               </div>
 
               {/* Warning if no locations */}
@@ -521,6 +547,11 @@ export default function PlanPage() {
                   </div>
                 )}
               </div>
+
+              {/* ── Budget summary ── */}
+              {plan.days && plan.days.some((d) => d.activities?.some((a) => a.estimatedCost)) && (
+                <BudgetSummary days={plan.days as import('@/lib/types').DayPlan[]} tripBudget={tripBudget ? Number(tripBudget) : null} currency={currency} />
+              )}
 
               {/* ── GPS Trip Mode banner ── */}
               {tripModeActive && (
@@ -715,6 +746,65 @@ export default function PlanPage() {
           )}
 
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Budget summary sub-component ────────────────────────────────────────────
+
+import { DayPlan } from '@/lib/types';
+
+function BudgetSummary({
+  days,
+  tripBudget,
+  currency,
+}: {
+  days: DayPlan[];
+  tripBudget: number | null;
+  currency: string;
+}) {
+  const perDay = days.map((day) => {
+    const total = (day.activities ?? []).reduce(
+      (sum, a) => sum + (a.estimatedCost?.amount ?? 0),
+      0
+    );
+    return { day: day.day, total };
+  });
+  const grandTotal = perDay.reduce((s, d) => s + d.total, 0);
+  const dailyAvg = days.length > 0 ? grandTotal / days.length : 0;
+  const overBudget = tripBudget !== null && grandTotal > tripBudget;
+
+  if (grandTotal === 0) return null;
+
+  return (
+    <div className={`rounded-2xl border p-3.5 space-y-2.5 ${overBudget ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+          💰 Budget estimate
+        </span>
+        <span className={`text-sm font-bold ${overBudget ? 'text-red-600' : 'text-emerald-700'}`}>
+          {currency} {grandTotal.toLocaleString()}
+        </span>
+      </div>
+      {tripBudget !== null && (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${overBudget ? 'bg-red-500' : 'bg-emerald-500'}`}
+              style={{ width: `${Math.min(100, (grandTotal / tripBudget) * 100)}%` }}
+            />
+          </div>
+          <span className="text-xs text-gray-500">
+            of {currency} {tripBudget.toLocaleString()} {overBudget ? '💸 over budget' : 'budget'}
+          </span>
+        </div>
+      )}
+      <div className="flex gap-3 text-xs text-gray-500">
+        <span>~{currency} {Math.round(dailyAvg)}/day</span>
+        {perDay.map((d) => d.total > 0 && (
+          <span key={d.day}>Day {d.day}: {currency} {d.total}</span>
+        ))}
       </div>
     </div>
   );
