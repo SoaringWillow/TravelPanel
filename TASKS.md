@@ -220,7 +220,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - SkeletonCard should match the exact height/layout of InboxCard so content pop-in is seamless
 
 ### D3 — PWA / Offline Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `next.config.js`, new `public/sw.js` or use `next-pwa`  
 **What to do**:
 - Install `next-pwa` and configure in `next.config.js`

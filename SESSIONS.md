@@ -105,3 +105,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 19:42 | 28b5917 | feat: C4 Proactive Resurfacing — smart banner surfaces nearby/seasonal/daily clips
 2026-06-05 19:44 | fc7bee7 | chore: add Phases D/E/F to TASKS.md — iOS polish, cloud, growth
 2026-06-05 19:45 | 294512e | feat: D1 haptic feedback — Taptic Engine integration throughout app
+2026-06-05 19:46 | e3e1e7d | feat: D2 skeleton loading states — shimmer replaces spinners throughout
