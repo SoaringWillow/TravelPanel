@@ -440,7 +440,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test with VoiceOver on iOS: every interactive element should be reachable and announce sensibly
 
 ### H3 — Enrichment rate-limit banner in Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `lib/rateLimits.ts`  
 **What to do**:
 - When the Inbox page loads and pull-to-refresh is triggered, check `checkEnrichmentLimit()` before re-enriching

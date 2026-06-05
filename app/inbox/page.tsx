@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -14,6 +14,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { enrichItem } from '@/lib/enrichItem';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { checkEnrichmentLimit, formatResetsIn } from '@/lib/rateLimits';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -43,6 +44,7 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [undoItem, setUndoItem] = useState<{ id: string; boardId: string; boardLabel: string } | null>(null);
+  const [enrichLimitBanner, setEnrichLimitBanner] = useState<{ resetsAt: number } | null>(null);
 
   // Auto-dismiss undo snackbar
   useEffect(() => {
@@ -84,10 +86,22 @@ export default function InboxPage() {
   }, [undoItem, router]);
 
   const onRefresh = useCallback(async () => {
+    const limit = checkEnrichmentLimit();
+    if (!limit.allowed) {
+      setEnrichLimitBanner({ resetsAt: limit.resetsAt });
+      await refresh();
+      return;
+    }
+    setEnrichLimitBanner(null);
     const retryable = items.filter(
       (i) => i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'failed'
     );
     for (const item of retryable) {
+      const cur = checkEnrichmentLimit();
+      if (!cur.allowed) {
+        setEnrichLimitBanner({ resetsAt: cur.resetsAt });
+        break;
+      }
       await enrichItem(item.id, item.url);
       refreshItem(item.id);
     }
@@ -197,6 +211,37 @@ export default function InboxPage() {
           })}
         </div>
       </div>
+
+      {/* Enrichment rate-limit banner */}
+      <AnimatePresence>
+        {enrichLimitBanner && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+              <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-amber-800">Enrichment limit reached</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  Resets in {formatResetsIn(enrichLimitBanner.resetsAt)} — pull to refresh when it resets.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Dismiss"
+                onClick={() => setEnrichLimitBanner(null)}
+                className="text-amber-400 hover:text-amber-600 flex-shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content */}
       <div
