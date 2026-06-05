@@ -4,6 +4,7 @@ import { updateItemEnrichment } from './db';
 import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
+import { cacheThumbnailForItem } from './cacheThumbnail';
 
 export async function enrichItem(id: string, url: string, imageBase64?: string, imageMimeType?: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
@@ -41,6 +42,10 @@ export async function enrichItem(id: string, url: string, imageBase64?: string, 
       locationCount: data.locations.length,
       substanceCount: data.substance?.length ?? 0,
     });
+    // Cache thumbnail as data URI for offline use (fire-and-forget)
+    if (data.thumbnail) {
+      cacheThumbnailForItem(id, data.thumbnail).catch(() => {});
+    }
     return true;
   } catch {
     await updateItemEnrichment(id, 'failed');

@@ -144,7 +144,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 **What to do**: Use `@tanstack/react-virtual` to virtualize the inbox grid; keep scroll position on re-renders.
 
 ### E2 — Offline Thumbnail Caching
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Thumbnails from og:image URLs disappear offline. Cache them in IndexedDB as data URIs for offline use.  
 **What to do**: After enrichment, fetch the thumbnail URL and store it as a base64 data URI on the `SavedItem`.
 
