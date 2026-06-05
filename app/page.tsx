@@ -1,11 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus, Navigation, NavigationOff } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useBoards } from '@/hooks/useBoards';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
@@ -17,16 +18,36 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 // ─── Inner page (needs useSearchParams) ──────────────────────────────────────
 
+type MapFilter = { type: 'all' } | { type: 'board'; value: string } | { type: 'tag'; value: string };
+
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem, refreshItem } = useSavedItems();
+  const { boards } = useBoards();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [showNearby, setShowNearby]     = useState(false);
   const [hasFlewToUser, setHasFlewToUser] = useState(false);
+  const [mapFilter, setMapFilter]       = useState<MapFilter>({ type: 'all' });
   const geo                             = useGeolocation();
+
+  // Top tags by frequency across all items
+  const topTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      for (const tag of item.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([t]) => t);
+  }, [items]);
+
+  // Items visible on map after filter
+  const mapItems = useMemo(() => {
+    if (mapFilter.type === 'all') return items;
+    if (mapFilter.type === 'board') return items.filter((i) => i.boardId === mapFilter.value);
+    return items.filter((i) => i.tags.includes(mapFilter.value));
+  }, [items, mapFilter]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -86,21 +107,79 @@ function HomePageInner() {
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
       <MapView
-        items={items}
+        items={mapItems}
         onPinClick={setSelectedItem}
         flyTo={flyTo}
         userLocation={geo.location}
       />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pb-0">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
           <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+            {loading ? 'Loading…' : `${mapItems.length}${mapFilter.type !== 'all' ? `/${items.length}` : ''} place${items.length !== 1 ? 's' : ''}`}
           </div>
         </div>
+
+        {/* Map filter chips */}
+        {!loading && items.length > 0 && !selectedItem && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide mt-2 pb-1">
+            {/* All */}
+            <button
+              onClick={() => setMapFilter({ type: 'all' })}
+              className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shadow-sm ${
+                mapFilter.type === 'all'
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white/90 text-gray-600 border-gray-200 backdrop-blur-sm hover:border-indigo-300'
+              }`}
+            >
+              All ({items.length})
+            </button>
+
+            {/* Board chips */}
+            {boards.map((board) => {
+              const count = items.filter((i) => i.boardId === board.id).length;
+              if (count === 0) return null;
+              const active = mapFilter.type === 'board' && mapFilter.value === board.id;
+              return (
+                <button
+                  key={board.id}
+                  onClick={() => setMapFilter({ type: 'board', value: board.id })}
+                  className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shadow-sm ${
+                    active
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white/90 text-gray-600 border-gray-200 backdrop-blur-sm hover:border-indigo-300'
+                  }`}
+                >
+                  <span>{board.emoji}</span>
+                  <span>{board.name}</span>
+                  <span className={active ? 'opacity-75' : 'opacity-50'}>({count})</span>
+                </button>
+              );
+            })}
+
+            {/* Tag chips */}
+            {topTags.map((tag) => {
+              const count = items.filter((i) => i.tags.includes(tag)).length;
+              const active = mapFilter.type === 'tag' && mapFilter.value === tag;
+              return (
+                <button
+                  key={tag}
+                  onClick={() => setMapFilter({ type: 'tag', value: tag })}
+                  className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shadow-sm ${
+                    active
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white/90 text-gray-600 border-gray-200 backdrop-blur-sm hover:border-indigo-300'
+                  }`}
+                >
+                  #{tag} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Selected item detail card */}

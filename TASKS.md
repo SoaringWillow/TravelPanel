@@ -232,7 +232,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use `@use-gesture/react` or framer-motion drag for the gesture
 
 ### D4 — Map Filtering by Tag/Board
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: With 50+ clips, the map becomes overwhelming. Users need to filter by "show only food pins" or "show only Tokyo board pins".  
 **Files**: `components/MapView.tsx`, `app/page.tsx`  
 **What to do**:
