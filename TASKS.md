@@ -93,7 +93,7 @@ All Phase A–C tasks are complete. The app has:
 - On reconnection, trigger the enrichment retry queue
 
 ### D7 — Better First-Launch Empty State
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The map is empty on first launch before the user dismisses onboarding. The transition is jarring.  
 **Files to change**: `app/page.tsx`, `lib/seedData.ts`  
 **What to do**:

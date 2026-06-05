@@ -108,3 +108,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 13:58 | 4faeda8 | feat(D3): pull-to-refresh on inbox with spring animation
 2026-06-05 13:59 | 72104e0 | feat(D4): swipe-to-delete on inbox cards
 2026-06-05 14:01 | 633a689 | feat(D5): haptic feedback on iOS / PWA
+2026-06-05 14:02 | 3552be3 | feat(D6): offline detection banner

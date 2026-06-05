@@ -13,6 +13,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NearbyBanner from '@/components/NearbyBanner';
 import NavBar from '@/components/NavBar';
+import WelcomeOverlay from '@/components/WelcomeOverlay';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -28,6 +29,7 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [fabPulse, setFabPulse]         = useState(false);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -119,11 +121,22 @@ function HomePageInner() {
         />
       )}
 
+      {/* Welcome overlay — first-launch empty state */}
+      {!loading && (
+        <WelcomeOverlay
+          itemCount={items.length}
+          onDone={() => {
+            setFabPulse(true);
+            setTimeout(() => setFabPulse(false), 1500);
+          }}
+        />
+      )}
+
       {/* Import FAB */}
       {!selectedItem && (
         <button
           onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          className={`absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all ${fabPulse ? 'animate-bounce' : ''}`}
           aria-label="Clip inspiration"
         >
           <Plus size={24} />
