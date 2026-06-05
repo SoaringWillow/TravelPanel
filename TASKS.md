@@ -200,7 +200,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 *Goal: make the app feel beautiful and native, not just functional.*
 
 ### D1 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `app/boards/[id]/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Create `lib/haptics.ts` with a `haptic(style: 'light'|'medium'|'heavy'|'success'|'error')` wrapper
