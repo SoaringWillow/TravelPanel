@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share written by the iOS Share Extension via App Groups (fallback path).
+// Also reads any pending screenshot image for Vision-based extraction on anti-scraping platforms.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
@@ -12,8 +12,16 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareImageBase64' });
+
+    // Bridge image data to sessionStorage so the share page can forward it to the API
+    if (imageBase64) {
+      sessionStorage.setItem('pendingShareImageBase64', imageBase64);
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -44,19 +52,33 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>[&hasImage=true]
+        // When hasImage=true, a screenshot was saved to App Group Preferences under
+        // pendingShareImageBase64 and will be consumed by the share page for Vision extraction.
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
-            // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage = parsed.searchParams.get('hasImage') === 'true';
 
-            if (shareUrl) {
-              const qs = new URLSearchParams({ url: shareUrl });
-              if (shareTitle) qs.set('title', shareTitle);
-              router.push(`/share?${qs.toString()}`);
+            if (!shareUrl) return;
+
+            // If the extension captured a screenshot, bridge it to sessionStorage
+            if (hasImage) {
+              try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+                await Preferences.remove({ key: 'pendingShareImageBase64' });
+                if (imageBase64) sessionStorage.setItem('pendingShareImageBase64', imageBase64);
+              } catch {
+                // Preferences not available — Vision will be skipped
+              }
             }
+
+            const qs = new URLSearchParams({ url: shareUrl });
+            if (shareTitle) qs.set('title', shareTitle);
+            router.push(`/share?${qs.toString()}`);
           } catch {
             // Malformed URL — ignore
           }

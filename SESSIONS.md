@@ -96,3 +96,13 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-05 19:25 | 097b3ed | feat: B2 browser extension — Manifest V3 Chrome/Safari clipper
+2026-06-05 19:32 | cb68072 | feat: B3 Xiaohongshu/WeChat Vision fix — screenshot → Claude Vision pipeline
+2026-06-05 19:33 | eb30b3c | feat: B5 cloud backup export + Settings page
+2026-06-05 19:36 | 5f877c9 | feat: C1 On-Trip GPS Mode — live location dot + nearby clips panel
+2026-06-05 19:38 | ca6794d | feat: C2 Post-Trip Timeline — per-board trip journal with wisdom surfaced
+2026-06-05 19:40 | 11ceb61 | feat: C3 Shared Boards v1 — URL-encoded shareable board links
+2026-06-05 19:42 | 28b5917 | feat: C4 Proactive Resurfacing — smart banner surfaces nearby/seasonal/daily clips
+2026-06-05 19:44 | fc7bee7 | chore: add Phases D/E/F to TASKS.md — iOS polish, cloud, growth
+2026-06-05 19:45 | 294512e | feat: D1 haptic feedback — Taptic Engine integration throughout app
+2026-06-05 19:46 | e3e1e7d | feat: D2 skeleton loading states — shimmer replaces spinners throughout

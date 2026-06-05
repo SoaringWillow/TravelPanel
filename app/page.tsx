@@ -2,14 +2,19 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, Navigation, X, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { useProactiveResurfacing } from '@/hooks/useProactiveResurfacing';
+import { getNearbyItems, formatDistance } from '@/lib/geoUtils';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import ResurfacingBanner from '@/components/ResurfacingBanner';
 import NavBar from '@/components/NavBar';
+import { hasOnboarded } from '@/lib/hasSeenOnboarding';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -17,11 +22,21 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 function HomePageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { items, loading, addItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [nearbyOpen, setNearbyOpen]     = useState(false);
+
+  const { position, error: gpsError, watching, loading: gpsLoading, start: startGPS, stop: stopGPS } = useGeolocation();
+  const { signal: resurface, dismiss: dismissResurface } = useProactiveResurfacing(items);
+
+  // Redirect to onboarding on first launch
+  useEffect(() => {
+    if (!hasOnboarded()) router.replace('/onboarding');
+  }, [router]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -68,10 +83,30 @@ function HomePageInner() {
     setPrefilledUrl('');
   }
 
+  function handleToggleGPS() {
+    if (watching) {
+      stopGPS();
+      setNearbyOpen(false);
+    } else {
+      startGPS();
+      setNearbyOpen(true);
+    }
+  }
+
+  const nearbyItems = position
+    ? getNearbyItems(items, position.lat, position.lng)
+    : [];
+
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        userPosition={position}
+        flyToUser={watching && !!position}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -84,6 +119,29 @@ function HomePageInner() {
         </div>
       </div>
 
+      {/* Proactive resurfacing banner (nearby, seasonal, or daily pick) */}
+      {resurface && !selectedItem && !showImport && (
+        <ResurfacingBanner
+          signal={resurface}
+          onDismiss={dismissResurface}
+          onTap={(item) => { setSelectedItem(item); dismissResurface(); }}
+        />
+      )}
+
+      {/* GPS error toast */}
+      <AnimatePresence>
+        {gpsError && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-20 left-4 right-4 z-[1000] bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 shadow"
+          >
+            {gpsError}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Selected item detail card */}
       <AnimatePresence>
         {selectedItem && (
@@ -93,6 +151,29 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* GPS "Near Me" button */}
+      {!selectedItem && (
+        <button
+          onClick={handleToggleGPS}
+          className={`absolute bottom-36 right-4 z-[1000] rounded-full p-3.5 shadow-xl transition-all active:scale-95 ${
+            watching
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+          aria-label={watching ? 'Stop GPS' : 'Show my location'}
+        >
+          {gpsLoading ? (
+            <motion.div
+              className="w-5 h-5 border-2 border-current border-t-transparent rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+            />
+          ) : (
+            <Navigation size={20} fill={watching ? 'white' : 'none'} />
+          )}
+        </button>
+      )}
 
       {/* Import FAB */}
       {!selectedItem && (
@@ -104,6 +185,71 @@ function HomePageInner() {
           <Plus size={24} />
         </button>
       )}
+
+      {/* Nearby clips panel (shown when GPS is active) */}
+      <AnimatePresence>
+        {watching && nearbyOpen && position && (
+          <motion.div
+            initial={{ y: 220 }}
+            animate={{ y: 0 }}
+            exit={{ y: 220 }}
+            transition={{ type: 'spring', damping: 26, stiffness: 280 }}
+            className="absolute bottom-16 left-0 right-0 z-[999] bg-white/95 backdrop-blur-md rounded-t-2xl shadow-2xl"
+            style={{ maxHeight: 220 }}
+          >
+            {/* Handle + header */}
+            <div className="flex items-center justify-between px-4 pt-3 pb-2">
+              <div className="flex items-center gap-2">
+                <Navigation size={14} className="text-blue-500" />
+                <span className="text-sm font-semibold text-gray-800">
+                  {nearbyItems.length > 0
+                    ? `${nearbyItems.length} saved spot${nearbyItems.length !== 1 ? 's' : ''} nearby`
+                    : 'No saved spots nearby'}
+                </span>
+              </div>
+              <button
+                onClick={() => setNearbyOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Nearby list */}
+            {nearbyItems.length > 0 ? (
+              <div className="overflow-x-auto flex gap-3 px-4 pb-4 scrollbar-none">
+                {nearbyItems.slice(0, 8).map(({ item, nearestLocation, distanceMeters }) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setFlyTo(nearestLocation);
+                    }}
+                    className="flex-shrink-0 w-48 text-left bg-gray-50 rounded-xl p-3 border border-gray-100 hover:bg-indigo-50 hover:border-indigo-200 active:scale-95 transition-all"
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <MapPin size={10} className="text-blue-500 flex-shrink-0" />
+                      <span className="text-xs font-bold text-blue-600">
+                        {formatDistance(distanceMeters)}
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-gray-800 line-clamp-1">
+                      {item.title}
+                    </p>
+                    <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">
+                      {nearestLocation.name}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 px-4 pb-4">
+                Clips with location data within 50km will appear here.
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Import Sheet */}
       <ImportSheet

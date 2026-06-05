@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { feedback } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,12 +30,40 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [previewResult, setPreviewResult]     = useState<ImportResult | null>(null);
+  const [previewLoading, setPreviewLoading]   = useState(false);
+  // Screenshot from iOS Share Extension — used for Vision extraction on Xiaohongshu/WeChat
+  const pendingImageRef = useRef<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards + consume any pending screenshot + pre-extract in parallel
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // CapacitorBridge stores the screenshot here when the extension captured one.
+    const img = sessionStorage.getItem('pendingShareImageBase64');
+    if (img) {
+      pendingImageRef.current = img;
+      sessionStorage.removeItem('pendingShareImageBase64');
+    }
+
+    // Pre-extract immediately so preview is ready when user picks a board
+    if (rawUrl) {
+      setPreviewLoading(true);
+      const body: Record<string, string> = { url: rawUrl };
+      if (img) body.imageBase64 = img;
+      fetch('/api/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => { if (data) setPreviewResult(data as ImportResult); })
+        .catch(() => {})
+        .finally(() => setPreviewLoading(false));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-dismiss when done
@@ -61,56 +90,66 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    feedback('medium');
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    const enriched = previewResult;
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
-      title: sharedTitle,
-      platform,
-      description: '',
-      thumbnail: undefined,
-      locations: [],
-      activities: [],
-      tags: [],
-      substance: [],
+      title: enriched?.title || sharedTitle,
+      platform: enriched?.platform ?? platform,
+      description: enriched?.description || '',
+      thumbnail: enriched?.thumbnail ?? undefined,
+      locations: enriched?.locations ?? [],
+      activities: enriched?.activities ?? [],
+      tags: enriched?.tags ?? [],
+      substance: enriched?.substance ?? [],
       savedAt: Date.now(),
-      enrichmentStatus: 'pending',
+      enrichmentStatus: enriched ? 'done' : 'pending',
       retryCount: 0,
       boardId: selectedBoardId,
     };
 
     await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    track('clip_saved', { platform, toBoard: !!selectedBoardId, preEnriched: !!enriched });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
-    setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
-      .then(async (success) => {
-        if (success) {
-          // Read back the enriched data to show location count in the done UI
-          const { getItemById } = await import('@/lib/db');
-          const updated = await getItemById(itemId);
-          if (updated) {
-            setEnrichedData({
-              platform: updated.platform,
-              title: updated.title,
-              description: updated.description,
-              thumbnail: updated.thumbnail,
-              locations: updated.locations,
-              activities: updated.activities,
-              tags: updated.tags,
-              substance: updated.substance,
-            } as ImportResult);
+    if (enriched) {
+      // Already enriched from preview — show result immediately
+      feedback('success');
+      setEnrichedData(enriched);
+    } else {
+      // Background enrichment — pass screenshot if available (Vision path for Xiaohongshu/WeChat)
+      const capturedImage = pendingImageRef.current ?? undefined;
+      pendingImageRef.current = null;
+      setEnrichmentLoading(true);
+      enrichItem(itemId, rawUrl, capturedImage)
+        .then(async (success) => {
+          if (success) {
+            feedback('success');
+            const { getItemById } = await import('@/lib/db');
+            const updated = await getItemById(itemId);
+            if (updated) {
+              setEnrichedData({
+                platform: updated.platform,
+                title: updated.title,
+                description: updated.description,
+                thumbnail: updated.thumbnail,
+                locations: updated.locations,
+                activities: updated.activities,
+                tags: updated.tags,
+                substance: updated.substance,
+              } as ImportResult);
+            }
           }
-        }
-        setEnrichmentLoading(false);
-      });
+          setEnrichmentLoading(false);
+        });
+    }
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
@@ -165,6 +204,50 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Pre-extraction preview strip */}
+          <AnimatePresence>
+            {previewLoading && (
+              <motion.div
+                key="preview-loading"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center gap-2 bg-indigo-50 rounded-xl px-3 py-2 mt-2"
+              >
+                <span className="text-xs text-indigo-500 animate-pulse">🔍 Extracting locations and tips…</span>
+              </motion.div>
+            )}
+            {!previewLoading && previewResult && (
+              <motion.div
+                key="preview-result"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-indigo-50 rounded-xl px-3 py-2.5 mt-2 space-y-1.5"
+              >
+                {previewResult.locations.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {previewResult.locations.slice(0, 3).map((loc, i) => (
+                      <span key={i} className="text-xs text-indigo-700 bg-white rounded-full px-2.5 py-0.5 font-medium shadow-sm">
+                        📍 {loc.name}
+                      </span>
+                    ))}
+                    {previewResult.locations.length > 3 && (
+                      <span className="text-xs text-indigo-500">+{previewResult.locations.length - 3} more</span>
+                    )}
+                  </div>
+                )}
+                {previewResult.substance?.length > 0 && (
+                  <p className="text-xs text-indigo-600 line-clamp-2">
+                    💡 {previewResult.substance[0].content}
+                  </p>
+                )}
+                {previewResult.locations.length === 0 && (
+                  <p className="text-xs text-indigo-500">No specific locations found — clip still saved</p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Middle section — board picker */}

@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, BookOpen, Share2 } from 'lucide-react';
+import ShareBoardSheet from '@/components/ShareBoardSheet';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import { SkeletonGrid } from '@/components/SkeletonCard';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -23,6 +25,7 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [showShare, setShowShare] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -54,8 +57,17 @@ export default function BoardDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-col h-screen bg-gray-50">
-        <div className="flex items-center justify-center flex-1">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="bg-white shadow-sm px-4 pt-12 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="skeleton-shimmer w-9 h-9 rounded-xl" />
+            <div className="flex-1">
+              <div className="skeleton-shimmer h-5 w-32 rounded-md mb-1.5" />
+              <div className="skeleton-shimmer h-3 w-20 rounded-md" />
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+          <SkeletonGrid count={6} variant="inbox" />
         </div>
         <NavBar active="boards" />
       </div>
@@ -132,6 +144,28 @@ export default function BoardDetailPage() {
         )}
 
         <div className="px-4 py-4">
+          {/* Action buttons row */}
+          <div className="flex gap-2 mb-4">
+            {/* Trip Journal */}
+            <button
+              type="button"
+              onClick={() => router.push(`/boards/${boardId}/timeline`)}
+              className="flex-1 flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 font-semibold py-3 rounded-2xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+            >
+              <BookOpen size={16} className="text-indigo-500" />
+              Journal
+            </button>
+            {/* Share board */}
+            <button
+              type="button"
+              onClick={() => setShowShare(true)}
+              className="flex-1 flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 font-semibold py-3 rounded-2xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+            >
+              <Share2 size={16} className="text-indigo-500" />
+              Share
+            </button>
+          </div>
+
           {/* Plan this trip CTA */}
           <div className="mb-4">
             {hasLocations ? (
@@ -191,6 +225,15 @@ export default function BoardDetailPage() {
       </div>
 
       <NavBar active="boards" />
+
+      {board && (
+        <ShareBoardSheet
+          open={showShare}
+          onClose={() => setShowShare(false)}
+          board={board}
+          items={boardItems}
+        />
+      )}
     </div>
   );
 }

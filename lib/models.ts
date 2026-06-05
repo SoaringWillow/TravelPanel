@@ -10,6 +10,10 @@ export const models = {
   // Simple structured extraction — runs on every clip save, must be fast and cheap
   enrichment: anthropic('claude-haiku-4-5-20251001'),
 
+  // Vision extraction for anti-scraping platforms (Xiaohongshu, WeChat screenshots)
+  // Sonnet reads noisy CJK screenshots better than Haiku
+  visionEnrichment: anthropic('claude-sonnet-4-6'),
+
   // Intermediate planning steps — coordinate resolution and geographic clustering
   planResolve: anthropic('claude-haiku-4-5-20251001'),
   planCluster: anthropic('claude-haiku-4-5-20251001'),

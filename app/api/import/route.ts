@@ -81,24 +81,20 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompt builders ─────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+const SUBSTANCE_EXAMPLES = `
+- "Arrive before 8am to beat the queue" → tip
+- "The set lunch menu is half the price of dinner" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Skip the official viewpoint — the back alley has the better angle" → recommendation
+- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
+- "It was overrated for the price" → opinion
+- "If you're visiting in August, be aware it's typhoon season" → context
+- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning`;
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildTextPrompt(url: string, platform: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -114,30 +110,90 @@ Do NOT invent or guess coordinates.
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
-This is what competitors miss. Examples of what to capture:
-- "Arrive before 8am to beat the queue" → tip
-- "The set lunch menu is half the price of dinner" → tip
-- "Cash only, nearest ATM is 10 min walk" → warning
-- "Skip the official viewpoint — the back alley has the better angle" → recommendation
-- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
-- "It was overrated for the price" → opinion
-- "If you're visiting in August, be aware it's typhoon season" → context
-- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
+This is what competitors miss. Examples:${SUBSTANCE_EXAMPLES}
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(url: string, platform: string) {
+  return `You are analyzing a screenshot of a travel post from ${platform} (URL: ${url}).
+
+The screenshot may contain Chinese/Japanese/Korean text — read it carefully.
+Extract TWO layers from the visible content:
+
+## Layer 1 — Spots (geographic skeleton)
+Identify any real, named locations visible in the screenshot (place names, shop names, attractions).
+Only include locations you can match to real GPS coordinates with high confidence.
+Return an empty array if no specific named places are clearly visible.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Extract every piece of travel wisdom, tips, warnings, opinions, or actionable advice visible
+in the caption, comments, or overlaid text. Read ALL visible text, including CJK characters.
+Examples:${SUBSTANCE_EXAMPLES}
+
+For list-format posts, extract every item in the list.
+Set the title to the main subject of the post.
+Translate any non-English content naturally into English for the output.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  try {
+    ({ url, imageBase64 } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // For anti-scraping platforms (Xiaohongshu, WeChat), try Vision first if an image is provided.
+  // Otherwise fetch and analyze page text.
+  const useVision = !!imageBase64;
+  const page = useVision ? null : await fetchPageData(url);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision && imageBase64) {
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageBase64,
+                mimeType: 'image/jpeg',
+              },
+              {
+                type: 'text',
+                text: buildVisionPrompt(url, platform),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(url, platform, page),
+      });
+      claudeResult = object;
+    }
   } catch {
-    // Fall through to defaults
+    // Fall through to defaults — still return partial data from page metadata
   }
 
   const result: ImportResult = {

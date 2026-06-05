@@ -33,6 +33,11 @@ const config: CapacitorConfig = {
       backgroundColor: '#6366f1',
       overlaysWebView: false,
     },
+    // Use the same App Group that ShareViewController.swift writes to,
+    // so @capacitor/preferences can read pendingShare* keys on iOS.
+    Preferences: {
+      group: 'group.com.travelpanel.app',
+    },
   },
 };
 
