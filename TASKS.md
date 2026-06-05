@@ -344,6 +344,76 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE G — Polish & Core UX Gaps
+
+> Phases D+E complete. Phase G fills remaining UX gaps that make the app feel truly native and polished, with no Supabase dependency.
+
+### G1 — Fix TypeScript `mimeType` error in import route
+**Status**: `[x]` Done  
+**Files**: `app/api/import/route.ts`  
+**What to do**: AI SDK v6 renamed `mimeType` → `mediaType` on `ImagePart`. Fix the property name so the project compiles without errors.
+
+### G2 — Home page bottom drawer (recently clipped panel)
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`  
+**What to do**:
+- Add a sliding bottom drawer on the home/map page showing the 5 most-recently clipped items
+- Each item: thumbnail + title + platform chip + "Open" button
+- Drawer handle: pulls up from NavBar, collapses back with swipe-down
+- First-run empty state: "Pull up to see your clips. Tap + to add your first."
+- The map still fills full screen; drawer overlays it at the bottom
+
+### G3 — Global search on home map
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`  
+**What to do**:
+- Tapping the magnifying-glass icon in the top bar opens a full-screen search sheet
+- Real-time filtering across all items (title, tags, location names, substance)
+- Results list: tapping an item flies the map to that pin and closes the search
+- Escape / tap outside dismisses search
+
+### G4 — Error boundaries for all pages
+**Status**: `[ ]` Not started  
+**Files**: `components/ErrorBoundary.tsx` (new), all page files  
+**What to do**:
+- Create a React `ErrorBoundary` class component with a friendly fallback UI ("Something went wrong — tap to retry")
+- Wrap each top-level page component in the boundary
+- Log errors to `track('js_error', { message, stack })` for analytics
+
+### G5 — Clipboard import in share sheet
+**Status**: `[ ]` Not started  
+**Files**: `components/ImportSheet.tsx`  
+**What to do**:
+- Add a "Paste URL" button below the URL input in ImportSheet
+- On tap: read from clipboard using `navigator.clipboard.readText()`, fill the URL field
+- If clipboard has nothing URL-like, show "No URL in clipboard" toast
+
+### G6 — Plan: copy day plan to clipboard
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
+**What to do**:
+- Add a "Copy" icon button on each day strip card in the plan
+- On tap: copies that day's activities as plain text to clipboard
+- Show a brief "Copied!" toast (2s auto-dismiss)
+
+### G7 — Settings: show build info, feedback link, rate limits
+**Status**: `[ ]` Not started  
+**Files**: `app/settings/page.tsx`  
+**What to do**:
+- Add "App info" section: version string from `package.json`, link to GitHub issues for feedback
+- Add "Usage limits" section: shows enrichment calls used today (from rateLimits), plan generations used, resets-at time
+- Uses `checkEnrichmentLimit()` and `checkPlanLimit()` from `lib/rateLimits.ts`
+
+### G8 — Long press on map pin to preview substance
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Long-press (or long-tap) on a map pin shows a quick-peek tooltip with the item's top 2 substance items
+- Tap anywhere else to dismiss
+- Regular tap still opens the full detail card
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*

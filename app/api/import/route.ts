@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
               {
                 type: 'image',
                 image: Buffer.from(imageBase64, 'base64'),
-                mimeType: 'image/jpeg',
+                mediaType: 'image/jpeg',
               },
               {
                 type: 'text',
