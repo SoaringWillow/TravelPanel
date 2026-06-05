@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { updateItemNotes } from '@/lib/db';
 import SubstanceList from './SubstanceList';
 
 interface LocationDetailCardProps {
@@ -12,6 +14,20 @@ interface LocationDetailCardProps {
 }
 
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const [notes, setNotes] = useState(item.notes ?? '');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync external item.notes changes (e.g., re-open different item)
+  useEffect(() => { setNotes(item.notes ?? ''); }, [item.id, item.notes]);
+
+  const handleNotesChange = useCallback((val: string) => {
+    setNotes(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      updateItemNotes(item.id, val);
+    }, 800);
+  }, [item.id]);
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -127,13 +143,17 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">{item.notes}</p>
-              </div>
-            )}
+            {/* Notes — inline editor */}
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5">Notes</p>
+              <textarea
+                value={notes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                placeholder="Add a personal note…"
+                rows={3}
+                className="w-full text-sm text-amber-900 dark:text-amber-200 bg-transparent resize-none outline-none placeholder-amber-400 dark:placeholder-amber-700 leading-relaxed"
+              />
+            </div>
           </div>
         </div>
       </motion.div>

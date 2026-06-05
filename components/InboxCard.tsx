@@ -308,6 +308,13 @@ function SwipeableCard({
           </div>
         )}
 
+        {/* Personal notes preview */}
+        {item.notes && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg px-2.5 py-2 mb-2">
+            <p className="text-xs text-amber-800 dark:text-amber-300 line-clamp-2 leading-relaxed">{item.notes}</p>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-700">
           <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>

@@ -114,7 +114,7 @@ All Phase A–C tasks are complete. The app has:
 - Button cycles through 3 styles with a tooltip showing the current style name
 
 ### D9 — Clip Notes Editor
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to add personal notes to clips ("tried this, overrated", "reservation needed"). Currently no way to edit after saving.  
 **Files to change**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
