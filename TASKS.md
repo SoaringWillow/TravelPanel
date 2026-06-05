@@ -563,7 +563,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > All Phase H–I implementable tasks complete. Phase J focuses on engagement features that drive the North Star metric (weekly clips per active user): better empty states, smart notifications, and gamification hints. No Supabase required.
 
 ### J1 — Clip count milestone toasts
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `app/page.tsx`  
 **What to do**:
 - When a user saves their 1st, 5th, 10th, and 25th clip, show a celebratory toast at the top of the screen

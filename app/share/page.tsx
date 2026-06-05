@@ -8,6 +8,7 @@ import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { impact, notification } from '@/lib/haptics';
+import { recordClipSaved } from '@/lib/milestones';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -89,6 +90,7 @@ function SharePageInner() {
   const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
   const [duplicateItem, setDuplicateItem]     = useState<{ id: string; title: string; boardId?: string; boardName: string } | null>(null);
   const [smartMatches, setSmartMatches]       = useState<SmartMatch[]>([]);
+  const [milestoneToast, setMilestoneToast]   = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -185,6 +187,9 @@ function SharePageInner() {
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
     impact('Medium'); // haptic: clip saved
+
+    const { milestone } = recordClipSaved();
+    if (milestone) setMilestoneToast(milestone);
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
@@ -462,6 +467,21 @@ function SharePageInner() {
             {sharedTitle}
           </p>
         </motion.div>
+
+        {/* Milestone toast */}
+        <AnimatePresence>
+          {milestoneToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="w-full bg-indigo-600 text-white text-sm font-medium rounded-2xl px-4 py-3 text-center"
+            >
+              {milestoneToast}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Enrichment result */}
         <motion.div
