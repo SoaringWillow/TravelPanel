@@ -211,7 +211,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On delete item → `medium` haptic
 
 ### D2 — Skeleton Loading States
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `components/SkeletonCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`  
 **What to do**:
 - Create `SkeletonCard.tsx` with a pulsing shimmer animation (3-line placeholder matching InboxCard proportions)

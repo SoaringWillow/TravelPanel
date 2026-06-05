@@ -9,6 +9,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import { SkeletonGrid } from '@/components/SkeletonCard';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -56,8 +57,17 @@ export default function BoardDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-col h-screen bg-gray-50">
-        <div className="flex items-center justify-center flex-1">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="bg-white shadow-sm px-4 pt-12 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="skeleton-shimmer w-9 h-9 rounded-xl" />
+            <div className="flex-1">
+              <div className="skeleton-shimmer h-5 w-32 rounded-md mb-1.5" />
+              <div className="skeleton-shimmer h-3 w-20 rounded-md" />
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+          <SkeletonGrid count={6} variant="inbox" />
         </div>
         <NavBar active="boards" />
       </div>
