@@ -103,3 +103,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 13:39 | dad074c | feat: Post-Trip Timeline (Journey view) in Inbox page (C2)
 2026-06-05 13:41 | 9cfd73f | feat: shareable read-only board links (C3)
 2026-06-05 13:43 | 7373d5e | feat: proactive resurfacing — nearby clips banner on map (C4)
+2026-06-05 13:54 | 40ae4a0 | feat(D1): implement dark mode across all views

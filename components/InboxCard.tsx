@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import SkeletonCard from './SkeletonCard';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -49,19 +50,7 @@ export default function InboxCard({
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
-      return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden animate-pulse">
-          <div className="w-full h-32 bg-gray-200 dark:bg-gray-700" />
-          <div className="p-4 space-y-3">
-            <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded-full w-4/5" />
-            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
-            </div>
-          </div>
-        </div>
-      );
+      return <SkeletonCard />;
     }
 
     // Partial card — title is known, enrichment still running

@@ -43,7 +43,7 @@ All Phase A–C tasks are complete. The app has:
 - Test all major views: Home/Map, Inbox, Boards, Settings, Share, Plan, Detail card
 
 ### D2 — Skeleton Loading States
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Cards flash blank white during enrichment load, which feels broken.  
 **Files to change**: `components/InboxCard.tsx`, new `components/SkeletonCard.tsx`  
 **What to do**:
