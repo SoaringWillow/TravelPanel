@@ -373,7 +373,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Escape / tap outside dismisses search
 
 ### G4 — Error boundaries for all pages
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ErrorBoundary.tsx` (new), all page files  
 **What to do**:
 - Create a React `ErrorBoundary` class component with a friendly fallback UI ("Something went wrong — tap to retry")
