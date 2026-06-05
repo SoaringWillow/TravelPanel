@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { success as hapticSuccess, hapticError } from '@/lib/haptics';
 import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
 import {
   Drawer,
@@ -106,6 +107,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    hapticSuccess();
     onSaved(item);
     resetState();
   }
@@ -130,6 +132,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    hapticSuccess();
     onSaved(item);
     resetState();
   }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
+import { lightImpact } from '@/lib/haptics';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
@@ -81,7 +82,7 @@ export default function BoardsPage() {
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
-                onClick={() => router.push(`/boards/${board.id}`)}
+                onClick={() => { lightImpact(); router.push(`/boards/${board.id}`); }}
                 onDelete={() => handleDelete(board.id)}
               />
             ))}

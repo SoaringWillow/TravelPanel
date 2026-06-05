@@ -73,7 +73,7 @@ All Phase A–C tasks are complete. The app has:
 - Works alongside existing long-press / kebab menu
 
 ### D5 — Haptic Feedback on iOS
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Haptic feedback makes the app feel native. Saves, deletes, and plan generation should vibrate.  
 **Files to change**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
