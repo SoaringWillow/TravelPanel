@@ -10,6 +10,16 @@ interface DayStripCardProps {
   onSelect: () => void;
 }
 
+// Rough time estimate: 90 min per stop on average
+function estimateHours(stopCount: number): string {
+  const totalMin = stopCount * 90;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `~${m}m`;
+  if (m === 0) return `~${h}h`;
+  return `~${h}h${m}m`;
+}
+
 export default function DayStripCard({ day, index, isActive, onSelect }: DayStripCardProps) {
   const stopCount = day.activities.length;
 
@@ -40,8 +50,8 @@ export default function DayStripCard({ day, index, isActive, onSelect }: DayStri
         {day.theme}
       </p>
 
-      <p className="text-xs text-gray-400 mt-1">
-        {stopCount} stop{stopCount !== 1 ? 's' : ''}
+      <p className="text-xs text-gray-400 mt-1.5">
+        {stopCount} stop{stopCount !== 1 ? 's' : ''} · {estimateHours(stopCount)}
       </p>
     </motion.div>
   );

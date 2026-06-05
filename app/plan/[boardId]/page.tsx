@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Copy, Check } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -237,6 +237,23 @@ export default function PlanPage() {
   ];
 
   const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
+
+  const [dayCopied, setDayCopied] = useState(false);
+
+  function copyDaySchedule() {
+    if (!activeDayPlan) return;
+    const lines = [
+      `Day ${activeDayIndex + 1} — ${activeDayPlan.theme}`,
+      '',
+      ...activeDayPlan.activities.map((a) =>
+        `${a.time}  ${a.location.name}  (${a.duration})\n  ${a.name}${a.tips.length ? '\n  · ' + a.tips.slice(0, 2).join('\n  · ') : ''}`
+      ),
+    ];
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setDayCopied(true);
+      setTimeout(() => setDayCopied(false), 2000);
+    });
+  }
 
   if (loadingBoard) {
     return (
@@ -511,24 +528,35 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-gray-700">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={copyDaySchedule}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 transition-colors px-2 py-1 rounded-lg hover:bg-indigo-50"
+                    >
+                      {dayCopied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                      {dayCopied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
 
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1.5"
                     >
                       <div className="flex items-start gap-2">
                         <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.time}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
+                          <p className="text-xs text-indigo-500 font-medium truncate flex items-center gap-0.5">
+                            <MapPin size={10} className="flex-shrink-0" />
                             {activity.location.name}
                           </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                          <p className="text-sm font-medium text-gray-800 mt-0.5">{activity.name}</p>
                         </div>
                         <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.duration}
@@ -545,19 +573,17 @@ export default function PlanPage() {
                         </ul>
                       )}
 
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
+                      {/* Sourced tips — wisdom cited from the user's own clips as inline chips */}
                       {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {activity.sourcedTips.map((st, sIdx) => (
-                            <div
+                            <span
                               key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                              className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[11px] font-medium px-2 py-1 rounded-full border border-emerald-200"
+                              title={st.content}
                             >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
+                              💡 {st.sourceTitle}
+                            </span>
                           ))}
                         </div>
                       )}

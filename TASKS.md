@@ -240,7 +240,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On iOS, also show a "Share any travel post to add it" hint
 
 ### D5 — Plan UI Polish (DayStripCard)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx` (or wherever plan UI lives)  
 **What to do**:
 - Read the plan page first; understand the current DayStripCard / activity card structure
