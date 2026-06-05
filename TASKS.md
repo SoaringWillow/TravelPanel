@@ -128,7 +128,7 @@ The remaining work focuses on three areas:
   - Privacy usage descriptions: NSLocationWhenInUseUsageDescription
 
 ### F8 — Accessibility Pass
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: App Store review and VoiceOver users need proper ARIA labels. Most buttons lack them.
 **Files**: All component files
 **What to do**:
@@ -143,7 +143,7 @@ The remaining work focuses on three areas:
 ## PHASE G — Performance & Quality
 
 ### G1 — Image Optimisation
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Thumbnails from social platforms load slowly and cause layout shift. Optimizing them improves perceived performance.
 **Files**: `components/InboxCard.tsx`, `components/BoardCard.tsx`
 **What to do**:

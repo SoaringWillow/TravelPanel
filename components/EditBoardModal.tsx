@@ -59,6 +59,7 @@ export default function EditBoardModal({ board, onClose, onSave }: EditBoardModa
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close"
               className="p-2 rounded-full hover:bg-gray-100 text-gray-400 transition-colors"
             >
               <X size={18} />
