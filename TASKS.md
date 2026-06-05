@@ -139,7 +139,7 @@ All Phase A–C tasks are complete. The app has:
 ## PHASE E — Power Features
 
 ### E1 — Multi-Select & Batch Operations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users with 50+ clips need to batch-move or batch-delete. One-at-a-time is tedious.  
 **Files to change**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:

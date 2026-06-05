@@ -166,6 +166,39 @@ export default function InboxPage() {
   const [query, setQuery] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
 
+  // Multi-select
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  function enterSelectionMode(id: string) {
+    setSelectionMode(true);
+    setSelectedIds(new Set([id]));
+  }
+
+  function exitSelectionMode() {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleDeleteSelected() {
+    for (const id of selectedIds) await removeItem(id);
+    exitSelectionMode();
+  }
+
+  function handleMoveSelectedToBoard() {
+    // Reuse the single-item board picker by treating first selected item as proxy;
+    // actual multi-assign is done on board selection
+    setMovingItemId('__multi__');
+  }
+
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
@@ -200,24 +233,24 @@ export default function InboxPage() {
     async (boardId: string | null) => {
       if (!movingItemId) return;
 
-      if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
-        const item = items.find((i) => i.id === movingItemId);
-        if (item && item.boardId) {
-          await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
-          const allItems = await getAllItems();
-          const updatedItem = allItems.find((i) => i.id === movingItemId);
-          if (updatedItem) {
-            await saveItem({ ...updatedItem, boardId: undefined });
+      const idsToMove = movingItemId === '__multi__' ? [...selectedIds] : [movingItemId];
+
+      for (const id of idsToMove) {
+        if (boardId === null) {
+          const item = items.find((i) => i.id === id);
+          if (item && item.boardId) {
+            await removeItemFromBoard(item.boardId, id);
+            const allItems = await getAllItems();
+            const updatedItem = allItems.find((i) => i.id === id);
+            if (updatedItem) await saveItem({ ...updatedItem, boardId: undefined });
           }
+        } else {
+          await addItemToBoard(boardId, id);
         }
-      } else {
-        await addItemToBoard(boardId, movingItemId);
       }
 
       setMovingItemId(null);
+      if (movingItemId === '__multi__') exitSelectionMode();
       // Trigger a soft reload by navigating to the same page
       router.refresh();
     },
@@ -359,6 +392,10 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    selectionMode={selectionMode}
+                    isSelected={selectedIds.has(item.id)}
+                    onLongPress={enterSelectionMode}
+                    onSelect={toggleSelect}
                   />
                 </motion.div>
               ))}
@@ -443,6 +480,47 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Multi-select floating action bar */}
+      <AnimatePresence>
+        {selectionMode && (
+          <motion.div
+            key="select-bar"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            className="fixed bottom-20 left-4 right-4 z-[2100] bg-gray-900 dark:bg-gray-800 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3"
+          >
+            <button
+              type="button"
+              onClick={exitSelectionMode}
+              className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <span className="text-xs text-gray-500 flex-1 text-center">
+              {selectedIds.size} selected
+            </span>
+            <button
+              type="button"
+              onClick={handleMoveSelectedToBoard}
+              disabled={selectedIds.size === 0}
+              className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-40"
+            >
+              Move to board
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.size === 0}
+              className="text-sm font-semibold text-red-400 hover:text-red-300 transition-colors disabled:opacity-40"
+            >
+              Delete ({selectedIds.size})
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 

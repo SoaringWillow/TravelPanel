@@ -15,6 +15,11 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  // Multi-select support
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onLongPress?: (id: string) => void;
+  onSelect?: (id: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -41,6 +46,10 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  selectionMode = false,
+  isSelected = false,
+  onLongPress,
+  onSelect,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -179,7 +188,19 @@ export default function InboxCard({
     day: 'numeric',
   });
 
-  return <SwipeableCard item={item} date={date} onDelete={onDelete} onViewOnMap={onViewOnMap} onMoveToBoard={onMoveToBoard} />;
+  return (
+    <SwipeableCard
+      item={item}
+      date={date}
+      onDelete={onDelete}
+      onViewOnMap={onViewOnMap}
+      onMoveToBoard={onMoveToBoard}
+      selectionMode={selectionMode}
+      isSelected={isSelected}
+      onLongPress={onLongPress}
+      onSelect={onSelect}
+    />
+  );
 }
 
 // ─── Swipeable wrapper for the done-state card ────────────────────────────────
@@ -190,15 +211,33 @@ function SwipeableCard({
   onDelete,
   onViewOnMap,
   onMoveToBoard,
+  selectionMode = false,
+  isSelected = false,
+  onLongPress,
+  onSelect,
 }: {
   item: SavedItem;
   date: string;
   onDelete: (id: string) => void;
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onLongPress?: (id: string) => void;
+  onSelect?: (id: string) => void;
 }) {
   const x = useMotionValue(0);
   const [swiped, setSwiped] = useState(false);
+  const longPressTimer = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  function handlePointerDown() {
+    if (selectionMode) return;
+    const t = setTimeout(() => onLongPress?.(item.id), 500);
+    longPressTimer[1](t);
+  }
+  function cancelLongPress() {
+    if (longPressTimer[0]) { clearTimeout(longPressTimer[0]); longPressTimer[1](null); }
+  }
 
   // Delete button opacity: visible when x < -60
   const deleteOpacity = useTransform(x, [-80, -60], [1, 0]);
@@ -218,22 +257,45 @@ function SwipeableCard({
   if (swiped) return null;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden">
-      {/* Delete background revealed on swipe */}
-      <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-2xl">
-        <motion.div style={{ opacity: deleteOpacity, scale: deleteScale }} className="flex flex-col items-center gap-1">
-          <Trash2 size={20} color="white" />
-          <span className="text-white text-xs font-semibold">Delete</span>
-        </motion.div>
-      </div>
+    <div className={`relative rounded-2xl overflow-hidden ${selectionMode && isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}>
+      {/* In selection mode: invisible tap-to-select overlay + checkbox */}
+      {selectionMode && (
+        <>
+          <button
+            type="button"
+            onClick={() => onSelect?.(item.id)}
+            className="absolute inset-0 z-20 w-full h-full"
+            aria-label={isSelected ? 'Deselect' : 'Select'}
+          />
+          <div
+            className="absolute top-2 left-2 z-30 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-sm pointer-events-none"
+            style={{ background: isSelected ? '#4f46e5' : 'rgba(0,0,0,0.4)' }}
+          >
+            {isSelected && <span style={{ color: 'white', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>✓</span>}
+          </div>
+        </>
+      )}
 
-      {/* Card content — drags left */}
+      {/* Delete background revealed on swipe (hidden in selection mode) */}
+      {!selectionMode && (
+        <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-2xl">
+          <motion.div style={{ opacity: deleteOpacity, scale: deleteScale }} className="flex flex-col items-center gap-1">
+            <Trash2 size={20} color="white" />
+            <span className="text-white text-xs font-semibold">Delete</span>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Card content — drags left (disabled in selection mode) */}
       <motion.div
-        drag="x"
+        drag={selectionMode ? false : 'x'}
         dragConstraints={{ left: -160, right: 0 }}
         dragElastic={{ left: 0.2, right: 0 }}
-        onDragEnd={handleDragEnd}
-        style={{ x }}
+        onDragEnd={!selectionMode ? handleDragEnd : undefined}
+        style={{ x: selectionMode ? 0 : x }}
+        onPointerDown={handlePointerDown}
+        onPointerUp={cancelLongPress}
+        onPointerMove={cancelLongPress}
         className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden cursor-grab active:cursor-grabbing"
       >
       {/* Thumbnail or placeholder */}
