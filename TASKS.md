@@ -200,7 +200,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: Ship a beautiful, crash-free iOS app that passes App Store review. These tasks transform the functional MVP into a polished, native-feeling product.
 
 ### D1 — Haptic Feedback
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `lib/haptics.ts`, `app/share/page.tsx`, `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`  
 **What to do**:
 - Create `lib/haptics.ts` wrapping `@capacitor/haptics` (already a Capacitor plugin): `feedback(style: 'light'|'medium'|'heavy'|'success'|'warning'|'error')` that no-ops on web

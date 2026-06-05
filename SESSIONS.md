@@ -102,3 +102,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 19:36 | 5f877c9 | feat: C1 On-Trip GPS Mode — live location dot + nearby clips panel
 2026-06-05 19:38 | ca6794d | feat: C2 Post-Trip Timeline — per-board trip journal with wisdom surfaced
 2026-06-05 19:40 | 11ceb61 | feat: C3 Shared Boards v1 — URL-encoded shareable board links
+2026-06-05 19:42 | 28b5917 | feat: C4 Proactive Resurfacing — smart banner surfaces nearby/seasonal/daily clips
+2026-06-05 19:44 | fc7bee7 | chore: add Phases D/E/F to TASKS.md — iOS polish, cloud, growth

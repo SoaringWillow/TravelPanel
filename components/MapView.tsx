@@ -9,6 +9,7 @@ import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 import { GeoPosition } from '@/hooks/useGeolocation';
+import { feedback } from '@/lib/haptics';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -338,6 +339,7 @@ export default function MapView({ items, onPinClick, flyTo, userPosition, flyToU
                 item={item}
                 locName={location.name}
                 onClick={() => {
+                  feedback('light');
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);
                 }}
