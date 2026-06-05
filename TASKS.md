@@ -601,7 +601,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only show the stat if the board has at least 1 substance item (don't show "0 tips")
 
 ### J5 — Clip activity feed on home page
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`  
 **What to do**:
 - The bottom drawer currently shows "5 most recent clips" (implemented in G2)
@@ -614,7 +614,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - If no activity this week, show: "No clips this week — share something!"
 
 ### J6 — Map pin pulse animation for newly added clip
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`  
 **What to do**:
 - When a new clip is saved and has locations, the map flies to the first pin (already implemented)

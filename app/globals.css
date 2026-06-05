@@ -66,6 +66,20 @@
   display: none;
 }
 
+/* Pin pulse animation — played once when a new clip is saved */
+@keyframes pin-pulse {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.5); }
+  40%  { transform: scale(1); }
+  60%  { transform: scale(1.4); }
+  80%  { transform: scale(1); }
+  90%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.pin-pulse {
+  animation: pin-pulse 1.5s ease-in-out 1;
+}
+
 /* iOS safe area utilities */
 .safe-top    { padding-top:    env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

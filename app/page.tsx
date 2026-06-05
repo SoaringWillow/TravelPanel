@@ -34,11 +34,21 @@ function HomePageInner() {
   const [showSearch, setShowSearch]     = useState(false);
   const [searchQuery, setSearchQuery]   = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [newestItemId, setNewestItemId] = useState<string | undefined>(undefined);
 
   // 5 most recent enriched items for the bottom drawer
   const recentClips = items
     .filter((i) => i.enrichmentStatus === 'done')
     .slice(0, 5);
+
+  // Weekly activity stats (last 7 days)
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const weeklyItems = items.filter((i) => i.savedAt && i.savedAt > weekAgo);
+  const weeklyStats = {
+    clips: weeklyItems.length,
+    places: weeklyItems.reduce((sum, i) => sum + (i.locations?.length ?? 0), 0),
+    tips: weeklyItems.reduce((sum, i) => sum + (i.substance?.length ?? 0), 0),
+  };
 
   // Live search results across all items
   const searchResults = searchQuery.trim()
@@ -95,6 +105,8 @@ function HomePageInner() {
     setPrefilledUrl('');
     if (item.locations.length > 0) {
       setFlyTo(item.locations[0]);
+      setNewestItemId(item.id);
+      setTimeout(() => setNewestItemId(undefined), 2000);
     }
   }
 
@@ -108,7 +120,7 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} newestItemId={newestItemId} />
 
       {/* Empty map state — show when no enriched pins exist */}
       {!loading && !hasAnyPins && (
@@ -333,6 +345,36 @@ function HomePageInner() {
               </motion.div>
             </div>
           </button>
+
+          {/* Weekly activity stats */}
+          {!loading && (
+            <div className="px-4 pb-2">
+              {weeklyStats.clips > 0 ? (
+                <div className="flex items-center gap-3 bg-indigo-50 rounded-xl px-3 py-2">
+                  <span className="text-xs font-medium text-indigo-700">
+                    📅 This week:
+                  </span>
+                  <span className="text-xs text-indigo-600 font-semibold">
+                    {weeklyStats.clips} clip{weeklyStats.clips !== 1 ? 's' : ''}
+                  </span>
+                  {weeklyStats.places > 0 && (
+                    <span className="text-xs text-indigo-500">
+                      · {weeklyStats.places} place{weeklyStats.places !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {weeklyStats.tips > 0 && (
+                    <span className="text-xs text-indigo-500">
+                      · 💡 {weeklyStats.tips}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                  <span className="text-xs text-gray-400">No clips this week — share something!</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Clip row */}
           {recentClips.length > 0 ? (

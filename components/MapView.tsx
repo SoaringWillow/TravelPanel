@@ -113,9 +113,10 @@ interface PinProps {
   locName: string;
   onClick: () => void;
   onLongPress?: () => void;
+  pulse?: boolean;
 }
 
-function Pin({ item, locName, onClick, onLongPress }: PinProps) {
+function Pin({ item, locName, onClick, onLongPress, pulse }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,7 +130,7 @@ function Pin({ item, locName, onClick, onLongPress }: PinProps) {
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }} className={pulse ? 'pin-pulse' : undefined}>
       {/* Hover label */}
       {hovered && (
         <div
@@ -274,9 +275,10 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  newestItemId?: string;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, newestItemId }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const [substancePeek, setSubstancePeek] = useState<SubstancePeekInfo | null>(null);
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
@@ -403,6 +405,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <Pin
                 item={item}
                 locName={location.name}
+                pulse={newestItemId === item.id}
                 onClick={() => {
                   setSubstancePeek(null);
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
