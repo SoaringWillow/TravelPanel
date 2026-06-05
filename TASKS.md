@@ -164,7 +164,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 **What to do**: Embed clip descriptions + substance text on save; semantic search via pgvector similarity.
 
 ### E6 — iOS App Icon Generation Guide
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **What to do**: Create `ios/App/App/Assets.xcassets/AppIcon.appiconset/generate.js` that generates all required iOS icon sizes (20×20 to 1024×1024) from the SVG source in `browser-extension/icons/`. Write a one-command setup guide in `ios/App/ShareExtension/XCODE_SETUP.md`.
 
 ---
