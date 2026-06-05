@@ -10,6 +10,7 @@ import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rate
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { scheduleTripStartNotification } from '@/lib/notifications';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -145,6 +146,10 @@ export default function PlanPage() {
               await saveTrip(trip);
               setSavedTrips((prev) => [...prev, trip]);
               setCurrentTripId(trip.id);
+              // Schedule a "trip starts today" notification for tomorrow as a placeholder
+              // (user would set their actual start date in a future version)
+              const tomorrow = Date.now() + 24 * 60 * 60 * 1000;
+              scheduleTripStartNotification(board?.name ?? 'Your trip', board?.emoji ?? '🗺', tomorrow);
             }
           }
           if (msg.t === 'plan') {

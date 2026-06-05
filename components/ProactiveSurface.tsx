@@ -6,6 +6,7 @@ import { X, Sparkles, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAllBoards, getTripsForBoard } from '@/lib/db';
 import { Board } from '@/lib/types';
+import { maybeScheduleUnplannedBoardsReminder } from '@/lib/notifications';
 
 const DISMISSED_KEY = 'tp_proactive_dismissed_at';
 const DISMISS_COOLDOWN_MS = 8 * 60 * 60 * 1000; // 8 hours
@@ -48,6 +49,8 @@ export default function ProactiveSurface() {
           setBoard({ ...b, itemCount: b.itemIds.length });
           // Delay slightly so the map loads first
           setTimeout(() => setVisible(true), 2500);
+          // Schedule a weekly "you have unplanned boards" notification
+          maybeScheduleUnplannedBoardsReminder(nonDemo.length);
           return;
         }
       }

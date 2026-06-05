@@ -311,7 +311,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE F — App Store & Production Readiness
 
 ### F1 — Capacitor Local Notifications
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Needs**: `@capacitor/local-notifications` (add to package.json)  
 **What to do**:
 - On trip plan generation: schedule a local notification for the first day of the trip ("Your Tokyo trip starts today! Tap to open your itinerary")
