@@ -7,11 +7,12 @@ import { Board } from '@/lib/types';
 interface BoardCardProps {
   board: Board;
   itemCount: number;
+  substanceCount?: number;
   onClick: () => void;
   onDelete?: () => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, substanceCount = 0, onClick, onDelete }: BoardCardProps) {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -42,10 +43,17 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
           {board.name}
         </h3>
 
-        {/* Item count */}
-        <p className="text-sm text-gray-400">
-          {itemCount} place{itemCount !== 1 ? 's' : ''}
-        </p>
+        {/* Item count + wisdom count */}
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-gray-400">
+            {itemCount} place{itemCount !== 1 ? 's' : ''}
+          </p>
+          {substanceCount > 0 && (
+            <span className="text-xs text-amber-500 font-medium">
+              💡 {substanceCount}
+            </span>
+          )}
+        </div>
 
         {/* Delete button bottom-right */}
         {onDelete && (

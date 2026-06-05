@@ -45,6 +45,15 @@ export default function BoardsPage() {
     return board ? board.itemIds.length : 0;
   }
 
+  function getSubstanceCount(boardId: string): number {
+    const board = boards.find((b) => b.id === boardId);
+    if (!board) return 0;
+    return board.itemIds.reduce((sum, id) => {
+      const item = items.find((i) => i.id === id);
+      return sum + (item?.substance?.length ?? 0);
+    }, 0);
+  }
+
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
   }
@@ -156,6 +165,7 @@ export default function BoardsPage() {
                   <BoardCard
                     board={board}
                     itemCount={getItemCount(board.id)}
+                    substanceCount={getSubstanceCount(board.id)}
                     onClick={() => router.push(`/boards/${board.id}`)}
                     onDelete={() => handleDelete(board.id)}
                   />

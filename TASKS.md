@@ -592,7 +592,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Also add a "Reuse latest plan" quick action below the Plan trip button when savedTrips.length > 0 — navigates to plan page with the most recent trip pre-loaded
 
 ### J4 — Substance count on board cards in Collections list
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx`  
 **What to do**:
 - Each board card in the Collections grid currently shows item count and location count
