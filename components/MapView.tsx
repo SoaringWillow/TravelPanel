@@ -92,9 +92,10 @@ interface PinProps {
 function Pin({ item, locName, onClick }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
+  const isVisited = !!item.visitedAt;
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', opacity: isVisited ? 0.55 : 1 }}>
       {/* Hover label */}
       {hovered && (
         <div
@@ -183,6 +184,20 @@ function Pin({ item, locName, onClick }: PinProps) {
         >
           {emoji ?? ''}
         </button>
+      )}
+
+      {/* Visited checkmark badge */}
+      {isVisited && (
+        <div style={{
+          position: 'absolute', bottom: -4, right: -4,
+          width: 14, height: 14, borderRadius: '50%',
+          background: '#10b981', border: '1.5px solid white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 8, color: 'white', fontWeight: 700, lineHeight: 1,
+          pointerEvents: 'none',
+        }}>
+          ✓
+        </div>
       )}
     </div>
   );

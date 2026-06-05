@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { X, MapPin, StickyNote } from 'lucide-react';
+import { X, MapPin, StickyNote, CheckCircle2, Circle } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SavedItem } from '@/lib/types';
 import { saveItem } from '@/lib/db';
@@ -16,10 +16,14 @@ interface LocationDetailCardProps {
 
 export default function LocationDetailCard({ item, onClose, onItemUpdated }: LocationDetailCardProps) {
   const [notes, setNotes] = useState(item.notes ?? '');
+  const [visited, setVisited] = useState(!!item.visitedAt);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync local state if item changes (e.g., parent re-renders with a different item)
-  useEffect(() => { setNotes(item.notes ?? ''); }, [item.id, item.notes]);
+  useEffect(() => {
+    setNotes(item.notes ?? '');
+    setVisited(!!item.visitedAt);
+  }, [item.id, item.notes, item.visitedAt]);
 
   const persistNotes = useCallback(async (value: string) => {
     const updated = { ...item, notes: value || undefined };
@@ -37,6 +41,14 @@ export default function LocationDetailCard({ item, onClose, onItemUpdated }: Loc
   function handleNotesBlur() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     persistNotes(notes);
+  }
+
+  async function toggleVisited() {
+    const next = !visited;
+    setVisited(next);
+    const updated = { ...item, visitedAt: next ? Date.now() : undefined, notes: notes || undefined };
+    await saveItem(updated);
+    onItemUpdated?.(updated);
   }
 
   return (
@@ -72,14 +84,32 @@ export default function LocationDetailCard({ item, onClose, onItemUpdated }: Loc
                 {item.title}
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-              aria-label="Close"
-            >
-              <X size={18} className="text-gray-500 dark:text-gray-400" />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                type="button"
+                onClick={toggleVisited}
+                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full transition-all ${
+                  visited
+                    ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+                aria-label={visited ? 'Mark as not visited' : 'Mark as visited'}
+              >
+                {visited
+                  ? <CheckCircle2 size={13} />
+                  : <Circle size={13} />
+                }
+                {visited ? 'Visited' : 'Visit'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                aria-label="Close"
+              >
+                <X size={18} className="text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
           </div>
 
           {/* ── Scrollable body ──────────────────────────────────────────── */}

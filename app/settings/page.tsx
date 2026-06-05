@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Database, Map, Inbox, LayoutGrid, ChevronRight, Sun, Moon, Monitor } from 'lucide-react';
+import { Download, Database, Map, Inbox, LayoutGrid, ChevronRight, Sun, Moon, Monitor, CheckCircle2 } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getAllTrips } from '@/lib/db';
 import { exportAllData, downloadJSON } from '@/lib/exportData';
@@ -11,6 +11,7 @@ interface Stats {
   items: number;
   boards: number;
   trips: number;
+  visited: number;
 }
 
 export default function SettingsPage() {
@@ -21,7 +22,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     Promise.all([getAllItems(), getAllBoards(), getAllTrips()]).then(([items, boards, trips]) => {
-      setStats({ items: items.length, boards: boards.length, trips: trips.length });
+      setStats({
+        items: items.length,
+        boards: boards.length,
+        trips: trips.length,
+        visited: items.filter((i) => i.visitedAt).length,
+      });
     });
   }, []);
 
@@ -57,10 +63,11 @@ export default function SettingsPage() {
         {/* Data stats */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
           <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Your data</p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <StatTile icon={<Inbox size={16} className="text-indigo-500" />} label="Clips" value={stats?.items ?? '—'} />
             <StatTile icon={<LayoutGrid size={16} className="text-indigo-500" />} label="Boards" value={stats?.boards ?? '—'} />
             <StatTile icon={<Map size={16} className="text-indigo-500" />} label="Plans" value={stats?.trips ?? '—'} />
+            <StatTile icon={<CheckCircle2 size={16} className="text-emerald-500" />} label="Visited" value={stats?.visited ?? '—'} />
           </div>
         </div>
 

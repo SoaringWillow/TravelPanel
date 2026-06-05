@@ -47,6 +47,7 @@ export interface SavedItem {
   substance: SubstanceItem[]; // wisdom layer — tips, warnings, opinions from the post
   savedAt: number;
   notes?: string;
+  visitedAt?: number;
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)

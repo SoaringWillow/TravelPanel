@@ -273,7 +273,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Include `notes` in the JSON data export (already passes through with the full item)
 
 ### E2 — Visit Tracking (Mark as Visited)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/types.ts`, `lib/db.ts`, `components/LocationDetailCard.tsx`, `components/MapView.tsx`  
 **What to do**:
 - Add `visitedAt?: number` to `SavedItem`
