@@ -397,7 +397,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a brief "Copied!" toast (2s auto-dismiss)
 
 ### G7 — Settings: show build info, feedback link, rate limits
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/settings/page.tsx`  
 **What to do**:
 - Add "App info" section: version string from `package.json`, link to GitHub issues for feedback

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Trash2, Database, Info, CheckCircle2, XCircle } from 'lucide-react';
+import { Download, Trash2, Database, Info, CheckCircle2, XCircle, Zap, ExternalLink } from 'lucide-react';
 import { getAllItems, getAllBoards, getTripsForBoard } from '@/lib/db';
 import { SavedItem, Board, Trip } from '@/lib/types';
+import { checkEnrichmentLimit, checkPlanLimit, formatResetsIn } from '@/lib/rateLimits';
 import NavBar from '@/components/NavBar';
 
 interface ExportData {
@@ -22,8 +23,21 @@ interface Stats {
   substanceItems: number;
 }
 
+interface UsageRow {
+  remaining: number;
+  resetsAt: number;
+  used: number;
+  total: number;
+}
+
+interface Usage {
+  enrich: UsageRow;
+  plan: UsageRow;
+}
+
 export default function SettingsPage() {
   const [stats, setStats]         = useState<Stats | null>(null);
+  const [usage, setUsage]         = useState<Usage | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exported, setExported]   = useState(false);
 
@@ -38,6 +52,13 @@ export default function SettingsPage() {
         trips: trips.length,
         locations: items.reduce((n, i) => n + (i.locations?.length ?? 0), 0),
         substanceItems: items.reduce((n, i) => n + (i.substance?.length ?? 0), 0),
+      });
+
+      const enrichLim = checkEnrichmentLimit();
+      const planLim   = checkPlanLimit();
+      setUsage({
+        enrich: { remaining: enrichLim.remaining, resetsAt: enrichLim.resetsAt, used: 10 - enrichLim.remaining, total: 10 },
+        plan:   { remaining: planLim.remaining,   resetsAt: planLim.resetsAt,   used: 5  - planLim.remaining,  total: 5  },
       });
     };
     load().catch(() => {});
@@ -175,6 +196,51 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* ── Usage limits ── */}
+        {usage && (
+          <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-50">
+              <div className="flex items-center gap-2">
+                <Zap size={16} className="text-amber-400" />
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Usage Limits</h2>
+              </div>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {([
+                { label: 'AI enrichment', sublabel: 'per hour', row: usage.enrich },
+                { label: 'Trip planning', sublabel: 'per day',  row: usage.plan   },
+              ] as const).map(({ label, sublabel, row }) => {
+                const pct = row.total > 0 ? (row.used / row.total) * 100 : 0;
+                const isExhausted = row.remaining === 0;
+                return (
+                  <div key={label} className="px-5 py-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="text-sm font-medium text-gray-800">{label}</span>
+                        <span className="text-xs text-gray-400 ml-1.5">{sublabel}</span>
+                      </div>
+                      <span className={`text-sm font-semibold tabular-nums ${isExhausted ? 'text-red-500' : 'text-gray-700'}`}>
+                        {row.remaining}/{row.total}
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${isExhausted ? 'bg-red-400' : pct > 60 ? 'bg-amber-400' : 'bg-indigo-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    {row.used > 0 && (
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        {isExhausted ? 'Limit reached — ' : ''}Resets in {formatResetsIn(row.resetsAt)}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* ── About ── */}
         <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="divide-y divide-gray-50">
@@ -186,6 +252,18 @@ export default function SettingsPage() {
               <span className="text-sm text-gray-600">Storage</span>
               <span className="text-sm text-gray-400">On-device (IndexedDB)</span>
             </div>
+            <a
+              href="https://github.com/SoaringWillow/TravelPanel/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-sm text-gray-600">Send feedback</span>
+              <div className="flex items-center gap-1.5 text-indigo-500">
+                <span className="text-xs">GitHub Issues</span>
+                <ExternalLink size={13} />
+              </div>
+            </a>
           </div>
         </section>
 
