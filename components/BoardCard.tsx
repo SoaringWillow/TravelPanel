@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Board } from '@/lib/types';
@@ -29,16 +30,23 @@ function ThumbnailMosaic({ urls }: { urls: string[] }) {
   return (
     <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-2xl">
       {cells.map((url, i) => (
-        <div key={i} className="bg-gray-100 overflow-hidden">
+        <div key={i} className="bg-gray-100 overflow-hidden relative">
           {url ? (
-            <img
+            <Image
               src={url}
               alt=""
-              className="w-full h-full object-cover"
-              onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.background = '#f3f4f6'; e.currentTarget.style.display = 'none'; }}
+              fill
+              unoptimized
+              className="object-cover"
+              sizes="25vw"
+              onError={(e) => {
+                const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                if (parent) parent.style.background = '#f3f4f6';
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
             />
           ) : (
-            <div className="w-full h-full bg-gray-100" />
+            <div className="w-full h-full bg-gray-100 dark:bg-gray-800" />
           )}
         </div>
       ))}
@@ -63,8 +71,8 @@ export default function BoardCard({ board, itemCount, thumbnails = [], onClick, 
         <ThumbnailMosaic urls={thumbnails} />
       ) : board.coverThumbnail ? (
         <>
-          <img src={board.coverThumbnail} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-white/80" />
+          <Image src={board.coverThumbnail} alt="" fill unoptimized className="object-cover" sizes="50vw" />
+          <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80" />
         </>
       ) : null}
 

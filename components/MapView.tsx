@@ -150,9 +150,10 @@ function Pin({ item, locName, onClick }: PinProps) {
           <img
             src={item.thumbnail}
             alt=""
+            loading="lazy"
+            decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             onError={(e) => {
-              // Fallback: hide image, show emoji circle instead
               (e.currentTarget.closest('button') as HTMLButtonElement).style.display = 'none';
             }}
           />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, StickyNote } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -50,13 +51,16 @@ function Thumbnail({ item }: { item: SavedItem }) {
     <div className="w-full h-32 relative bg-gray-100 overflow-hidden">
       {/* Skeleton shown until image loads */}
       {!loaded && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
-      <img
-        src={item.thumbnail}
+      <Image
+        src={item.thumbnail!}
         alt=""
-        className="w-full h-full object-cover transition-opacity duration-300"
+        fill
+        unoptimized
+        className="object-cover transition-opacity duration-300"
         style={{ opacity: loaded ? 1 : 0 }}
         onLoad={() => setLoaded(true)}
         onError={() => setErrored(true)}
+        sizes="(max-width: 768px) 50vw, 33vw"
       />
     </div>
   );

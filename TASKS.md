@@ -328,7 +328,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Provide a script `scripts/generate-icons.sh` using ImageMagick (or Rsvg) for reproducibility
 
 ### F3 — Performance Audit
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - Audit Lighthouse mobile score; target ≥90 Performance
 - Optimize OG:image thumbnails: on enrichment, fetch + store a 400px WebP data URI instead of the full-res URL
