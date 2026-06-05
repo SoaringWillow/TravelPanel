@@ -172,7 +172,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 ## PHASE F — Monetisation Readiness
 
 ### F1 — Pro Tier Gate (Paywall Scaffold)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **What to do**: Add a `isPro` flag to local storage. Gate plan generation beyond 3 plans/day and unlimited enrichments. Show a "TravelPanel Pro" upgrade sheet (no payment integration yet — just the scaffold).
 
 ### F2 — Revenue Cat / StoreKit Integration

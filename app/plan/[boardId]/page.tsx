@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, 
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
+import { FREE_PLANS_PER_DAY } from '@/lib/pro';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { tapLight, tapSuccess, tapWarning } from '@/lib/haptics';
@@ -17,6 +18,7 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import ProUpgradeSheet from '@/components/ProUpgradeSheet';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -42,6 +44,7 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [showProSheet, setShowProSheet] = useState(false);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
@@ -130,11 +133,11 @@ export default function PlanPage() {
     const limit = checkPlanLimit();
     if (!limit.allowed) {
       setPlanLimitError(
-        `You've used all ${5} free plans today. More plans available in ${formatResetsIn(limit.resetsAt)}. ` +
-        `Unlimited plans coming in Pro — stay tuned!`
+        `You've used all ${FREE_PLANS_PER_DAY} free plans today. Resets in ${formatResetsIn(limit.resetsAt)}.`
       );
       track('plan_limit_hit', { boardId });
       tapWarning();
+      setShowProSheet(true);
       return;
     }
 
@@ -747,6 +750,13 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {/* Pro upgrade sheet */}
+      <ProUpgradeSheet
+        open={showProSheet}
+        onClose={() => setShowProSheet(false)}
+        onActivated={() => setPlanLimitError(null)}
+      />
     </div>
   );
 }

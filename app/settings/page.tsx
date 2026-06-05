@@ -5,7 +5,8 @@ import { Download, Trash2, Info, Database, Moon, Bell } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getTripsForBoard, deleteDemoData } from '@/lib/db';
 import { useTheme, type ThemePreference } from '@/hooks/useTheme';
-import { requestNotificationPermission, hasNotificationPermission } from '@/lib/pushNotifications';
+import { requestNotificationPermission } from '@/lib/pushNotifications';
+import { isPro, deactivatePro } from '@/lib/pro';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -72,9 +73,11 @@ export default function SettingsPage() {
   }
 
   const { preference: themePreference, setPreference: setTheme } = useTheme();
+  const [proStatus, setProStatus] = useState(false);
   const [notifPermission, setNotifPermission] = useState<string>('default');
   useEffect(() => {
     if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission);
+    setProStatus(isPro());
   }, []);
   const hasDemoData = (stats?.demoItems ?? 0) + (stats?.demoBoards ?? 0) > 0;
 
@@ -102,6 +105,31 @@ export default function SettingsPage() {
           ) : (
             <div className="px-4 py-6 text-center text-sm text-gray-400 animate-pulse">Loading…</div>
           )}
+        </div>
+
+        {/* Pro tier status */}
+        <div className={`rounded-2xl border overflow-hidden ${proStatus ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'}`}>
+          <div className="px-4 py-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-lg">✨</span>
+                <span className="font-bold text-gray-900">{proStatus ? 'TravelPanel Pro' : 'Free Plan'}</span>
+                {proStatus && <span className="text-xs font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">Active</span>}
+              </div>
+              <p className="text-xs text-gray-500">
+                {proStatus ? 'Unlimited plans · unlimited enrichments' : '3 plans/day · 20 enrichments/hour'}
+              </p>
+            </div>
+            {proStatus ? (
+              <button
+                type="button"
+                onClick={() => { deactivatePro(); setProStatus(false); }}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Deactivate
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {/* Export section */}
