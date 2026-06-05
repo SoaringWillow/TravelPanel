@@ -295,7 +295,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show matched substance snippet in results (not just clip title)
 
 ### E2 — Location Editing on Map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Claude sometimes extracts wrong coordinates. Users need a way to fix a pin by dragging it or searching for the correct place.  
 **Files**: `components/MapView.tsx`, `components/EditClipSheet.tsx`, `lib/db.ts`  
 **What to do**:

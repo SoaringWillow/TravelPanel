@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Check } from 'lucide-react';
-import { SavedItem } from '@/lib/types';
+import { X, Check, MapPin, Pencil } from 'lucide-react';
+import { SavedItem, Location } from '@/lib/types';
 import { updateItem } from '@/lib/db';
 
 const ALL_TAGS = [
@@ -19,11 +19,28 @@ interface EditClipSheetProps {
 }
 
 export default function EditClipSheet({ item, onClose, onSaved }: EditClipSheetProps) {
-  const [title, setTitle]           = useState(item.title);
-  const [description, setDesc]      = useState(item.description);
-  const [notes, setNotes]           = useState(item.notes ?? '');
-  const [tags, setTags]             = useState<Set<string>>(new Set(item.tags));
-  const [saving, setSaving]         = useState(false);
+  const [title, setTitle]                   = useState(item.title);
+  const [description, setDesc]              = useState(item.description);
+  const [notes, setNotes]                   = useState(item.notes ?? '');
+  const [tags, setTags]                     = useState<Set<string>>(new Set(item.tags));
+  const [locations, setLocations]           = useState<Location[]>(item.locations);
+  const [editingLocIdx, setEditingLocIdx]   = useState<number | null>(null);
+  const [locDraft, setLocDraft]             = useState<Location | null>(null);
+  const [saving, setSaving]                 = useState(false);
+
+  function startEditLoc(idx: number) {
+    setEditingLocIdx(idx);
+    setLocDraft({ ...locations[idx] });
+  }
+
+  function saveLocEdit() {
+    if (editingLocIdx === null || !locDraft) return;
+    const next = [...locations];
+    next[editingLocIdx] = locDraft;
+    setLocations(next);
+    setEditingLocIdx(null);
+    setLocDraft(null);
+  }
 
   function toggleTag(tag: string) {
     setTags((prev) => {
@@ -41,6 +58,7 @@ export default function EditClipSheet({ item, onClose, onSaved }: EditClipSheetP
       description: description.trim(),
       notes: notes.trim() || undefined,
       tags: Array.from(tags),
+      locations,
     };
     await updateItem(item.id, updates);
     onSaved({ ...item, ...updates });
@@ -147,6 +165,89 @@ export default function EditClipSheet({ item, onClose, onSaved }: EditClipSheetP
                 })}
               </div>
             </div>
+
+            {/* Locations */}
+            {locations.length > 0 && (
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+                  Locations
+                </label>
+                <div className="space-y-2">
+                  {locations.map((loc, idx) => (
+                    <div key={idx} className="border-2 border-gray-100 rounded-xl overflow-hidden">
+                      {editingLocIdx === idx && locDraft ? (
+                        <div className="p-3 space-y-2 bg-indigo-50">
+                          <input
+                            type="text"
+                            value={locDraft.name}
+                            onChange={(e) => setLocDraft({ ...locDraft, name: e.target.value })}
+                            placeholder="Place name"
+                            className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm outline-none focus:border-indigo-400"
+                          />
+                          <input
+                            type="text"
+                            value={locDraft.address ?? ''}
+                            onChange={(e) => setLocDraft({ ...locDraft, address: e.target.value })}
+                            placeholder="Address (optional)"
+                            className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm outline-none focus:border-indigo-400"
+                          />
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              value={locDraft.lat}
+                              onChange={(e) => setLocDraft({ ...locDraft, lat: parseFloat(e.target.value) || 0 })}
+                              placeholder="Latitude"
+                              step="0.0001"
+                              className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            />
+                            <input
+                              type="number"
+                              value={locDraft.lng}
+                              onChange={(e) => setLocDraft({ ...locDraft, lng: parseFloat(e.target.value) || 0 })}
+                              placeholder="Longitude"
+                              step="0.0001"
+                              className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { setEditingLocIdx(null); setLocDraft(null); }}
+                              className="flex-1 text-xs font-medium py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={saveLocEdit}
+                              className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          <MapPin size={13} className="text-indigo-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-700 truncate">{loc.name}</p>
+                            <p className="text-xs text-gray-400">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => startEditLoc(idx)}
+                            className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors flex-shrink-0"
+                            aria-label="Fix location"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Personal notes */}
             <div>
