@@ -87,7 +87,7 @@ The remaining work focuses on three areas:
 - Show a "Most recent" divider and an "Other boards" divider
 
 ### F5 — Clip Count on Map Pins
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: When a location appears in multiple clips (e.g., "Asakusa" saved 3 times from different posts), the map shows overlapping pins. Adding a count badge clarifies how many clips reference each spot.
 **Files**: `components/MapView.tsx`
 **What to do**:

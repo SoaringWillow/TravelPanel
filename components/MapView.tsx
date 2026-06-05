@@ -7,7 +7,7 @@ import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/mapl
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
-import { useSupercluster } from '@/hooks/useSupercluster';
+import { useSupercluster, GroupEntry } from '@/hooks/useSupercluster';
 import { UserLocation } from '@/hooks/useGeolocation';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
@@ -45,6 +45,7 @@ interface PopupInfo {
   location: Location;
   longitude: number;
   latitude: number;
+  groupItems: GroupEntry[];
 }
 
 interface MapControllerProps {
@@ -86,15 +87,42 @@ function MapController({ flyTo }: MapControllerProps) {
 interface PinProps {
   item: SavedItem;
   locName: string;
+  count: number;
   onClick: () => void;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ item, locName, count, onClick }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
 
   return (
     <div style={{ position: 'relative' }}>
+      {/* Count badge for grouped pins */}
+      {count > 1 && (
+        <div
+          style={{
+            position:        'absolute',
+            top:             -7,
+            right:           -7,
+            background:      '#4f46e5',
+            color:           'white',
+            borderRadius:    10,
+            fontSize:        9,
+            fontWeight:      700,
+            padding:         '1px 4px',
+            minWidth:        16,
+            textAlign:       'center',
+            border:          '1.5px solid white',
+            boxShadow:       '0 1px 4px rgba(0,0,0,0.3)',
+            zIndex:          2,
+            lineHeight:      '14px',
+            pointerEvents:   'none',
+          }}
+        >
+          ×{count}
+        </div>
+      )}
+
       {/* Hover label */}
       {hovered && (
         <div
@@ -348,8 +376,8 @@ export default function MapView({ items, onPinClick, flyTo, userLocation }: MapV
             );
           }
 
-          // ── Individual pin ──
-          const { item, location } = feature.properties;
+          // ── Individual pin (may represent a group) ──
+          const { item, location, groupItems, groupCount } = feature.properties;
           return (
             <Marker
               key={`${item.id}-${location.lat},${location.lng}`}
@@ -360,8 +388,9 @@ export default function MapView({ items, onPinClick, flyTo, userLocation }: MapV
               <Pin
                 item={item}
                 locName={location.name}
+                count={groupCount}
                 onClick={() => {
-                  setPopupInfo({ item, location, longitude: lng, latitude: lat });
+                  setPopupInfo({ item, location, longitude: lng, latitude: lat, groupItems });
                   onPinClick(item);
                 }}
               />
@@ -379,14 +408,55 @@ export default function MapView({ items, onPinClick, flyTo, userLocation }: MapV
             closeOnClick={false}
             offset={[0, -6] as [number, number]}
           >
-            <div className="max-w-[200px] px-1 py-0.5">
-              <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1">
-                {popupInfo.location.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
-                {popupInfo.item.title}
-              </p>
-            </div>
+            {popupInfo.groupItems.length > 1 ? (
+              <div style={{ maxWidth: 220, padding: '4px 2px' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#4f46e5', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {popupInfo.groupItems.length} clips here
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {popupInfo.groupItems.map(({ item: gi, location: gl }, idx) => (
+                    <button
+                      key={`${gi.id}-${idx}`}
+                      type="button"
+                      onClick={() => onPinClick(gi)}
+                      style={{
+                        display:     'flex',
+                        alignItems:  'center',
+                        gap:         6,
+                        background:  'none',
+                        border:      'none',
+                        cursor:      'pointer',
+                        padding:     0,
+                        textAlign:   'left',
+                      }}
+                    >
+                      {gi.thumbnail && (
+                        <img
+                          src={gi.thumbnail}
+                          alt=""
+                          style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }}
+                        />
+                      )}
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: '#1f2937', margin: 0, lineHeight: 1.3 }}
+                           className="line-clamp-1">{gl.name}</p>
+                        <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}
+                           className="line-clamp-1">{gi.title}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="max-w-[200px] px-1 py-0.5">
+                <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1">
+                  {popupInfo.location.name}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
+                  {popupInfo.item.title}
+                </p>
+              </div>
+            )}
           </Popup>
         )}
 
