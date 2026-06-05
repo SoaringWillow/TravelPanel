@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text h1 { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .logo-text p { font-size: 12px; color: #64748b; }
+
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 13px;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #1e293b;
+      background: #f9fafb;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+      background: white;
+    }
+    .input-hint {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 5px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .btn-primary {
+      flex: 1;
+      padding: 9px 16px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary {
+      padding: 9px 16px;
+      background: transparent;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #f1f5f9; }
+
+    .save-status {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #16a34a;
+      min-height: 16px;
+      transition: opacity 0.3s;
+    }
+    .save-status.hidden { opacity: 0; }
+
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .info-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .info-text { font-size: 12px; color: #1d4ed8; line-height: 1.4; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #f1f5f9;
+      margin: 12px 0;
+    }
+
+    .about-row {
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 20px;
+    }
+    .about-row a { color: #6366f1; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="logo-row">
+      <div class="logo">📍</div>
+      <div class="logo-text">
+        <h1>TravelPanel Clipper</h1>
+        <p>Extension Settings</p>
+      </div>
+    </div>
+
+    <!-- Server URL card -->
+    <div class="card">
+      <div class="card-title">TravelPanel Server URL</div>
+      <div class="card-desc">The URL where your TravelPanel app is deployed (Vercel, self-hosted, or localhost).</div>
+
+      <div class="info-row">
+        <span class="info-icon">ℹ️</span>
+        <div class="info-text">
+          Find your deployment URL in Vercel dashboard or use <code>http://localhost:3000</code> for local development.
+        </div>
+      </div>
+
+      <label for="server-url">Server URL</label>
+      <input
+        type="url"
+        id="server-url"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="input-hint">Include <code>https://</code> — no trailing slash needed.</div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="save-btn">Save Settings</button>
+        <button class="btn-secondary" id="test-btn">Test Connection</button>
+      </div>
+      <div class="save-status hidden" id="save-status"></div>
+    </div>
+
+    <!-- Quick-start card -->
+    <div class="card">
+      <div class="card-title">How to use</div>
+      <hr class="divider">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="info-row" style="background:#f0fdf4;border-color:#bbf7d0;">
+          <span class="info-icon">1️⃣</span>
+          <div class="info-text" style="color:#15803d;">Navigate to any travel inspiration page (Instagram, blog, YouTube, etc.)</div>
+        </div>
+        <div class="info-row" style="background:#fef3c7;border-color:#fde68a;">
+          <span class="info-icon">2️⃣</span>
+          <div class="info-text" style="color:#92400e;">Click the 📍 TravelPanel icon in your browser toolbar.</div>
+        </div>
+        <div class="info-row" style="background:#ede9fe;border-color:#c4b5fd;">
+          <span class="info-icon">3️⃣</span>
+          <div class="info-text" style="color:#6d28d9;">Hit "Extract &amp; Clip" — the extension extracts spots AND substance (tips, warnings, wisdom) from the page via AI.</div>
+        </div>
+        <div class="info-row" style="background:#f0fdf4;border-color:#bbf7d0;">
+          <span class="info-icon">4️⃣</span>
+          <div class="info-text" style="color:#15803d;">Save to TravelPanel and it opens in the app, where you can add it to a board.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-row">
+      TravelPanel Clipper v1.0.0
+    </div>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
