@@ -3,13 +3,15 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { enrichItem } from '@/lib/enrichItem';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
@@ -28,8 +30,10 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const THRESHOLD = 64;
+
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -38,6 +42,22 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  const onRefresh = useCallback(async () => {
+    const retryable = items.filter(
+      (i) => i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'failed'
+    );
+    for (const item of retryable) {
+      await enrichItem(item.id, item.url);
+      refreshItem(item.id);
+    }
+    await refresh();
+  }, [items, refreshItem, refresh]);
+
+  const { containerRef, pullY, isPulling, refreshing, handlers } = usePullToRefresh({
+    onRefresh,
+    threshold: THRESHOLD,
+  });
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -139,7 +159,36 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        {...handlers}
+      >
+        {/* Pull-to-refresh indicator */}
+        <div
+          className="flex items-end justify-center overflow-hidden"
+          style={{
+            height: refreshing ? 48 : isPulling ? pullY : 0,
+            transition: isPulling ? 'none' : 'height 0.2s ease-out',
+          }}
+          aria-hidden
+        >
+          <div
+            className="mb-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center"
+            style={{ opacity: refreshing ? 1 : Math.min(pullY / 32, 1) }}
+          >
+            <RefreshCw
+              size={16}
+              className="text-indigo-600"
+              style={
+                refreshing
+                  ? { animation: 'spin 0.8s linear infinite' }
+                  : { transform: `rotate(${(pullY / THRESHOLD) * 360}deg)` }
+              }
+            />
+          </div>
+        </div>
+        <div className="py-4">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -181,6 +230,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
+        </div>
       </div>
 
       {/* Board selector bottom sheet */}

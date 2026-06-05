@@ -250,7 +250,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `apple-mobile-web-app-capable` and `apple-touch-icon` meta tags in `app/layout.tsx`
 
 ### D6 — Pull-to-refresh on Inbox and Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `hooks/usePullToRefresh.ts` (new)  
 **What to do**:
 - Create `hooks/usePullToRefresh.ts`: detects touch overscroll on iOS, triggers a callback, shows a spinner indicator at top

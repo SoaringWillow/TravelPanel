@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+
+const THRESHOLD = 64;
 
 // ── Skeleton card shown while IndexedDB loads ─────────────────────────────────
 function SkeletonCard() {
@@ -23,10 +26,19 @@ function SkeletonCard() {
 }
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    await refreshBoards();
+  }, [refreshBoards]);
+
+  const { containerRef, pullY, isPulling, refreshing, handlers } = usePullToRefresh({
+    onRefresh,
+    threshold: THRESHOLD,
+  });
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -65,7 +77,36 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        {...handlers}
+      >
+        {/* Pull-to-refresh indicator */}
+        <div
+          className="flex items-end justify-center overflow-hidden"
+          style={{
+            height: refreshing ? 48 : isPulling ? pullY : 0,
+            transition: isPulling ? 'none' : 'height 0.2s ease-out',
+          }}
+          aria-hidden
+        >
+          <div
+            className="mb-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center"
+            style={{ opacity: refreshing ? 1 : Math.min(pullY / 32, 1) }}
+          >
+            <RefreshCw
+              size={16}
+              className="text-indigo-600"
+              style={
+                refreshing
+                  ? { animation: 'spin 0.8s linear infinite' }
+                  : { transform: `rotate(${(pullY / THRESHOLD) * 360}deg)` }
+              }
+            />
+          </div>
+        </div>
+        <div className="py-4">
         {boardsLoading ? (
           // Content-shaped skeleton instead of a spinner
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -123,6 +164,7 @@ export default function BoardsPage() {
             </AnimatePresence>
           </motion.div>
         )}
+        </div>
       </div>
 
       {/* Create board modal */}
