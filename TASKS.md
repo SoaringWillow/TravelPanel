@@ -261,7 +261,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test on the Map, Inbox, Boards, Share, Plan, Settings pages
 
 ### D7 — Haptic Feedback on iOS
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS apps feel incomplete without haptic feedback on key actions. It's a small detail that significantly improves the native feel.  
 **Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/LocationDetailCard.tsx`  
 **What to do**:

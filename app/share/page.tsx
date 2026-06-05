@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { hapticSuccess, hapticImpact } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -108,6 +109,7 @@ function SharePageInner() {
 
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    hapticImpact('medium');
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
