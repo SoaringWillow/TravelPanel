@@ -9,12 +9,12 @@
 
 ## ⭐ Current Status (2026-06-05)
 
-All Phase A–C tasks are complete. The app has:
+All Phase A–E tasks are complete. The app has:
 - 2-layer clip extraction (spots + substance) via Claude
 - Enrichment retry queue
 - PostHog analytics + AI cost guards
-- Pin clustering, full-text search, onboarding boards
-- Plan export (PDF + .ics), multi-version plans
+- Pin clustering, full-text search with advanced filters, onboarding boards
+- Plan export (PDF + .ics), multi-version plans, trip collaboration notes
 - Substance "Wisdom view" in clip detail + sourced citations in plans
 - Browser extension (Chrome/Edge/Arc)
 - Claude Vision for Xiaohongshu/WeChat screenshots
@@ -24,9 +24,18 @@ All Phase A–C tasks are complete. The app has:
 - Shareable board links (hash-encoded)
 - Proactive Resurfacing — nearby clips banner
 - Supabase scaffold (dormant, waiting for keys)
+- Dark mode (system-respecting), skeleton loading, pull-to-refresh
+- Swipe-to-delete, haptic feedback, offline detection banner
+- Map style toggle (Streets / Light / Dark), first-launch welcome overlay
+- Multi-select + batch operations, sort options, duplicate URL detection
+- Quick clip from clipboard (web + native iOS), E6 accessibility pass
+- Universal Links + Associated Domains setup
 
-**Phase D** focuses on making the app *beautiful and native-feeling* on iOS.
-**Phase E** adds power features for engaged users.
+**Phase F** focuses on App Store readiness and production hardening.
+
+---
+
+## PHASE F — App Store Readiness & Production Hardening
 
 ---
 
@@ -211,6 +220,85 @@ All Phase A–C tasks are complete. The app has:
 
 ---
 
+## PHASE F — App Store Readiness & Production Hardening
+
+### F1 — App Transport Security (ATS) Hardening
+**Status**: `[x]` Done
+**Why**: `NSAllowsArbitraryLoads = true` in `ios/App/App/Info.plist` globally disables HTTPS enforcement — App Store review will flag this as a security violation.
+**Files to change**: `ios/App/App/Info.plist`
+**What to do**:
+- Remove the top-level `NSAllowsArbitraryLoads: true` key
+- Add `NSExceptionDomains` exception for `localhost` (dev) with `NSTemporaryExceptionAllowsInsecureHTTPLoads: true`
+- Add exceptions for `tiles.openfreemap.org` and `basemaps.cartocdn.com` (map tiles) with `NSExceptionMinimumTLSVersion: TLSv1.2`
+- Leave `NSAllowsLocalNetworking: true` for dev server access
+
+### F2 — Capacitor Navigation Lockdown
+**Status**: `[ ]` Not started
+**Why**: `limitsNavigationsToAppBoundDomains = false` allows the WKWebView to navigate to any URL, breaking App Sandbox and potentially causing App Store rejection.
+**Files to change**: `capacitor.config.ts`
+**What to do**:
+- Set `limitsNavigationsToAppBoundDomains: true` in the iOS server config block
+- Add the deployed Vercel domain and `localhost` to `allowNavigation`
+- Test that deep links (`travelpanel://share?url=...`) still open the share flow
+- Test that external links in clip descriptions open Safari rather than navigating the WKWebView
+
+### F3 — Enrichment Failure UX
+**Status**: `[ ]` Not started
+**Why**: When enrichment fails silently, users don't know if their clip was processed. This kills trust and forces churn.
+**Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx`
+**What to do**:
+- In InboxCard, when `enrichmentStatus === 'failed'`, render an inline amber banner: "⚠️ Couldn't extract places — Retry" with a button that calls `onRetry(item.id, item.url)`
+- In the inbox header count badge, add red dot indicator when any items have `enrichmentStatus === 'failed'`
+- Show "N clips need attention" amber text link in the header that smoothly scrolls to the first failed card
+
+### F4 — Image Lazy Loading & Map Performance
+**Status**: `[ ]` Not started
+**Why**: The inbox with 50+ clips loads all thumbnails eagerly, causing scroll jank on low-end iPhones.
+**Files to change**: `components/InboxCard.tsx`, `components/MapView.tsx`
+**What to do**:
+- Add `loading="lazy"` and `decoding="async"` to all `<img>` tags in InboxCard
+- In MapView, scale `useSupercluster` radius with zoom: zoom < 8 → radius 60, zoom 8-12 → radius 40, zoom > 12 → radius 20
+- Add `will-change: transform` to animated Framer Motion elements in InboxCard swipe layer
+
+### F5 — Clip Sharing (Share-to-iOS)
+**Status**: `[ ]` Not started
+**Why**: Users discover TravelPanel via word-of-mouth. Native share lets them forward clips to friends via iMessage/WhatsApp.
+**Files to change**: `components/LocationDetailCard.tsx`, new `lib/shareClip.ts`
+**What to do**:
+- Create `lib/shareClip.ts` with `shareClip(item: SavedItem)`: calls `navigator.share()` with title + URL + top 2 location names + "Saved with TravelPanel"
+- Fall back to `navigator.clipboard.writeText()` + toast "Copied to clipboard" when `navigator.share` is unavailable
+- Add a Share2 icon button in LocationDetailCard action row (next to "View on map" and "Open original")
+- On Capacitor iOS, `navigator.share()` triggers the native iOS share sheet — no extra packages needed
+
+### F6 — Plan Generation Error Recovery
+**Status**: `[ ]` Not started
+**Why**: If the plan API times out mid-stream, users see a frozen "Analyzing…" state with no escape other than navigating away.
+**Files to change**: `app/plan/[boardId]/page.tsx`, `components/PlannerAgent.tsx`
+**What to do**:
+- Add a 90-second hard timeout on plan fetch: if no `done` step arrives in 90s, call `handleCancel()` and show error toast: "Plan timed out — try reducing days or simplifying preferences"
+- In PlannerAgent, if last step is `type: 'error'`, show red error card with message + "Try again" button
+- Add max 2 retries (2s exponential backoff) for transient network errors in the plan fetch loop
+
+### F7 — Rich Onboarding Seed Data
+**Status**: `[ ]` Not started
+**Why**: Current seed data is minimal. New users need to see real value — clips with substance, locations, and a plan — within 10 seconds of opening the app.
+**Files to change**: `lib/seed.ts`, `components/WelcomeOverlay.tsx`
+**What to do**:
+- In `lib/seed.ts`, enrich the 3 seed boards (Tokyo Weekend, Chengdu Food, Bali Retreat) so each board has 4-6 clips with real `substance` items (tips, warnings, costs) and `locations` arrays
+- In WelcomeOverlay, after choosing "Try with sample boards", show a 3-step tooltip sequence: "📍 Tap a pin" → "📥 Go to Inbox" → "🗓 Tap Plan" that auto-advances every 3 seconds or on tap
+- Persist `hasSeenOnboardingTips: true` in localStorage when sequence completes
+
+### F8 — Dark Mode Map Tiles Auto-Switch
+**Status**: `[ ]` Not started
+**Why**: The map stays on the light tile style even when the device is in dark mode, creating an inconsistent look.
+**Files to change**: `components/MapView.tsx`
+**What to do**:
+- On first load, check `window.matchMedia('(prefers-color-scheme: dark)').matches`; if dark and no stored preference, default to the dark (Carto Dark Matter) style instead of streets
+- Listen to `prefers-color-scheme` media query changes: when user toggles system dark mode, auto-switch between streets↔dark-matter (only if user hasn't manually picked a style in this session)
+- Keep the manual 3-way toggle overriding the auto logic; store manual choice in localStorage as before
+
+---
+
 ## Completed Tasks
 
-*(All Phase A–C tasks — see git history)*
+*(All Phase A–E tasks — see git history)*
