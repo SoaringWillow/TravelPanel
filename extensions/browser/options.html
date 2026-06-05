@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelPanel Clipper – Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="page-header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="10" r="6" fill="#6366f1"/>
+          <circle cx="12" cy="10" r="2.8" fill="white"/>
+          <path d="M10.2 15.2 L12 22 L13.8 15.2" fill="#6366f1"/>
+        </svg>
+        <span>TravelPanel Clipper</span>
+      </div>
+      <p class="page-subtitle">Extension Settings</p>
+    </header>
+
+    <main class="page-main">
+
+      <div class="card">
+        <div class="field">
+          <label for="app-url" class="label">
+            TravelPanel App URL
+            <span class="tag">Required</span>
+          </label>
+          <input
+            type="url"
+            id="app-url"
+            class="input"
+            placeholder="https://your-app.vercel.app"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <p class="field-hint">
+            Your deployed TravelPanel URL. Use <code>http://localhost:3000</code> for local development.
+          </p>
+        </div>
+
+        <div class="form-actions">
+          <button id="save-btn" class="btn-save">Save</button>
+          <span id="save-status" class="save-status"></span>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <p class="info-title">How to use</p>
+        <ol class="info-list">
+          <li>Navigate to any travel content (Instagram, YouTube, blog post, etc.)</li>
+          <li>Click the TravelPanel Clipper icon in your browser toolbar</li>
+          <li>Hit <strong>Clip to TravelPanel</strong> — it opens the save flow in a new tab</li>
+          <li>Pick a board and the AI extracts locations + wisdom automatically</li>
+        </ol>
+      </div>
+
+    </main>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
