@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -134,6 +134,17 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
               </div>
             )}
+
+            {/* Open source URL */}
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+            >
+              <ExternalLink size={14} />
+              Open in {PLATFORM_LABELS[item.platform]}
+            </a>
           </div>
         </div>
       </motion.div>

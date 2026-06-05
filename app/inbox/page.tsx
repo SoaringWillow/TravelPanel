@@ -458,6 +458,14 @@ export default function InboxPage() {
           </div>
         </div>
         <div className="py-4">
+        {/* Filter result count label */}
+        {!loading && (activeTag || sortOrder !== 'newest') && (
+          <p className="text-xs text-gray-400 mb-2">
+            {filtered.length === 0
+              ? 'No clips match — try a different filter'
+              : `Showing ${filtered.length} clip${filtered.length !== 1 ? 's' : ''}`}
+          </p>
+        )}
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

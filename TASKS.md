@@ -651,7 +651,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Button only visible when `recentClips.length > 0`
 
 ### K3 — Open source URL from detail card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`  
 **What to do**:
 - Add an "Open source" button at the bottom of LocationDetailCard
@@ -660,7 +660,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show the platform label in the button: e.g. "Open in Instagram", "Open in YouTube"
 
 ### K4 — Result count label in Inbox filters
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
 - When any filter is active (activeTag is set, or sortOrder is not 'newest'), show a line below the filter chips: "Showing X clips" in gray-400 text
