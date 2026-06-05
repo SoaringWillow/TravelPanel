@@ -161,20 +161,20 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
-**Status**: `[ ]` Not started  
+**Status**: `[~]` Blocked — needs Supabase pgvector (B1 keys)  
 **Needs**: Supabase pgvector (from B1)  
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
@@ -192,6 +192,133 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ### C4 — Proactive Resurfacing
 **Status**: `[ ]` Not started
+
+---
+
+## PHASE D — iOS App Polish & Quality (Current Sprint)
+
+> Goal: Make TravelPanel feel like a native iOS app — fluid, delightful, zero friction on the core clip flow.
+> Priority order: `D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10 → D11 → D12`
+
+### D1 — Clipboard URL Detection in Import Sheet
+**Status**: `[x]` Done  
+**Why**: On mobile, users copy a URL then switch to TravelPanel. Auto-detecting the clipboard URL and offering it as a one-tap suggestion reduces friction on the #1 action.  
+**Files**: `components/ImportSheet.tsx`  
+**What to do**:
+- On sheet open, call `navigator.clipboard.readText()` (with permission fallback)
+- If the clipboard contains a URL, show a "Paste from clipboard" suggestion chip above the input
+- Tapping the chip fills the URL input and auto-triggers import
+- On iOS, clipboard access prompts a system banner — this is expected and acceptable
+
+### D2 — Board Cover Collage
+**Status**: `[ ]` Not started  
+**Why**: Empty-looking board cards give no visual sense of what's inside. Thumbnail collages make boards feel rich and inviting.  
+**Files**: `components/BoardCard.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- In the boards page, compute the first 4 thumbnails for each board from `items` matching `board.itemIds`
+- Pass as `thumbnails: string[]` prop to `BoardCard`
+- Render a 2×2 thumbnail grid as the card background (with overlay for text readability)
+- Fallback to the current emoji + gradient when no thumbnails are available
+
+### D3 — Data Restore / Import from Backup
+**Status**: `[ ]` Not started  
+**Why**: Without restore, the B5 export is write-only. Data loss on device wipe is existential.  
+**Files**: `lib/exportData.ts`, `app/page.tsx` or new `components/RestoreSheet.tsx`  
+**What to do**:
+- Add a file input (hidden, `.json`) next to the export button
+- Parse the `TravelPanelExport` JSON schema
+- Validate version + structure before importing
+- Merge strategy: skip items/boards already present by `id`, add new ones
+- Show a success toast: "Restored X clips, Y boards"
+
+### D4 — Swipe-to-Delete on Inbox Cards
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect swipe-left to reveal delete. The current flow requires tapping into a detail view.  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Wrap `InboxCard` with a swipe gesture (use `@use-gesture/react` or a simple touch handler)
+- Swipe left reveals a red "Delete" action button  
+- Swipe fully left triggers delete directly (with a 1s undo toast)
+- Use `framer-motion` `drag` for smooth animation
+
+### D5 — Haptic Feedback on Key Actions
+**Status**: `[ ]` Not started  
+**Why**: Haptic feedback is a hallmark of native iOS quality. Currently the app is silent on all interactions.  
+**Files**: `lib/haptics.ts` (new), call sites in share/page.tsx, ImportSheet.tsx  
+**What to do**:
+- Create `lib/haptics.ts` with `hapticLight()`, `hapticMedium()`, `hapticSuccess()`, `hapticError()` wrappers
+- Use `@capacitor/haptics` when in native context, no-op in browser
+- Fire haptics on: clip saved ✓, plan generated ✓, delete confirmed ✓, import error ✗
+- Import and call at relevant points
+
+### D6 — Board Detail Page Search + Sort
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- Add a search bar to the board detail page (reuse `SearchBar` component)
+- Add a sort dropdown: by date saved, by location count, by substance count
+- Sort state persists only in-session (no need for localStorage)
+
+### D7 — Trip Sharing via Shareable Link
+**Status**: `[ ]` Not started  
+**Why**: Users want to share itineraries with travel companions. Currently plans only export to PDF/ICS.  
+**Files**: `app/plan/[boardId]/page.tsx`, new `app/plan/[boardId]/share/route.ts`  
+**What to do**:
+- Generate a read-only shareable URL: encode the TripPlan as compressed base64 in the URL hash
+- "Share" button on the plan view creates the URL and copies to clipboard
+- Anyone with the link can view the plan in a read-only version of the plan page
+- No server required — all data in the URL
+
+### D8 — Offline Detection & Graceful Degradation
+**Status**: `[ ]` Not started  
+**Files**: `hooks/useOnlineStatus.ts` (new), `components/OfflineBanner.tsx` (new)  
+**What to do**:
+- `useOnlineStatus()` hook using `navigator.onLine` + window events
+- Show a subtle "Offline — clips are still saved locally" banner at top when offline
+- Disable the "Clip" button and show "No internet — paste URL for later" when offline
+- Map tiles still load from the browser cache
+
+### D9 — App Icon Asset Generation
+**Status**: `[ ]` Not started  
+**Why**: The app uses the default Capacitor icon. A custom icon is required for App Store submission and makes the app feel polished.  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, new `scripts/generate-app-icons.js`  
+**What to do**:
+- Design a 1024×1024 master icon (indigo gradient map pin, same as browser extension)
+- Generate all iOS icon sizes (20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024) using `sharp`
+- Output to the Xcode asset catalog path with correct `Contents.json`
+- Update splash screen image similarly
+
+### D10 — Board Statistics View
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- At the top of a board detail page, show a stats strip: total clips, total locations pinned, total substance items, total trips planned
+- Tap a stat to scroll to the relevant section
+
+### D11 — Batch Operations (Select / Move / Delete)
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Long-press on any card enters "select mode" (checkbox appears on all cards)
+- Floating action bar appears at bottom: "Move to board" / "Delete" / "Cancel"
+- "Move to board" shows a board picker sheet
+- Confirm delete shows count: "Delete 3 clips?"
+
+### D12 — Substance-Only View (Wisdom Feed)
+**Status**: `[ ]` Not started  
+**Why**: The substance items are the moat. A dedicated "Wisdom Feed" view — all tips/warnings/wisdom from all clips, chronologically — surfaces the value of the substance layer in a new context.  
+**Files**: new `app/wisdom/page.tsx`, update `components/NavBar.tsx`  
+**What to do**:
+- New page at `/wisdom` listing all substance items across all clips
+- Filter by type: tip, warning, opinion, wisdom, context, recommendation
+- Each item shows the source clip title + "from your clip" attribution
+- Add "Wisdom" tab to NavBar (replace or add next to existing tabs)
+
+---
+
+## PHASE C — On-Trip Mode (Future)
+
+*(Previously listed above — moving to end of file to keep priority order)*
 
 ---
 

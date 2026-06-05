@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="url(#grad)"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Map pin -->
+  <path
+    d="M64 22C50.745 22 40 32.745 40 46c0 19.25 24 60 24 60s24-40.75 24-60c0-13.255-10.745-24-24-24z"
+    fill="white"
+    opacity="0.95"
+  />
+  <!-- Pin hole -->
+  <circle cx="64" cy="46" r="8.5" fill="#4f46e5"/>
+
+  <!-- Airplane silhouette (small, top-right of pin area) -->
+  <g transform="translate(78,24) rotate(45) scale(0.7)" opacity="0.85">
+    <path d="M10 0L2 9H0L3 12L8 10L7 16L9 17L11 12L16 10L19 12L20 9Z" fill="white"/>
+  </g>
+</svg>
