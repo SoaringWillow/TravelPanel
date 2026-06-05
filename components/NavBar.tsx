@@ -57,6 +57,7 @@ export default function NavBar({ active }: NavBarProps) {
       </AnimatePresence>
 
       <nav
+        aria-label="Main navigation"
         className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md safe-bottom"
         style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
       >
@@ -67,6 +68,7 @@ export default function NavBar({ active }: NavBarProps) {
               <Link
                 key={key}
                 href={href}
+                aria-current={isActive ? 'page' : undefined}
                 className={`flex-1 flex flex-col items-center py-2 transition-colors relative ${
                   isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
                 }`}

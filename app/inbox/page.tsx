@@ -293,6 +293,9 @@ export default function InboxPage() {
             {/* Sheet */}
             <motion.div
               key="sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="move-to-board-title"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -307,10 +310,11 @@ export default function InboxPage() {
 
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3">
-                <h3 className="font-semibold text-gray-800">Move to board</h3>
+                <h3 id="move-to-board-title" className="font-semibold text-gray-800">Move to board</h3>
                 <button
                   type="button"
                   onClick={() => setMovingItemId(null)}
+                  aria-label="Close"
                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X size={18} />

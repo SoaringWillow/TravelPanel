@@ -139,7 +139,7 @@ function HomePageInner() {
                     className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
                   />
                   {searchQuery && (
-                    <button type="button" onClick={() => setSearchQuery('')} className="text-gray-400">
+                    <button type="button" onClick={() => setSearchQuery('')} className="text-gray-400" aria-label="Clear search">
                       <X size={14} />
                     </button>
                   )}

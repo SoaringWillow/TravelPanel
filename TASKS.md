@@ -428,7 +428,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Pages should be accessible without authentication and share the app's visual design
 
 ### H2 — Accessibility audit: aria-labels on all interactive elements
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `app/plan/[boardId]/page.tsx`, `components/NavBar.tsx`, `components/ImportSheet.tsx`, `components/InboxCard.tsx`, `components/MapView.tsx`  
 **What to do**:
 - Add `aria-label` to every icon-only button (search, close, back, settings, add, copy, export, etc.)

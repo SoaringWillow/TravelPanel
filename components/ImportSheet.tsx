@@ -217,6 +217,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               />
               <input
                 type="url"
+                aria-label="Social media URL to clip"
                 value={url}
                 onChange={(e) => {
                   setUrl(e.target.value);
@@ -382,10 +383,14 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
               {/* Notes */}
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                <label
+                  htmlFor="clip-personal-notes"
+                  className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block"
+                >
                   Personal notes
-                </p>
+                </label>
                 <textarea
+                  id="clip-personal-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add notes about this place…"
