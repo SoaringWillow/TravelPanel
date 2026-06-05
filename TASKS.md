@@ -399,7 +399,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show extraction result as an expandable preview with tabs: Spots | Tips | Details
 
 ### G3 — Clip Full-Screen Detail View
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `app/clips/[id]/page.tsx`  
 **What to do**:
 - Full-screen view for a single saved clip

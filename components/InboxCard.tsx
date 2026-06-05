@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
@@ -264,6 +265,7 @@ function SwipeableCard({
         onDragEnd={handleDragEnd}
         className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative z-10 cursor-grab active:cursor-grabbing"
       >
+      <Link href={`/clips/${item.id}`} className="block">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -336,8 +338,11 @@ function SwipeableCard({
           </div>
         )}
 
+      </div>
+      </Link>
+
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 px-4 pb-4">
           <span className="text-xs text-gray-400">{date}</span>
 
           <div className="flex items-center gap-1">
@@ -384,7 +389,6 @@ function SwipeableCard({
             </button>
           </div>
         </div>
-      </div>
       </motion.div>
     </div>
   );
