@@ -304,7 +304,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On save: update the location coordinates in the item
 
 ### E3 — Trip Day Editing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: AI-generated plans are a great starting point but users need to adjust them. Move activities between days, add/remove stops.  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:

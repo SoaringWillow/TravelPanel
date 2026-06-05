@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Trash2, MoveRight, MessageSquarePlus } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -38,6 +38,10 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [editedPlan, setEditedPlan] = useState<TripPlan | null>(null);
+  const [activityNotes, setActivityNotes] = useState<Record<string, string>>({});
+  const [editingNote, setEditingNote] = useState<string | null>(null);
+  const [movingActivity, setMovingActivity] = useState<{ dayIdx: number; actIdx: number } | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -60,6 +64,47 @@ export default function PlanPage() {
     }
     load();
   }, [boardId]);
+
+  // Sync editedPlan when a new plan arrives
+  useEffect(() => {
+    if (planIsComplete(plan)) {
+      setEditedPlan(JSON.parse(JSON.stringify(plan)));
+      setActivityNotes({});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan]);
+
+  const planIsComplete = (p: Partial<TripPlan> | null): p is TripPlan =>
+    !!p && Array.isArray(p.days) && p.days.length > 0;
+
+  async function autoSaveEditedPlan(updated: TripPlan) {
+    if (!currentTripId) return;
+    const trip = savedTrips.find((t) => t.id === currentTripId);
+    if (!trip) return;
+    const updatedTrip = { ...trip, plan: updated };
+    await saveTrip(updatedTrip);
+    setSavedTrips((prev) => prev.map((t) => (t.id === currentTripId ? updatedTrip : t)));
+  }
+
+  function removeActivity(dayIdx: number, actIdx: number) {
+    if (!editedPlan) return;
+    const next: TripPlan = JSON.parse(JSON.stringify(editedPlan));
+    next.days[dayIdx].activities.splice(actIdx, 1);
+    setEditedPlan(next);
+    autoSaveEditedPlan(next);
+  }
+
+  function moveActivityToDay(fromDay: number, actIdx: number, toDay: number) {
+    if (!editedPlan) return;
+    const next: TripPlan = JSON.parse(JSON.stringify(editedPlan));
+    const [act] = next.days[fromDay].activities.splice(actIdx, 1);
+    next.days[toDay].activities.push(act);
+    setEditedPlan(next);
+    setMovingActivity(null);
+    autoSaveEditedPlan(next);
+  }
+
+  function noteKey(dayIdx: number, actIdx: number) { return `${dayIdx}-${actIdx}`; }
 
   const itemsWithLocations = boardItems.filter((item) => item.locations.length > 0);
   const hasLocations = itemsWithLocations.length > 0;
@@ -163,14 +208,12 @@ export default function PlanPage() {
     setStage('idle');
     setSteps([]);
     setPlan(null);
+    setEditedPlan(null);
+    setActivityNotes({});
     setActiveDayIndex(0);
     setSelectedChips(new Set());
     setCustomNotes('');
   }, []);
-
-  // Export is only meaningful for a fully-formed plan (days + activities present).
-  const planIsComplete = (p: Partial<TripPlan> | null): p is TripPlan =>
-    !!p && Array.isArray(p.days) && p.days.length > 0;
 
   const handleExportPDF = useCallback(async () => {
     if (!planIsComplete(plan) || !board) return;
@@ -505,61 +548,141 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Active day activities */}
-              {activeDayPlan && (
+              {/* Active day activities — from editedPlan so edits are reflected */}
+              {editedPlan?.days?.[activeDayIndex] && (
                 <div className="space-y-3">
                   <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    Day {activeDayIndex + 1} — {editedPlan.days[activeDayIndex].theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                  {editedPlan.days[activeDayIndex].activities.map((activity, aIdx) => {
+                    const nk = noteKey(activeDayIndex, aIdx);
+                    const isEditingNote = editingNote === nk;
+                    return (
+                      <div
+                        key={aIdx}
+                        className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.time}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-indigo-600 truncate">
+                              {activity.location.name}
+                            </p>
+                            <p className="text-sm text-gray-800">{activity.name}</p>
+                          </div>
+                          <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.duration}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeActivity(activeDayIndex, aIdx)}
+                            className="flex-shrink-0 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            aria-label="Remove activity"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
 
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                        {activity.tips.length > 0 && (
+                          <ul className="space-y-0.5 pl-1">
+                            {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                              <li key={tIdx} className="text-xs text-gray-500 leading-snug">
+                                · {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
 
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                        {/* Sourced tips — wisdom cited from the user's own clips */}
+                        {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                          <div className="space-y-1 pt-1">
+                            {activity.sourcedTips.map((st, sIdx) => (
+                              <div
+                                key={sIdx}
+                                className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                              >
+                                <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
+                                <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
+                                  from your clip: {st.sourceTitle}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* User note */}
+                        {activityNotes[nk] && !isEditingNote && (
+                          <div className="bg-amber-50 rounded-lg px-2.5 py-1.5 text-xs text-amber-800 italic">
+                            📝 {activityNotes[nk]}
+                          </div>
+                        )}
+                        {isEditingNote && (
+                          <div className="space-y-1.5">
+                            <textarea
+                              autoFocus
+                              value={activityNotes[nk] ?? ''}
+                              onChange={(e) => setActivityNotes((prev) => ({ ...prev, [nk]: e.target.value }))}
+                              rows={2}
+                              placeholder="Add a personal note…"
+                              className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-amber-400 resize-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setEditingNote(null)}
+                              className="text-xs font-medium text-amber-700 hover:text-amber-900"
                             >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
+                              Done
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Activity actions */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingNote(isEditingNote ? null : nk)}
+                            className="flex items-center gap-1 text-[10px] font-medium text-gray-400 hover:text-amber-600 transition-colors"
+                          >
+                            <MessageSquarePlus size={11} />
+                            {activityNotes[nk] ? 'Edit note' : 'Add note'}
+                          </button>
+
+                          {editedPlan.days.length > 1 && (
+                            <div className="relative ml-auto">
+                              <button
+                                type="button"
+                                onClick={() => setMovingActivity(movingActivity?.dayIdx === activeDayIndex && movingActivity.actIdx === aIdx ? null : { dayIdx: activeDayIndex, actIdx: aIdx })}
+                                className="flex items-center gap-1 text-[10px] font-medium text-gray-400 hover:text-indigo-600 transition-colors"
+                              >
+                                <MoveRight size={11} />
+                                Move day
+                              </button>
+                              {movingActivity?.dayIdx === activeDayIndex && movingActivity.actIdx === aIdx && (
+                                <div className="absolute right-0 bottom-6 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex gap-1.5 z-10">
+                                  {editedPlan.days.map((_, dIdx) => {
+                                    if (dIdx === activeDayIndex) return null;
+                                    return (
+                                      <button
+                                        key={dIdx}
+                                        type="button"
+                                        onClick={() => moveActivityToDay(activeDayIndex, aIdx, dIdx)}
+                                        className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                      >
+                                        Day {dIdx + 1}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
-                          ))}
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
