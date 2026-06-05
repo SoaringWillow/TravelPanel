@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Clock } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Clock, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
@@ -237,6 +237,24 @@ export default function PlanPage() {
   ];
 
   const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
+  const [dayCopied, setDayCopied] = useState(false);
+
+  function handleCopyDay() {
+    if (!activeDayPlan) return;
+    const lines: string[] = [
+      `Day ${activeDayIndex + 1} — ${activeDayPlan.theme}`,
+      '',
+    ];
+    for (const act of activeDayPlan.activities) {
+      lines.push(`${act.time}  ${act.name} @ ${act.location.name} (${act.duration})`);
+      for (const tip of act.tips.slice(0, 2)) lines.push(`  · ${tip}`);
+      for (const st of act.sourcedTips ?? []) lines.push(`  💡 "${st.content}" — ${st.sourceTitle}`);
+    }
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setDayCopied(true);
+      setTimeout(() => setDayCopied(false), 2000);
+    });
+  }
 
   if (loadingBoard) {
     return (
@@ -576,9 +594,23 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-gray-700">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={handleCopyDay}
+                      className="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-indigo-600 transition-colors px-2 py-1 rounded-lg hover:bg-indigo-50"
+                      aria-label="Copy day plan"
+                    >
+                      {dayCopied ? (
+                        <><Check size={12} className="text-green-500" /><span className="text-green-500">Copied!</span></>
+                      ) : (
+                        <><Copy size={12} /><span>Copy</span></>
+                      )}
+                    </button>
+                  </div>
 
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div

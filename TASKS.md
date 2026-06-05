@@ -389,7 +389,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - If clipboard has nothing URL-like, show "No URL in clipboard" toast
 
 ### G6 — Plan: copy day plan to clipboard
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
 **What to do**:
 - Add a "Copy" icon button on each day strip card in the plan
