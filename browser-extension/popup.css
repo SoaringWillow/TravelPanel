@@ -1,0 +1,229 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+.container {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.logo-icon { font-size: 18px; }
+
+.logo-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  color: #64748b;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.icon-btn:hover {
+  color: #94a3b8;
+  background: #1e293b;
+}
+
+/* ── Page info card ─────────────────────────────────────────────────────── */
+
+.page-info {
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #334155;
+  border-top-color: #60a5fa;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 6px;
+}
+
+.page-favicon {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.page-title {
+  font-weight: 600;
+  color: #f1f5f9;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.page-url {
+  font-size: 11px;
+  color: #475569;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 7px;
+  width: fit-content;
+}
+
+.chip-instagram { background: #4a1942; color: #f0abfc; }
+.chip-youtube   { background: #450a0a; color: #fca5a5; }
+.chip-xhs       { background: #4a0d0d; color: #fca5a5; }
+.chip-douyin    { background: #0d0d2e; color: #a5b4fc; }
+.chip-tiktok    { background: #0d0d2e; color: #a5b4fc; }
+.chip-bilibili  { background: #0a1a2a; color: #93c5fd; }
+.chip-twitter   { background: #0a1e2e; color: #7dd3fc; }
+.chip-other     { background: #1a2818; color: #86efac; }
+
+/* ── Configure prompt ──────────────────────────────────────────────────── */
+
+.configure-prompt {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.configure-prompt p {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.configure-btn {
+  padding: 7px 16px;
+  background: #1e3a5f;
+  color: #60a5fa;
+  border: 1px solid #1d4ed8;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.configure-btn:hover { background: #1e3a6f; }
+
+/* ── Blocked page notice ───────────────────────────────────────────────── */
+
+.blocked-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* ── Clip button ───────────────────────────────────────────────────────── */
+
+.actions { display: flex; gap: 8px; }
+
+.clip-btn {
+  flex: 1;
+  padding: 11px 12px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: -0.01em;
+}
+
+.clip-btn:hover:not(:disabled) { background: #1d4ed8; }
+.clip-btn:active:not(:disabled) { transform: scale(0.97); }
+.clip-btn:disabled { background: #1e293b; color: #475569; cursor: not-allowed; }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: #475569;
+  min-height: 14px;
+}
+
+.status-error   { color: #f87171; }
+.status-success { color: #4ade80; }
