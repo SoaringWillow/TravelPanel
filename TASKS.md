@@ -358,7 +358,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Measure: board_shared → board_imported conversion rate in PostHog
 
 ### F4 — Smart Auto-Collections
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `lib/autoCollect.ts`, `app/boards/page.tsx`  
 **What to do**:
 - Analyze all clips on app open and automatically group them into smart collections:
