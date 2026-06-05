@@ -78,7 +78,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - If fetch fails / times out, show nothing (don't break the flow)
 
 ### D5 — Offline Mode Banner
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users on a plane or in rural areas lose connectivity. Showing "offline" status prevents frustration when clip/enrich silently fails.  
 **Files**: `app/layout.tsx` or a new `components/OfflineBanner.tsx`  
 **What to do**:
