@@ -12,10 +12,10 @@ import { checkEnrichmentLimit, checkPlanLimit } from '@/lib/rateLimits';
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-6">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest px-4 mb-1.5">
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-4 mb-1.5">
         {title}
       </p>
-      <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 overflow-hidden mx-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden mx-4">
         {children}
       </div>
     </div>
@@ -43,21 +43,21 @@ function Row({
       onClick={onClick}
       disabled={!onClick}
       className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${
-        onClick ? 'hover:bg-gray-50 active:bg-gray-100' : 'cursor-default'
+        onClick ? 'hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700' : 'cursor-default'
       }`}
     >
       <div
         className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          danger ? 'bg-red-100' : 'bg-indigo-100'
+          danger ? 'bg-red-100 dark:bg-red-900/30' : 'bg-indigo-100 dark:bg-indigo-900/30'
         }`}
       >
-        <Icon size={16} className={danger ? 'text-red-600' : 'text-indigo-600'} />
+        <Icon size={16} className={danger ? 'text-red-600' : 'text-indigo-600 dark:text-indigo-400'} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${danger ? 'text-red-600' : 'text-gray-900'}`}>{label}</p>
-        {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+        <p className={`text-sm font-medium ${danger ? 'text-red-600' : 'text-gray-900 dark:text-gray-100'}`}>{label}</p>
+        {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{subtitle}</p>}
       </div>
-      {right ?? (onClick && <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />)}
+      {right ?? (onClick && <ChevronRight size={16} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />)}
     </button>
   );
 }
@@ -114,11 +114,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-24">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-14 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">TravelPanel v1.0</p>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-14 pb-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">TravelPanel v1.0</p>
       </div>
 
       <div className="mt-6">
@@ -130,7 +130,7 @@ export default function SettingsPage() {
             subtitle="Resets every hour"
             onClick={undefined}
             right={
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                 {enrichUsed} / 10
               </span>
             }
@@ -141,7 +141,7 @@ export default function SettingsPage() {
             subtitle="Resets daily"
             onClick={undefined}
             right={
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                 {planUsed} / 5
               </span>
             }
@@ -186,7 +186,7 @@ export default function SettingsPage() {
             icon={Info}
             label="Version"
             onClick={undefined}
-            right={<span className="text-xs text-gray-400 font-mono">1.0.0</span>}
+            right={<span className="text-xs text-gray-400 dark:text-gray-500 font-mono">1.0.0</span>}
           />
         </Section>
       </div>

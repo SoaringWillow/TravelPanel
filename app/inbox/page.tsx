@@ -46,8 +46,8 @@ function TimelineView({ items, onItemClick }: { items: SavedItem[]; onItemClick:
     return (
       <div className="flex flex-col items-center justify-center h-60 text-center">
         <div className="text-5xl mb-4">📅</div>
-        <h3 className="font-semibold text-gray-700 mb-2">No clips yet</h3>
-        <p className="text-sm text-gray-500">Your travel journal will appear here as you clip content.</p>
+        <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">No clips yet</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Your travel journal will appear here as you clip content.</p>
       </div>
     );
   }
@@ -55,7 +55,7 @@ function TimelineView({ items, onItemClick }: { items: SavedItem[]; onItemClick:
   return (
     <div className="relative pl-10">
       {/* Vertical line */}
-      <div className="absolute left-[18px] top-2 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 via-indigo-100 to-transparent" />
+      <div className="absolute left-[18px] top-2 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 via-indigo-100 to-transparent dark:from-indigo-800 dark:via-indigo-900" />
 
       {groups.map(({ dateLabel, items: dayItems }) => (
         <div key={dateLabel} className="mb-6">
@@ -64,7 +64,7 @@ function TimelineView({ items, onItemClick }: { items: SavedItem[]; onItemClick:
             <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center shadow-md z-10 flex-shrink-0">
               <Clock size={15} color="white" />
             </div>
-            <span className="text-sm font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
+            <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-full">
               {dateLabel}
             </span>
           </div>
@@ -78,7 +78,7 @@ function TimelineView({ items, onItemClick }: { items: SavedItem[]; onItemClick:
                 onClick={() => onItemClick(item)}
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="w-full text-left bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex gap-3 hover:border-indigo-200 hover:shadow-md transition-all active:scale-[0.98]"
+                className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-3 flex gap-3 hover:border-indigo-200 dark:hover:border-indigo-700 hover:shadow-md transition-all active:scale-[0.98]"
               >
                 {/* Thumbnail */}
                 {item.thumbnail ? (
@@ -99,7 +99,7 @@ function TimelineView({ items, onItemClick }: { items: SavedItem[]; onItemClick:
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-snug">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 leading-snug">
                     {item.title}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -110,19 +110,19 @@ function TimelineView({ items, onItemClick }: { items: SavedItem[]; onItemClick:
                       {PLATFORM_LABELS[item.platform]}
                     </span>
                     {item.locations.length > 0 && (
-                      <span className="text-xs text-gray-500">📍 {item.locations.length}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">📍 {item.locations.length}</span>
                     )}
                     {(item.substance?.length ?? 0) > 0 && (
-                      <span className="text-xs text-gray-500">💡 {item.substance!.length}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">💡 {item.substance!.length}</span>
                     )}
                   </div>
                   {item.description && (
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-1">{item.description}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 line-clamp-1">{item.description}</p>
                   )}
                 </div>
 
                 {/* Time */}
-                <div className="text-xs text-gray-300 flex-shrink-0 mt-0.5">
+                <div className="text-xs text-gray-300 dark:text-gray-600 flex-shrink-0 mt-0.5">
                   {new Date(item.savedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </motion.button>
@@ -217,31 +217,31 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">{viewMode === 'timeline' ? '📅' : '📥'}</span>
-          <h1 className="text-xl font-bold text-gray-800">
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">
             {viewMode === 'timeline' ? 'Journey' : 'Inbox'}
           </h1>
           {viewMode === 'cards' && (
-            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+            <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
               {inboxItems.length} unsorted
             </span>
           )}
           {viewMode === 'timeline' && (
-            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+            <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
               {timelineItems.length} clips
             </span>
           )}
 
           {/* View mode toggle */}
-          <div className="ml-auto flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
+          <div className="ml-auto flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 gap-0.5">
             <button
               type="button"
               onClick={() => setViewMode('cards')}
-              className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
               title="Cards view"
             >
               <LayoutGrid size={14} />
@@ -249,7 +249,7 @@ export default function InboxPage() {
             <button
               type="button"
               onClick={() => setViewMode('timeline')}
-              className={`p-1.5 rounded-md transition-all ${viewMode === 'timeline' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'timeline' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
               title="Timeline view"
             >
               <Clock size={14} />
@@ -277,7 +277,7 @@ export default function InboxPage() {
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-indigo-300'
                 }`}
               >
                 {p.label} ({count})
@@ -309,10 +309,10 @@ export default function InboxPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
+            <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">
               {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
                 : activePlatform === 'all'
@@ -366,21 +366,21 @@ export default function InboxPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white dark:bg-gray-900 rounded-t-3xl"
               style={{ maxHeight: 300 }}
             >
               {/* Handle */}
               <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full" />
               </div>
 
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3">
-                <h3 className="font-semibold text-gray-800">Move to board</h3>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100">Move to board</h3>
                 <button
                   type="button"
                   onClick={() => setMovingItemId(null)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -393,7 +393,7 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => handleBoardSelect(null)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                   >
                     <span>📥</span>
                     <span>Inbox (unassign)</span>
@@ -405,7 +405,7 @@ export default function InboxPage() {
                       key={board.id}
                       type="button"
                       onClick={() => handleBoardSelect(board.id)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                     >
                       <span>{board.emoji}</span>
                       <span>{board.name}</span>
@@ -413,7 +413,7 @@ export default function InboxPage() {
                   ))}
 
                   {boards.length === 0 && (
-                    <p className="text-sm text-gray-400 py-2">
+                    <p className="text-sm text-gray-400 dark:text-gray-500 py-2">
                       No boards yet. Create one from the Boards tab.
                     </p>
                   )}

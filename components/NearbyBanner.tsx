@@ -27,12 +27,12 @@ export default function NearbyBanner({ results, onItemClick }: NearbyBannerProps
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.96 }}
             transition={{ type: 'spring', damping: 22, stiffness: 320 }}
-            className="bg-white rounded-2xl shadow-xl border border-indigo-100 overflow-hidden"
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-indigo-100 dark:border-indigo-800 overflow-hidden"
           >
             <button
               type="button"
               onClick={() => onItemClick(result.item.id)}
-              className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               {/* Thumbnail */}
               {result.item.thumbnail ? (
@@ -43,7 +43,7 @@ export default function NearbyBanner({ results, onItemClick }: NearbyBannerProps
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                 />
               ) : (
-                <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0">
                   <MapPin size={18} className="text-indigo-500" />
                 </div>
               )}
@@ -51,17 +51,17 @@ export default function NearbyBanner({ results, onItemClick }: NearbyBannerProps
               {/* Text */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded-full">
                     📍 {result.distanceM} m away
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-gray-900 line-clamp-1">
+                <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
                   {result.locationName}
                 </p>
-                <p className="text-xs text-gray-400 line-clamp-1">{result.item.title}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{result.item.title}</p>
               </div>
 
-              <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+              <ChevronRight size={16} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />
             </button>
 
             {/* Dismiss */}
@@ -71,7 +71,7 @@ export default function NearbyBanner({ results, onItemClick }: NearbyBannerProps
                 e.stopPropagation();
                 setDismissed((prev) => new Set([...prev, result.item.id]));
               }}
-              className="absolute top-2 right-2 p-1 text-gray-300 hover:text-gray-500 rounded-full hover:bg-gray-100 transition-colors"
+              className="absolute top-2 right-2 p-1 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               aria-label="Dismiss"
             >
               <X size={12} />
@@ -82,7 +82,7 @@ export default function NearbyBanner({ results, onItemClick }: NearbyBannerProps
 
       {/* More indicator */}
       {visible.length > 1 && (
-        <p className="text-xs text-center text-gray-400 mt-1.5 font-medium">
+        <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-1.5 font-medium">
           +{visible.length - 1} more nearby
         </p>
       )}
