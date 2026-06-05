@@ -144,7 +144,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - URL normalization: strip `?utm_*`, `&utm_*`, trailing slashes, `www.` prefix
 
 ### E5 — Enrichment Progress Indicator in Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
 **What to do**:
 - Items with `enrichmentStatus: 'processing'` should show a subtle progress shimmer animation

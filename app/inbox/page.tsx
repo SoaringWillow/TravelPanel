@@ -55,6 +55,9 @@ export default function InboxPage() {
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
+  const processingCount = items.filter(
+    (i) => i.enrichmentStatus === 'processing' || i.enrichmentStatus === 'pending'
+  ).length;
 
   const platformFiltered =
     activePlatform === 'all'
@@ -145,6 +148,16 @@ export default function InboxPage() {
             );
           })}
         </div>
+
+        {/* Enrichment progress banner */}
+        {processingCount > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 border-b border-indigo-100">
+            <Loader2 size={12} className="text-indigo-500 animate-spin flex-shrink-0" />
+            <span className="text-xs text-indigo-600 font-medium">
+              Extracting {processingCount} clip{processingCount !== 1 ? 's' : ''}…
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
