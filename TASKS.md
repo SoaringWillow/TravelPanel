@@ -89,7 +89,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Banner does NOT block interaction
 
 ### D6 — Pull-to-Refresh on Inbox/Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users intuitively pull-to-refresh on iOS. Currently the inbox doesn't respond.  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:

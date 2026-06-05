@@ -92,8 +92,7 @@ export default function TimelineView({ items, onItemClick }: TimelineViewProps) 
                       >
                         {item.platform === 'xiaohongshu' ? '📕'
                           : item.platform === 'wechat' ? '💬'
-                          : item.platform === 'youtube' ? '▶️'
-                          : item.platform === 'instagram' ? '📸'
+                          : item.platform === 'bilibili' ? '▶️'
                           : '✈️'}
                       </div>
                     )}

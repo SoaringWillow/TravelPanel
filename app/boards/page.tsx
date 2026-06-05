@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid, Clock } from 'lucide-react';
+import { Plus, LayoutGrid, Clock, Loader2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
@@ -13,6 +13,8 @@ import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import { AnimatePresence } from 'framer-motion';
 import { SavedItem } from '@/lib/types';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { runRetryQueue } from '@/lib/retryQueue';
 
 type ViewMode = 'grid' | 'timeline';
 
@@ -23,6 +25,13 @@ export default function BoardsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const handleRefresh = useCallback(async () => {
+    await runRetryQueue();
+    router.refresh();
+  }, [router]);
+  const { pullDistance, refreshing } = usePullToRefresh({ onRefresh: handleRefresh, scrollRef });
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -93,7 +102,20 @@ export default function BoardsPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto pb-24" style={{ overscrollBehaviorY: 'contain' }}>
+        {/* Pull-to-refresh indicator */}
+        {(pullDistance > 0 || refreshing) && (
+          <div
+            className="flex items-center justify-center transition-all duration-150"
+            style={{ height: refreshing ? 48 : pullDistance }}
+          >
+            <Loader2
+              size={20}
+              className={`text-indigo-500 ${refreshing ? 'animate-spin' : ''}`}
+              style={{ opacity: refreshing ? 1 : Math.min(pullDistance / 60, 1) }}
+            />
+          </div>
+        )}
         {viewMode === 'timeline' ? (
           <TimelineView items={items} onItemClick={setSelectedItem} />
         ) : (
