@@ -106,3 +106,18 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 19:44 | fc7bee7 | chore: add Phases D/E/F to TASKS.md — iOS polish, cloud, growth
 2026-06-05 19:45 | 294512e | feat: D1 haptic feedback — Taptic Engine integration throughout app
 2026-06-05 19:46 | e3e1e7d | feat: D2 skeleton loading states — shimmer replaces spinners throughout
+2026-06-05 19:47 | ee5defe | feat: D3 PWA offline mode — MapLibre tile caching + offline banner
+2026-06-05 19:51 | 7bbab66 | D4: add Privacy Policy + Terms of Service pages with Settings links
+2026-06-05 19:51 | 38f5272 | D5: add ErrorBoundary with crash recovery UI and PostHog logging
+2026-06-05 19:53 | b2cb797 | D6: add swipe gestures to InboxCard (iOS Mail-style)
+2026-06-05 19:54 | 81d1e8a | D7: app icon SVG spec + launch screen design for iOS
+2026-06-05 19:56 | b6d37ac | F2: pro tier gating with waitlist capture
+2026-06-05 19:57 | da37d87 | F3: referral loop from shared boards
+2026-06-05 19:58 | dcd456f | F4: smart auto-collections Discover section on Boards page
+2026-06-05 19:59 | ac935a9 | F1: App Store Connect metadata and submission guide
+2026-06-05 20:01 | 198ff0a | G1: first-launch onboarding carousel
+2026-06-05 20:02 | 0ce311f | G7: full-text search across clips with ranked results
+2026-06-05 20:04 | b905b32 | G3: clip full-screen detail view with inline editing
+2026-06-05 20:05 | fd75689 | G5: haptic choreography audit + haptics toggle in Settings
+2026-06-05 20:07 | d609b7d | G4+G6: map clustering (pre-existing), print-friendly plan export
+2026-06-05 20:08 | 874888b | G2: pre-extraction preview in share page
