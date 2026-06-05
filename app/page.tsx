@@ -99,6 +99,7 @@ function HomePageInner() {
           <LocationDetailCard
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            onItemUpdated={(updated) => setSelectedItem(updated)}
           />
         )}
       </AnimatePresence>

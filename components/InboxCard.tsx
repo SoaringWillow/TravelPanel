@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, StickyNote } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -242,6 +242,11 @@ export default function InboxCard({
               <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
                 <MapPin size={10} className="text-indigo-400" />
                 {item.locations.length}
+              </span>
+            )}
+            {item.notes && (
+              <span title="Has a personal note">
+                <StickyNote size={10} className="text-amber-400" />
               </span>
             )}
             <span className="text-[11px] text-gray-300">{date}</span>

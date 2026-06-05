@@ -264,7 +264,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — Feature Completeness
 
 ### E1 — Clip Notes (User Annotations)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/types.ts`, `lib/db.ts`, `components/LocationDetailCard.tsx`  
 **What to do**:
 - Add `notes?: string` to `SavedItem` type
