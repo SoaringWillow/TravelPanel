@@ -1,10 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Download, Upload, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { Download, Upload, CheckCircle2, AlertCircle, ExternalLink, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import NavBar from '@/components/NavBar';
+import ProBadge from '@/components/ProBadge';
 import { exportAllData, importBackup, ImportResult } from '@/lib/exportData';
+import { isProUser, setProUser, PRO_LIMITS } from '@/lib/proStatus';
 
 type ExportState = 'idle' | 'exporting' | 'done' | 'error';
 type ImportState = 'idle' | 'importing' | 'done' | 'error';
@@ -14,7 +16,12 @@ export default function SettingsPage() {
   const [importState, setImportState] = useState<ImportState>('idle');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState('');
+  const [isPro, setIsPro] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIsPro(isProUser());
+  }, []);
 
   async function handleExport() {
     setExportState('exporting');
@@ -152,6 +159,67 @@ export default function SettingsPage() {
               <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 flex items-center gap-2">
                 <AlertCircle size={15} className="flex-shrink-0" />
                 {importError || 'Import failed. Check the file and try again.'}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ── Pro Plan ─────────────────────────────────────────────────────── */}
+        <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pro Plan</h2>
+            {isPro && <ProBadge size="sm" />}
+          </div>
+          <div className="px-5 py-5">
+            {isPro ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                    <Sparkles size={16} className="text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">You&apos;re on Pro</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Unlimited plans &amp; saved trips</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setProUser(false); setIsPro(false); }}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Revert to Free (dev only)
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                    <Sparkles size={16} className="text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Free Plan</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {PRO_LIMITS.plansPerDay} plans/day · {PRO_LIMITS.tripsPerBoard} saved trips per board
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-indigo-50 dark:bg-indigo-950/50 rounded-xl p-4 space-y-2">
+                  <p className="text-xs font-semibold text-indigo-800 dark:text-indigo-300">Pro includes:</p>
+                  <ul className="space-y-1.5 text-xs text-indigo-700 dark:text-indigo-400">
+                    <li>✓ Unlimited trip plans per day</li>
+                    <li>✓ Unlimited saved trips per board</li>
+                    <li>✓ Cloud sync across devices (coming soon)</li>
+                    <li>✓ Shared boards (coming soon)</li>
+                  </ul>
+                </div>
+                <button
+                  type="button"
+                  className="w-full py-3 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                  onClick={() => { setProUser(true); setIsPro(true); }}
+                >
+                  <Sparkles size={15} />
+                  Upgrade to Pro — Coming soon
+                </button>
               </div>
             )}
           </div>

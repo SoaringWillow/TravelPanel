@@ -200,7 +200,7 @@ The remaining work focuses on three areas:
 ## PHASE H — Monetisation Foundation
 
 ### H1 — Pro Tier Gate (UI only, no payment)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Before integrating Stripe, build the UI scaffolding for the Pro tier so the feature gating is already in place when payments go live.
 **Files**: new `lib/proStatus.ts`, `components/ProBadge.tsx`, relevant pages
 **What to do**:

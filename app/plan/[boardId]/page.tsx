@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, 
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
+import { isProUser } from '@/lib/proStatus';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
@@ -112,10 +113,10 @@ export default function PlanPage() {
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
     const limit = checkPlanLimit();
-    if (!limit.allowed) {
+    if (!limit.allowed && !isProUser()) {
       setPlanLimitError(
-        `You've used all ${5} free plans today. More plans available in ${formatResetsIn(limit.resetsAt)}. ` +
-        `Unlimited plans coming in Pro — stay tuned!`
+        `You've used all 5 free plans today. Resets in ${formatResetsIn(limit.resetsAt)}. ` +
+        `Upgrade to Pro for unlimited plans.`
       );
       track('plan_limit_hit', { boardId });
       return;
@@ -171,8 +172,12 @@ export default function PlanPage() {
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
             }
-            // Persist the finished plan as a new named variant.
+            // Persist the finished plan as a new named variant (Pro gate: max 3 per board).
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              const canSave = isProUser() || savedTrips.length < 3;
+              if (!canSave) {
+                track('trip_save_limit_hit', { boardId, count: savedTrips.length });
+              }
               const trip: Trip = {
                 id: crypto.randomUUID(),
                 boardId,
@@ -184,8 +189,10 @@ export default function PlanPage() {
                 plan: latestPlan as TripPlan,
                 createdAt: Date.now(),
               };
-              await saveTrip(trip);
-              setSavedTrips((prev) => [...prev, trip]);
+              if (canSave) {
+                await saveTrip(trip);
+                setSavedTrips((prev) => [...prev, trip]);
+              }
               setCurrentTripId(trip.id);
             }
           }
