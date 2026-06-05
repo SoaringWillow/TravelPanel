@@ -195,6 +195,181 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & App Store Readiness
+
+> Goal: Ship a beautiful, crash-free iOS app that passes App Store review. These tasks transform the functional MVP into a polished, native-feeling product.
+
+### D1 — Haptic Feedback
+**Status**: `[ ]` Not started  
+**Files**: New `lib/haptics.ts`, `app/share/page.tsx`, `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` wrapping `@capacitor/haptics` (already a Capacitor plugin): `feedback(style: 'light'|'medium'|'heavy'|'success'|'warning'|'error')` that no-ops on web
+- On clip save success → `success` haptic
+- On pin tap on map → `light` haptic
+- On board select in share page → `light` haptic
+- On enrichment failure → `warning` haptic
+- On delete item → `medium` haptic
+
+### D2 — Skeleton Loading States
+**Status**: `[ ]` Not started  
+**Files**: New `components/SkeletonCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`  
+**What to do**:
+- Create `SkeletonCard.tsx` with a pulsing shimmer animation (3-line placeholder matching InboxCard proportions)
+- Replace the spinner in InboxPage, BoardsPage, and BoardDetailPage with 6 skeleton cards during loading
+- Implement shimmer via CSS animation (already have `@keyframes` in globals.css — add `shimmer-pulse`)
+- SkeletonCard should match the exact height/layout of InboxCard so content pop-in is seamless
+
+### D3 — PWA / Offline Mode
+**Status**: `[ ]` Not started  
+**Files**: `next.config.js`, new `public/sw.js` or use `next-pwa`  
+**What to do**:
+- Install `next-pwa` and configure in `next.config.js`
+- Cache all static assets + the Next.js app shell
+- Cache the last-fetched MapLibre tiles for offline map browsing
+- Show an "Offline" banner when network is unavailable (`navigator.onLine` + `online`/`offline` events)
+- The share page should queue failed enrichments to retry when back online (already handled by retry queue)
+- Add `public/manifest.json` with proper PWA metadata, icons, theme color (#4f46e5)
+
+### D4 — Privacy Policy + Terms of Service
+**Status**: `[ ]` Not started  
+**Files**: New `app/legal/privacy/page.tsx`, new `app/legal/terms/page.tsx`, `app/settings/page.tsx`  
+**What to do**:
+- Create `/legal/privacy` page with a well-formatted privacy policy covering: data stored locally (IndexedDB), data sent to Anthropic API (URLs + page text), PostHog analytics (anonymous), no account required, no data sold
+- Create `/legal/terms` page with short, friendly ToS
+- Add links to both from the Settings page (About section)
+- These pages must exist for App Store review — Apple requires a privacy policy URL
+
+### D5 — Error Boundaries + Crash Recovery
+**Status**: `[ ]` Not started  
+**Files**: New `components/ErrorBoundary.tsx`, `app/layout.tsx`  
+**What to do**:
+- Create a React ErrorBoundary class component that catches render errors
+- Show a friendly recovery UI: "Something went wrong" + "Restart app" button that calls `window.location.reload()`
+- Wrap the main layout in the error boundary
+- Log errors to PostHog (`track('app_crash', { error: err.message })`)
+- Add a `resetKeys` prop that resets the boundary when route changes
+
+### D6 — Swipe Gestures on Clip Cards (iOS native feel)
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Add swipe-to-delete gesture on InboxCard using `framer-motion` drag constraints
+- Swipe left reveals a red delete zone (trash icon) — release past 60% reveals the delete action
+- Swipe right reveals a "Move to board" action (use existing move-to-board logic)
+- Add a subtle haptic on swipe threshold cross (via D1 haptics lib)
+- Matches iOS Mail/Reminders-style interaction pattern
+
+### D7 — App Icon Polish + Launch Screen
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `ios/App/App/Assets.xcassets/Splash.imageset/`  
+**What to do**:
+- Design the app icon: the indigo 📍 pin logo on a white/gradient background — at minimum generate a production-quality SVG specification that can be rendered at all required iOS sizes (20pt, 29pt, 40pt, 60pt, 76pt, 83.5pt, 1024pt)
+- Create a `public/icon-spec.svg` with the definitive icon vector (so it can be rasterized by any tool)
+- Update the Xcode project's `AppIcon.appiconset/Contents.json` to reference the correct files
+- Specify the launch screen: solid indigo #4f46e5 background + centered white 📍 icon
+
+---
+
+## PHASE E — Authentication & Cloud Activation
+
+> Goal: Activate Supabase to enable cross-device sync, account-based features, and the collaborative roadmap. Blocked on `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+
+### E1 — Activate Supabase B1 (Pending Keys)
+**Status**: `[ ]` Blocked on Supabase keys  
+**Prerequisite**: User provides `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`  
+**What to do** (once keys exist):
+- Create Supabase project at supabase.com → Settings → API → copy keys
+- Run `supabase/schema.sql` in the Supabase SQL editor
+- Add keys to Vercel environment variables
+- Enable Google provider in Supabase Auth dashboard
+- Uncomment/activate the auth UI surface (sign-in button in Settings page)
+- Wire `cloudSync.syncNow()` on: auth state change, app focus event, after item save
+- Test: save a clip on one device, verify it appears on another after sign-in
+
+### E2 — Sign In with Apple
+**Status**: `[ ]` Not started  
+**Prerequisite**: E1 activated  
+**Files**: `app/settings/page.tsx`, `lib/supabase.ts`, `capacitor.config.ts`  
+**What to do**:
+- Install `@capacitor-community/apple-sign-in` Capacitor plugin
+- Add Apple Sign In capability in Xcode (Signing & Capabilities)
+- Add Apple as auth provider in Supabase dashboard
+- In the Settings page, add "Sign in with Apple" button that calls the native Apple Sign In → exchanges token with Supabase → activates cloud sync
+- Required by App Store guidelines if any social sign-in is offered
+
+### E3 — Push Notifications for Resurfacing
+**Status**: `[ ]` Not started  
+**Prerequisite**: E1 activated, native iOS build  
+**Files**: `components/CapacitorBridge.tsx`, new `app/api/push/route.ts`, `ios/App/App/AppDelegate.swift`  
+**What to do**:
+- Install `@capacitor/push-notifications`
+- Request notification permission on first meaningful engagement (not on launch)
+- Register device token with Supabase (store in user profile)
+- Server-side: schedule daily push using Supabase Edge Functions triggered by pg_cron:
+  - "You have 3 saved spots in Tokyo — it's cherry blossom season 🌸"
+  - Uses the C4 seasonal logic but as a server-side push
+- Deep link: push notification opens the app and opens the relevant item
+
+### E4 — Embedding / Vibe Search (B4 — Needs Supabase pgvector)
+**Status**: `[ ]` Blocked on E1  
+**What to do**: 
+- Enable pgvector extension in Supabase
+- On clip save, generate embeddings for: title + substance items combined text
+- Store embedding vector in Supabase `items` table
+- Add a "Vibe Search" mode to SearchBar: "minimalist cafe Tokyo", "hidden beach", "budget street food"
+- Use Supabase's vector similarity search (`<=>` operator) to find matching clips
+- Show vibe search results in a separate "AI Search" section below keyword results
+
+---
+
+## PHASE F — Growth, Monetization & Scale
+
+> Goal: Make TravelPanel a business. These tasks unlock distribution, revenue, and viral loops.
+
+### F1 — App Store Connect Setup
+**Status**: `[ ]` Not started  
+**What to do**:
+- Create app listing in App Store Connect
+- Write app store metadata: name "TravelPanel", subtitle "AI Travel Inspiration", description (highlight: substance over spots, Share Extension, AI planning), keywords
+- Prepare 6.7" and 6.1" iPhone screenshots (5 required): Map view, Clip flow, Substance wisdom view, Trip plan, Shared board
+- App Store category: Travel (primary), Reference (secondary)
+- Age rating: 4+ (no objectionable content)
+- Privacy policy URL: `https://your-app.vercel.app/legal/privacy`
+- Prepare TestFlight build for internal testing
+
+### F2 — Pro Tier Gating (Soft Paywall)
+**Status**: `[ ]` Not started  
+**Files**: New `lib/pro.ts`, `app/api/plan/route.ts`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Create `lib/pro.ts` with `isPro(): boolean` that checks a Supabase subscription flag (initially always false — builds the infrastructure)
+- Gate: unlimited plan generation (free = 3/month), Vision extraction (free = 5/month), shared board imports (free = 10/month)
+- When limit hit: "You've reached the free limit. TravelPanel Pro — coming soon" interstitial with email capture
+- Capture interested emails in a Supabase `waitlist` table
+- This builds a waitlist before the paywall goes live
+
+### F3 — Referral Loop from Shared Boards
+**Status**: `[ ]` Not started  
+**Files**: `lib/shareBoard.ts`, `app/import-board/page.tsx`  
+**What to do**:
+- Add `referrer` field to the shared board URL (user's anonymous ID from PostHog)
+- On import, track `board_imported` event with referrer to PostHog
+- Show "Made with TravelPanel — Get it free" banner at the bottom of the import-board page
+- Link to the App Store (or web app) with UTM tracking
+- Measure: board_shared → board_imported conversion rate in PostHog
+
+### F4 — Smart Auto-Collections
+**Status**: `[ ]` Not started  
+**Files**: New `lib/autoCollect.ts`, `app/boards/page.tsx`  
+**What to do**:
+- Analyze all clips on app open and automatically group them into smart collections:
+  - By region: cluster location coordinates into geographic groups (Tokyo, Kyoto, Bali, etc.)
+  - By cuisine tag: clips tagged "food" grouped by region
+  - By substance type: all clips with "warning" substance → "Avoid These Mistakes" collection
+- Show auto-collections in a new "Discover" section at the top of the Boards page (distinct from user-created boards, non-destructive — just views)
+- Auto-collections update when new clips are saved
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
