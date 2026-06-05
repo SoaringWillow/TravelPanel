@@ -464,7 +464,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - If seed demo boards are present (A8), onboarding seeds them before dismissal
 
 ### H5 — Share Extension completion UI
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/ShareExtension/ShareViewController.swift`  
 **What to do**:
 - After the extension writes the URL/image to App Group storage and calls `openApp()`, show a brief in-extension confirmation:

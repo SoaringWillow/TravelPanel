@@ -21,14 +21,151 @@ class ShareViewController: UIViewController {
     // App Group suite — must match the identifier in Xcode capabilities.
     private let appGroupSuite = "group.com.travelpanel.app"
 
+    // ── Completion card ───────────────────────────────────────────────────────
+    private lazy var overlayView: UIView = {
+        let v = UIView()
+        v.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.alpha = 0
+        return v
+    }()
+
+    private lazy var cardView: UIView = {
+        let v = UIView()
+        v.backgroundColor = .systemBackground
+        v.layer.cornerRadius = 20
+        v.layer.shadowColor = UIColor.black.cgColor
+        v.layer.shadowOpacity = 0.18
+        v.layer.shadowRadius = 16
+        v.layer.shadowOffset = CGSize(width: 0, height: 4)
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private lazy var iconLabel: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 48)
+        l.textAlignment = .center
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private lazy var titleLabel: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 17, weight: .bold)
+        l.textAlignment = .center
+        l.numberOfLines = 2
+        l.textColor = .label
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private lazy var bodyLabel: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 14)
+        l.textAlignment = .center
+        l.numberOfLines = 0
+        l.textColor = .secondaryLabel
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private lazy var closeButton: UIButton = {
+        var config = UIButton.Configuration.filled()
+        config.title = "Close"
+        config.baseForegroundColor = .white
+        config.baseBackgroundColor = UIColor(red: 0.99, green: 0.60, blue: 0.00, alpha: 1)
+        config.cornerStyle = .large
+        let b = UIButton(configuration: config)
+        b.translatesAutoresizingMaskIntoConstraints = false
+        b.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
+        b.isHidden = true
+        return b
+    }()
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .clear
+        setupCard()
         extractAndShare()
     }
 
+    private func setupCard() {
+        view.addSubview(overlayView)
+        overlayView.addSubview(cardView)
+        cardView.addSubview(iconLabel)
+        cardView.addSubview(titleLabel)
+        cardView.addSubview(bodyLabel)
+        cardView.addSubview(closeButton)
+
+        NSLayoutConstraint.activate([
+            overlayView.topAnchor.constraint(equalTo: view.topAnchor),
+            overlayView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            overlayView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            overlayView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            cardView.centerXAnchor.constraint(equalTo: overlayView.centerXAnchor),
+            cardView.centerYAnchor.constraint(equalTo: overlayView.centerYAnchor),
+            cardView.widthAnchor.constraint(equalToConstant: 260),
+
+            iconLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 28),
+            iconLabel.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
+
+            titleLabel.topAnchor.constraint(equalTo: iconLabel.bottomAnchor, constant: 12),
+            titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 20),
+            titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -20),
+
+            bodyLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            bodyLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 20),
+            bodyLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -20),
+
+            closeButton.topAnchor.constraint(equalTo: bodyLabel.bottomAnchor, constant: 20),
+            closeButton.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 20),
+            closeButton.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -20),
+            closeButton.heightAnchor.constraint(equalToConstant: 44),
+            closeButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -24),
+        ])
+    }
+
+    // ── Completion UI ─────────────────────────────────────────────────────────
+
+    private func showSuccessUI() {
+        DispatchQueue.main.async {
+            self.iconLabel.text = "✅"
+            self.titleLabel.text = "Saved to TravelPanel!"
+            self.bodyLabel.text = "The app is opening to process your clip."
+            self.closeButton.isHidden = true
+
+            UIView.animate(withDuration: 0.25) { self.overlayView.alpha = 1 }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                self.finish()
+            }
+        }
+    }
+
+    private func showErrorUI() {
+        DispatchQueue.main.async {
+            self.iconLabel.text = "⚠️"
+            self.titleLabel.text = "Couldn't save"
+            self.bodyLabel.text = "No URL was found. Open TravelPanel and paste the URL manually."
+            self.closeButton.isHidden = false
+
+            UIView.animate(withDuration: 0.25) { self.overlayView.alpha = 1 }
+        }
+    }
+
+    @objc private func handleClose() {
+        finish()
+    }
+
+    // ── Extraction ────────────────────────────────────────────────────────────
+
     private func extractAndShare() {
         guard let items = extensionContext?.inputItems as? [NSExtensionItem] else {
-            finish()
+            showErrorUI()
             return
         }
 
@@ -53,7 +190,7 @@ class ShareViewController: UIViewController {
                             let title = item.attributedContentText?.string ?? url.host ?? ""
                             self.openApp(url: url.absoluteString, title: title)
                         } else {
-                            self.finish()
+                            self.showErrorUI()
                         }
                     }
                     return
@@ -68,7 +205,7 @@ class ShareViewController: UIViewController {
                         if let text = data as? String, let url = self.extractURL(from: text) {
                             self.openApp(url: url, title: text)
                         } else {
-                            self.finish()
+                            self.showErrorUI()
                         }
                     }
                     return
@@ -76,7 +213,7 @@ class ShareViewController: UIViewController {
             }
         }
 
-        finish()
+        showErrorUI()
     }
 
     // Loads an image attachment, resizes it to max 800px wide, and writes it to
@@ -132,7 +269,7 @@ class ShareViewController: UIViewController {
         ]
 
         guard let deepLink = components.url else {
-            finish()
+            showErrorUI()
             return
         }
 
@@ -141,9 +278,8 @@ class ShareViewController: UIViewController {
         var responder: UIResponder? = self
         while let r = responder {
             if let application = r as? UIApplication {
-                application.open(deepLink, options: [:]) { [weak self] _ in
-                    self?.finish()
-                }
+                showSuccessUI()
+                application.open(deepLink, options: [:]) { _ in }
                 return
             }
             responder = r.next
@@ -151,7 +287,7 @@ class ShareViewController: UIViewController {
 
         // Fallback: write to App Group and let the main app pick it up on next launch
         savePendingShareToAppGroup(url: url, title: title)
-        finish()
+        showSuccessUI()
     }
 
     private func savePendingShareToAppGroup(url: String, title: String) {
