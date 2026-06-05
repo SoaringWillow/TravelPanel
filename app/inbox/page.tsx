@@ -16,6 +16,7 @@ import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { SkeletonInboxCard } from '@/components/SkeletonCard';
+import PullToRefresh from '@/components/PullToRefresh';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -149,7 +150,8 @@ export default function InboxPage() {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <PullToRefresh onRefresh={refresh} className="flex-1">
+      <div className="overflow-y-auto px-4 py-4 pb-24">
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => <SkeletonInboxCard key={i} />)}
@@ -193,6 +195,7 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>

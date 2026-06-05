@@ -55,7 +55,7 @@ The remaining work focuses on three areas:
 - Use framer-motion AnimatePresence for swipe transitions between steps
 
 ### F2 — Pull-to-Refresh on Inbox
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: iOS users expect pull-to-refresh. Currently there's no way to manually reload the inbox without closing/reopening the app.
 **Files**: `app/inbox/page.tsx`
 **What to do**:
