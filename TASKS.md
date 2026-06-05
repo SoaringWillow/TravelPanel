@@ -176,8 +176,9 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
-**What to do**: "Download all my data" as JSON from the account settings page
+**Status**: `[x]` Done  
+**What to do**: "Download all my data" as JSON from the account settings page  
+**Implemented**: `app/settings/page.tsx` — new Settings page with clip/board/location stats, "Export all data" button (downloads `travelpanel-backup-<date>.json` with all items, boards, trips), configuration status panel (PostHog, Supabase), and a danger-zone clear-all-data button. Added Settings tab to `components/NavBar.tsx`.
 
 ---
 
