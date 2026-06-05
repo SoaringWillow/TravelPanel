@@ -242,7 +242,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Filter chips scroll horizontally; active chip highlighted in indigo
 
 ### D5 — Skeleton Loading States
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app currently shows blank screens or spinners while loading from IndexedDB. Skeleton screens dramatically improve perceived performance.  
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
