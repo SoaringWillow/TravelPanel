@@ -45,6 +45,17 @@ export default function BoardsPage() {
     return board ? board.itemIds.length : 0;
   }
 
+  function getEnrichmentProgress(boardId: string): { enriched: number; total: number } {
+    const board = boards.find((b) => b.id === boardId);
+    if (!board || board.itemIds.length === 0) return { enriched: 0, total: 0 };
+    const total = board.itemIds.length;
+    const enriched = board.itemIds.filter((id) => {
+      const item = items.find((i) => i.id === id);
+      return item?.enrichmentStatus === 'done';
+    }).length;
+    return { enriched, total };
+  }
+
   function getSubstanceCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
     if (!board) return 0;
@@ -166,6 +177,7 @@ export default function BoardsPage() {
                     board={board}
                     itemCount={getItemCount(board.id)}
                     substanceCount={getSubstanceCount(board.id)}
+                    enrichmentProgress={getEnrichmentProgress(board.id)}
                     onClick={() => router.push(`/boards/${board.id}`)}
                     onDelete={() => handleDelete(board.id)}
                   />

@@ -687,7 +687,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - When shown, archived clips render with reduced opacity (0.6) and an "Unarchive" button
 
 ### K7 — Clip count animation on new save
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`  
 **What to do**:
 - The top bar shows `{items.length}` as a plain number
@@ -696,7 +696,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This gives tactile feedback that the save was registered
 
 ### K8 — Per-board enrichment progress ring
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx`, `components/BoardCard.tsx`  
 **What to do**:
 - Compute `enrichedCount` and `totalCount` for each board from the board's `itemIds` cross-referenced with `items`

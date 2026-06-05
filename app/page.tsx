@@ -170,9 +170,20 @@ function HomePageInner() {
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-gray-500">
-              {loading ? '' : `${items.length}`}
-            </span>
+            <AnimatePresence mode="popLayout">
+              {!loading && (
+                <motion.span
+                  key={items.length}
+                  initial={{ scale: 1.3, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="text-sm text-gray-500"
+                >
+                  {items.length}
+                </motion.span>
+              )}
+            </AnimatePresence>
             <button
               type="button"
               onClick={() => { setShowSearch(true); setSearchQuery(''); }}
