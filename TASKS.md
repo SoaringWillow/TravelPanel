@@ -55,7 +55,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - All functions no-op gracefully on web
 
 ### D3 — Clipboard URL Detection on App Open
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users often copy a Xiaohongshu/Instagram link, switch to TravelPanel, and expect it to "just know." This is a major friction reduction for the core loop.  
 **Files**: `components/CapacitorBridge.tsx`, `app/page.tsx`  
 **What to do**:
