@@ -157,7 +157,7 @@ All Phase A–C tasks are complete. The app has:
 - Persist sort preference in localStorage
 
 ### E3 — Duplicate URL Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `components/ImportSheet.tsx`  
 **What to do**:
 - Before saving, check if any existing item has the same URL
@@ -165,7 +165,7 @@ All Phase A–C tasks are complete. The app has:
 - User can still save a duplicate (intentional re-clip) by tapping "Save anyway"
 
 ### E4 — Quick Clip from Clipboard
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `app/page.tsx`, `components/ImportSheet.tsx`  
 **What to do**:
 - On app focus, check `navigator.clipboard.readText()` for a URL
