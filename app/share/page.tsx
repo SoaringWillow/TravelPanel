@@ -29,12 +29,22 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Screenshot from iOS Share Extension — used for Vision extraction on Xiaohongshu/WeChat
+  const pendingImageRef = useRef<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards + consume any pending screenshot from the iOS Share Extension
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // CapacitorBridge stores the screenshot here when the extension captured one.
+    // We consume it immediately so it isn't reused across navigations.
+    const img = sessionStorage.getItem('pendingShareImageBase64');
+    if (img) {
+      pendingImageRef.current = img;
+      sessionStorage.removeItem('pendingShareImageBase64');
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +98,11 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (Vision path for Xiaohongshu/WeChat)
+    const capturedImage = pendingImageRef.current ?? undefined;
+    pendingImageRef.current = null;
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, capturedImage)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
