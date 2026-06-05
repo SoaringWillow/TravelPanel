@@ -240,7 +240,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - These pages must exist for App Store review — Apple requires a privacy policy URL
 
 ### D5 — Error Boundaries + Crash Recovery
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `components/ErrorBoundary.tsx`, `app/layout.tsx`  
 **What to do**:
 - Create a React ErrorBoundary class component that catches render errors
