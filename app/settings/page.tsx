@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, Database, Info, CheckCircle2, Loader2, Clock, ChevronRight } from 'lucide-react';
+import { Download, Upload, Database, Info, CheckCircle2, Loader2, Clock, ChevronRight, AlertCircle } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getAllTrips } from '@/lib/db';
 import { exportAllData, downloadAsJSON } from '@/lib/exportData';
+import { restoreFromJSON } from '@/lib/importData';
 
 interface Stats {
   clips: number;
@@ -16,29 +17,35 @@ interface Stats {
 }
 
 type ExportState = 'idle' | 'exporting' | 'done';
+type ImportState = 'idle' | 'importing' | 'done' | 'error';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [stats, setStats]         = useState<Stats | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [stats, setStats]           = useState<Stats | null>(null);
   const [exportState, setExportState] = useState<ExportState>('idle');
+  const [importState, setImportState] = useState<ImportState>('idle');
+  const [importSummary, setImportSummary] = useState<string>('');
 
   useEffect(() => {
-    async function loadStats() {
-      const [items, boards, trips] = await Promise.all([
-        getAllItems(),
-        getAllBoards(),
-        getAllTrips(),
-      ]);
-      setStats({
-        clips:          items.length,
-        boards:         boards.length,
-        trips:          trips.length,
-        substanceItems: items.reduce((n, i) => n + (i.substance?.length ?? 0), 0),
-        locations:      items.reduce((n, i) => n + (i.locations?.length ?? 0), 0),
-      });
-    }
     loadStats();
   }, []);
+
+  async function loadStats() {
+    const [items, boards, trips] = await Promise.all([
+      getAllItems(),
+      getAllBoards(),
+      getAllTrips(),
+    ]);
+    setStats({
+      clips:          items.length,
+      boards:         boards.length,
+      trips:          trips.length,
+      substanceItems: items.reduce((n, i) => n + (i.substance?.length ?? 0), 0),
+      locations:      items.reduce((n, i) => n + (i.locations?.length ?? 0), 0),
+    });
+  }
 
   async function handleExport() {
     setExportState('exporting');
@@ -49,6 +56,44 @@ export default function SettingsPage() {
       setTimeout(() => setExportState('idle'), 3000);
     } catch {
       setExportState('idle');
+    }
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setImportState('importing');
+    setImportSummary('');
+
+    try {
+      const text   = await file.text();
+      const result = await restoreFromJSON(text);
+
+      if (result.errors.length > 0 && result.clipsRestored === 0 && result.boardsRestored === 0) {
+        setImportSummary(result.errors[0]);
+        setImportState('error');
+        setTimeout(() => setImportState('idle'), 5000);
+        return;
+      }
+
+      const parts: string[] = [];
+      if (result.clipsRestored > 0)  parts.push(`${result.clipsRestored} clips`);
+      if (result.boardsRestored > 0) parts.push(`${result.boardsRestored} boards`);
+      const skipped = result.clipsSkipped + result.boardsSkipped;
+      const summary = parts.length > 0
+        ? `Restored ${parts.join(' and ')}${skipped > 0 ? ` (${skipped} skipped)` : ''}`
+        : 'Nothing new to restore — all items already exist.';
+
+      setImportSummary(summary);
+      setImportState('done');
+      await loadStats();
+      setTimeout(() => { setImportState('idle'); setImportSummary(''); }, 5000);
+    } catch {
+      setImportSummary('Could not read the file.');
+      setImportState('error');
+      setTimeout(() => setImportState('idle'), 4000);
     }
   }
 
@@ -70,14 +115,12 @@ export default function SettingsPage() {
           </div>
           <div className="grid grid-cols-3 divide-x divide-gray-100">
             {[
-              { label: 'Clips',       value: stats?.clips          },
-              { label: 'Boards',      value: stats?.boards         },
-              { label: 'Trips',       value: stats?.trips          },
+              { label: 'Clips',  value: stats?.clips  },
+              { label: 'Boards', value: stats?.boards },
+              { label: 'Trips',  value: stats?.trips  },
             ].map(({ label, value }) => (
               <div key={label} className="flex flex-col items-center py-4">
-                <span className="text-2xl font-bold text-indigo-600">
-                  {value ?? '—'}
-                </span>
+                <span className="text-2xl font-bold text-indigo-600">{value ?? '—'}</span>
                 <span className="text-xs text-gray-400 mt-0.5">{label}</span>
               </div>
             ))}
@@ -94,19 +137,19 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* ── Backup & Export ──────────────────────────────────────────────── */}
+        {/* ── Backup & Restore ─────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-gray-50">
             <Download size={15} className="text-indigo-500" />
-            <span className="text-sm font-semibold text-gray-700">Backup &amp; Export</span>
+            <span className="text-sm font-semibold text-gray-700">Backup &amp; Restore</span>
           </div>
 
           <div className="px-4 py-4 space-y-3">
+            {/* Export */}
             <div>
               <p className="text-sm text-gray-700 font-medium">Download all my data</p>
               <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
-                Exports all clips, boards, trips, and substance items as a JSON file.
-                Re-import via Supabase (coming soon) to sync across devices.
+                Exports clips, boards, trips, and substance items as a JSON file.
               </p>
             </div>
 
@@ -123,7 +166,7 @@ export default function SettingsPage() {
               }`}
             >
               {exportState === 'exporting' ? (
-                <><Loader2 size={15} className="animate-spin" /> Preparing export…</>
+                <><Loader2 size={15} className="animate-spin" /> Preparing…</>
               ) : exportState === 'done' ? (
                 <><CheckCircle2 size={15} /> Downloaded!</>
               ) : (
@@ -131,8 +174,58 @@ export default function SettingsPage() {
               )}
             </button>
 
-            {stats && stats.clips === 0 && (
-              <p className="text-xs text-gray-400 text-center">No clips to export yet.</p>
+            {/* Divider */}
+            <div className="flex items-center gap-3 pt-1">
+              <div className="flex-1 h-px bg-gray-100" />
+              <span className="text-xs text-gray-300">or</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
+
+            {/* Import */}
+            <div>
+              <p className="text-sm text-gray-700 font-medium">Restore from backup</p>
+              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                Upload a previously exported JSON file. Existing items are kept — duplicates are skipped.
+              </p>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importState === 'importing'}
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm border-2 transition-all ${
+                importState === 'done'
+                  ? 'border-green-400 bg-green-50 text-green-700'
+                  : importState === 'error'
+                    ? 'border-red-300 bg-red-50 text-red-600'
+                    : importState === 'importing'
+                      ? 'border-indigo-200 bg-indigo-50 text-indigo-400 cursor-wait'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:text-indigo-600 active:scale-[0.98]'
+              }`}
+            >
+              {importState === 'importing' ? (
+                <><Loader2 size={15} className="animate-spin" /> Restoring…</>
+              ) : importState === 'done' ? (
+                <><CheckCircle2 size={15} /> Done</>
+              ) : importState === 'error' ? (
+                <><AlertCircle size={15} /> Error</>
+              ) : (
+                <><Upload size={15} /> Restore from JSON</>
+              )}
+            </button>
+
+            {importSummary && (
+              <p className={`text-xs text-center font-medium ${importState === 'error' ? 'text-red-500' : 'text-green-600'}`}>
+                {importSummary}
+              </p>
             )}
           </div>
         </div>
