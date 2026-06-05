@@ -103,3 +103,19 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-04 23:41 | 5d63773 | feat(C2): post-trip journal / timeline page
 2026-06-04 23:43 | b81081e | feat(C3): shared boards v1 — shareable links with one-tap import
 2026-06-04 23:45 | f21cfce | feat(C4): proactive resurfacing — smart "For You" nudge bar in Inbox
+2026-06-04 23:51 | 80e9c22 | D1: Notes on clips — editable notes in LocationDetailCard, preview in InboxCard
+2026-06-04 23:52 | de1cc67 | D2: Tags filter bar in Inbox with AND logic alongside platform filter
+2026-06-04 23:53 | b48bef5 | D3: Inline title editing in LocationDetailCard
+2026-06-04 23:54 | 7be23a6 | D4: Haptic feedback wrappers + key interaction triggers
+2026-06-04 23:55 | 615ed54 | D5: Loading skeleton components replace spinners in inbox, boards, timeline
+2026-06-04 23:56 | 0987ade | D6: 3-slide onboarding overlay with localStorage gate
+2026-06-04 23:58 | e37d687 | D7: Dark mode support — CSS variables, useTheme hook, theme toggle in Settings
+2026-06-04 23:59 | fddabb6 | D8: Drag-to-reorder clips in board detail view
+2026-06-05 00:00 | a0def2a | D9: Nearby clips discovery — GPS button + 10km radius drawer on map
+2026-06-05 00:02 | 7e3f14f | D10: Trip budget tracker — cost estimates per activity + budget summary card
+2026-06-05 00:03 | 6880089 | E1: Virtualized inbox grid for 200+ clips using @tanstack/react-virtual
+2026-06-05 00:04 | 0459c0e | E2: Offline thumbnail caching — store thumbnails as base64 data URIs in IndexedDB
+2026-06-05 00:05 | 38aa708 | E3: Push notification scaffolding — geo-cluster trigger, permission UI
+2026-06-05 00:07 | 3c4fd1d | E6: iOS app icon generator script + updated Xcode setup guide
+2026-06-05 00:09 | 8fa90de | F1: Pro tier gate scaffold — isPro flag, rate limit integration, upgrade sheet
+2026-06-05 00:09 | a62f469 | Mark F2 as blocked pending Apple Developer account
