@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Share2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { updateItemNotes } from '@/lib/db';
+import { shareClip } from '@/lib/shareClip';
 import SubstanceList from './SubstanceList';
 
 interface LocationDetailCardProps {
@@ -15,6 +16,7 @@ interface LocationDetailCardProps {
 
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
   const [notes, setNotes] = useState(item.notes ?? '');
+  const [shareToast, setShareToast] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync external item.notes changes (e.g., re-open different item)
@@ -142,6 +144,35 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 ))}
               </div>
             )}
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                aria-label="Open original"
+              >
+                <ExternalLink size={13} />
+                Open
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  const result = await shareClip(item);
+                  if (result === 'copied') {
+                    setShareToast('Copied to clipboard');
+                    setTimeout(() => setShareToast(''), 2000);
+                  }
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                aria-label="Share clip"
+              >
+                <Share2 size={13} />
+                {shareToast || 'Share'}
+              </button>
+            </div>
 
             {/* Notes — inline editor */}
             <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">

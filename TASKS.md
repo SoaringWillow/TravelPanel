@@ -261,7 +261,7 @@ All Phase A–E tasks are complete. The app has:
 - Add `will-change: transform` to animated Framer Motion elements in InboxCard swipe layer
 
 ### F5 — Clip Sharing (Share-to-iOS)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users discover TravelPanel via word-of-mouth. Native share lets them forward clips to friends via iMessage/WhatsApp.
 **Files to change**: `components/LocationDetailCard.tsx`, new `lib/shareClip.ts`
 **What to do**:
