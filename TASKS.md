@@ -9,7 +9,7 @@
 
 ## Current Status Summary (2026-06-05)
 
-All Phase A–E tasks completed. The app is functionally complete with:
+All Phase A–H tasks completed. The app is production-ready with:
 - Two-layer extraction (spots + substance wisdom)
 - Enrichment retry queue with online-restore detection
 - Browser extension + iOS Share Extension + Claude Vision
@@ -22,6 +22,20 @@ All Phase A–E tasks completed. The app is functionally complete with:
 - Vibe search with intent expansion + substance snippets
 - Location pin editing in EditClipSheet
 - Trip day editing (remove/move/note activities)
+- 3-step onboarding flow (F1)
+- Pull-to-refresh on inbox (F2)
+- Illustrated SVG empty states (F3)
+- Share sheet quick board picker (F4)
+- Clip count badges on map pins (F5)
+- iOS app icons + splash config (F6+F7)
+- Accessibility pass (F8)
+- Image optimisation (G1)
+- MapView GeoJSON performance (G2)
+- IndexedDB v3 migration guard (G3)
+- Error boundary (G4)
+- Bundle size audit + analyzer setup (G5)
+- App Store privacy labels + privacy policy page (H2)
+- Pro tier gate UI scaffolding (H1)
 
 **Blocked** (need Supabase keys):
 - B4: pgvector embedding search
@@ -29,12 +43,11 @@ All Phase A–E tasks completed. The app is functionally complete with:
 
 ---
 
-## ⭐ Goal: iOS App Store-Ready Beautiful Product
+## ⭐ Next Phase: I — App Store Submission & Post-Launch
 
-The remaining work focuses on three areas:
-1. **F — App Store Polish** — the final 20% that separates "works" from "shipped"
-2. **G — Performance & Quality** — ensuring the app feels fast and reliable
-3. **H — Monetisation Foundation** — Pro tier scaffolding (no payment yet, just gating)
+All Phase A–H tasks are done. The remaining work is:
+1. **I — App Store Submission** — final submission checklist
+2. **J — Post-Launch** — analytics, feedback loop, growth
 
 ---
 
@@ -228,6 +241,94 @@ The remaining work focuses on three areas:
   - PostHog (anonymous events — opt-outable)
 - Write the privacy policy text (1 page, plain language)
 - Create `app/privacy/page.tsx` with the policy (linked from Settings)
+
+---
+
+## PHASE I — App Store Submission
+
+### I1 — TestFlight Beta Build
+**Status**: `[ ]` Not started
+**Why**: Before App Store review, TestFlight validates the end-to-end native app experience including the Share Extension.
+**Files**: `ios/` Xcode project, Xcode Cloud / manual archive
+**What to do**:
+- Ensure `CFBundleVersion` increments with each archive (use `1.0.0` / build `1`)
+- Add required entitlements: App Group (`group.com.travelpanel.app`) for Share Extension data passing
+- Test Share Extension on a real device via TestFlight (simulator can't test share sheets fully)
+- Verify VoiceOver labels on main nav buttons (tab bar, clip cards, map pins)
+- Submit to TestFlight for internal testing (1 device minimum)
+
+### I2 — App Store Screenshots
+**Status**: `[ ]` Not started
+**Why**: App Store requires 6.7" (iPhone 15 Pro Max) screenshots. These are the first thing users see.
+**Files**: No code change — screenshots taken via Simulator or device
+**What to do**:
+- Take 5 screenshots covering the key flows:
+  1. Map view with pins (the main screen)
+  2. Inbox with a filled clip card showing substance tags
+  3. Share sheet → board picker flow
+  4. Board detail with clips and Plan button
+  5. Generated trip plan view (day strip + map)
+- Size: 1290×2796px (iPhone 15 Pro Max, 6.7")
+- Add simple text overlays (e.g. "Save from anywhere", "AI plans it for you")
+- Export as PNG
+
+### I3 — App Store Listing Copy
+**Status**: `[ ]` Not started
+**Why**: The App Store listing needs a compelling title, subtitle, and description that hits the right keywords.
+**Files**: No code — copy document only
+**What to do**:
+- App name: `TravelPanel`
+- Subtitle (30 chars): `AI travel planner & clipper`
+- Description (4000 chars): Highlight the moat (substance not just pins), Share Sheet speed, AI trip planning
+- Keywords (100 chars): `travel,trip planner,AI,itinerary,save places,instagram,travel plan`
+- Category: `Travel`
+- Age rating: 4+
+
+### I4 — Deep Link & URL Scheme Validation
+**Status**: `[ ]` Not started
+**Why**: The iOS Share Extension writes to an App Group; the main app reads it on foreground. This needs testing on a real device.
+**Files**: `ios/App/ShareExtension/ShareViewController.swift`, `ios/App/App/AppDelegate.swift`
+**What to do**:
+- Verify `group.com.travelpanel.app` App Group is configured in both targets in Xcode
+- Test: share a YouTube URL via the system share sheet → app opens → share page shows URL pre-filled
+- Test: app backgrounded → share → app foregrounded → URL appears (AppGroup fallback path)
+- Add `@AppGroupStorage` key consistency check between ShareExtension and main app
+
+---
+
+## PHASE J — Post-Launch
+
+### J1 — Crash Reporting Integration
+**Status**: `[ ]` Not started
+**Why**: PostHog captures custom events but not native iOS crashes. Sentry gives stack traces for production crashes.
+**Files**: `ios/App/App/AppDelegate.swift`, `package.json`
+**What to do**:
+- Add `@sentry/capacitor` package
+- Initialize Sentry in AppDelegate with a DSN (add to `.env.local`)
+- Wrap the root layout in Next.js with `Sentry.init()`
+- Test: throw a deliberate error on web → verify Sentry receives it
+- Cost: free tier (5K events/month) is sufficient at launch
+
+### J2 — Referral / Share-a-Plan Feature
+**Status**: `[ ]` Not started
+**Why**: Every generated plan is shareable content. A "Share this plan" button with a beautiful preview card is organic marketing.
+**Files**: `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Add a "Share Plan" button below the completed plan
+- Generate a share card: plan title + day count + destination highlights
+- Use the Web Share API (`navigator.share()`) on mobile, fallback to clipboard copy
+- On iOS native: use `@capacitor/share` plugin
+- Include a deep link to the plan (future: via Supabase public URL)
+
+### J3 — Weekly Digest Notification (iOS)
+**Status**: `[ ]` Not started
+**Why**: Re-engagement drives the Weekly Clips metric. A Sunday notification "You've saved 5 places this week — ready to plan?" brings users back.
+**Files**: `ios/App/App/AppDelegate.swift`, new `lib/notifications.ts`
+**What to do**:
+- Request notification permission on first map view (after onboarding)
+- Schedule a local notification: every Sunday at 10am, "You have {N} unplanned clips"
+- Use `@capacitor/local-notifications`
+- Count clips saved in the past 7 days from IndexedDB
 
 ---
 
