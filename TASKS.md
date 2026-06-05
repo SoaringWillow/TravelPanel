@@ -42,7 +42,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Test: check that NavBar sits above Home Indicator, map fills edge-to-edge, top bar avoids notch
 
 ### D2 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Native iOS apps feel physical. Haptics on clip-save, plan-generate, and board-create make the app feel real.  
 **Files**: `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`, `components/ImportSheet.tsx`  
 **What to do**:
