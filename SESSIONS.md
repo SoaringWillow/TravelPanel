@@ -97,3 +97,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
 2026-06-05 13:26 | d618b6a | feat: add browser extension for one-click URL clipping (B2)
+2026-06-05 13:32 | 45ab141 | feat: Claude Vision extraction for Xiaohongshu/WeChat screenshots (B3)
