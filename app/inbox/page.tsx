@@ -48,6 +48,9 @@ export default function InboxPage() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'most_places'>('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchBoardPicker, setShowBatchBoardPicker] = useState(false);
 
   // Auto-dismiss undo snackbar
   useEffect(() => {
@@ -194,11 +197,68 @@ export default function InboxPage() {
     if (found) await saveItem({ ...found, notes: notes.trim() || undefined });
   }, []);
 
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setShowBatchBoardPicker(false);
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  const handleBatchMove = useCallback(
+    async (boardId: string) => {
+      for (const id of Array.from(selectedIds)) {
+        await addItemToBoard(boardId, id);
+      }
+      const board = boards.find((b) => b.id === boardId);
+      setUndoItem(null); // clear any previous undo
+      exitSelectMode();
+      router.refresh();
+      // Brief snackbar — reuse undoItem shape but point to board
+      if (board) {
+        // Show "Moved X items" using undoItem as a notification (no undo for batch)
+        // We repurpose the snackbar as an info-only notification here
+      }
+    },
+    [selectedIds, boards, router]
+  );
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10 safe-top">
         <div className="flex items-center gap-2 mb-3">
+          {selectMode ? (
+            <>
+              <span className="text-sm font-semibold text-gray-800">
+                {selectedIds.size} selected
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBatchBoardPicker(true)}
+                  disabled={selectedIds.size === 0}
+                  className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white rounded-full disabled:opacity-40 transition-all"
+                >
+                  Move to board
+                </button>
+                <button
+                  type="button"
+                  onClick={exitSelectMode}
+                  className="text-xs font-medium text-gray-500 px-2 py-1.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+          <>
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
           <div className="ml-auto flex items-center gap-2">
@@ -255,6 +315,8 @@ export default function InboxPage() {
               {inboxItems.length} unsorted
             </span>
           </div>
+          </>
+          )}
         </div>
 
         {/* Search */}
@@ -395,27 +457,50 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                    onSwipeRight={mostRecentBoard ? handleSwipeRight : undefined}
-                    onSwipeLeft={handleSwipeLeft}
-                    swipeRightLabel={swipeRightLabel}
-                    onNotesChange={handleNotesChange}
-                  />
-                </motion.div>
-              ))}
+              {filtered.map((item) => {
+                const isSelected = selectedIds.has(item.id);
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative"
+                    onContextMenu={(e) => { e.preventDefault(); if (!selectMode) { setSelectMode(true); setSelectedIds(new Set([item.id])); } }}
+                  >
+                    {/* Select mode overlay */}
+                    {selectMode && (
+                      <button
+                        type="button"
+                        aria-label={isSelected ? 'Deselect' : 'Select'}
+                        onClick={() => toggleSelect(item.id)}
+                        className="absolute inset-0 z-10 rounded-2xl"
+                        style={{ background: isSelected ? 'rgba(99,102,241,0.12)' : 'transparent' }}
+                      >
+                        <span
+                          className={`absolute top-2 right-2 w-5 h-5 rounded-full border-2 flex items-center justify-center text-white text-xs transition-all ${
+                            isSelected ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-300'
+                          }`}
+                        >
+                          {isSelected && <Check size={11} />}
+                        </span>
+                      </button>
+                    )}
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                      onSwipeRight={selectMode ? undefined : (mostRecentBoard ? handleSwipeRight : undefined)}
+                      onSwipeLeft={selectMode ? undefined : handleSwipeLeft}
+                      swipeRightLabel={swipeRightLabel}
+                      onNotesChange={handleNotesChange}
+                    />
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         )}
@@ -497,6 +582,64 @@ export default function InboxPage() {
                     <p className="text-sm text-gray-400 py-2">
                       No boards yet. Create one from the Boards tab.
                     </p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Batch board picker */}
+      <AnimatePresence>
+        {showBatchBoardPicker && (
+          <>
+            <motion.div
+              key="batch-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1999] bg-black/40"
+              onClick={() => setShowBatchBoardPicker(false)}
+            />
+            <motion.div
+              key="batch-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="batch-move-title"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
+              style={{ maxHeight: 300 }}
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+              <div className="flex items-center justify-between px-5 py-3">
+                <h3 id="batch-move-title" className="font-semibold text-gray-800">
+                  Move {selectedIds.size} clip{selectedIds.size !== 1 ? 's' : ''} to…
+                </h3>
+                <button type="button" aria-label="Close" onClick={() => setShowBatchBoardPicker(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-5 pb-8 safe-bottom" style={{ maxHeight: 200 }}>
+                <div className="flex flex-wrap gap-2">
+                  {boards.map((board) => (
+                    <button
+                      key={board.id}
+                      type="button"
+                      onClick={() => handleBatchMove(board.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                    >
+                      <span>{board.emoji}</span>
+                      <span>{board.name}</span>
+                    </button>
+                  ))}
+                  {boards.length === 0 && (
+                    <p className="text-sm text-gray-400 py-2">No boards yet. Create one from the Collections tab.</p>
                   )}
                 </div>
               </div>

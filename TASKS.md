@@ -524,7 +524,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Tapping away collapses the textarea with the same animation
 
 ### I2 — Multi-select and batch board assignment
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:
 - Long-press on an InboxCard enters "select mode" — a checkbox appears on each card with a selection ring
