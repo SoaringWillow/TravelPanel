@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Trash2, Database, Info, CheckCircle2, XCircle, Zap, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { Download, Trash2, Database, Info, CheckCircle2, XCircle, Zap, ExternalLink, ChevronRight } from 'lucide-react';
 import { getAllItems, getAllBoards, getTripsForBoard } from '@/lib/db';
 import { SavedItem, Board, Trip } from '@/lib/types';
 import { checkEnrichmentLimit, checkPlanLimit, formatResetsIn } from '@/lib/rateLimits';
@@ -264,6 +265,20 @@ export default function SettingsPage() {
                 <ExternalLink size={13} />
               </div>
             </a>
+            <Link
+              href="/privacy"
+              className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-sm text-gray-600">Privacy Policy</span>
+              <ChevronRight size={16} className="text-gray-300" />
+            </Link>
+            <Link
+              href="/terms"
+              className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-sm text-gray-600">Terms of Service</span>
+              <ChevronRight size={16} className="text-gray-300" />
+            </Link>
           </div>
         </section>
 

@@ -414,6 +414,150 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE H — App Store Submission Prep
+
+> All Phase A–G implementable tasks are complete. Phase H targets the gaps blocking App Store submission: legal pages, accessibility, first-run onboarding, and iOS compliance. No Supabase required.
+
+### H1 — Privacy Policy and Terms of Service pages
+**Status**: `[x]` Done  
+**Files**: `app/privacy/page.tsx` (new), `app/terms/page.tsx` (new), `components/NavBar.tsx`  
+**What to do**:
+- Create `app/privacy/page.tsx` — static page with a clear privacy policy covering: data storage (on-device IndexedDB), AI processing (URLs sent to Anthropic API), analytics (PostHog, opt-out available), no account required, no data sold, user can delete all data via Settings
+- Create `app/terms/page.tsx` — static terms page covering: app purpose, acceptable use (no spam, no illegal content), IP (user owns their clips), disclaimer (AI extracts may be inaccurate)
+- Add a "Privacy & Terms" row to `app/settings/page.tsx` About section, linking both pages
+- Pages should be accessible without authentication and share the app's visual design
+
+### H2 — Accessibility audit: aria-labels on all interactive elements
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `app/plan/[boardId]/page.tsx`, `components/NavBar.tsx`, `components/ImportSheet.tsx`, `components/InboxCard.tsx`, `components/MapView.tsx`  
+**What to do**:
+- Add `aria-label` to every icon-only button (search, close, back, settings, add, copy, export, etc.)
+- Add `role="dialog"` and `aria-modal="true"` to all drawers/modals (ImportSheet drawer, search sheet, detail panels)
+- Add `aria-busy="true"` on loading containers during skeleton/spinner states
+- Add `aria-live="polite"` on toast/snackbar elements so screen readers announce them
+- Add `alt=""` (empty alt) on decorative thumbnail images; non-empty `alt` on meaningful images
+- Verify all form inputs have associated `<label>` or `aria-label`
+- Test with VoiceOver on iOS: every interactive element should be reachable and announce sensibly
+
+### H3 — Enrichment rate-limit banner in Inbox
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `lib/rateLimits.ts`  
+**What to do**:
+- When the Inbox page loads and pull-to-refresh is triggered, check `checkEnrichmentLimit()` before re-enriching
+- If limit is already hit (`remaining === 0`), show a dismissible amber banner at the top: "Enrichment limit reached — resets in Xh Ym. Pull to refresh when it resets."
+- If mid-batch enrichment hits the limit, stop the loop and show the banner with remaining count
+- Reuse the same `formatResetsIn()` pattern from the Settings page
+- This mirrors the plan rate-limit UX that was already built for the plan view (D3)
+
+### H4 — First-launch onboarding walkthrough
+**Status**: `[ ]` Not started  
+**Files**: `components/OnboardingSheet.tsx` (new), `app/page.tsx`  
+**What to do**:
+- On first launch (detect via `localStorage.getItem('hasSeenOnboarding')`), show a full-screen onboarding sheet
+- 3 steps (swipeable cards):
+  1. "Save inspiration" — show iOS Share Sheet icon + short description of clipping from WeChat/Red Book/Douyin
+  2. "Discover places" — show a map pin icon + "AI extracts locations and travel wisdom from every clip"
+  3. "Plan your trip" — show itinerary icon + "Generate a personalised day-by-day plan citing your saved clips"
+- CTA button on step 3: "Start exploring" — dismisses the sheet and sets `hasSeenOnboarding = true`
+- Skip button on step 1 and 2 to allow power users to bypass
+- Re-accessible from Settings → "See app intro"
+- If seed demo boards are present (A8), onboarding seeds them before dismissal
+
+### H5 — Share Extension completion UI
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/ShareExtension/ShareViewController.swift`  
+**What to do**:
+- After the extension writes the URL/image to App Group storage and calls `openApp()`, show a brief in-extension confirmation:
+  - Success: green checkmark + "Saved to TravelPanel!" for 1 second, then close the extension
+  - Error (no valid URL found, no app group access): amber warning + "Couldn't save — open TravelPanel and paste the URL manually" with a "Close" button
+- Currently the extension closes immediately with no feedback — users don't know if the clip was saved
+- The confirmation should display in the `UIViewController` already shown by the extension before it calls `extensionContext.completeRequest()`
+
+### H6 — Map layer toggle (street / satellite)
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Add a small toggle button in the map's top-right corner (below the zoom buttons): a layers icon
+- Two modes: "Street" (current OpenFreeMap liberty style) and "Satellite" (switch to a satellite tile URL — use `https://tiles.openfreemap.org/styles/positron` as a cleaner alternative, or any public satellite tile source)
+- Persist the chosen style in `localStorage` so the user's preference is remembered
+- Animate the style transition: fade the map to opacity 0 briefly on switch, then back to 1
+
+### H7 — Clip tag filter chips on Inbox
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Below the "Inbox" header, add a horizontal scrollable row of tag filter chips
+- Tags are derived from all items in the inbox — collect unique tags and show them
+- Tapping a chip filters the visible items to only those with that tag
+- Multiple chips can be selected (AND logic: items must match all selected tags)
+- "All" chip (always first) clears the filter
+- Active chip: filled indigo background; inactive: light gray border
+- Empty state when filter has no results: "No clips tagged '${tag}'"
+
+### H8 — Clip sort order selector
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Add a sort button to the Inbox header (small "↕ Sort" label or a sort icon)
+- Sort options (bottom sheet picker):
+  1. "Newest first" (default, by `savedAt` desc)
+  2. "Oldest first" (by `savedAt` asc)
+  3. "Most places" (by `locations.length` desc — surfaces clips with most extracted pins)
+  4. "Platform" (grouped by platform: WeChat, Red Book, Douyin, Bilibili, Other)
+- Persist the chosen sort in `localStorage`
+- When "Platform" is selected, show platform group headers in the list
+
+---
+
+## PHASE I — Power User Features
+
+> Phase I adds features that make TravelPanel indispensable for frequent travellers: inline editing, multi-select batch actions, and plan-to-image sharing.
+
+### I1 — Inline notes editing on saved clips
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`, `lib/db.ts`  
+**What to do**:
+- On the InboxCard (done/enriched state), add a small pencil icon in the card footer area
+- Tapping it expands an inline textarea (animated height from 0 to ~80px) for editing the clip's `notes` field
+- Auto-saves after 1.5s of typing inactivity (debounced `updateItem(item.id, { notes })`)
+- Show a subtle "Saved" micro-toast or check-icon confirmation
+- Tapping away collapses the textarea with the same animation
+
+### I2 — Multi-select and batch board assignment
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Long-press on an InboxCard enters "select mode" — a checkbox appears on each card with a selection ring
+- The header changes to "X selected" with "Cancel" and "Move to board" buttons
+- "Move to board" opens the board picker; moves all selected items to the chosen board
+- After move: show undo snackbar (same pattern as single-swipe undo)
+- Regular tap while in select mode toggles the item's selection
+- Tap outside any card or "Cancel" exits select mode
+
+### I3 — Trip plan share as image
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `lib/shareImage.ts` (new)  
+**What to do**:
+- Add a "Share" button (share icon) in the plan view header
+- On tap: generates a summary card as a canvas image (using `html2canvas` or `@vercel/og` client-side):
+  - Card shows: board name, trip duration, day themes, top 3 locations
+  - Branded with "TravelPanel" + subtle map pin watermark
+  - Dark indigo background with white text
+- On iOS: triggers native iOS share sheet via `navigator.share({ files: [imageFile] })` — shares as a PNG image
+- On desktop: downloads the image file
+- Falls back gracefully if canvas capture fails (just copies the text summary instead)
+
+### I4 — Substance filter in board detail
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- In the board's clip list view (below the map), add a substance filter row: "All" | "💡 Tips" | "⚠️ Warnings" | "🧠 Wisdom"
+- When a filter is active, show only clips that have at least one substance item of that type
+- Inside each clip card, highlight the matching substance items (show them inline under the clip title)
+- This makes the "wisdom layer" discoverable from the board — users can quickly scan all tips for a destination
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
