@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="settings-btn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Setup view: no TravelPanel URL configured -->
+    <div id="setup-view" class="view hidden">
+      <div class="setup-content">
+        <div class="setup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </div>
+        <h2 class="setup-title">Connect TravelPanel</h2>
+        <p class="setup-desc">Enter your TravelPanel URL to start clipping travel inspiration from any website.</p>
+        <div class="form-group">
+          <label class="form-label" for="tp-url">Your TravelPanel URL</label>
+          <input
+            class="form-input"
+            id="tp-url"
+            type="url"
+            placeholder="https://your-app.vercel.app"
+            autocomplete="url"
+          >
+          <span class="form-hint">The URL where you access TravelPanel</span>
+        </div>
+        <button class="btn btn-primary btn-full" id="save-config-btn">Connect</button>
+        <p class="setup-footer">Don't have TravelPanel? <a href="https://github.com/soaringwillow/travelpanel" target="_blank" class="link">Get started →</a></p>
+      </div>
+    </div>
+
+    <!-- Settings view -->
+    <div id="settings-view" class="view hidden">
+      <div class="settings-content">
+        <h3 class="settings-title">Settings</h3>
+        <div class="form-group">
+          <label class="form-label" for="tp-url-edit">TravelPanel URL</label>
+          <input
+            class="form-input"
+            id="tp-url-edit"
+            type="url"
+            placeholder="https://your-app.vercel.app"
+          >
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-secondary" id="cancel-settings-btn">Cancel</button>
+          <button class="btn btn-primary" id="update-config-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main clip view -->
+    <div id="clip-view" class="view hidden">
+      <div class="page-preview">
+        <img id="favicon" class="favicon" src="" alt="" onerror="this.style.display='none'">
+        <div class="page-meta">
+          <div id="page-title" class="page-title"></div>
+          <div id="page-url" class="page-url"></div>
+        </div>
+      </div>
+
+      <div class="platform-badge-wrap hidden" id="platform-badge-wrap">
+        <span class="platform-badge" id="platform-badge"></span>
+      </div>
+
+      <button class="btn btn-primary btn-clip" id="clip-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+        </svg>
+        Clip to TravelPanel
+      </button>
+      <p class="clip-hint">Opens your TravelPanel to save this page</p>
+    </div>
+
+    <!-- Clipping in progress -->
+    <div id="clipping-view" class="view hidden">
+      <div class="status-content">
+        <div class="spinner"></div>
+        <p class="status-text">Opening TravelPanel...</p>
+      </div>
+    </div>
+
+    <!-- Error view -->
+    <div id="error-view" class="view hidden">
+      <div class="error-content">
+        <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p id="error-message" class="error-message"></p>
+        <button class="btn btn-secondary btn-sm" id="error-retry-btn">Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
