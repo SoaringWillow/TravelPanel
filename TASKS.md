@@ -115,7 +115,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Graceful fallback: if the API fails or no coordinates available, skip without error
 
 ### E2 — Batch Import: Paste Multiple URLs at Once
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ImportSheet.tsx`, `app/api/import/route.ts`  
 **What to do**:
 - Detect when the user pastes or types text with multiple URLs (newline-separated or space-separated)

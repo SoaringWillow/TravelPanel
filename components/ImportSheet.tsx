@@ -26,7 +26,7 @@ interface ImportSheetProps {
   initialUrl?: string;
 }
 
-type Stage = 'idle' | 'loading' | 'preview' | 'duplicate';
+type Stage = 'idle' | 'loading' | 'preview' | 'duplicate' | 'batch' | 'batch-running';
 
 interface InlinePreview { title: string | null; thumbnail: string | null; platform: string }
 
@@ -37,6 +37,13 @@ const PREVIEW_DEBOUNCE_MS = 900;
 const MIN_PREVIEW_INTERVAL_MS = 2000;
 
 let lastPreviewFetchAt = 0;
+
+function extractUrls(text: string): string[] {
+  const urlPattern = /https?:\/\/[^\s,<>"]+/g;
+  const found = text.match(urlPattern) ?? [];
+  // Deduplicate preserving order
+  return Array.from(new Set(found));
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -49,6 +56,9 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [inlinePreview, setInlinePreview] = useState<InlinePreview | null>(null);
   const [inlineLoading, setInlineLoading] = useState(false);
   const [duplicateItem, setDuplicateItem] = useState<SavedItem | null>(null);
+  const [batchUrls, setBatchUrls]         = useState<string[]>([]);
+  const [batchChecked, setBatchChecked]   = useState<Set<number>>(new Set());
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
   const abortRef                      = useRef<AbortController | null>(null);
   const debounceRef                   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -184,12 +194,58 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setInlinePreview(null);
     setInlineLoading(false);
     setDuplicateItem(null);
+    setBatchUrls([]);
+    setBatchChecked(new Set());
+    setBatchProgress(null);
     setStage('idle');
     setError('');
   }
 
+  async function handleBatchClip() {
+    const selected = batchUrls.filter((_, i) => batchChecked.has(i));
+    if (selected.length === 0) return;
+    setStage('batch-running');
+    setBatchProgress({ done: 0, total: selected.length });
+
+    for (let i = 0; i < selected.length; i++) {
+      const u = selected[i];
+      try {
+        const res = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: u }),
+          signal: AbortSignal.timeout(IMPORT_TIMEOUT_MS),
+        });
+        if (res.ok) {
+          const data: ImportResult = await res.json();
+          const item: SavedItem = {
+            id: crypto.randomUUID(),
+            url: u,
+            platform: data.platform,
+            title: data.title,
+            description: data.description,
+            thumbnail: data.thumbnail,
+            locations: data.locations,
+            activities: data.activities,
+            tags: data.tags,
+            substance: data.substance ?? [],
+            savedAt: Date.now(),
+            enrichmentStatus: 'done',
+            retryCount: 0,
+            boardId: undefined,
+          };
+          onSaved(item);
+        }
+      } catch {
+        // Skip failed URLs silently in batch mode
+      }
+      setBatchProgress({ done: i + 1, total: selected.length });
+    }
+    resetState();
+  }
+
   function handleClose() {
-    if (stage === 'loading') return;
+    if (stage === 'loading' || stage === 'batch-running') return;
     resetState();
     onClose();
   }
@@ -240,6 +296,20 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 setUrl(val);
                 if (stage === 'preview') { setPreview(null); setStage('idle'); }
                 setError('');
+                setDuplicateItem(null);
+                // Detect multiple URLs → batch mode
+                const urls = extractUrls(val);
+                if (urls.length > 1) {
+                  setBatchUrls(urls);
+                  setBatchChecked(new Set(urls.map((_, i) => i)));
+                  setStage('batch');
+                  setInlinePreview(null);
+                  if (debounceRef.current) clearTimeout(debounceRef.current);
+                  return;
+                }
+                // Back to single mode
+                if (stage === 'batch' || stage === 'batch-running') setStage('idle');
+                setBatchUrls([]);
                 // Debounced lightweight preview
                 if (debounceRef.current) clearTimeout(debounceRef.current);
                 setInlinePreview(null);
@@ -255,7 +325,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           </div>
 
           {/* ── Inline lightweight preview (while typing, before AI extraction) ── */}
-          {stage === 'idle' && (inlineLoading || inlinePreview) && (
+          {stage === 'idle' && !batchUrls.length && (inlineLoading || inlinePreview) && (
             <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 animate-in fade-in duration-200">
               {inlineLoading ? (
                 <Loader2 size={14} className="animate-spin text-gray-400 flex-shrink-0" />
@@ -291,8 +361,77 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             </div>
           )}
 
-          {/* ── Import button (hidden during preview / duplicate) ───────── */}
-          {stage !== 'preview' && stage !== 'duplicate' && (
+          {/* ── Batch mode UI ────────────────────────────────────────────── */}
+          {(stage === 'batch' || stage === 'batch-running') && batchUrls.length > 1 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-700">
+                  {batchUrls.length} URLs detected
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (batchChecked.size === batchUrls.length) {
+                      setBatchChecked(new Set());
+                    } else {
+                      setBatchChecked(new Set(batchUrls.map((_, i) => i)));
+                    }
+                  }}
+                  className="text-xs text-indigo-600 font-medium"
+                >
+                  {batchChecked.size === batchUrls.length ? 'Deselect all' : 'Select all'}
+                </button>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {batchUrls.map((u, i) => (
+                  <label key={i} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={batchChecked.has(i)}
+                      onChange={() => {
+                        setBatchChecked((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(i)) next.delete(i); else next.add(i);
+                          return next;
+                        });
+                      }}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400"
+                    />
+                    <span className="text-xs text-gray-600 truncate flex-1">{u}</span>
+                  </label>
+                ))}
+              </div>
+              {batchProgress && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Clipping {batchProgress.done} of {batchProgress.total}…</span>
+                    <span>{Math.round((batchProgress.done / batchProgress.total) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="bg-indigo-500 h-1.5 rounded-full transition-all duration-300"
+                      style={{ width: `${(batchProgress.done / batchProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleBatchClip}
+                disabled={batchChecked.size === 0 || stage === 'batch-running'}
+                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {stage === 'batch-running' ? (
+                  <><Loader2 size={16} className="animate-spin" />Clipping…</>
+                ) : (
+                  `Clip all ${batchChecked.size} URLs`
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* ── Import button (hidden during preview / duplicate / batch) ── */}
+          {stage !== 'preview' && stage !== 'duplicate' && stage !== 'batch' && stage !== 'batch-running' && (
             <button
               type="button"
               onClick={handleImport}
