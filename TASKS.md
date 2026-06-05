@@ -450,7 +450,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This mirrors the plan rate-limit UX that was already built for the plan view (D3)
 
 ### H4 — First-launch onboarding walkthrough
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/OnboardingSheet.tsx` (new), `app/page.tsx`  
 **What to do**:
 - On first launch (detect via `localStorage.getItem('hasSeenOnboarding')`), show a full-screen onboarding sheet

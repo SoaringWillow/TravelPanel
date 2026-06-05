@@ -11,6 +11,7 @@ import { PLATFORM_BG, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 import { searchItems } from '@/lib/searchItems';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import { OnboardingSheet } from '@/components/OnboardingSheet';
 import NavBar from '@/components/NavBar';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ function HomePageInner() {
   const [drawerOpen, setDrawerOpen]     = useState(false);
   const [showSearch, setShowSearch]     = useState(false);
   const [searchQuery, setSearchQuery]   = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // 5 most recent enriched items for the bottom drawer
   const recentClips = items
@@ -51,6 +53,19 @@ function HomePageInner() {
       setShowImport(true);
     }
   }, [searchParams]);
+
+  // First-launch onboarding
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!localStorage.getItem('hasSeenOnboarding')) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  function handleOnboardingDismiss() {
+    localStorage.setItem('hasSeenOnboarding', '1');
+    setShowOnboarding(false);
+  }
 
   // Handle ?flyTo=lat,lng&itemId=id — pan map and open detail card
   useEffect(() => {
@@ -358,6 +373,13 @@ function HomePageInner() {
       )}
 
       <NavBar active="home" />
+
+      {/* First-launch onboarding */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingSheet onDismiss={handleOnboardingDismiss} />
+        )}
+      </AnimatePresence>
     </main>
   );
 }

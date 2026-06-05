@@ -265,6 +265,17 @@ export default function SettingsPage() {
                 <ExternalLink size={13} />
               </div>
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem('hasSeenOnboarding');
+                window.location.href = '/';
+              }}
+              className="flex items-center justify-between w-full px-5 py-3.5 hover:bg-gray-50 transition-colors text-left"
+            >
+              <span className="text-sm text-gray-600">See app intro</span>
+              <ChevronRight size={16} className="text-gray-300" />
+            </button>
             <Link
               href="/privacy"
               className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
