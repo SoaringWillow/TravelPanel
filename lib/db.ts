@@ -209,3 +209,12 @@ export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
 }
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}

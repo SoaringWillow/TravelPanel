@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Share2, Copy, Check } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -12,6 +13,34 @@ interface LocationDetailCardProps {
 }
 
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = useCallback(async () => {
+    const shareData = {
+      title: item.title,
+      text:  item.description || item.title,
+      url:   item.url,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        // User cancelled or share failed — fall through to clipboard
+      }
+    }
+
+    // Clipboard fallback
+    try {
+      await navigator.clipboard.writeText(item.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard also unavailable — silent fail
+    }
+  }, [item]);
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -45,14 +74,32 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 {item.title}
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="Close"
-            >
-              <X size={18} className="text-gray-500" />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Share / copy button */}
+              <button
+                type="button"
+                onClick={handleShare}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors relative"
+                aria-label={copied ? 'Link copied!' : 'Share'}
+                title={copied ? 'Link copied!' : 'Share'}
+              >
+                {copied ? (
+                  <Check size={18} className="text-green-500" />
+                ) : (
+                  <Share2 size={18} className="text-gray-500" />
+                )}
+              </button>
+
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
           </div>
 
           {/* ── Scrollable body ──────────────────────────────────────────── */}

@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,7 +174,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
@@ -182,16 +182,109 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C3 — Shared Boards v1
 **Status**: `[ ]` Not started
 
 ### C4 — Proactive Resurfacing
 **Status**: `[ ]` Not started
+
+---
+
+## PHASE D — iOS Polish & PWA Excellence
+
+> Goal: make TravelPanel feel like a native iOS app — fast, fluid, and reliable.
+> All tasks here are pure web/PWA; no Supabase dependency.
+
+### D1 — JSON Restore (import backup)
+**Status**: `[x]` Done  
+**Files**: `app/settings/page.tsx`, `lib/importData.ts`  
+**What to do**:
+- Add "Restore from backup" below the export button in Settings
+- Parse the exported JSON, validate version/structure, merge into IndexedDB
+- Skip items/boards that already exist (by id) — last-write-wins on conflicts
+- Show a summary: "X clips and Y boards restored"
+
+### D2 — Native Share API on clips
+**Status**: `[x]` Done  
+**Files**: `components/LocationDetailCard.tsx`  
+**What to do**:
+- Add a "Share" button to the detail card using Web Share API (`navigator.share`)
+- Share: title + description + URL of the original clip
+- Fallback: copy link to clipboard + toast "Link copied!"
+- Works on iOS Safari natively (triggers native share sheet)
+
+### D3 — Pull-to-refresh on Inbox
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Detect downward swipe at top of scroll container
+- Trigger re-fetch of items from IndexedDB + re-run enrichment retry
+- Animate a spinner during refresh
+- On iOS this should feel native (use touch events or a small library)
+
+### D4 — Offline Service Worker (PWA asset caching)
+**Status**: `[ ]` Not started  
+**Files**: `public/sw.js`, `app/layout.tsx`  
+**What to do**:
+- Register a service worker that caches all app assets (shell, fonts, tiles)
+- Use a cache-first strategy for static assets
+- Use a network-first strategy for /api/* routes
+- Shows a "You're offline" banner when network is unavailable
+- Add `manifest.json` with correct icons for iOS home-screen add
+
+### D5 — Swipe-to-delete on Inbox cards
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Left swipe reveals a red delete action (like iOS Messages)
+- Snap-back if not swiped far enough (< 40% of card width)
+- Confirm delete on full swipe or button tap
+- Smooth spring animation (framer-motion drag constraints)
+
+### D6 — Edit notes inline from any card
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- "Notes" field in detail card should be editable (tap to edit)
+- Auto-save on blur, show "Saved" toast briefly
+- Add `updateItemNotes(id, notes)` to db.ts
+
+---
+
+## PHASE E — Grow & Discovery
+
+### E1 — Proactive Resurfacing (C4 revisited)
+**Status**: `[ ]` Not started  
+**What to do**:
+- When GPS is active and a saved place is within 500m, show an alert card
+- "You're near [Place] from your [Board] board — tap to see your notes"
+- Debounce to fire at most once per place per session
+- Build on C1's GPS hook — no push notifications needed
+
+### E2 — Shared Boards v1 (C3 revisited)
+**Status**: `[ ]` Not started  
+**Needs**: Supabase (B1 keys)
+
+### E3 — Quick Actions (long-press context menu)
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Long-press on a card shows a context menu: Move to board / Share / Delete
+- Use Framer Motion for spring-in animation
+- Avoids full-screen drawer for common actions
+
+### E4 — Board cover image picker
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- Let users pick a cover image for their board from the clips in it
+- Tap the map preview area → show thumbnail picker from board items
+- Saves `coverThumbnail` to the board in IndexedDB
 
 ---
 

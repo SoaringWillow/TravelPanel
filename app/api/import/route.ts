@@ -85,8 +85,14 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMediaType: string | undefined;
+
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url            = body.url;
+    imageBase64    = body.imageBase64;
+    imageMediaType = body.imageMediaType;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,6 +102,63 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
+
+  // ── Vision mode: image provided by the client ──────────────────────────────
+  if (imageBase64) {
+    const visionPrompt = `You are analyzing a screenshot of a ${platform === 'xiaohongshu' ? 'Xiaohongshu (Little Red Book)' : platform === 'wechat' ? 'WeChat' : 'social media'} travel post.
+
+The user shared this URL: ${url}
+
+Extract TWO layers from everything visible in the screenshot — text, captions, comments, and any location tags.
+
+## Layer 1 — Spots (geographic skeleton)
+Real, identifiable locations with GPS coordinates you are confident about.
+Return an empty array if no specific places are visible.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Every tip, warning, opinion, and actionable insight visible in the post.
+Read ALL text in the image carefully — captions, overlaid text, comment excerpts.
+A typical post should yield 2–8 substance items.`;
+
+    // Strip data-URL prefix if present; keep only the raw base64 bytes
+    const rawBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    const mimeType  = (imageMediaType || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+    const imageBytes = Buffer.from(rawBase64, 'base64');
+
+    let visionResult: z.infer<typeof importSchema> | null = null;
+    try {
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBytes, mimeType },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      visionResult = object;
+    } catch {
+      // Fall through — return empty result
+    }
+
+    const result: ImportResult = {
+      platform,
+      title: (visionResult?.title || url).slice(0, 200),
+      description: (visionResult?.description || '').slice(0, 500),
+      thumbnail: undefined,
+      locations: visionResult?.locations ?? [],
+      activities: visionResult?.activities ?? [],
+      tags: visionResult?.tags ?? [],
+      substance: visionResult?.substance ?? [],
+    };
+    return NextResponse.json(result);
+  }
+
+  // ── Text mode: fetch the page and extract from HTML ────────────────────────
   const page = await fetchPageData(url);
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.

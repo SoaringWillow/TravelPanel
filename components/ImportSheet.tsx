@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Camera, X } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -15,6 +15,9 @@ import {
   PLATFORM_BG,
   PLATFORM_COLORS,
 } from '@/lib/parse-url';
+
+// Platforms that block server-side scraping and benefit from screenshot mode
+const SCREENSHOT_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
 
 // ─── Props / types ───────────────────────────────────────────────────────────
 
@@ -34,19 +37,24 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]                   = useState(initialUrl);
+  const [notes, setNotes]               = useState('');
+  const [stage, setStage]               = useState<Stage>('idle');
+  const [preview, setPreview]           = useState<ImportResult | null>(null);
+  const [error, setError]               = useState('');
+  const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
+  const [screenshotMime, setScreenshotMime]     = useState<string>('image/jpeg');
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const abortRef                        = useRef<AbortController | null>(null);
+  const fileInputRef                    = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
 
-  const trimmedUrl       = url.trim();
-  const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
+  const trimmedUrl        = url.trim();
+  const detectedPlatform  = trimmedUrl ? detectPlatform(trimmedUrl) : null;
+  const isAntiScrapePlatform = detectedPlatform ? SCREENSHOT_PLATFORMS.has(detectedPlatform) : false;
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -64,10 +72,16 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setError('');
 
     try {
+      const body: Record<string, string> = { url: trimmedUrl };
+      if (screenshotBase64) {
+        body.imageBase64   = screenshotBase64;
+        body.imageMediaType = screenshotMime;
+      }
+
       const res = await fetch('/api/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: trimmedUrl }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -85,6 +99,34 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       );
       setStage('idle');
     }
+  }
+
+  function handleScreenshotSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    setScreenshotPreview(objectUrl);
+    setScreenshotMime(file.type || 'image/jpeg');
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Store as raw base64 (strip data-URL prefix)
+      const base64 = result.split(',')[1] ?? result;
+      setScreenshotBase64(base64);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so the same file can be re-selected if needed
+    e.target.value = '';
+  }
+
+  function clearScreenshot() {
+    setScreenshotBase64(null);
+    setScreenshotMime('image/jpeg');
+    if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
+    setScreenshotPreview(null);
   }
 
   function handleSave() {
@@ -141,6 +183,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    clearScreenshot();
   }
 
   function handleClose() {
@@ -206,6 +249,63 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
             />
           </div>
+
+          {/* ── Screenshot upload (anti-scrape platforms + post-error fallback) ── */}
+          {stage === 'idle' && (isAntiScrapePlatform || error) && (
+            <div className="rounded-2xl border-2 border-dashed border-rose-200 bg-rose-50 p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <Camera size={16} className="text-rose-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-rose-700">
+                    {isAntiScrapePlatform ? `${PLATFORM_LABELS[detectedPlatform!]} blocks auto-extraction` : 'Try with a screenshot'}
+                  </p>
+                  <p className="text-xs text-rose-500 mt-0.5 leading-relaxed">
+                    {isAntiScrapePlatform
+                      ? 'Screenshot the post in the app, then upload it here — Claude Vision will read it directly.'
+                      : 'If the URL failed to extract, a screenshot lets Claude Vision read the page directly.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleScreenshotSelect}
+                className="hidden"
+              />
+
+              {screenshotPreview ? (
+                <div className="relative">
+                  <img
+                    src={screenshotPreview}
+                    alt="Screenshot preview"
+                    className="w-full max-h-40 object-contain rounded-xl bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={clearScreenshot}
+                    className="absolute top-1.5 right-1.5 bg-white rounded-full p-1 shadow-sm hover:bg-gray-100 transition-colors"
+                    title="Remove screenshot"
+                  >
+                    <X size={13} className="text-gray-500" />
+                  </button>
+                  <p className="text-xs text-rose-600 font-medium mt-1.5 text-center">
+                    ✓ Screenshot ready — click &quot;Clip &amp; discover places&quot; below
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2 rounded-xl bg-rose-100 text-rose-700 text-sm font-medium hover:bg-rose-200 active:scale-[0.98] transition-all"
+                >
+                  📸 Upload screenshot
+                </button>
+              )}
+            </div>
+          )}
 
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (

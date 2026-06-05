@@ -224,15 +224,55 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── User location dot ───────────────────────────────────────────────────────
+
+interface UserDotProps { accuracy: number }
+
+function UserDot({ accuracy }: UserDotProps) {
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Accuracy ring */}
+      {accuracy < 200 && (
+        <div
+          style={{
+            position:        'absolute',
+            width:           40,
+            height:          40,
+            borderRadius:    '50%',
+            backgroundColor: 'rgba(59,130,246,0.15)',
+            border:          '1px solid rgba(59,130,246,0.3)',
+            animation:       'gps-pulse 2s ease-in-out infinite',
+          }}
+        />
+      )}
+      {/* Core dot */}
+      <div
+        style={{
+          width:        14,
+          height:       14,
+          borderRadius: '50%',
+          backgroundColor: '#3b82f6',
+          border:       '3px solid white',
+          boxShadow:    '0 2px 8px rgba(59,130,246,0.6)',
+          zIndex:       1,
+        }}
+      />
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
+
+interface UserPosition { lat: number; lng: number; accuracy: number }
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userPosition?: UserPosition | null;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userPosition }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -269,6 +309,14 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {/* GPS pulse keyframe injected once */}
+      <style>{`
+        @keyframes gps-pulse {
+          0%   { transform: scale(1);   opacity: 1; }
+          70%  { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+      `}</style>
       <Map
         id="main-map"
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
@@ -328,6 +376,17 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* ── User location dot ── */}
+        {userPosition && (
+          <Marker
+            longitude={userPosition.lng}
+            latitude={userPosition.lat}
+            anchor="center"
+          >
+            <UserDot accuracy={userPosition.accuracy} />
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
