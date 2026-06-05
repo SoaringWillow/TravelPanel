@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Clock } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
@@ -38,14 +38,24 @@ export default function BoardsPage() {
             <LayoutGrid className="text-indigo-600" size={22} />
             <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            <Plus size={16} />
-            <span>New Board</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.push('/trips')}
+              className="flex items-center gap-1.5 text-gray-600 text-sm font-medium px-3 py-2 rounded-xl hover:bg-gray-100 active:scale-95 transition-all"
+            >
+              <Clock size={16} />
+              <span>Trips</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+              <Plus size={16} />
+              <span>New Board</span>
+            </button>
+          </div>
         </div>
       </div>
 
