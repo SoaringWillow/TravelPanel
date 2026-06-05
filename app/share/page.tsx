@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { toast } from '@/lib/toast';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -29,12 +30,22 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Pick up screenshot written by the iOS Share Extension for anti-scraping platforms
+  useEffect(() => {
+    const stored = sessionStorage.getItem('pendingShareImageBase64');
+    if (stored) {
+      setPendingImageBase64(stored);
+      sessionStorage.removeItem('pendingShareImageBase64');
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,16 +99,16 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot when URL scraping would be blocked
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
           if (updated) {
-            setEnrichedData({
+            const enriched: ImportResult = {
               platform: updated.platform,
               title: updated.title,
               description: updated.description,
@@ -106,8 +117,16 @@ function SharePageInner() {
               activities: updated.activities,
               tags: updated.tags,
               substance: updated.substance,
-            } as ImportResult);
+            };
+            setEnrichedData(enriched);
+            if (enriched.locations.length > 0) {
+              toast.success(
+                `${enriched.locations.length} location${enriched.locations.length !== 1 ? 's' : ''} extracted`,
+              );
+            }
           }
+        } else {
+          toast.error('AI extraction failed — saved to retry later');
         }
         setEnrichmentLoading(false);
       });
