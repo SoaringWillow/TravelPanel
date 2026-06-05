@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Globe2, Plus, ChevronUp, Search, X, MapPin } from 'lucide-react';
+import { Globe2, Plus, ChevronUp, Search, X, MapPin, Dices } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_BG, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -35,6 +35,8 @@ function HomePageInner() {
   const [searchQuery, setSearchQuery]   = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [newestItemId, setNewestItemId] = useState<string | undefined>(undefined);
+  const [diceShaking, setDiceShaking] = useState(false);
+  const [surpriseToast, setSurpriseToast] = useState<string | null>(null);
 
   // 5 most recent enriched items for the bottom drawer
   const recentClips = items
@@ -113,6 +115,21 @@ function HomePageInner() {
   function handleImportClose() {
     setShowImport(false);
     setPrefilledUrl('');
+  }
+
+  function handleSurpriseMe() {
+    const enriched = items.filter((i) => i.enrichmentStatus === 'done' && i.locations.length > 0);
+    if (enriched.length === 0) {
+      setSurpriseToast('Save some clips first!');
+      setTimeout(() => setSurpriseToast(null), 2000);
+      return;
+    }
+    setDiceShaking(true);
+    setTimeout(() => setDiceShaking(false), 600);
+    const pick = enriched[Math.floor(Math.random() * enriched.length)];
+    setSelectedItem(pick);
+    setFlyTo(pick.locations[0]);
+    setDrawerOpen(false);
   }
 
   const hasAnyPins = items.some((i) => i.enrichmentStatus === 'done' && i.locations.length > 0);
@@ -337,12 +354,25 @@ function HomePageInner() {
                   ? `${recentClips.length} recent clip${recentClips.length !== 1 ? 's' : ''}`
                   : 'No clips yet — tap + to add'}
               </span>
-              <motion.div
-                animate={{ rotate: drawerOpen ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ChevronUp size={16} className="text-gray-400" />
-              </motion.div>
+              <div className="flex items-center gap-2">
+                {recentClips.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleSurpriseMe(); }}
+                    className="flex items-center gap-1 text-xs font-medium text-indigo-500 hover:text-indigo-700 transition-colors px-1.5 py-0.5 rounded-lg hover:bg-indigo-50"
+                    aria-label="Surprise me — show a random clip"
+                  >
+                    <Dices size={13} className={diceShaking ? 'dice-shake' : ''} />
+                    <span>Surprise me</span>
+                  </button>
+                )}
+                <motion.div
+                  animate={{ rotate: drawerOpen ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronUp size={16} className="text-gray-400" />
+                </motion.div>
+              </div>
             </div>
           </button>
 
@@ -440,6 +470,20 @@ function HomePageInner() {
           )}
         </motion.div>
       )}
+
+      {/* Surprise Me toast */}
+      <AnimatePresence>
+        {surpriseToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[1100] bg-gray-800 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg"
+          >
+            {surpriseToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <NavBar active="home" />
 

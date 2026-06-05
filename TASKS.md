@@ -641,7 +641,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Starred clips sort to the top of search results in `lib/searchItems.ts`
 
 ### K2 — "Surprise me" random clip discovery
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`  
 **What to do**:
 - Add a "🎲 Surprise me" button inside the bottom drawer handle bar area (right side, next to the chevron)
