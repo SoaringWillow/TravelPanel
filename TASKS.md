@@ -196,7 +196,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Generate at 1x, 2x, 3x resolutions
 
 ### G3 — Privacy Policy + Terms Page
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/legal/page.tsx`  
 **What to do**:
 - Create a simple `/legal` page with Privacy Policy and Terms of Service

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Database, CheckCircle2, Loader2, BookOpen, MapPin, Route } from 'lucide-react';
+import { Download, Database, CheckCircle2, Loader2, BookOpen, MapPin, Route, Shield } from 'lucide-react';
+import Link from 'next/link';
 import { getAllItems, getAllBoards } from '@/lib/db';
 import { exportAllData } from '@/lib/exportData';
 import NavBar from '@/components/NavBar';
@@ -123,6 +124,21 @@ export default function ProfilePage() {
           <p className="text-xs text-gray-400 mt-3 text-center">
             Includes clips, wisdom, GPS pins, collections, and trip plans
           </p>
+        </div>
+
+        {/* Legal */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Legal</h2>
+          <Link
+            href="/legal"
+            className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-indigo-600 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Shield size={16} className="text-gray-400" />
+              <span>Privacy Policy & Terms of Service</span>
+            </div>
+            <span className="text-gray-400">→</span>
+          </Link>
         </div>
 
         {/* Coming soon: auth */}
