@@ -240,7 +240,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - `impact('light')` on substance item tap in detail card
 
 ### D5 — PWA manifest & app icons
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `public/manifest.json` (or `app/manifest.ts`), `public/icons/`  
 **What to do**:
 - Audit `next.config.js` PWA configuration — ensure `display: standalone`, `orientation: portrait`, correct `start_url`
