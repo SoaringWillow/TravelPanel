@@ -535,7 +535,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Tap outside any card or "Cancel" exits select mode
 
 ### I3 — Trip plan share as image
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (as rich text share — uses navigator.share on iOS, clipboard fallback on desktop)  
 **Files**: `app/plan/[boardId]/page.tsx`, `lib/shareImage.ts` (new)  
 **What to do**:
 - Add a "Share" button (share icon) in the plan view header

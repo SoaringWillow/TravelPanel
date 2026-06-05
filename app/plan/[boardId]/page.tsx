@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Clock, Copy, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Clock, Copy, Check, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
@@ -238,6 +238,42 @@ export default function PlanPage() {
 
   const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
   const [dayCopied, setDayCopied] = useState(false);
+  const [planShared, setPlanShared] = useState(false);
+
+  async function handleSharePlan() {
+    if (!plan || !board) return;
+    const lines: string[] = [
+      `🗺️ ${board.name} Trip Plan`,
+      plan.overview ? `\n${plan.overview}` : '',
+      plan.bestTimeToGo ? `\n🌸 Best time: ${plan.bestTimeToGo}` : '',
+      '',
+    ];
+    for (const day of plan.days ?? []) {
+      lines.push(`── Day ${(plan.days?.indexOf(day) ?? 0) + 1}: ${day.theme} ──`);
+      for (const act of day.activities) {
+        lines.push(`${act.time}  ${act.name} @ ${act.location.name}`);
+        if (act.tips?.[0]) lines.push(`  · ${act.tips[0]}`);
+      }
+      lines.push('');
+    }
+    lines.push('Made with TravelPanel');
+    const text = lines.filter((l) => l !== undefined).join('\n');
+
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: `${board.name} Trip Plan`, text });
+        setPlanShared(true);
+        setTimeout(() => setPlanShared(false), 2000);
+        return;
+      } catch {
+        // Fallback to clipboard
+      }
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      setPlanShared(true);
+      setTimeout(() => setPlanShared(false), 2000);
+    });
+  }
 
   function handleCopyDay() {
     if (!activeDayPlan) return;
@@ -533,7 +569,14 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={handleSharePlan}
+                    className="flex items-center justify-center gap-1.5 border border-indigo-200 text-indigo-600 bg-indigo-50 text-xs font-medium py-2 px-3 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                  >
+                    {planShared ? <Check size={14} /> : <Share2 size={14} />}
+                    {planShared ? 'Shared!' : 'Share plan'}
+                  </button>
                   <button
                     onClick={handleExportPDF}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
