@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: #111827;
+      background: #f9fafb;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 24px 24px 20px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: #6366f1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .card-header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .card-header p {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .card-body {
+      padding: 24px;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .label-hint {
+      font-weight: 400;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #111827;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #6366f1;
+    }
+
+    .field-hint {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .btn-save {
+      width: 100%;
+      padding: 11px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-save:hover { background: #4f46e5; }
+
+    .toast {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #15803d;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .toast.visible { display: block; }
+
+    .card-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #f3f4f6;
+      background: #f9fafb;
+    }
+
+    .card-footer p {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .card-footer a {
+      color: #6366f1;
+      text-decoration: none;
+    }
+
+    .card-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="logo-icon">T</div>
+      <div>
+        <h1>TravelPanel Clipper</h1>
+        <p>Browser extension settings</p>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="field">
+        <label for="app-url">
+          TravelPanel App URL
+          <span class="label-hint">— required</span>
+        </label>
+        <input
+          type="url"
+          id="app-url"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="field-hint">
+          The URL where your TravelPanel app is hosted (e.g. your Vercel deployment URL).
+          No trailing slash.
+        </p>
+      </div>
+
+      <button class="btn-save" id="save-btn">Save Settings</button>
+      <div class="toast" id="toast">✓ Settings saved!</div>
+    </div>
+
+    <div class="card-footer">
+      <p>
+        After saving, click the <strong>TravelPanel</strong> extension icon on any
+        travel page to clip it. You can also right-click any link and choose
+        "Save to TravelPanel".
+      </p>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
