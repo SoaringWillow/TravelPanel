@@ -352,15 +352,37 @@ export default function MapView({
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
   const nearMeActive = geoStatus === 'active' || geoStatus === 'locating';
 
-  // Map style toggle
+  // Map style toggle — defaults to dark tile style when system is in dark mode
+  // and no manual preference has been stored.
   const [styleIndex, setStyleIndex] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     const saved = localStorage.getItem(MAP_STYLE_KEY);
-    const idx = MAP_STYLES.findIndex((s) => s.id === saved);
-    return idx >= 0 ? idx : 0;
+    if (saved) {
+      const idx = MAP_STYLES.findIndex((s) => s.id === saved);
+      return idx >= 0 ? idx : 0;
+    }
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? MAP_STYLES.findIndex((s) => s.id === 'dark') : 0;
   });
 
+  // Track whether user has manually picked a style this session
+  const manualStyleRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (manualStyleRef.current) return; // respect manual choice
+      const saved = localStorage.getItem(MAP_STYLE_KEY);
+      if (saved) return; // respect persisted manual choice
+      setStyleIndex(e.matches ? MAP_STYLES.findIndex((s) => s.id === 'dark') : 0);
+    };
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
+
   function cycleMapStyle() {
+    manualStyleRef.current = true;
     const next = (styleIndex + 1) % MAP_STYLES.length;
     setStyleIndex(next);
     if (typeof window !== 'undefined') localStorage.setItem(MAP_STYLE_KEY, MAP_STYLES[next].id);

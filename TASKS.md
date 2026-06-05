@@ -289,7 +289,7 @@ All Phase A–E tasks are complete. The app has:
 - Persist `hasSeenOnboardingTips: true` in localStorage when sequence completes
 
 ### F8 — Dark Mode Map Tiles Auto-Switch
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The map stays on the light tile style even when the device is in dark mode, creating an inconsistent look.
 **Files to change**: `components/MapView.tsx`
 **What to do**:
