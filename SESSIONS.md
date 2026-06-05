@@ -101,3 +101,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 10:29 | 32f7706 | feat(B3): Xiaohongshu/WeChat Vision extraction via shared screenshot
 2026-06-05 10:30 | cb6c7d1 | feat(B5): cloud backup export + Settings page
 2026-06-05 10:34 | f6c2079 | fix(safe-areas): proper iOS safe area handling across all pages
+2026-06-05 10:35 | 3deac04 | chore: new TASKS.md — Phase C iOS polish + Phase D cloud roadmap
