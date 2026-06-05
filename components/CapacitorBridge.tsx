@@ -12,6 +12,14 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+
+    // Retrieve image written by Share Extension when Xiaohongshu/WeChat screenshot was shared
+    const { value: imgBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+    if (imgBase64) {
+      sessionStorage.setItem('pendingShareImageBase64', imgBase64);
+      await Preferences.remove({ key: 'pendingShareImageBase64' });
+    }
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
 
@@ -44,15 +52,30 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>[&hasImage=true]
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage = parsed.searchParams.get('hasImage') === 'true';
 
             if (shareUrl) {
+              // Retrieve image written by Share Extension for anti-scraping platforms
+              if (hasImage) {
+                try {
+                  const { Preferences } = await import('@capacitor/preferences');
+                  const { value: imgBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+                  if (imgBase64) {
+                    sessionStorage.setItem('pendingShareImageBase64', imgBase64);
+                    await Preferences.remove({ key: 'pendingShareImageBase64' });
+                  }
+                } catch {
+                  // Preferences not available
+                }
+              }
+
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);
