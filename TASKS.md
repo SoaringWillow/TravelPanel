@@ -389,7 +389,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Check on root `/` — if `!hasOnboarded()`, redirect to `/onboarding`
 
 ### G2 — Deep Link Clip Preview
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `components/ClipPreviewCard.tsx`  
 **What to do**:
 - Before saving, show a rich preview of what will be extracted: platform badge, title, first 2 extracted locations (as pills), first substance tip
