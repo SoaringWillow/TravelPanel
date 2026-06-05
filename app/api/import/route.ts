@@ -83,10 +83,21 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+const SUBSTANCE_EXAMPLES = `Examples of what to capture:
+- "Arrive before 8am to beat the queue" → tip
+- "The set lunch menu is half the price of dinner" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Skip the official viewpoint — the back alley has the better angle" → recommendation
+- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
+- "It was overrated for the price" → opinion
+- "If you're visiting in August, be aware it's typhoon season" → context
+- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning`;
+
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,9 +107,57 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const page = imageBase64 ? null : await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  try {
+    if (imageBase64) {
+      // Vision path: user shared a screenshot (common for Xiaohongshu/WeChat which
+      // block server-side fetches). Analyze the image directly with Claude Vision.
+      const visionPrompt = `You are analyzing a screenshot of a ${platform === 'xiaohongshu' ? 'Xiaohongshu (小红书)' : platform === 'wechat' ? 'WeChat' : 'social media'} travel post.
+
+Platform: ${platform}
+URL (for context): ${url}
+
+Extract TWO layers of travel information visible in this image:
+
+## Layer 1 — Spots (geographic skeleton)
+Look for location names, place tags, map pins, or any geographic references in the image text or UI.
+Only include locations with GPS coordinates you are confident about.
+Do NOT invent coordinates.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Extract every piece of actionable insight, advice, warning, or opinion visible in captions,
+text overlays, comment previews, or any readable text in the image.
+${SUBSTANCE_EXAMPLES}
+
+For list-format content ("35 mistakes to avoid", "10 things I wish I knew"), extract ALL items.
+If the image shows a travel photo with captions, extract the advice in those captions.`;
+
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: `data:image/jpeg;base64,${imageBase64}`,
+              },
+              {
+                type: 'text',
+                text: visionPrompt,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: fetch the URL and analyze the HTML content.
+      const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -114,28 +173,20 @@ Do NOT invent or guess coordinates.
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
-This is what competitors miss. Examples of what to capture:
-- "Arrive before 8am to beat the queue" → tip
-- "The set lunch menu is half the price of dinner" → tip
-- "Cash only, nearest ATM is 10 min walk" → warning
-- "Skip the official viewpoint — the back alley has the better angle" → recommendation
-- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
-- "It was overrated for the price" → opinion
-- "If you're visiting in August, be aware it's typhoon season" → context
-- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
+This is what competitors miss.
+${SUBSTANCE_EXAMPLES}
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
