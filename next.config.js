@@ -1,3 +1,8 @@
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+  openAnalyzer: false,
+});
+
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
@@ -6,6 +11,9 @@ const withPWA = require('next-pwa')({
 });
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  // Packages that are already imported dynamically (large): MapLibre, jsPDF
+  // Run: ANALYZE=true npm run build  to generate bundle report in .next/analyze/
+};
 
-module.exports = withPWA(nextConfig);
+module.exports = withBundleAnalyzer(withPWA(nextConfig));

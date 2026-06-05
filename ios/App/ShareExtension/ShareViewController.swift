@@ -5,11 +5,15 @@ import UniformTypeIdentifiers
 
 // TravelPanel Share Extension
 //
-// Receives a URL (and optional title) from the iOS Share Sheet and opens
-// the main TravelPanel app with the travelpanel://share?url=...&title=...
-// URL scheme, which the CapacitorBridge component routes to /share.
+// Receives shared content from the iOS Share Sheet and opens the main TravelPanel
+// app via the travelpanel:// URL scheme, routed to /share by CapacitorBridge.
 //
-// Supported source types: URLs, plain text containing a URL, web pages.
+// Supported source types (in priority order):
+//   1. Direct URL attachment (web pages, social media links)
+//   2. Plain text containing a URL (Xiaohongshu share text, etc.)
+//   3. Image / screenshot (when URL is blocked by anti-scraping — e.g. 小红书, WeChat)
+//      → saves JPEG base64 to App Group, opens app with hasImage=true flag
+//      → share page reads image via @capacitor/preferences and uses Claude Vision
 
 class ShareViewController: UIViewController {
 
@@ -57,6 +61,35 @@ class ShareViewController: UIViewController {
                     return
                 }
             }
+
+            // Priority 3: image / screenshot (covers Xiaohongshu and WeChat screenshots
+            // where URL scraping is blocked). Save to App Group; share page reads via
+            // @capacitor/preferences and sends to Claude Vision for extraction.
+            for attachment in attachments {
+                if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { [weak self] data, _ in
+                        guard let self else { return }
+                        var image: UIImage?
+                        if let ui = data as? UIImage {
+                            image = ui
+                        } else if let url = data as? URL, let ui = UIImage(contentsOfFile: url.path) {
+                            image = ui
+                        }
+                        guard let image,
+                              let jpegData = image.jpegData(compressionQuality: 0.75) else {
+                            self.finish()
+                            return
+                        }
+                        let base64 = jpegData.base64EncodedString()
+                        let title = item.attributedContentText?.string
+                            ?? item.userInfo?[NSExtensionItemAttributedContentTextKey] as? String
+                            ?? "Screenshot"
+                        self.saveImageToAppGroup(base64: base64, title: title)
+                        self.openAppWithImage(url: self.extractURL(from: title) ?? "", title: title)
+                    }
+                    return
+                }
+            }
         }
 
         finish()
@@ -97,6 +130,44 @@ class ShareViewController: UIViewController {
 
         // Fallback: write to App Group and let the main app pick it up on next launch
         savePendingShareToAppGroup(url: url, title: title)
+        finish()
+    }
+
+    private func saveImageToAppGroup(base64: String, title: String) {
+        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+        defaults.set(base64, forKey: "pendingShareImageBase64")
+        defaults.set(title, forKey: "pendingShareImageTitle")
+        defaults.set(Date(), forKey: "pendingShareImageDate")
+        defaults.synchronize()
+    }
+
+    private func openAppWithImage(url: String, title: String) {
+        var components = URLComponents()
+        components.scheme = "travelpanel"
+        components.host = "share"
+        components.queryItems = [
+            URLQueryItem(name: "hasImage", value: "true"),
+            URLQueryItem(name: "title", value: title),
+            URLQueryItem(name: "url", value: url),
+        ]
+
+        guard let deepLink = components.url else {
+            finish()
+            return
+        }
+
+        var responder: UIResponder? = self
+        while let r = responder {
+            if let application = r as? UIApplication {
+                application.open(deepLink, options: [:]) { [weak self] _ in
+                    self?.finish()
+                }
+                return
+            }
+            responder = r.next
+        }
+
+        // Fallback: image already written to App Group above
         finish()
     }
 

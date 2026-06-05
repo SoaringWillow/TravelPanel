@@ -51,6 +51,8 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
             <button
               key={emoji}
               type="button"
+              aria-label={`Select ${emoji} emoji`}
+              aria-pressed={selectedEmoji === emoji}
               onClick={() => setSelectedEmoji(emoji)}
               className={`text-2xl h-12 rounded-xl flex items-center justify-center transition-all ${
                 selectedEmoji === emoji

@@ -10,11 +10,14 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
-import { searchItems } from '@/lib/searchItems';
+import { searchItemsScored } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { SkeletonInboxCard } from '@/components/SkeletonCard';
+import PullToRefresh from '@/components/PullToRefresh';
+import { InboxEmptyIllustration } from '@/components/EmptyStateIllustration';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,11 +32,11 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
-  const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { retryItem, onlineToast } = useEnrichmentRetry(refreshItem);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -52,7 +55,8 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const searchResults = searchItemsScored(platformFiltered, query);
+  const filtered = searchResults;
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -97,13 +101,13 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:shadow-gray-900 px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
+          <span className="ml-auto bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
         </div>
@@ -128,7 +132,7 @@ export default function InboxPage() {
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
                 }`}
               >
                 {p.label} ({count})
@@ -138,30 +142,47 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Online restore toast */}
+      {onlineToast && (
+        <div className="mx-4 mt-2 bg-emerald-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2">
+          <span>📶</span>
+          <span>{onlineToast}</span>
+        </div>
+      )}
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <PullToRefresh onRefresh={refresh} className="flex-1">
+      <div className="overflow-y-auto px-4 py-4 pb-24">
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonInboxCard key={i} />)}
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
+        ) : searchResults.length === 0 ? (
+          <div className="flex flex-col items-center justify-center pt-6 pb-10 text-center">
+            {query.trim() ? (
+              <>
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">No matches found.</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                  No clips match &quot;{query.trim()}&quot;. Try a different search.
+                </p>
+              </>
+            ) : (
+              <>
+                <InboxEmptyIllustration />
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 -mt-2">
+                  {activePlatform === 'all' ? 'Your inbox is empty.' : `No ${PLATFORM_LABELS[activePlatform as Platform]} clips yet.`}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                  Share content from Instagram, YouTube, or any travel app to get started.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map((item) => (
+              {searchResults.map(({ item, snippet }) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -175,6 +196,7 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    searchSnippet={query.trim() ? snippet : undefined}
                   />
                 </motion.div>
               ))}
@@ -182,6 +204,7 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>

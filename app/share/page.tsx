@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { hapticSuccess, hapticImpact } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -16,16 +17,38 @@ type Stage = 'picking' | 'saving' | 'done';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
+// Reads the pending screenshot saved by the Share Extension into App Group Preferences.
+// Returns base64 JPEG string or null if not in a native context / no image pending.
+async function readPendingImage(): Promise<string | null> {
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    if (!Capacitor.isNativePlatform()) return null;
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value } = await Preferences.get({ key: 'pendingShareImageBase64' });
+    if (value) {
+      await Preferences.remove({ key: 'pendingShareImageBase64' });
+      await Preferences.remove({ key: 'pendingShareImageTitle' });
+      await Preferences.remove({ key: 'pendingShareImageDate' });
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
+
 function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const fromExtension   = searchParams.get('source') === 'browser-extension';
+  const hasImage        = searchParams.get('hasImage') === 'true';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
   const [savedToName, setSavedToName]         = useState('');
   const [newBoardName, setNewBoardName]       = useState('');
+  const [newBoardEmoji, setNewBoardEmoji]     = useState('🗺');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
@@ -37,26 +60,30 @@ function SharePageInner() {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
-  // Auto-dismiss when done
+  // Auto-dismiss when done (skip for browser-extension — redirect to home instead)
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (fromExtension) {
+          window.location.href = '/';
+        } else {
+          window.history.back();
+        }
       }, 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [stage]);
+  }, [stage, fromExtension]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
 
-  // Most-recently-updated 5 boards for quick-pick
-  const recentBoards = [...boards]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 5);
+  const sortedBoards = [...boards].sort((a, b) => b.updatedAt - a.updatedAt);
+  // Most-recently-updated 4 boards for quick-pick chips
+  const recentBoards = sortedBoards.slice(0, 4);
+  const olderBoards = sortedBoards.slice(4);
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
@@ -83,14 +110,16 @@ function SharePageInner() {
 
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    hapticImpact('medium');
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — use vision path if a screenshot was shared
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const imageBase64 = hasImage ? await readPendingImage() ?? undefined : undefined;
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -125,7 +154,7 @@ function SharePageInner() {
     const newBoard: Board = {
       id: crypto.randomUUID(),
       name,
-      emoji: '🗺',
+      emoji: newBoardEmoji,
       itemIds: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -147,13 +176,18 @@ function SharePageInner() {
         {/* Top section */}
         <div className="space-y-2 pt-4">
           {/* Platform chip */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
               className="text-white text-xs font-semibold px-3 py-1 rounded-full"
               style={{ backgroundColor: platformColor }}
             >
               {platformLabel}
             </span>
+            {hasImage && (
+              <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">
+                📷 Screenshot — AI will read the image
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -168,8 +202,8 @@ function SharePageInner() {
         </div>
 
         {/* Middle section — board picker */}
-        <div className="flex-1 flex flex-col justify-center py-8">
-          <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
+        <div className="flex-1 flex flex-col justify-center py-6">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Save to</p>
 
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -180,7 +214,7 @@ function SharePageInner() {
               onClick={() => handleSave(undefined, 'Inbox')}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
-              Inbox
+              📥 Inbox
             </button>
 
             {/* Recent board chips */}
@@ -218,14 +252,29 @@ function SharePageInner() {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
+                {/* Emoji quick-pick */}
+                <div className="flex gap-1.5 mb-2 flex-wrap">
+                  {['🗺', '🏯', '🌏', '🍜', '🏖', '🏔', '🌆', '🎭', '🛍', '✈️'].map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => setNewBoardEmoji(e)}
+                      className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${
+                        newBoardEmoji === e
+                          ? 'bg-indigo-100 ring-2 ring-indigo-400 scale-110'
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newBoardName}
                     onChange={(e) => setNewBoardName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleNewBoardSave();
-                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleNewBoardSave(); }}
                     placeholder="Board name…"
                     autoFocus
                     className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none transition-colors"
@@ -242,6 +291,27 @@ function SharePageInner() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Older boards (if > 4) */}
+          {olderBoards.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Other boards</p>
+              <div className="flex flex-col gap-1">
+                {olderBoards.map((board) => (
+                  <button
+                    key={board.id}
+                    type="button"
+                    disabled={stage === 'saving'}
+                    onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 active:scale-[0.98] transition-all text-left disabled:opacity-50"
+                  >
+                    <span>{board.emoji}</span>
+                    <span>{board.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom — return button (ghost) */}
@@ -330,11 +400,15 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (fromExtension) {
+            window.location.href = '/';
+          } else {
+            window.history.back();
+          }
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        {fromExtension ? 'Open TravelPanel →' : 'Return to app →'}
       </button>
     </div>
   );

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <span>✈️</span>
+        <span>TravelPanel Clipper</span>
+      </div>
+      <p class="subtitle">Browser Extension Settings</p>
+    </header>
+
+    <section class="section">
+      <label class="label" for="travelPanelUrl">TravelPanel App URL</label>
+      <p class="hint">
+        The URL where your TravelPanel app is deployed — for example,
+        <code>https://your-app.vercel.app</code>
+      </p>
+      <input
+        type="url"
+        id="travelPanelUrl"
+        class="input"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      >
+    </section>
+
+    <div class="actions">
+      <button class="save-btn" id="saveBtn">Save</button>
+      <span class="status" id="status"></span>
+    </div>
+
+    <section class="section info-section">
+      <h2 class="section-title">How to use</h2>
+      <ol class="steps">
+        <li>Browse to any travel blog, Instagram post, YouTube video, or 小红书 page.</li>
+        <li>Click the TravelPanel icon in your toolbar (or right-click → <strong>Clip this page to TravelPanel</strong>).</li>
+        <li>The TravelPanel share page opens — choose a board and save.</li>
+        <li>AI automatically extracts locations and travel wisdom from the page.</li>
+      </ol>
+    </section>
+
+    <section class="section info-section">
+      <h2 class="section-title">Safari (macOS / iOS)</h2>
+      <p class="hint">
+        Convert this extension for Safari using:<br>
+        <code>xcrun safari-web-extension-converter /path/to/browser-extension</code><br>
+        Then open the generated Xcode project and run it.
+      </p>
+    </section>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

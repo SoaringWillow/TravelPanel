@@ -63,5 +63,9 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TravelPanel uses your location to show nearby saved clips while you're traveling.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TravelPanel uses your location to show nearby saved clips while you're traveling.</string>
 </dict>
 </plist>

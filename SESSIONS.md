@@ -96,3 +96,35 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-05 15:28 | b10a8b4 | feat: B2 — Browser Extension (Chrome/Safari clipper)
+2026-06-05 15:34 | 34643f2 | feat: B3 — Xiaohongshu fix via Claude Vision
+2026-06-05 15:36 | bd7f845 | feat: B5 — Data export/import + Settings page
+2026-06-05 15:40 | 5e0cf4d | feat: C1 — On-Trip GPS Mode with nearby clips panel
+2026-06-05 15:41 | aa9b335 | feat: C2 — Post-Trip Timeline
+2026-06-05 15:43 | 4d41c41 | feat: C4 — Proactive Resurfacing (in-app trip suggestion)
+2026-06-05 15:46 | 22a6bf5 | feat: D1 — Clip Editing (title, description, tags, personal notes)
+2026-06-05 15:48 | f11b0ad | feat: D2 — Board Editing (rename + emoji picker)
+2026-06-05 15:51 | e128f82 | feat: skeleton loading states for inbox and boards pages (D5)
+2026-06-05 15:54 | c2e9f74 | feat: swipe-to-delete gesture on inbox clip cards (D3)
+2026-06-05 15:55 | 61c7eb2 | feat: map filter bar by board and tag (D4)
+2026-06-05 15:59 | 596a05e | feat: system-aware dark mode across all major pages (D6)
+2026-06-05 16:00 | 02cf97d | feat: iOS haptic feedback on clip save, enrichment, and board create (D7)
+2026-06-05 16:01 | eacbaa7 | feat: surface personal notes in trip planner (D8)
+2026-06-05 16:03 | 2056363 | feat: vibe search with intent expansion and substance snippets (E1)
+2026-06-05 16:04 | c0b3f90 | feat: location editing in EditClipSheet (E2)
+2026-06-05 16:06 | 9b05781 | feat: trip day editing — remove activities, move between days, add notes (E3)
+2026-06-05 16:07 | 3e57c52 | feat: offline-first enrichment — retry queue fires on network restore (E4)
+2026-06-05 16:08 | 2386ad7 | chore: new TASKS.md for Phase F/G/H — App Store readiness sprint
+2026-06-05 16:09 | 69c8f71 | feat: 3-step animated onboarding flow for first launch (F1)
+2026-06-05 16:10 | 73d6fa2 | feat: pull-to-refresh gesture on inbox (F2)
+2026-06-05 16:11 | 7838adf | feat: enhanced share sheet board picker with emoji picker and older boards (F4)
+2026-06-05 16:13 | ae7c023 | fix: accessibility aria-labels and image lazy loading (F8 + G1)
+2026-06-05 16:14 | abc422c | feat: error boundary, privacy policy page (G4 + H2)
+2026-06-05 16:23 | 437f469 | feat: iOS app icons, capacitor splash config, Info.plist location privacy (F6+F7)
+2026-06-05 16:25 | 7391baf | feat: illustrated empty states for inbox, boards, board detail (F3)
+2026-06-05 16:27 | 522b809 | feat: clip count badges on grouped map pins (F5)
+2026-06-05 16:32 | a106291 | perf: convert individual map pins to GeoJSON source + WebGL circle layer (G2)
+2026-06-05 16:33 | 0651da2 | feat: IndexedDB v3 migration guard with safe version bumps (G3)
+2026-06-05 16:34 | feb15b2 | feat: Pro tier gate scaffolding (H1)
+2026-06-05 16:35 | b90de91 | perf: bundle size audit setup + dynamic import hygiene (G5)
+2026-06-05 16:37 | 3c53a4e | docs: mark all Phase F/G/H complete; add Phase I (App Store) + J (Post-Launch) tasks

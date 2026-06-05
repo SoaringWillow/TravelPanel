@@ -1,41 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import type { ViewStateChangeEvent, MapLayerMouseEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl, Source, Layer, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import type { FeatureCollection, Point } from 'geojson';
 import { SavedItem, Location } from '@/lib/types';
-import { PLATFORM_COLORS } from '@/lib/parse-url';
-import { useSupercluster } from '@/hooks/useSupercluster';
-
-// ─── Tag → emoji map ─────────────────────────────────────────────────────────
-
-const TAG_EMOJI: Record<string, string> = {
-  beach:        '🏖',
-  mountain:     '🏔',
-  food:         '🍜',
-  photography:  '📸',
-  culture:      '🏛',
-  history:      '🏛',
-  nature:       '🌿',
-  shopping:     '🛍',
-  art:          '🎨',
-  nightlife:    '🌃',
-  adventure:    '🧗',
-  city:         '🏙',
-  relaxation:   '🧘',
-  architecture: '🏗',
-  rural:        '🌾',
-};
-
-function getPinEmoji(tags: string[]): string | null {
-  for (const tag of tags) {
-    const emoji = TAG_EMOJI[tag.toLowerCase()];
-    if (emoji) return emoji;
-  }
-  return null;
-}
+import { useSupercluster, GroupEntry } from '@/hooks/useSupercluster';
+import { UserLocation } from '@/hooks/useGeolocation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +17,7 @@ interface PopupInfo {
   location: Location;
   longitude: number;
   latitude: number;
+  groupItems: GroupEntry[];
 }
 
 interface MapControllerProps {
@@ -78,113 +52,6 @@ function MapController({ flyTo }: MapControllerProps) {
   }, [flyTo, mapRef]);
 
   return null;
-}
-
-// ─── Pin component ───────────────────────────────────────────────────────────
-
-interface PinProps {
-  item: SavedItem;
-  locName: string;
-  onClick: () => void;
-}
-
-function Pin({ item, locName, onClick }: PinProps) {
-  const [hovered, setHovered] = useState(false);
-  const emoji = getPinEmoji(item.tags);
-
-  return (
-    <div style={{ position: 'relative' }}>
-      {/* Hover label */}
-      {hovered && (
-        <div
-          style={{
-            position:     'absolute',
-            bottom:       '100%',
-            left:         '50%',
-            transform:    'translateX(-50%)',
-            marginBottom: 6,
-            background:   'white',
-            borderRadius: 8,
-            boxShadow:    '0 4px 12px rgba(0,0,0,0.18)',
-            padding:      '4px 8px',
-            width:        160,
-            pointerEvents: 'none',
-            zIndex:       10,
-          }}
-        >
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#1f2937', lineHeight: 1.3, margin: 0 }}
-             className="line-clamp-1">
-            {locName}
-          </p>
-          <p style={{ fontSize: 10, color: '#6b7280', marginTop: 1, margin: 0 }}
-             className="line-clamp-2">
-            {item.title}
-          </p>
-        </div>
-      )}
-
-      {item.thumbnail ? (
-        /* Photo-style pin */
-        <button
-          type="button"
-          aria-label={`${item.title} – ${locName}`}
-          onClick={onClick}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          style={{
-            width:        36,
-            height:       36,
-            borderRadius: 8,
-            overflow:     'hidden',
-            border:       '2.5px solid white',
-            boxShadow:    hovered ? '0 4px 12px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.25)',
-            cursor:       'pointer',
-            padding:      0,
-            display:      'block',
-            transform:    hovered ? 'scale(1.15)' : 'scale(1)',
-            transition:   'all 0.15s ease',
-          }}
-        >
-          <img
-            src={item.thumbnail}
-            alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            onError={(e) => {
-              // Fallback: hide image, show emoji circle instead
-              (e.currentTarget.closest('button') as HTMLButtonElement).style.display = 'none';
-            }}
-          />
-        </button>
-      ) : (
-        /* Emoji / color circle pin */
-        <button
-          type="button"
-          aria-label={`${item.title} – ${locName}`}
-          onClick={onClick}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          style={{
-            width:           emoji ? 34 : 26,
-            height:          emoji ? 34 : 26,
-            borderRadius:    '50%',
-            backgroundColor: emoji ? 'white' : PLATFORM_COLORS[item.platform],
-            border:          `2.5px solid ${emoji ? PLATFORM_COLORS[item.platform] : 'white'}`,
-            boxShadow:       hovered ? '0 4px 12px rgba(0,0,0,0.30)' : '0 2px 8px rgba(0,0,0,0.22)',
-            cursor:          'pointer',
-            padding:         0,
-            display:         'flex',
-            alignItems:      'center',
-            justifyContent:  'center',
-            fontSize:        emoji ? 16 : 0,
-            transform:       hovered ? 'scale(1.2)' : 'scale(1)',
-            transition:      'all 0.15s ease',
-          }}
-        >
-          {emoji ?? ''}
-        </button>
-      )}
-    </div>
-  );
 }
 
 // ─── Cluster bubble ──────────────────────────────────────────────────────────
@@ -224,20 +91,89 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── User location dot ───────────────────────────────────────────────────────
+
+function UserLocationDot() {
+  return (
+    <div style={{ position: 'relative', width: 20, height: 20 }}>
+      {/* Pulse ring */}
+      <div
+        style={{
+          position:        'absolute',
+          inset:           -6,
+          borderRadius:    '50%',
+          backgroundColor: 'rgba(59,130,246,0.25)',
+          animation:       'tp-gps-pulse 2s ease-out infinite',
+        }}
+      />
+      {/* Blue dot */}
+      <div
+        style={{
+          width:           20,
+          height:          20,
+          borderRadius:    '50%',
+          backgroundColor: '#3b82f6',
+          border:          '3px solid white',
+          boxShadow:       '0 2px 8px rgba(59,130,246,0.6)',
+          position:        'relative',
+          zIndex:          1,
+        }}
+      />
+      <style>{`
+        @keyframes tp-gps-pulse {
+          0%   { transform: scale(1);   opacity: 0.8; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: UserLocation | null;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
-  const { clusters, getExpansionZoom, setView } = useSupercluster(items);
+  const { clusters, points, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
-  // Largest cluster size — used to scale bubble radius proportionally.
+  // O(1) item lookup for click handler
+  const itemsById = useMemo(() => {
+    const m = new Map<string, SavedItem>();
+    for (const item of items) m.set(item.id, item);
+    return m;
+  }, [items]);
+
+  // GeoJSON for individual pins — updated when items change, MapLibre handles viewport culling
+  const pinsGeoJSON = useMemo<FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: points.map((p) => ({
+      type: 'Feature' as const,
+      geometry: p.geometry,
+      properties: {
+        pinId:        `${p.properties.item.id}-${p.geometry.coordinates[1]}-${p.geometry.coordinates[0]}`,
+        itemId:       p.properties.item.id,
+        locationName: p.properties.location.name,
+        title:        p.properties.item.title,
+        groupCount:   p.properties.groupCount,
+        groupData:    JSON.stringify(
+          p.properties.groupItems.map((g: GroupEntry) => ({
+            itemId:       g.item.id,
+            locationName: g.location.name,
+            title:        g.item.title,
+          }))
+        ),
+      },
+    })),
+  }), [points]);
+
+  // Largest cluster size — used to scale HTML cluster bubbles proportionally.
   const maxClusterCount = clusters.reduce(
     (m, c) => (c.properties.cluster ? Math.max(m, (c.properties.point_count as number) || 0) : m),
     1,
@@ -267,6 +203,35 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     [syncView],
   );
 
+  // Click on an individual pin (WebGL layer click, fast)
+  const handleMapClick = useCallback(
+    (e: MapLayerMouseEvent) => {
+      if (!e.features || e.features.length === 0) return;
+      const props = e.features[0].properties as Record<string, unknown>;
+      const [lng, lat] = (e.features[0].geometry as Point).coordinates;
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
+      const primaryItem = itemsById.get(props.itemId as string);
+      if (!primaryItem) return;
+
+      const groupData = JSON.parse(props.groupData as string) as { itemId: string; locationName: string; title: string }[];
+      const groupItems: GroupEntry[] = groupData.flatMap(({ itemId, locationName }) => {
+        const it = itemsById.get(itemId);
+        if (!it) return [];
+        const loc = it.locations?.find((l) => l.name === locationName) ?? it.locations?.[0];
+        if (!loc) return [];
+        return [{ item: it, location: loc }];
+      });
+
+      const primaryLoc = primaryItem.locations?.find((l) => l.name === (props.locationName as string)) ?? primaryItem.locations?.[0];
+      if (!primaryLoc) return;
+
+      setPopupInfo({ item: primaryItem, location: primaryLoc, longitude: lng, latitude: lat, groupItems });
+      onPinClick(primaryItem);
+    },
+    [itemsById, onPinClick],
+  );
+
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
@@ -275,19 +240,53 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
+        interactiveLayerIds={['tp-pins-circle']}
+        cursor="pointer"
         onLoad={handleLoad}
         onMoveEnd={handleMove}
+        onClick={handleMapClick}
       >
         <NavigationControl position="top-right" />
-
         <MapController flyTo={flyTo} />
 
-        {clusters.map((feature) => {
-          const [lng, lat] = feature.geometry.coordinates;
-          if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+        {/* ── Individual pins: GeoJSON source + WebGL layers (fast for 200+ pins) ── */}
+        <Source id="tp-pins" type="geojson" data={pinsGeoJSON}>
+          {/* Circle layer — one WebGL draw call for all pins */}
+          <Layer
+            id="tp-pins-circle"
+            type="circle"
+            paint={{
+              'circle-radius': 9,
+              'circle-color': '#4f46e5',
+              'circle-stroke-color': 'white',
+              'circle-stroke-width': 2.5,
+              'circle-opacity': 0.92,
+            }}
+          />
+          {/* Count badge text — only on grouped pins (groupCount > 1) */}
+          <Layer
+            id="tp-pins-count"
+            type="symbol"
+            filter={['>', ['get', 'groupCount'], 1]}
+            layout={{
+              'text-field': ['concat', '×', ['to-string', ['get', 'groupCount']]],
+              'text-size': 10,
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+              'text-offset': [0, 0],
+              'text-anchor': 'center',
+            }}
+            paint={{
+              'text-color': 'white',
+            }}
+          />
+        </Source>
 
-          // ── Cluster bubble ──
-          if (feature.properties.cluster) {
+        {/* ── Cluster bubbles: HTML markers (few visible, complex visual) ── */}
+        {clusters
+          .filter((c) => c.properties.cluster)
+          .map((feature) => {
+            const [lng, lat] = feature.geometry.coordinates;
+            if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
             const clusterId = feature.properties.cluster_id as number;
             const count = feature.properties.point_count as number;
             return (
@@ -297,38 +296,14 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
                   total={maxClusterCount}
                   onClick={() => {
                     const expansionZoom = getExpansionZoom(clusterId);
-                    mapInstanceRef.current?.easeTo({
-                      center: [lng, lat],
-                      zoom: expansionZoom,
-                      duration: 500,
-                    });
+                    mapInstanceRef.current?.easeTo({ center: [lng, lat], zoom: expansionZoom, duration: 500 });
                   }}
                 />
               </Marker>
             );
-          }
+          })}
 
-          // ── Individual pin ──
-          const { item, location } = feature.properties;
-          return (
-            <Marker
-              key={`${item.id}-${location.lat},${location.lng}`}
-              longitude={lng}
-              latitude={lat}
-              anchor="bottom"
-            >
-              <Pin
-                item={item}
-                locName={location.name}
-                onClick={() => {
-                  setPopupInfo({ item, location, longitude: lng, latitude: lat });
-                  onPinClick(item);
-                }}
-              />
-            </Marker>
-          );
-        })}
-
+        {/* ── Popup ── */}
         {popupInfo && (
           <Popup
             longitude={popupInfo.longitude}
@@ -337,18 +312,53 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             onClose={() => setPopupInfo(null)}
             closeButton
             closeOnClick={false}
-            offset={[0, -6] as [number, number]}
+            offset={[0, 12] as [number, number]}
           >
-            <div className="max-w-[200px] px-1 py-0.5">
-              <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1">
-                {popupInfo.location.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
-                {popupInfo.item.title}
-              </p>
-            </div>
+            {popupInfo.groupItems.length > 1 ? (
+              <div style={{ maxWidth: 220, padding: '4px 2px' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#4f46e5', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {popupInfo.groupItems.length} clips here
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {popupInfo.groupItems.map(({ item: gi, location: gl }, idx) => (
+                    <button
+                      key={`${gi.id}-${idx}`}
+                      type="button"
+                      onClick={() => onPinClick(gi)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
+                    >
+                      {gi.thumbnail && (
+                        <img src={gi.thumbnail} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                      )}
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: '#1f2937', margin: 0, lineHeight: 1.3 }} className="line-clamp-1">{gl.name}</p>
+                        <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }} className="line-clamp-1">{gi.title}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="max-w-[200px] px-1 py-0.5">
+                <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1">
+                  {popupInfo.location.name}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
+                  {popupInfo.item.title}
+                </p>
+              </div>
+            )}
           </Popup>
         )}
+
+        {/* ── GPS user location dot (1 element, kept as HTML for pulse animation) ── */}
+        {userLocation &&
+          Number.isFinite(userLocation.lat) &&
+          Number.isFinite(userLocation.lng) && (
+            <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+              <UserLocationDot />
+            </Marker>
+          )}
       </Map>
     </div>
   );

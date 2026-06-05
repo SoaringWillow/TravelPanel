@@ -81,18 +81,92 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Vision extraction (image path) ─────────────────────────────────────────
+
+const VISION_PROMPT = `You are a travel content analyzer. The user has shared a screenshot of a social media post (likely from Xiaohongshu/小红书, WeChat, or similar) that blocks URL scraping. Analyze the image directly.
+
+Extract TWO layers of travel content:
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+Read any Chinese or English place names visible in the image.
+Do NOT invent or guess coordinates — only include places you recognize confidently.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, warning, or opinion visible in the image.
+Read the caption text, comments, and any overlaid text carefully.
+Examples:
+- "Arrive before 8am to beat the queue" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Cherry blossom peaks mid-April" → wisdom
+- "It was overrated for the price" → opinion
+- "Typhoon season in August" → context
+
+For the title: write a concise descriptive title based on the image content.
+For the description: summarize what this post is about in 2–3 sentences.`;
+
+async function extractFromImage(imageBase64: string, mimeType: string, platform: string): Promise<z.infer<typeof importSchema> | null> {
+  try {
+    const { object } = await generateObject({
+      model: models.enrichment,
+      schema: importSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: imageBase64,
+              mimeType: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+            },
+            { type: 'text', text: VISION_PROMPT + `\n\nPlatform context: ${platform}` },
+          ],
+        },
+      ],
+    });
+    return object;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let url: string;
+  let body: { url?: string; imageBase64?: string; mimeType?: string };
   try {
-    ({ url } = await req.json());
+    body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
+  const { url, imageBase64, mimeType = 'image/jpeg' } = body;
+
+  // ── Vision path: image screenshot from iOS Share Extension ───────────────
+  if (imageBase64) {
+    if (typeof imageBase64 !== 'string' || imageBase64.length > 3_000_000) {
+      return NextResponse.json({ error: 'Image too large (max 2 MB)' }, { status: 413 });
+    }
+
+    const platform = url ? detectPlatform(url) : 'xiaohongshu';
+    const claudeResult = await extractFromImage(imageBase64, mimeType, platform);
+
+    const result: ImportResult = {
+      platform,
+      title: (claudeResult?.title ?? 'Screenshot').slice(0, 200),
+      description: (claudeResult?.description ?? '').slice(0, 500),
+      thumbnail: undefined,
+      locations: claudeResult?.locations ?? [],
+      activities: claudeResult?.activities ?? [],
+      tags: claudeResult?.tags ?? [],
+      substance: claudeResult?.substance ?? [],
+    };
+    return NextResponse.json(result);
+  }
+
+  // ── URL path: existing web scraping + text extraction ───────────────────
   if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+    return NextResponse.json({ error: 'url or imageBase64 required' }, { status: 400 });
   }
 
   const platform = detectPlatform(url);
