@@ -198,6 +198,152 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS UI Polish (Beautiful App Sprint)
+
+> Goal: every screen feels native, animated, and complete. No spinner-only loading states, no broken empty states, no jagged transitions. This phase transforms the working MVP into an app you'd be proud to show on the App Store.
+
+### D1 — Boards page entrance animations
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx`  
+**What to do**:
+- Add framer-motion stagger to board grid: boards fade+slide-up with 60ms delay between each
+- Animate new board creation: card expands from bottom with spring physics
+- Board deletion: card collapses with exit animation before grid reflows
+- Replace static loading spinner with 3 pulse-skeleton board cards
+
+### D2 — Board detail: adaptive map + plan button polish
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- Replace hardcoded `min(240px, 35vh)` map height with `clamp(200px, 40vh, 320px)` and add a reveal animation when the map first loads (fade + scale from 0.98)
+- Add a "no locations yet" overlay on the map when all clips are still enriching (spinner + "Extracting locations…" message)
+- Disabled "Plan this trip" button: add a proper tooltip popover explaining why it's disabled (no enriched locations yet), not just `title=`
+
+### D3 — Trip planner loading state & rate-limit UX
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- During plan generation, show a content-shaped skeleton (day strips as shimmer cards) instead of just agent steps text
+- Agent step list: animate each new step in with a slide-down entrance (no layout jump)
+- Rate-limit error: show a dismissible banner card (not just text) with the reset time countdown and a "Set a reminder" action
+- Once a plan exists, animate the day strips appearing sequentially (stagger 80ms)
+
+### D4 — iOS haptic feedback
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, `components/InboxCard.tsx`, `lib/haptics.ts` (new)  
+**What to do**:
+- Create `lib/haptics.ts` wrapper: `impact(style)`, `notification(type)`, `selection()` — no-ops outside Capacitor native context
+- `impact('medium')` when clip is saved (share page → stage: done)
+- `notification('success')` when enrichment completes and location count appears
+- `notification('error')` when enrichment fails
+- `selection()` on board picker item tap
+- `impact('light')` on substance item tap in detail card
+
+### D5 — PWA manifest & app icons
+**Status**: `[ ]` Not started  
+**Files**: `public/manifest.json` (or `app/manifest.ts`), `public/icons/`  
+**What to do**:
+- Audit `next.config.js` PWA configuration — ensure `display: standalone`, `orientation: portrait`, correct `start_url`
+- Add `screenshots` array to manifest (2 phone screenshots for App Store–style install prompt)
+- Add `categories: ["travel", "lifestyle"]` and `description` to manifest
+- Ensure all icon sizes exist: 72, 96, 128, 144, 152, 192, 384, 512 (maskable + regular variants)
+- Add `apple-mobile-web-app-capable` and `apple-touch-icon` meta tags in `app/layout.tsx`
+
+### D6 — Pull-to-refresh on Inbox and Boards
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `hooks/usePullToRefresh.ts` (new)  
+**What to do**:
+- Create `hooks/usePullToRefresh.ts`: detects touch overscroll on iOS, triggers a callback, shows a spinner indicator at top
+- On Inbox: pull-to-refresh triggers re-enrichment of all `pending`/`failed` items (calls `enrichItem` for each, up to rate limit)
+- On Boards: pull-to-refresh reloads board list from IndexedDB
+- Visual: top-of-screen spinner appears at 60px pull threshold, haptic feedback at trigger point
+
+### D7 — Offline indicator
+**Status**: `[ ]` Not started  
+**Files**: `components/NavBar.tsx`, new `hooks/useNetworkStatus.ts`  
+**What to do**:
+- Create `hooks/useNetworkStatus.ts` using `navigator.onLine` + `online`/`offline` events
+- When offline: show a subtle amber dot on the NavBar + a snackbar "You're offline — clips will enrich when reconnected"
+- When back online: snackbar "Back online — catching up…" and trigger retry queue
+
+### D8 — Clip card thumbnail improvements
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Add a fixed 16:9 aspect-ratio container for thumbnails (prevents layout shift during image load)
+- For Xiaohongshu/WeChat clips with no thumbnail: show a gradient placeholder with the platform color + platform name centered
+- Add `loading="lazy"` and `decoding="async"` to thumbnail `<img>` tags
+- On image load error: fall back to a clean icon placeholder (not broken-image browser default)
+
+### D9 — Safe area & dynamic island audit
+**Status**: `[ ]` Not started  
+**Files**: `app/layout.tsx`, all page files  
+**What to do**:
+- Verify `safe-top` / `safe-bottom` classes are applied to all pages (share, plan, settings, boards, inbox, home)
+- On iPhone 14 Pro / 15: test that no UI is obscured by the Dynamic Island
+- `app/plan/[boardId]/page.tsx` map view: ensure its container extends behind the home indicator area
+- Floating action buttons: must be above `safe-bottom` height (env(safe-area-inset-bottom))
+
+### D10 — Swipe-to-move on Inbox cards
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Add drag gesture on `InboxCard`: swipe right > 80px = assign to most-recent board (with undo snackbar)
+- Swipe left > 80px = delete with confirmation
+- Show colour-coded reveal layer under the card (green for board, red for delete) as the card is dragged
+- Snap back with spring physics if drag is cancelled
+
+---
+
+## PHASE E — Smart Features
+
+### E1 — Batch re-enrich from board
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- "Re-extract all" button in board detail header (appears when ≥1 clip has failed/pending enrichment)
+- Processes clips sequentially with 500ms gap (respects rate limit), shows progress `3/7 extracted`
+- After batch: board locations count updates, "Plan trip" button unlocks if locations found
+
+### E2 — Duplicate URL detection
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Before saving, check IndexedDB for an existing item with the same URL
+- If found: show "You already saved this" with the existing clip's title + board name
+- Options: "View clip" (navigate to board) or "Save again anyway" (proceeds normally)
+
+### E3 — Smart board suggestions on save
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`  
+**What to do**:
+- After Claude extracts locations: if a location matches city/country tags in an existing board, surface that board first in the picker (above recently-updated boards)
+- "Best match: 🗼 Tokyo board (3 Tokyo clips)" — one-tap to select
+- Fallback: existing recent-boards order unchanged
+
+### E4 — Best time to visit signal in plans
+**Status**: `[ ]` Not started  
+**Files**: `app/api/plan/route.ts`  
+**What to do**:
+- Extract `wisdom`-type substance items that contain seasonal keywords ("spring", "rainy season", "typhoon", "peak season", "avoid August")
+- Pass them to the itinerary planner as a `seasonalWarnings` field
+- The planner prompt includes: "Note these seasonal warnings from saved clips when recommending trip timing"
+- Surface in the plan overview section as "Best time to go: …"
+
+---
+
+## PHASE F — Social & Sharing
+
+### F1 — Shareable board page (read-only)
+**Status**: `[ ]` Not started  
+**What to do**: Generate a public read-only URL for a board (e.g. `/b/abc123`) that shows pins + substance items. Requires Supabase (B1) to be activated for persistence.
+
+### F2 — Import shared board
+**Status**: `[ ]` Not started  
+**What to do**: Parse a `/b/<id>` share URL, fetch the board data, let user "Save to my TravelPanel" — forks the board into their IndexedDB.
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
