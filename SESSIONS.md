@@ -99,3 +99,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 19:25 | 097b3ed | feat: B2 browser extension — Manifest V3 Chrome/Safari clipper
 2026-06-05 19:32 | cb68072 | feat: B3 Xiaohongshu/WeChat Vision fix — screenshot → Claude Vision pipeline
 2026-06-05 19:33 | eb30b3c | feat: B5 cloud backup export + Settings page
+2026-06-05 19:36 | 5f877c9 | feat: C1 On-Trip GPS Mode — live location dot + nearby clips panel

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, BookOpen } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -132,6 +132,19 @@ export default function BoardDetailPage() {
         )}
 
         <div className="px-4 py-4">
+          {/* Action buttons row */}
+          <div className="flex gap-2 mb-4">
+            {/* Trip Journal */}
+            <button
+              type="button"
+              onClick={() => router.push(`/boards/${boardId}/timeline`)}
+              className="flex-1 flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 font-semibold py-3 rounded-2xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+            >
+              <BookOpen size={16} className="text-indigo-500" />
+              Trip Journal
+            </button>
+          </div>
+
           {/* Plan this trip CTA */}
           <div className="mb-4">
             {hasLocations ? (
