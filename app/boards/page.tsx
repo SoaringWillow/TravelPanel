@@ -36,19 +36,19 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-12 pb-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LayoutGrid className="text-indigo-600" size={22} />
-            <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
+            <LayoutGrid className="text-indigo-600 dark:text-indigo-400" size={22} />
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">My Boards</h1>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => router.push('/trips')}
-              className="flex items-center gap-1.5 text-gray-600 text-sm font-medium px-3 py-2 rounded-xl hover:bg-gray-100 active:scale-95 transition-all"
+              className="flex items-center gap-1.5 text-gray-600 dark:text-gray-300 text-sm font-medium px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
             >
               <Clock size={16} />
               <span>Trips</span>
@@ -111,8 +111,8 @@ export default function BoardsPage() {
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">
             <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
+            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">No boards yet.</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
               Create your first board to organise your travel ideas.
             </p>
             <button

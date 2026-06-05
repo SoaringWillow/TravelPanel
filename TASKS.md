@@ -251,7 +251,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use CSS animation: `@keyframes shimmer { from { opacity: 0.6 } to { opacity: 1 } }`
 
 ### D6 — Dark Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS 15+ users expect dark mode. The app is currently white-only, which looks jarring in system dark mode.  
 **Files**: `app/globals.css`, `tailwind.config.js`, all page/component files  
 **What to do**:

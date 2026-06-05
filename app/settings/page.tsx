@@ -46,18 +46,18 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-5 safe-top">
-        <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-5 safe-top">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
 
         {/* ── Export ──────────────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Your Data</h2>
+        <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-50 dark:border-gray-800">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Data</h2>
           </div>
 
           <div className="px-5 py-5 space-y-4">

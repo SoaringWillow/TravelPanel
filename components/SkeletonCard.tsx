@@ -5,7 +5,7 @@
 
 function Shimmer({ className }: { className: string }) {
   return (
-    <div className={`animate-pulse bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 bg-[length:200%_100%] rounded ${className}`}
+    <div className={`animate-pulse bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 bg-[length:200%_100%] rounded ${className}`}
       style={{ animation: 'tp-shimmer 1.4s ease-in-out infinite' }}
     />
   );
@@ -22,7 +22,7 @@ export function SkeletonInboxCard() {
   return (
     <>
       <style>{shimmerKeyframes}</style>
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50 space-y-3">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-50 dark:border-gray-800 space-y-3">
         {/* Platform chip + date */}
         <div className="flex items-center justify-between">
           <Shimmer className="h-5 w-24 rounded-full" />
@@ -50,7 +50,7 @@ export function SkeletonBoardCard() {
   return (
     <>
       <style>{shimmerKeyframes}</style>
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 min-h-[160px] flex flex-col space-y-3">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 min-h-[160px] flex flex-col space-y-3">
         {/* Emoji */}
         <Shimmer className="h-8 w-8 rounded-lg" />
         {/* Name */}

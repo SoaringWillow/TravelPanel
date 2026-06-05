@@ -115,10 +115,10 @@ function HomePageInner() {
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pb-0">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
+          <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
+          <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
+          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
             {loading ? 'Loading…' : `${mapItems.length}${mapFilter.type !== 'all' ? `/${items.length}` : ''} place${items.length !== 1 ? 's' : ''}`}
           </div>
         </div>
@@ -132,7 +132,7 @@ function HomePageInner() {
               className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shadow-sm ${
                 mapFilter.type === 'all'
                   ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-white/90 text-gray-600 border-gray-200 backdrop-blur-sm hover:border-indigo-300'
+                  : 'bg-white/90 dark:bg-gray-900/90 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 backdrop-blur-sm hover:border-indigo-300'
               }`}
             >
               All ({items.length})
@@ -150,7 +150,7 @@ function HomePageInner() {
                   className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shadow-sm ${
                     active
                       ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white/90 text-gray-600 border-gray-200 backdrop-blur-sm hover:border-indigo-300'
+                      : 'bg-white/90 dark:bg-gray-900/90 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 backdrop-blur-sm hover:border-indigo-300'
                   }`}
                 >
                   <span>{board.emoji}</span>
@@ -171,7 +171,7 @@ function HomePageInner() {
                   className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shadow-sm ${
                     active
                       ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white/90 text-gray-600 border-gray-200 backdrop-blur-sm hover:border-indigo-300'
+                      : 'bg-white/90 dark:bg-gray-900/90 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 backdrop-blur-sm hover:border-indigo-300'
                   }`}
                 >
                   #{tag} ({count})

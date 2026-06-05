@@ -18,7 +18,7 @@ export default function BoardCard({ board, itemCount, onClick, onDelete, onEdit 
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
+      className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
       style={{ borderLeftWidth: undefined }}
     >
       {/* Cover thumbnail background */}
@@ -39,12 +39,12 @@ export default function BoardCard({ board, itemCount, onClick, onDelete, onEdit 
         <div className="text-2xl leading-none mb-3">{board.emoji}</div>
 
         {/* Name */}
-        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
+        <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-1 mb-1">
           {board.name}
         </h3>
 
         {/* Item count */}
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-400 dark:text-gray-500">
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
