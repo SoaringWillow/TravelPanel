@@ -97,7 +97,7 @@ The remaining work focuses on three areas:
 - Single-item pins keep their existing behaviour
 
 ### F6 — App Icon & Splash Screen
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The app uses the default Capacitor icon. App Store submission requires a proper icon set.
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `ios/App/App/Assets.xcassets/Splash.imageset/`
 **What to do**:
@@ -112,7 +112,7 @@ The remaining work focuses on three areas:
 - Splash screen: same gradient, centred icon, no text
 
 ### F7 — Capacitor Config Cleanup
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The capacitor.config.ts still points to a placeholder server URL. Production builds need the real Vercel URL.
 **Files**: `ios/App/capacitor.config.ts`, `ios/App/App/Info.plist`
 **What to do**:
