@@ -2,19 +2,27 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Clock } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
+import TimelineView from '@/components/TimelineView';
+import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { AnimatePresence } from 'framer-motion';
+import { SavedItem } from '@/lib/types';
+
+type ViewMode = 'grid' | 'timeline';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -32,62 +40,112 @@ export default function BoardsPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
-        <div className="flex items-center justify-between">
+      <div className="bg-white shadow-sm px-4 pt-12 pb-3 z-10">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <LayoutGrid className="text-indigo-600" size={22} />
-            <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
+            {viewMode === 'grid'
+              ? <LayoutGrid className="text-indigo-600" size={22} />
+              : <Clock className="text-indigo-600" size={22} />
+            }
+            <h1 className="text-xl font-bold text-gray-800">
+              {viewMode === 'grid' ? 'My Boards' : 'Timeline'}
+            </h1>
           </div>
+          {viewMode === 'grid' && (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+              <Plus size={16} />
+              <span>New Board</span>
+            </button>
+          )}
+        </div>
+
+        {/* View mode toggle */}
+        <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
           <button
             type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            onClick={() => setViewMode('grid')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'grid'
+                ? 'bg-white shadow-sm text-indigo-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
           >
-            <Plus size={16} />
-            <span>New Board</span>
+            <LayoutGrid size={14} />
+            Boards
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('timeline')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'timeline'
+                ? 'bg-white shadow-sm text-indigo-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Clock size={14} />
+            Timeline
           </button>
         </div>
       </div>
 
-      {/* First-launch demo seed banner */}
-      <OnboardingSeed />
-
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
-        {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-          </div>
-        ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
-            >
-              <Plus size={16} />
-              Create a Board
-            </button>
-          </div>
+      <div className="flex-1 overflow-y-auto pb-24">
+        {viewMode === 'timeline' ? (
+          <TimelineView items={items} onItemClick={setSelectedItem} />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {boards.map((board) => (
-              <BoardCard
-                key={board.id}
-                board={board}
-                itemCount={getItemCount(board.id)}
-                onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
-              />
-            ))}
-          </div>
+          <>
+            {/* First-launch demo seed banner */}
+            <OnboardingSeed />
+
+            <div className="px-4 py-4">
+              {boardsLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+                </div>
+              ) : boards.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-60 text-center px-6">
+                  <div className="text-5xl mb-4">🗺</div>
+                  <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
+                  <p className="text-sm text-gray-500 max-w-xs mb-6">
+                    Create your first board to organise your travel ideas.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreate(true)}
+                    className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
+                  >
+                    <Plus size={16} />
+                    Create a Board
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {boards.map((board) => (
+                    <BoardCard
+                      key={board.id}
+                      board={board}
+                      itemCount={getItemCount(board.id)}
+                      onClick={() => router.push(`/boards/${board.id}`)}
+                      onDelete={() => handleDelete(board.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
+
+      {/* Timeline item detail card */}
+      <AnimatePresence>
+        {selectedItem && (
+          <LocationDetailCard item={selectedItem} onClose={() => setSelectedItem(null)} />
+        )}
+      </AnimatePresence>
 
       {/* Create board modal */}
       <CreateBoardModal
