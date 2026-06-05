@@ -51,6 +51,7 @@ export default function InboxPage() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBatchBoardPicker, setShowBatchBoardPicker] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Auto-dismiss undo snackbar
   useEffect(() => {
@@ -125,7 +126,11 @@ export default function InboxPage() {
   }, []);
 
   // Only unassigned items (boardId === undefined)
-  const inboxItems = items.filter((i) => i.boardId === undefined);
+  const allInboxItems = items.filter((i) => i.boardId === undefined);
+  const archivedCount = allInboxItems.filter((i) => i.archived).length;
+  const inboxItems = showArchived
+    ? allInboxItems
+    : allInboxItems.filter((i) => !i.archived);
 
   // Unique tags across all inbox items for the tag filter row
   const allTags = Array.from(
@@ -203,6 +208,13 @@ export default function InboxPage() {
     const allItems = await getAllItems();
     const found = allItems.find((i) => i.id === id);
     if (found) await saveItem({ ...found, starred });
+    router.refresh();
+  }, [router]);
+
+  const handleArchive = useCallback(async (id: string, archived: boolean) => {
+    const allItems = await getAllItems();
+    const found = allItems.find((i) => i.id === id);
+    if (found) await saveItem({ ...found, archived });
     router.refresh();
   }, [router]);
 
@@ -499,6 +511,7 @@ export default function InboxPage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
                     className="relative"
+                    style={{ opacity: item.archived ? 0.55 : 1 }}
                     onContextMenu={(e) => { e.preventDefault(); if (!selectMode) { setSelectMode(true); setSelectedIds(new Set([item.id])); } }}
                   >
                     {/* Select mode overlay */}
@@ -530,11 +543,27 @@ export default function InboxPage() {
                       swipeRightLabel={swipeRightLabel}
                       onNotesChange={handleNotesChange}
                       onStar={handleStar}
+                      onArchive={handleArchive}
                     />
                   </motion.div>
                 );
               })}
             </AnimatePresence>
+          </div>
+        )}
+
+        {/* Show/hide archived clips */}
+        {archivedCount > 0 && (
+          <div className="mt-4 mb-2 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowArchived((v) => !v)}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
+            >
+              {showArchived
+                ? 'Hide archived clips'
+                : `${archivedCount} archived clip${archivedCount !== 1 ? 's' : ''} — show`}
+            </button>
           </div>
         )}
         </div>

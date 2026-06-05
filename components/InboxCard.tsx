@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion';
-import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil, Check, Star } from 'lucide-react';
+import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil, Check, Star, Archive } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -19,6 +19,7 @@ interface InboxCardProps {
   swipeRightLabel?: string;
   onNotesChange?: (id: string, notes: string) => void;
   onStar?: (id: string, starred: boolean) => void;
+  onArchive?: (id: string, archived: boolean) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -52,6 +53,7 @@ export default function InboxCard({
   swipeRightLabel,
   onNotesChange,
   onStar,
+  onArchive,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
   const [imgFailed, setImgFailed] = useState(false);
@@ -445,6 +447,17 @@ export default function InboxCard({
                   aria-label="Move to collection"
                 >
                   <LayoutGrid size={13} />
+                </button>
+              )}
+
+              {onArchive && (
+                <button
+                  type="button"
+                  onClick={() => onArchive(item.id, !item.archived)}
+                  className={`p-1.5 rounded-lg transition-colors ${item.archived ? 'text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                  aria-label={item.archived ? 'Unarchive' : 'Archive'}
+                >
+                  <Archive size={13} />
                 </button>
               )}
 

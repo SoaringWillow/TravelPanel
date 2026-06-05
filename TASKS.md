@@ -677,7 +677,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The cover auto-updates when the first item changes
 
 ### K6 — Clip archive (hide without deleting)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/types.ts`, `lib/db.ts`, `components/InboxCard.tsx`, `app/inbox/page.tsx`  
 **What to do**:
 - Add `archived?: boolean` field to `SavedItem`
