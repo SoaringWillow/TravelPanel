@@ -573,7 +573,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On the 5th clip, also show a prompt: "Ready to plan? Tap Collections to organise into boards."
 
 ### J2 — Empty map state with CTA
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`  
 **What to do**:
 - When the map has no pins (first-time user with no clips), show an overlay on the map with a centered prompt:

@@ -103,10 +103,37 @@ function HomePageInner() {
     setPrefilledUrl('');
   }
 
+  const hasAnyPins = items.some((i) => i.enrichmentStatus === 'done' && i.locations.length > 0);
+
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+
+      {/* Empty map state — show when no enriched pins exist */}
+      {!loading && !hasAnyPins && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-[500] pointer-events-none">
+          <div className="pointer-events-auto flex flex-col items-center gap-4 px-8 text-center">
+            <div className="w-20 h-20 rounded-3xl bg-indigo-600 shadow-xl shadow-indigo-300 flex items-center justify-center">
+              <MapPin size={36} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Your map is empty</h2>
+              <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
+                Save inspiration from any social app to place pins on your map
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowImport(true)}
+              className="bg-indigo-600 text-white font-semibold px-6 py-3 rounded-2xl shadow-lg hover:bg-indigo-700 active:scale-[0.97] transition-all flex items-center gap-2"
+            >
+              <Plus size={18} />
+              Save first clip
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] px-4 pt-4 safe-top">
