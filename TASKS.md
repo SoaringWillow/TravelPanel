@@ -668,7 +668,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This replaces the silent empty state when filters are active
 
 ### K5 — Board cover photo from first clip thumbnail
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/types.ts`, `lib/db.ts`, `hooks/useBoards.ts`, `app/boards/[id]/page.tsx`, `components/BoardCard.tsx`  
 **What to do**:
 - Add `coverThumbnail?: string` field to the `Board` interface (already defined in types? check first)

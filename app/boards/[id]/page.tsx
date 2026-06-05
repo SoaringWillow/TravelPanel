@@ -9,7 +9,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location, Trip } from '@/lib/types';
 import { enrichItem } from '@/lib/enrichItem';
-import { getTripsForBoard } from '@/lib/db';
+import { getTripsForBoard, saveBoard } from '@/lib/db';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -61,6 +61,15 @@ export default function BoardDetailPage() {
   const boardItems: SavedItem[] = board
     ? items.filter((item) => board.itemIds.includes(item.id))
     : [];
+
+  // Auto-set board cover thumbnail from first item with a thumbnail
+  useEffect(() => {
+    if (!board || board.coverThumbnail) return;
+    const firstWithThumb = boardItems.find((i) => i.thumbnail);
+    if (!firstWithThumb) return;
+    saveBoard({ ...board, coverThumbnail: firstWithThumb.thumbnail });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board?.id, boardItems.length]);
 
   const hasSubstance = boardItems.some((i) => (i.substance?.length ?? 0) > 0);
 
