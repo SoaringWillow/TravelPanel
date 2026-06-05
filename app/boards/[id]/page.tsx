@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, Loader2 } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Loader2, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { Board, SavedItem, Location } from '@/lib/types';
+import { Board, SavedItem, Location, Trip } from '@/lib/types';
 import { enrichItem } from '@/lib/enrichItem';
+import { getTripsForBoard } from '@/lib/db';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -48,6 +49,13 @@ export default function BoardDetailPage() {
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
   const [substanceFilter, setSubstanceFilter] = useState<'all' | 'tip' | 'warning' | 'wisdom'>('all');
+  const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
+
+  useEffect(() => {
+    getTripsForBoard(boardId).then((trips) =>
+      setSavedTrips(trips.sort((a, b) => b.createdAt - a.createdAt))
+    );
+  }, [boardId]);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -170,6 +178,16 @@ export default function BoardDetailPage() {
             <h1 className="text-lg font-bold text-gray-800 leading-tight truncate">
               {board.name}
             </h1>
+            {savedTrips.length > 0 && (
+              <button
+                type="button"
+                onClick={() => router.push(`/plan/${boardId}`)}
+                className="flex items-center gap-1 mt-0.5 text-xs text-indigo-500 font-medium hover:text-indigo-700 transition-colors"
+              >
+                <History size={11} />
+                {savedTrips.length} itinerar{savedTrips.length !== 1 ? 'ies' : 'y'} generated
+              </button>
+            )}
           </div>
 
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
@@ -244,15 +262,28 @@ export default function BoardDetailPage() {
           {/* Plan this trip CTA */}
           <div className="mb-4">
             {hasLocations ? (
-              <motion.button
-                type="button"
-                onClick={() => router.push(`/plan/${boardId}`)}
-                whileTap={{ scale: 0.97 }}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200"
-              >
-                <Rocket size={18} />
-                Plan this trip
-              </motion.button>
+              <div className="flex flex-col gap-2">
+                <motion.button
+                  type="button"
+                  onClick={() => router.push(`/plan/${boardId}`)}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200"
+                >
+                  <Rocket size={18} />
+                  Plan this trip
+                </motion.button>
+                {savedTrips.length > 0 && (
+                  <motion.button
+                    type="button"
+                    onClick={() => router.push(`/plan/${boardId}?loadTrip=${savedTrips[0].id}`)}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full flex items-center justify-center gap-2 bg-white border border-indigo-200 text-indigo-600 text-sm font-medium py-2.5 rounded-2xl hover:bg-indigo-50 transition-colors"
+                  >
+                    <History size={15} />
+                    Reuse latest plan
+                  </motion.button>
+                )}
+              </div>
             ) : (
               <div className="relative">
                 <button

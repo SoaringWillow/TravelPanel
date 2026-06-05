@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Clock, Copy, Check, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,9 +20,10 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
 
-export default function PlanPage() {
+function PlanPageInner() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const boardId = params.boardId as string;
 
   const [board, setBoard] = useState<Board | null>(null);
@@ -55,12 +56,26 @@ export default function PlanPage() {
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
         }
-        setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
+        const sorted = trips.sort((a, b) => a.createdAt - b.createdAt);
+        setSavedTrips(sorted);
+        // Auto-load trip if ?loadTrip=<id> is present
+        const loadTripId = searchParams.get('loadTrip');
+        if (loadTripId) {
+          const target = sorted.find((t) => t.id === loadTripId);
+          if (target?.plan) {
+            setPlan(target.plan);
+            setSteps(target.agentSteps ?? []);
+            setCurrentTripId(target.id);
+            setStage('complete');
+          }
+        }
       } finally {
         setLoadingBoard(false);
       }
     }
     load();
+  // searchParams is stable; only re-run when boardId changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
 
   const itemsWithLocations = boardItems.filter((item) => item.locations.length > 0);
@@ -737,5 +752,13 @@ export default function PlanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PlanPage() {
+  return (
+    <Suspense fallback={null}>
+      <PlanPageInner />
+    </Suspense>
   );
 }

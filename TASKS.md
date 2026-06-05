@@ -584,7 +584,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This replaces the current blank map with a welcoming first-run state (complementary to seed data from A8)
 
 ### J3 — Plan generation count badge on boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Show a "X trips generated" badge below the board name when savedTrips.length > 0
