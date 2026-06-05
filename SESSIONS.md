@@ -111,3 +111,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 14:02 | 3552be3 | feat(D6): offline detection banner
 2026-06-05 14:03 | 5eda836 | feat(D7): first-launch welcome overlay on map
 2026-06-05 14:04 | a29fff9 | feat(D8): map style toggle (Streets / Light / Dark)
+2026-06-05 14:05 | 2a31eaf | feat(D9): inline clip notes editor with 800ms debounce

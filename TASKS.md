@@ -125,7 +125,7 @@ All Phase A–C tasks are complete. The app has:
 - Placeholder: "Add a personal note…"
 
 ### D10 — Universal Links (Deep Linking)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Sharing a board link should open the app directly on iOS if installed, not the browser.  
 **Files to change**: `public/apple-app-site-association`, `ios/App/App/Info.plist`, `ios/App/App/AppDelegate.swift`  
 **What to do**:
