@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Database, Info, CheckCircle2, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Download, Database, Info, CheckCircle2, Loader2, Clock, ChevronRight } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getAllTrips } from '@/lib/db';
 import { exportAllData, downloadAsJSON } from '@/lib/exportData';
@@ -17,6 +18,7 @@ interface Stats {
 type ExportState = 'idle' | 'exporting' | 'done';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [stats, setStats]         = useState<Stats | null>(null);
   const [exportState, setExportState] = useState<ExportState>('idle');
 
@@ -133,6 +135,28 @@ export default function SettingsPage() {
               <p className="text-xs text-gray-400 text-center">No clips to export yet.</p>
             )}
           </div>
+        </div>
+
+        {/* ── History ─────────────────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-gray-50">
+            <Clock size={15} className="text-indigo-500" />
+            <span className="text-sm font-semibold text-gray-700">History</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push('/timeline')}
+            className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors active:bg-gray-100"
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-800 text-left">Trip history</p>
+              <p className="text-xs text-gray-400 text-left mt-0.5">
+                Browse all itineraries you&apos;ve generated
+                {stats?.trips ? ` · ${stats.trips} plan${stats.trips !== 1 ? 's' : ''}` : ''}
+              </p>
+            </div>
+            <ChevronRight size={16} className="text-gray-300" />
+          </button>
         </div>
 
         {/* ── About ────────────────────────────────────────────────────────── */}
