@@ -73,8 +73,11 @@ function HomePageInner() {
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
 
-      {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      {/* Top bar – floating, clears notch/Dynamic Island */}
+      <div
+        className="absolute top-0 left-0 right-0 z-[1000] px-4 pb-0"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}
+      >
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
@@ -98,7 +101,8 @@ function HomePageInner() {
       {!selectedItem && (
         <button
           onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          className="absolute right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5.5rem)' }}
           aria-label="Clip inspiration"
         >
           <Plus size={24} />
