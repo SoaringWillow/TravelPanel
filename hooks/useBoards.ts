@@ -42,6 +42,14 @@ export function useBoards() {
     setBoards((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
+  const editBoard = useCallback(async (id: string, name: string, emoji: string): Promise<void> => {
+    const existing = boards.find((b) => b.id === id);
+    if (!existing) return;
+    const updated: Board = { ...existing, name, emoji, updatedAt: Date.now() };
+    await saveBoard(updated);
+    setBoards((prev) => prev.map((b) => (b.id === id ? updated : b)));
+  }, [boards]);
+
   const moveItemToBoard = useCallback(async (boardId: string, itemId: string): Promise<void> => {
     await dbAddItemToBoard(boardId, itemId);
   }, []);
@@ -50,5 +58,5 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  return { boards, loading, createBoard, editBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
 }

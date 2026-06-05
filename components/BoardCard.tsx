@@ -1,6 +1,6 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Board } from '@/lib/types';
 
@@ -9,9 +9,10 @@ interface BoardCardProps {
   itemCount: number;
   onClick: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, onClick, onDelete, onEdit }: BoardCardProps) {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -47,20 +48,29 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
-        {/* Delete button bottom-right */}
-        {onDelete && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="absolute bottom-3 right-3 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            aria-label="Delete board"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
+        {/* Action buttons bottom-right */}
+        <div className="absolute bottom-3 right-3 flex items-center gap-1">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              aria-label="Edit board"
+            >
+              <Pencil size={13} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              aria-label="Delete board"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       </div>
     </motion.div>
   );

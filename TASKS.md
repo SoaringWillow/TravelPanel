@@ -213,7 +213,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Tags: show existing extracted tags as toggle chips + allow adding custom tags
 
 ### D2 — Board Editing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users can't rename boards or change their emoji. With auto-created boards from the Share Extension having generic names like "🗺 New Board", this is a significant UX gap.  
 **Files**: `components/BoardCard.tsx`, `app/boards/[id]/page.tsx`, possibly new `components/EditBoardModal.tsx`  
 **What to do**:

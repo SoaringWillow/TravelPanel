@@ -7,15 +7,18 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
+import EditBoardModal from '@/components/EditBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { useTripSuggestion, relativeDaysAgo } from '@/hooks/useTripSuggestion';
+import { Board } from '@/lib/types';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, editBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const suggestion = useTripSuggestion(boards, items);
 
   function getItemCount(boardId: string): number {
@@ -128,6 +131,7 @@ export default function BoardsPage() {
                 board={board}
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
+                onEdit={() => setEditingBoard(board)}
                 onDelete={() => handleDelete(board.id)}
               />
             ))}
@@ -141,6 +145,15 @@ export default function BoardsPage() {
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
       />
+
+      {/* Edit board modal */}
+      {editingBoard && (
+        <EditBoardModal
+          board={editingBoard}
+          onClose={() => setEditingBoard(null)}
+          onSave={(name, emoji) => editBoard(editingBoard.id, name, emoji)}
+        />
+      )}
 
       <NavBar active="boards" />
     </div>
