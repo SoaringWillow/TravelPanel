@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Download, Database, ExternalLink, ChevronRight } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getAllTrips } from '@/lib/db';
+import { toast } from '@/lib/toast';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -61,10 +62,13 @@ export default function SettingsPage() {
       const stats = await exportAllData();
       setExportStats(stats);
       setExportState('done');
+      toast.success(`Backup downloaded — ${stats.clips} clips, ${stats.boards} boards`);
       setTimeout(() => setExportState('idle'), 4000);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Export failed');
+      const msg = err instanceof Error ? err.message : 'Export failed';
+      setErrorMsg(msg);
       setExportState('error');
+      toast.error('Export failed. Try again.');
     }
   }
 

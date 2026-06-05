@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { toast } from '@/lib/toast';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -107,7 +108,7 @@ function SharePageInner() {
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
           if (updated) {
-            setEnrichedData({
+            const enriched: ImportResult = {
               platform: updated.platform,
               title: updated.title,
               description: updated.description,
@@ -116,8 +117,16 @@ function SharePageInner() {
               activities: updated.activities,
               tags: updated.tags,
               substance: updated.substance,
-            } as ImportResult);
+            };
+            setEnrichedData(enriched);
+            if (enriched.locations.length > 0) {
+              toast.success(
+                `${enriched.locations.length} location${enriched.locations.length !== 1 ? 's' : ''} extracted`,
+              );
+            }
           }
+        } else {
+          toast.error('AI extraction failed — saved to retry later');
         }
         setEnrichmentLoading(false);
       });
