@@ -1,8 +1,9 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
-import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,8 @@ export default function InboxCard({
   onRetry,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
+  // Track thumbnail load failures so we can show a platform gradient fallback
+  const [imgFailed, setImgFailed] = useState(false);
 
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
@@ -188,23 +191,39 @@ export default function InboxCard({
     day: 'numeric',
   });
 
+  const platformColor = PLATFORM_COLORS[item.platform];
+  const showThumbnail = !!item.thumbnail && !imgFailed;
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
-        </div>
-      )}
+      {/* Fixed 16:9 thumbnail container — prevents layout shift during load */}
+      <div className="aspect-video relative overflow-hidden">
+        {showThumbnail ? (
+          <img
+            src={item.thumbnail}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          // Platform-colored gradient placeholder for blocked thumbnails (e.g. 小红书)
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-1.5"
+            style={{
+              background: `linear-gradient(135deg, ${platformColor}18 0%, ${platformColor}30 100%)`,
+            }}
+          >
+            <span
+              className="text-xs font-semibold uppercase tracking-wide"
+              style={{ color: platformColor }}
+            >
+              {PLATFORM_LABELS[item.platform]}
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="p-4">
         {/* Platform badge */}

@@ -259,7 +259,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Visual: top-of-screen spinner appears at 60px pull threshold, haptic feedback at trigger point
 
 ### D7 — Offline indicator
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/NavBar.tsx`, new `hooks/useNetworkStatus.ts`  
 **What to do**:
 - Create `hooks/useNetworkStatus.ts` using `navigator.onLine` + `online`/`offline` events
@@ -267,7 +267,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - When back online: snackbar "Back online — catching up…" and trigger retry queue
 
 ### D8 — Clip card thumbnail improvements
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:
 - Add a fixed 16:9 aspect-ratio container for thumbnails (prevents layout shift during image load)
