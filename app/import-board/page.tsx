@@ -8,6 +8,8 @@ import { decodeSharedBoard, SharedBoard } from '@/lib/shareBoard';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { Board, SavedItem } from '@/lib/types';
 import { detectPlatform } from '@/lib/parse-url';
+import { checkBeforeUse, incrementUsage } from '@/lib/pro';
+import ProGateSheet from '@/components/ProGateSheet';
 
 function ImportBoardInner() {
   const searchParams = useSearchParams();
@@ -16,6 +18,7 @@ function ImportBoardInner() {
   const [board, setBoard] = useState<SharedBoard | null>(null);
   const [decodeError, setDecodeError] = useState(false);
   const [importState, setImportState] = useState<'preview' | 'importing' | 'done' | 'error'>('preview');
+  const [showProGate, setShowProGate] = useState(false);
 
   useEffect(() => {
     const d = searchParams.get('d');
@@ -27,7 +30,13 @@ function ImportBoardInner() {
 
   async function handleImport() {
     if (!board) return;
+    const proCheck = checkBeforeUse('boardImport');
+    if (!proCheck.allowed) {
+      setShowProGate(true);
+      return;
+    }
     setImportState('importing');
+    incrementUsage('boardImport');
     try {
       // Check for an existing board with the same name to avoid duplicates
       const existing = await getAllBoards();
@@ -213,6 +222,10 @@ function ImportBoardInner() {
           ))}
         </div>
       </div>
+
+      {showProGate && (
+        <ProGateSheet feature="boardImport" onDismiss={() => setShowProGate(false)} />
+      )}
     </div>
   );
 }

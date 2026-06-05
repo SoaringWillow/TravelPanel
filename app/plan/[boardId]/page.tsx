@@ -7,8 +7,10 @@ import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, 
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
+import { checkBeforeUse, incrementUsage } from '@/lib/pro';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import ProGateSheet from '@/components/ProGateSheet';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -36,6 +38,7 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [showProGate, setShowProGate] = useState(false);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
@@ -66,6 +69,12 @@ export default function PlanPage() {
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
+    const proCheck = checkBeforeUse('planGen');
+    if (!proCheck.allowed) {
+      setShowProGate(true);
+      track('pro_gate_shown', { feature: 'planGen', boardId });
+      return;
+    }
     const limit = checkPlanLimit();
     if (!limit.allowed) {
       setPlanLimitError(
@@ -81,6 +90,7 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     recordPlanGeneration();
+    incrementUsage('planGen');
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
     const res = await fetch('/api/plan', {
@@ -593,6 +603,10 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {showProGate && (
+        <ProGateSheet feature="planGen" onDismiss={() => setShowProGate(false)} />
+      )}
     </div>
   );
 }

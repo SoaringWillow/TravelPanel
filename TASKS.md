@@ -338,7 +338,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Prepare TestFlight build for internal testing
 
 ### F2 — Pro Tier Gating (Soft Paywall)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `lib/pro.ts`, `app/api/plan/route.ts`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Create `lib/pro.ts` with `isPro(): boolean` that checks a Supabase subscription flag (initially always false — builds the infrastructure)
