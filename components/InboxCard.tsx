@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion';
+import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil, Check } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -17,6 +17,7 @@ interface InboxCardProps {
   onSwipeRight?: (id: string) => void;
   onSwipeLeft?: (id: string) => void;
   swipeRightLabel?: string;
+  onNotesChange?: (id: string, notes: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -48,9 +49,25 @@ export default function InboxCard({
   onSwipeRight,
   onSwipeLeft,
   swipeRightLabel,
+  onNotesChange,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
   const [imgFailed, setImgFailed] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [editedNotes, setEditedNotes] = useState(item.notes ?? '');
+  const [notesSaved, setNotesSaved] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleNotesChange(val: string) {
+    setEditedNotes(val);
+    setNotesSaved(false);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      onNotesChange?.(item.id, val);
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 1500);
+    }, 1500);
+  }
 
   // Swipe gesture — hooks must be called before any conditional returns
   const x = useMotionValue(0);
@@ -338,8 +355,53 @@ export default function InboxCard({
             </div>
           )}
 
+          {/* Inline notes editor */}
+          <AnimatePresence>
+            {showNotes && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="overflow-hidden"
+              >
+                <div className="pt-3 pb-2">
+                  <label htmlFor={`notes-${item.id}`} className="text-xs font-medium text-gray-400 mb-1 block">
+                    Notes
+                  </label>
+                  <textarea
+                    id={`notes-${item.id}`}
+                    value={editedNotes}
+                    onChange={(e) => handleNotesChange(e.target.value)}
+                    placeholder="Add a personal note…"
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs resize-none focus:border-indigo-400 focus:outline-none transition-colors"
+                  />
+                  {notesSaved && (
+                    <span className="text-xs text-emerald-500 flex items-center gap-1 mt-1">
+                      <Check size={11} />
+                      Saved
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-            <span className="text-xs text-gray-400">{date}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400">{date}</span>
+              {onNotesChange && (
+                <button
+                  type="button"
+                  aria-label={showNotes ? 'Close notes' : 'Edit notes'}
+                  onClick={() => setShowNotes((v) => !v)}
+                  className={`p-1 rounded-md transition-colors ${showNotes ? 'text-indigo-500 bg-indigo-50' : 'text-gray-300 hover:text-gray-500'}`}
+                >
+                  <Pencil size={11} />
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-1">
               <button

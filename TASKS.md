@@ -514,7 +514,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Phase I adds features that make TravelPanel indispensable for frequent travellers: inline editing, multi-select batch actions, and plan-to-image sharing.
 
 ### I1 — Inline notes editing on saved clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `lib/db.ts`  
 **What to do**:
 - On the InboxCard (done/enriched state), add a small pencil icon in the card footer area

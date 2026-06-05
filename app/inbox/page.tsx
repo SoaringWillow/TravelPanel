@@ -188,6 +188,12 @@ export default function InboxPage() {
     [movingItemId, items, router]
   );
 
+  const handleNotesChange = useCallback(async (id: string, notes: string) => {
+    const allItems = await getAllItems();
+    const found = allItems.find((i) => i.id === id);
+    if (found) await saveItem({ ...found, notes: notes.trim() || undefined });
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
@@ -406,6 +412,7 @@ export default function InboxPage() {
                     onSwipeRight={mostRecentBoard ? handleSwipeRight : undefined}
                     onSwipeLeft={handleSwipeLeft}
                     swipeRightLabel={swipeRightLabel}
+                    onNotesChange={handleNotesChange}
                   />
                 </motion.div>
               ))}
