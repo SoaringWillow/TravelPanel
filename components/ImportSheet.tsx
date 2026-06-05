@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Clipboard } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -34,12 +34,14 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]           = useState(initialUrl);
+  const [notes, setNotes]       = useState('');
+  const [stage, setStage]       = useState<Stage>('idle');
+  const [preview, setPreview]   = useState<ImportResult | null>(null);
+  const [error, setError]       = useState('');
+  const [clipToast, setClipToast] = useState('');
+  const abortRef                = useRef<AbortController | null>(null);
+  const toastTimerRef           = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -134,13 +136,38 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     resetState();
   }
 
+  async function handlePasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      const trimmed = text.trim();
+      if (trimmed.match(/^https?:\/\//)) {
+        setUrl(trimmed);
+        setError('');
+        if (stage === 'preview') { setPreview(null); setStage('idle'); }
+        showToast('URL pasted!');
+      } else {
+        showToast('No URL found in clipboard');
+      }
+    } catch {
+      showToast('Clipboard not accessible');
+    }
+  }
+
+  function showToast(msg: string) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setClipToast(msg);
+    toastTimerRef.current = setTimeout(() => setClipToast(''), 2000);
+  }
+
   function resetState() {
     abortRef.current?.abort();
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setUrl('');
     setNotes('');
     setPreview(null);
     setStage('idle');
     setError('');
+    setClipToast('');
   }
 
   function handleClose() {
@@ -182,29 +209,47 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           </div>
 
           {/* ── URL input ────────────────────────────────────────────────── */}
-          <div className="relative">
-            <Link2
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-            />
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value);
-                if (stage === 'preview') {
-                  setPreview(null);
-                  setStage('idle');
-                }
-                setError('');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleImport();
-              }}
-              placeholder="Paste URL from WeChat, Red Book, Douyin, Bilibili…"
-              disabled={stage === 'loading'}
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <Link2
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+              <input
+                type="url"
+                aria-label="Social media URL to clip"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (stage === 'preview') {
+                    setPreview(null);
+                    setStage('idle');
+                  }
+                  setError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleImport();
+                }}
+                placeholder="Paste URL from WeChat, Red Book, Douyin, Bilibili…"
+                disabled={stage === 'loading'}
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
+              />
+            </div>
+            {/* Paste from clipboard */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePasteFromClipboard}
+                disabled={stage === 'loading'}
+                className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-40 transition-colors"
+              >
+                <Clipboard size={12} />
+                Paste from clipboard
+              </button>
+              {clipToast && (
+                <span className="text-xs text-gray-400">{clipToast}</span>
+              )}
+            </div>
           </div>
 
           {/* ── Import button (hidden during preview) ───────────────────── */}
@@ -338,10 +383,14 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
               {/* Notes */}
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                <label
+                  htmlFor="clip-personal-notes"
+                  className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block"
+                >
                   Personal notes
-                </p>
+                </label>
                 <textarea
+                  id="clip-personal-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add notes about this place…"

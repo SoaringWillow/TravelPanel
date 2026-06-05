@@ -66,6 +66,33 @@
   display: none;
 }
 
+/* Dice shake animation — played once when Surprise Me is tapped */
+@keyframes dice-shake {
+  0%   { transform: rotate(0deg); }
+  20%  { transform: rotate(-20deg); }
+  40%  { transform: rotate(20deg); }
+  60%  { transform: rotate(-15deg); }
+  80%  { transform: rotate(15deg); }
+  100% { transform: rotate(0deg); }
+}
+.dice-shake {
+  animation: dice-shake 0.6s ease-in-out 1;
+}
+
+/* Pin pulse animation — played once when a new clip is saved */
+@keyframes pin-pulse {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.5); }
+  40%  { transform: scale(1); }
+  60%  { transform: scale(1.4); }
+  80%  { transform: scale(1); }
+  90%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.pin-pulse {
+  animation: pin-pulse 1.5s ease-in-out 1;
+}
+
 /* iOS safe area utilities */
 .safe-top    { padding-top:    env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

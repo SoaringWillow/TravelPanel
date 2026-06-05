@@ -42,6 +42,9 @@ const tripPlanSchema = z.object({
   overview: z.string(),
   totalLocations: z.number(),
   estimatedDailyDistance: z.string(),
+  bestTimeToGo: z.string().optional().describe(
+    'Recommended timing based on seasonal signals from saved clips, e.g. "Late March–April (cherry blossoms). Avoid August typhoon season."'
+  ),
   days: z.array(dayPlanSchema),
   tips: z.array(z.string()),
 });
@@ -133,6 +136,22 @@ export async function POST(req: NextRequest) {
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
+        // Extract seasonal signals from wisdom/warning substance items
+        const SEASONAL_KEYWORDS = /spring|summer|autumn|fall|winter|rainy|dry season|monsoon|typhoon|cherry blossom|peak season|off.?season|avoid|best time|crowd|festival|holiday|new year|golden week|august|january|february|march|april|may|june|july|september|october|november|december/i;
+        const seasonalWarnings = items.flatMap((i) =>
+          (i.substance ?? [])
+            .filter(
+              (s) =>
+                (s.type === 'wisdom' || s.type === 'warning' || s.type === 'tip') &&
+                SEASONAL_KEYWORDS.test(s.content + (s.applies_to ?? ''))
+            )
+            .map((s) => `[${i.title}] ${s.content}`)
+        );
+
+        const seasonalSection = seasonalWarnings.length > 0
+          ? `\nSeasonal signals from saved clips:\n${seasonalWarnings.join('\n')}\nUse these to populate the "bestTimeToGo" field with a concise recommendation.`
+          : '';
+
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
@@ -142,7 +161,7 @@ Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
-
+${seasonalSection}
 Rules:
 - 2-4 activities per day with realistic timing
 - Cluster geographically nearby places each day

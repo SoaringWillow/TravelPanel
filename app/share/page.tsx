@@ -4,15 +4,73 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { impact, notification } from '@/lib/haptics';
+import { recordClipSaved } from '@/lib/milestones';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Stage = 'picking' | 'saving' | 'done';
+
+// ─── Smart board matching ─────────────────────────────────────────────────────
+
+const STOP_WORDS = new Set([
+  'the','a','an','in','on','at','to','for','of','and','or','is','are','was',
+  'be','by','from','with','this','that','it','as','your','my','our','their',
+  'i','you','he','she','we','they','how','what','where','when','who','why',
+  'travel','trip','visit','guide','tips','best','top','must','see','things',
+  'places','spots','food','eat','do','day','days','week','year','time',
+]);
+
+function extractKeywords(text: string): string[] {
+  return text
+    .split(/[\s,\-|/!?#@]+/)
+    .map((w) => w.replace(/[^\w一-鿿]/g, ''))
+    .filter((w) => w.length >= 2 && !STOP_WORDS.has(w.toLowerCase()))
+    .slice(0, 12);
+}
+
+interface SmartMatch {
+  board: Board;
+  matchCount: number;
+  matchedNames: string[];
+}
+
+function findSmartMatches(boards: Board[], allItems: SavedItem[], keywords: string[]): SmartMatch[] {
+  if (keywords.length === 0) return [];
+  const kwLower = keywords.map((k) => k.toLowerCase());
+
+  return boards
+    .map((board) => {
+      const boardItems = allItems.filter((i) => i.boardId === board.id);
+      let matchCount = 0;
+      const matchedNames = new Set<string>();
+
+      for (const item of boardItems) {
+        for (const loc of item.locations ?? []) {
+          const locLower = loc.name.toLowerCase();
+          if (kwLower.some((k) => locLower.includes(k) || k.includes(locLower))) {
+            matchCount++;
+            matchedNames.add(loc.name);
+          }
+        }
+        for (const tag of item.tags ?? []) {
+          const tagLower = tag.toLowerCase();
+          if (kwLower.some((k) => tagLower.includes(k) || k.includes(tagLower))) {
+            matchCount++;
+          }
+        }
+      }
+
+      return { board, matchCount, matchedNames: Array.from(matchedNames) };
+    })
+    .filter((r) => r.matchCount > 0)
+    .sort((a, b) => b.matchCount - a.matchCount);
+}
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -29,13 +87,58 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
+  const [duplicateItem, setDuplicateItem]     = useState<{ id: string; title: string; boardId?: string; boardName: string } | null>(null);
+  const [smartMatches, setSmartMatches]       = useState<SmartMatch[]>([]);
+  const [milestoneToast, setMilestoneToast]   = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards and check for a pending screenshot from the iOS Share Extension.
+  // The Share Extension writes the post thumbnail to App Group UserDefaults as
+  // "pendingShareImage" (base64 JPEG) so Claude Vision can extract data when the
+  // platform (e.g. 小红书) blocks standard HTML scraping.
   useEffect(() => {
-    getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
-  }, []);
+    const init = async () => {
+      const [loadedBoards, allItems] = await Promise.all([
+        getAllBoards().catch(() => [] as Board[]),
+        getAllItems().catch(() => []),
+      ]);
+      setBoards(loadedBoards);
+
+      // Smart board suggestions: match title keywords against board items
+      const keywords = extractKeywords(sharedTitle);
+      const matches = findSmartMatches(loadedBoards, allItems, keywords);
+      if (matches.length > 0) setSmartMatches(matches);
+
+      // Check for duplicate URL
+      if (rawUrl) {
+        const existing = allItems.find((i) => i.url === rawUrl);
+        if (existing) {
+          const board = loadedBoards.find((b) => b.id === existing.boardId);
+          setDuplicateItem({
+            id: existing.id,
+            title: existing.title || rawUrl,
+            boardId: existing.boardId,
+            boardName: board ? `${board.emoji} ${board.name}` : 'Inbox',
+          });
+        }
+      }
+
+      // Check for pending screenshot from iOS Share Extension
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value } = await Preferences.get({ key: 'pendingShareImage' });
+        if (value) {
+          setPendingImageBase64(value);
+          await Preferences.remove({ key: 'pendingShareImage' });
+        }
+      } catch {
+        // Not in a Capacitor native context — no-op
+      }
+    };
+    init();
+  }, [rawUrl, sharedTitle]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -83,16 +186,21 @@ function SharePageInner() {
 
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    impact('Medium'); // haptic: clip saved
+
+    const { milestone } = recordClipSaved();
+    if (milestone) setMilestoneToast(milestone);
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if the Share Extension captured one
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageBase64)
       .then(async (success) => {
         if (success) {
+          notification('Success'); // haptic: enrichment complete
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
@@ -108,6 +216,8 @@ function SharePageInner() {
               substance: updated.substance,
             } as ImportResult);
           }
+        } else {
+          notification('Warning'); // haptic: enrichment failed/rate-limited
         }
         setEnrichmentLoading(false);
       });
@@ -169,6 +279,78 @@ function SharePageInner() {
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
+          {/* Duplicate warning */}
+          <AnimatePresence>
+            {duplicateItem && (
+              <motion.div
+                key="dup"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5"
+              >
+                <p className="text-sm font-semibold text-amber-800 mb-0.5">📎 Already in your collection</p>
+                <p className="text-sm text-amber-700 line-clamp-2 mb-1 leading-snug">{duplicateItem.title}</p>
+                <p className="text-xs text-amber-600 mb-3">Saved to {duplicateItem.boardName}</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const path = duplicateItem.boardId ? `/boards/${duplicateItem.boardId}` : '/inbox';
+                      window.location.href = path;
+                    }}
+                    className="flex-1 bg-amber-600 text-white text-sm font-semibold px-3 py-2 rounded-xl hover:bg-amber-700 active:scale-95 transition-all"
+                  >
+                    View clip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDuplicateItem(null)}
+                    className="flex-1 bg-white border border-amber-300 text-amber-700 text-sm font-semibold px-3 py-2 rounded-xl hover:bg-amber-50 active:scale-95 transition-all"
+                  >
+                    Save again
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Smart board suggestion */}
+          <AnimatePresence>
+            {smartMatches.length > 0 && !duplicateItem && (
+              <motion.div
+                key="smart"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+                className="mb-4"
+              >
+                <p className="text-xs font-medium text-indigo-500 mb-2">Best match:</p>
+                <button
+                  type="button"
+                  disabled={stage === 'saving'}
+                  onClick={() => handleSave(
+                    smartMatches[0].board.id,
+                    `${smartMatches[0].board.emoji} ${smartMatches[0].board.name}`
+                  )}
+                  className="w-full flex items-center gap-3 bg-indigo-50 border-2 border-indigo-200 text-indigo-800 text-sm font-semibold px-4 py-3 rounded-2xl hover:bg-indigo-100 active:scale-95 transition-all disabled:opacity-50 text-left"
+                >
+                  <span className="text-xl">{smartMatches[0].board.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate">{smartMatches[0].board.name}</p>
+                    {smartMatches[0].matchedNames.length > 0 && (
+                      <p className="text-xs text-indigo-500 font-normal truncate">
+                        {smartMatches[0].matchedNames.slice(0, 2).join(', ')} clips
+                      </p>
+                    )}
+                  </div>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
 
           {/* Horizontally scrollable chip row */}
@@ -285,6 +467,21 @@ function SharePageInner() {
             {sharedTitle}
           </p>
         </motion.div>
+
+        {/* Milestone toast */}
+        <AnimatePresence>
+          {milestoneToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="w-full bg-indigo-600 text-white text-sm font-medium rounded-2xl px-4 py-3 text-center"
+            >
+              {milestoneToast}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Enrichment result */}
         <motion.div

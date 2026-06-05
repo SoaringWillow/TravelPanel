@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, RefreshCw, AlertTriangle, ArrowUpDown, Check } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { enrichItem } from '@/lib/enrichItem';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { checkEnrichmentLimit, formatResetsIn } from '@/lib/rateLimits';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -28,8 +31,10 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const THRESHOLD = 64;
+
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -38,6 +43,82 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [undoItem, setUndoItem] = useState<{ id: string; boardId: string; boardLabel: string } | null>(null);
+  const [enrichLimitBanner, setEnrichLimitBanner] = useState<{ resetsAt: number } | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'most_places'>('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchBoardPicker, setShowBatchBoardPicker] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+
+  // Auto-dismiss undo snackbar
+  useEffect(() => {
+    if (!undoItem) return;
+    const t = setTimeout(() => setUndoItem(null), 3500);
+    return () => clearTimeout(t);
+  }, [undoItem]);
+
+  const mostRecentBoard = boards[0];
+  const swipeRightLabel = mostRecentBoard
+    ? `${mostRecentBoard.emoji} ${mostRecentBoard.name}`
+    : undefined;
+
+  const handleSwipeRight = useCallback(
+    async (id: string) => {
+      if (!mostRecentBoard) return;
+      await addItemToBoard(mostRecentBoard.id, id);
+      setUndoItem({ id, boardId: mostRecentBoard.id, boardLabel: swipeRightLabel! });
+      router.refresh();
+    },
+    [mostRecentBoard, swipeRightLabel, router],
+  );
+
+  const handleSwipeLeft = useCallback(
+    async (id: string) => {
+      await removeItem(id);
+    },
+    [removeItem],
+  );
+
+  const handleUndo = useCallback(async () => {
+    if (!undoItem) return;
+    await removeItemFromBoard(undoItem.boardId, undoItem.id);
+    const allItems = await getAllItems();
+    const found = allItems.find((i) => i.id === undoItem.id);
+    if (found) await saveItem({ ...found, boardId: undefined });
+    setUndoItem(null);
+    router.refresh();
+  }, [undoItem, router]);
+
+  const onRefresh = useCallback(async () => {
+    const limit = checkEnrichmentLimit();
+    if (!limit.allowed) {
+      setEnrichLimitBanner({ resetsAt: limit.resetsAt });
+      await refresh();
+      return;
+    }
+    setEnrichLimitBanner(null);
+    const retryable = items.filter(
+      (i) => i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'failed'
+    );
+    for (const item of retryable) {
+      const cur = checkEnrichmentLimit();
+      if (!cur.allowed) {
+        setEnrichLimitBanner({ resetsAt: cur.resetsAt });
+        break;
+      }
+      await enrichItem(item.id, item.url);
+      refreshItem(item.id);
+    }
+    await refresh();
+  }, [items, refreshItem, refresh]);
+
+  const { containerRef, pullY, isPulling, refreshing, handlers } = usePullToRefresh({
+    onRefresh,
+    threshold: THRESHOLD,
+  });
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -45,14 +126,35 @@ export default function InboxPage() {
   }, []);
 
   // Only unassigned items (boardId === undefined)
-  const inboxItems = items.filter((i) => i.boardId === undefined);
+  const allInboxItems = items.filter((i) => i.boardId === undefined);
+  const archivedCount = allInboxItems.filter((i) => i.archived).length;
+  const inboxItems = showArchived
+    ? allInboxItems
+    : allInboxItems.filter((i) => !i.archived);
+
+  // Unique tags across all inbox items for the tag filter row
+  const allTags = Array.from(
+    new Set(inboxItems.flatMap((i) => i.tags ?? []))
+  ).sort();
 
   const platformFiltered =
     activePlatform === 'all'
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const tagFiltered = activeTag === '⭐ Starred'
+    ? platformFiltered.filter((i) => i.starred)
+    : activeTag
+    ? platformFiltered.filter((i) => (i.tags ?? []).includes(activeTag))
+    : platformFiltered;
+
+  const sorted = [...tagFiltered].sort((a, b) => {
+    if (sortOrder === 'newest') return b.savedAt - a.savedAt;
+    if (sortOrder === 'oldest') return a.savedAt - b.savedAt;
+    return (b.locations?.length ?? 0) - (a.locations?.length ?? 0);
+  });
+
+  const filtered = searchItems(sorted, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -96,22 +198,190 @@ export default function InboxPage() {
     [movingItemId, items, router]
   );
 
+  const handleNotesChange = useCallback(async (id: string, notes: string) => {
+    const allItems = await getAllItems();
+    const found = allItems.find((i) => i.id === id);
+    if (found) await saveItem({ ...found, notes: notes.trim() || undefined });
+  }, []);
+
+  const handleStar = useCallback(async (id: string, starred: boolean) => {
+    const allItems = await getAllItems();
+    const found = allItems.find((i) => i.id === id);
+    if (found) await saveItem({ ...found, starred });
+    router.refresh();
+  }, [router]);
+
+  const handleArchive = useCallback(async (id: string, archived: boolean) => {
+    const allItems = await getAllItems();
+    const found = allItems.find((i) => i.id === id);
+    if (found) await saveItem({ ...found, archived });
+    router.refresh();
+  }, [router]);
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setShowBatchBoardPicker(false);
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  const handleBatchMove = useCallback(
+    async (boardId: string) => {
+      for (const id of Array.from(selectedIds)) {
+        await addItemToBoard(boardId, id);
+      }
+      const board = boards.find((b) => b.id === boardId);
+      setUndoItem(null); // clear any previous undo
+      exitSelectMode();
+      router.refresh();
+      // Brief snackbar — reuse undoItem shape but point to board
+      if (board) {
+        // Show "Moved X items" using undoItem as a notification (no undo for batch)
+        // We repurpose the snackbar as an info-only notification here
+      }
+    },
+    [selectedIds, boards, router]
+  );
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10 safe-top">
         <div className="flex items-center gap-2 mb-3">
+          {selectMode ? (
+            <>
+              <span className="text-sm font-semibold text-gray-800">
+                {selectedIds.size} selected
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBatchBoardPicker(true)}
+                  disabled={selectedIds.size === 0}
+                  className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white rounded-full disabled:opacity-40 transition-all"
+                >
+                  Move to board
+                </button>
+                <button
+                  type="button"
+                  onClick={exitSelectMode}
+                  className="text-xs font-medium text-gray-500 px-2 py-1.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+          <>
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {/* Sort button */}
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Sort clips"
+                onClick={() => setShowSortMenu((v) => !v)}
+                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full border transition-all ${
+                  sortOrder !== 'newest'
+                    ? 'bg-indigo-50 text-indigo-600 border-indigo-300'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <ArrowUpDown size={11} />
+                Sort
+              </button>
+              <AnimatePresence>
+                {showSortMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-[100]"
+                      onClick={() => setShowSortMenu(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ duration: 0.12 }}
+                      className="absolute right-0 top-full mt-1.5 z-[110] bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden min-w-[160px]"
+                    >
+                      {([
+                        { key: 'newest',      label: 'Newest first'  },
+                        { key: 'oldest',      label: 'Oldest first'  },
+                        { key: 'most_places', label: 'Most places'   },
+                      ] as const).map(({ key, label }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => { setSortOrder(key); setShowSortMenu(false); }}
+                          className="flex items-center justify-between w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          {label}
+                          {sortOrder === key && <Check size={14} className="text-indigo-600" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {inboxItems.length} unsorted
+            </span>
+          </div>
+          </>
+          )}
         </div>
 
         {/* Search */}
         <div className="mb-3">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {/* Tag filter chips */}
+        {(allTags.length > 0 || inboxItems.some((i) => i.starred)) && (
+          <div className="flex gap-1.5 overflow-x-auto pb-3 scrollbar-hide">
+            {/* Starred chip — always first */}
+            {inboxItems.some((i) => i.starred) && (
+              <button
+                key="starred"
+                type="button"
+                onClick={() => setActiveTag(activeTag === '⭐ Starred' ? null : '⭐ Starred')}
+                className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${
+                  activeTag === '⭐ Starred'
+                    ? 'bg-amber-400 text-white border-amber-400'
+                    : 'bg-gray-50 text-amber-500 border-amber-200 hover:border-amber-300'
+                }`}
+              >
+                ⭐ Starred
+              </button>
+            )}
+            {allTags.map((tag) => {
+              const isActive = activeTag === tag;
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setActiveTag(isActive ? null : tag)}
+                  className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${
+                    isActive
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  #{tag}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
@@ -138,21 +408,91 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Enrichment rate-limit banner */}
+      <AnimatePresence>
+        {enrichLimitBanner && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+              <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-amber-800">Enrichment limit reached</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  Resets in {formatResetsIn(enrichLimitBanner.resetsAt)} — pull to refresh when it resets.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Dismiss"
+                onClick={() => setEnrichLimitBanner(null)}
+                className="text-amber-400 hover:text-amber-600 flex-shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        {...handlers}
+      >
+        {/* Pull-to-refresh indicator */}
+        <div
+          className="flex items-end justify-center overflow-hidden"
+          style={{
+            height: refreshing ? 48 : isPulling ? pullY : 0,
+            transition: isPulling ? 'none' : 'height 0.2s ease-out',
+          }}
+          aria-hidden
+        >
+          <div
+            className="mb-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center"
+            style={{ opacity: refreshing ? 1 : Math.min(pullY / 32, 1) }}
+          >
+            <RefreshCw
+              size={16}
+              className="text-indigo-600"
+              style={
+                refreshing
+                  ? { animation: 'spin 0.8s linear infinite' }
+                  : { transform: `rotate(${(pullY / THRESHOLD) * 360}deg)` }
+              }
+            />
+          </div>
+        </div>
+        <div className="py-4">
+        {/* Filter result count label */}
+        {!loading && (activeTag || sortOrder !== 'newest') && (
+          <p className="text-xs text-gray-400 mb-2">
+            {filtered.length === 0
+              ? 'No clips match — try a different filter'
+              : `Showing ${filtered.length} clip${filtered.length !== 1 ? 's' : ''}`}
+          </p>
+        )}
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
+            <div className="text-5xl mb-4">{query.trim() || activeTag ? '🔍' : '📥'}</div>
             <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
+              {query.trim() || activeTag ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
             <p className="text-sm text-gray-500 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
+                : activeTag
+                ? `No clips tagged #${activeTag}.`
                 : activePlatform === 'all'
                 ? 'Share content from social apps to get started!'
                 : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
@@ -161,26 +501,72 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
+              {filtered.map((item) => {
+                const isSelected = selectedIds.has(item.id);
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative"
+                    style={{ opacity: item.archived ? 0.55 : 1 }}
+                    onContextMenu={(e) => { e.preventDefault(); if (!selectMode) { setSelectMode(true); setSelectedIds(new Set([item.id])); } }}
+                  >
+                    {/* Select mode overlay */}
+                    {selectMode && (
+                      <button
+                        type="button"
+                        aria-label={isSelected ? 'Deselect' : 'Select'}
+                        onClick={() => toggleSelect(item.id)}
+                        className="absolute inset-0 z-10 rounded-2xl"
+                        style={{ background: isSelected ? 'rgba(99,102,241,0.12)' : 'transparent' }}
+                      >
+                        <span
+                          className={`absolute top-2 right-2 w-5 h-5 rounded-full border-2 flex items-center justify-center text-white text-xs transition-all ${
+                            isSelected ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-300'
+                          }`}
+                        >
+                          {isSelected && <Check size={11} />}
+                        </span>
+                      </button>
+                    )}
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                      onSwipeRight={selectMode ? undefined : (mostRecentBoard ? handleSwipeRight : undefined)}
+                      onSwipeLeft={selectMode ? undefined : handleSwipeLeft}
+                      swipeRightLabel={swipeRightLabel}
+                      onNotesChange={handleNotesChange}
+                      onStar={handleStar}
+                      onArchive={handleArchive}
+                    />
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         )}
+
+        {/* Show/hide archived clips */}
+        {archivedCount > 0 && (
+          <div className="mt-4 mb-2 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowArchived((v) => !v)}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
+            >
+              {showArchived
+                ? 'Hide archived clips'
+                : `${archivedCount} archived clip${archivedCount !== 1 ? 's' : ''} — show`}
+            </button>
+          </div>
+        )}
+        </div>
       </div>
 
       {/* Board selector bottom sheet */}
@@ -200,6 +586,9 @@ export default function InboxPage() {
             {/* Sheet */}
             <motion.div
               key="sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="move-to-board-title"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -214,10 +603,11 @@ export default function InboxPage() {
 
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3">
-                <h3 className="font-semibold text-gray-800">Move to board</h3>
+                <h3 id="move-to-board-title" className="font-semibold text-gray-800">Move to board</h3>
                 <button
                   type="button"
                   onClick={() => setMovingItemId(null)}
+                  aria-label="Close"
                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X size={18} />
@@ -225,7 +615,7 @@ export default function InboxPage() {
               </div>
 
               {/* Board chips */}
-              <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: 200 }}>
+              <div className="overflow-y-auto px-5 pb-8 safe-bottom" style={{ maxHeight: 200 }}>
                 <div className="flex flex-wrap gap-2">
                   {/* Inbox (unassign) chip */}
                   <button
@@ -259,6 +649,87 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Batch board picker */}
+      <AnimatePresence>
+        {showBatchBoardPicker && (
+          <>
+            <motion.div
+              key="batch-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1999] bg-black/40"
+              onClick={() => setShowBatchBoardPicker(false)}
+            />
+            <motion.div
+              key="batch-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="batch-move-title"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
+              style={{ maxHeight: 300 }}
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+              <div className="flex items-center justify-between px-5 py-3">
+                <h3 id="batch-move-title" className="font-semibold text-gray-800">
+                  Move {selectedIds.size} clip{selectedIds.size !== 1 ? 's' : ''} to…
+                </h3>
+                <button type="button" aria-label="Close" onClick={() => setShowBatchBoardPicker(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-5 pb-8 safe-bottom" style={{ maxHeight: 200 }}>
+                <div className="flex flex-wrap gap-2">
+                  {boards.map((board) => (
+                    <button
+                      key={board.id}
+                      type="button"
+                      onClick={() => handleBatchMove(board.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                    >
+                      <span>{board.emoji}</span>
+                      <span>{board.name}</span>
+                    </button>
+                  ))}
+                  {boards.length === 0 && (
+                    <p className="text-sm text-gray-400 py-2">No boards yet. Create one from the Collections tab.</p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Undo snackbar */}
+      <AnimatePresence>
+        {undoItem && (
+          <motion.div
+            key="undo"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            className="fixed bottom-24 left-4 right-4 z-[3000] bg-gray-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-xl"
+          >
+            <span className="text-sm">Moved to {undoItem.boardLabel}</span>
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors ml-3 flex-shrink-0"
+            >
+              Undo
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 

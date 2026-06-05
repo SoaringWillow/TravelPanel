@@ -50,6 +50,8 @@ export interface SavedItem {
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
+  starred?: boolean;
+  archived?: boolean;
   isDemo?: boolean; // onboarding seed content — removable in one tap
 }
 
@@ -110,6 +112,7 @@ export interface TripPlan {
   overview: string;
   totalLocations: number;
   estimatedDailyDistance: string;
+  bestTimeToGo?: string;
   days: DayPlan[];
   tips: string[];
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Clock, Copy, Check, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -19,9 +20,10 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
 
-export default function PlanPage() {
+function PlanPageInner() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const boardId = params.boardId as string;
 
   const [board, setBoard] = useState<Board | null>(null);
@@ -35,7 +37,8 @@ export default function PlanPage() {
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
-  const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [planLimitError, setPlanLimitError] = useState<{ message: string; resetsAt: number } | null>(null);
+  const [planLimitDismissed, setPlanLimitDismissed] = useState(false);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
@@ -53,12 +56,26 @@ export default function PlanPage() {
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
         }
-        setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
+        const sorted = trips.sort((a, b) => a.createdAt - b.createdAt);
+        setSavedTrips(sorted);
+        // Auto-load trip if ?loadTrip=<id> is present
+        const loadTripId = searchParams.get('loadTrip');
+        if (loadTripId) {
+          const target = sorted.find((t) => t.id === loadTripId);
+          if (target?.plan) {
+            setPlan(target.plan);
+            setSteps(target.agentSteps ?? []);
+            setCurrentTripId(target.id);
+            setStage('complete');
+          }
+        }
       } finally {
         setLoadingBoard(false);
       }
     }
     load();
+  // searchParams is stable; only re-run when boardId changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
 
   const itemsWithLocations = boardItems.filter((item) => item.locations.length > 0);
@@ -66,12 +83,13 @@ export default function PlanPage() {
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
+    setPlanLimitDismissed(false);
     const limit = checkPlanLimit();
     if (!limit.allowed) {
-      setPlanLimitError(
-        `You've used all ${5} free plans today. More plans available in ${formatResetsIn(limit.resetsAt)}. ` +
-        `Unlimited plans coming in Pro — stay tuned!`
-      );
+      setPlanLimitError({
+        message: `You've used all 5 free plans today. Unlimited plans are coming in Pro.`,
+        resetsAt: limit.resetsAt,
+      });
       track('plan_limit_hit', { boardId });
       return;
     }
@@ -234,6 +252,60 @@ export default function PlanPage() {
   ];
 
   const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
+  const [dayCopied, setDayCopied] = useState(false);
+  const [planShared, setPlanShared] = useState(false);
+
+  async function handleSharePlan() {
+    if (!plan || !board) return;
+    const lines: string[] = [
+      `🗺️ ${board.name} Trip Plan`,
+      plan.overview ? `\n${plan.overview}` : '',
+      plan.bestTimeToGo ? `\n🌸 Best time: ${plan.bestTimeToGo}` : '',
+      '',
+    ];
+    for (const day of plan.days ?? []) {
+      lines.push(`── Day ${(plan.days?.indexOf(day) ?? 0) + 1}: ${day.theme} ──`);
+      for (const act of day.activities) {
+        lines.push(`${act.time}  ${act.name} @ ${act.location.name}`);
+        if (act.tips?.[0]) lines.push(`  · ${act.tips[0]}`);
+      }
+      lines.push('');
+    }
+    lines.push('Made with TravelPanel');
+    const text = lines.filter((l) => l !== undefined).join('\n');
+
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: `${board.name} Trip Plan`, text });
+        setPlanShared(true);
+        setTimeout(() => setPlanShared(false), 2000);
+        return;
+      } catch {
+        // Fallback to clipboard
+      }
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      setPlanShared(true);
+      setTimeout(() => setPlanShared(false), 2000);
+    });
+  }
+
+  function handleCopyDay() {
+    if (!activeDayPlan) return;
+    const lines: string[] = [
+      `Day ${activeDayIndex + 1} — ${activeDayPlan.theme}`,
+      '',
+    ];
+    for (const act of activeDayPlan.activities) {
+      lines.push(`${act.time}  ${act.name} @ ${act.location.name} (${act.duration})`);
+      for (const tip of act.tips.slice(0, 2)) lines.push(`  · ${tip}`);
+      for (const st of act.sourcedTips ?? []) lines.push(`  💡 "${st.content}" — ${st.sourceTitle}`);
+    }
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setDayCopied(true);
+      setTimeout(() => setDayCopied(false), 2000);
+    });
+  }
 
   if (loadingBoard) {
     return (
@@ -276,7 +348,7 @@ export default function PlanPage() {
       </div>
 
       {/* Bottom scrollable panel */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+      <div className="flex-1 overflow-y-auto safe-bottom" style={{ minHeight: 0 }}>
         <div className="px-4 pb-8 pt-4">
 
           {/* ── PRE-GENERATE STATE ── */}
@@ -365,13 +437,39 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Plan rate limit warning */}
-              {planLimitError && (
-                <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 text-xs text-indigo-700">
-                  <Lightbulb size={14} className="flex-shrink-0 mt-0.5 text-indigo-500" />
-                  <span>{planLimitError}</span>
-                </div>
-              )}
+              {/* Plan rate-limit banner — dismissible */}
+              <AnimatePresence>
+                {planLimitError && !planLimitDismissed && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0, paddingTop: 0, paddingBottom: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.22 }}
+                    className="bg-amber-50 border border-amber-200 rounded-2xl p-4"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <Clock size={16} className="flex-shrink-0 text-amber-500 mt-0.5" />
+                        <div className="space-y-0.5 min-w-0">
+                          <p className="text-sm font-semibold text-amber-800">Daily limit reached</p>
+                          <p className="text-xs text-amber-700 leading-relaxed">{planLimitError.message}</p>
+                          <p className="text-xs text-amber-600 font-medium mt-1">
+                            Resets in {formatResetsIn(planLimitError.resetsAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPlanLimitDismissed(true)}
+                        className="flex-shrink-0 p-1 rounded-lg text-amber-400 hover:text-amber-700 hover:bg-amber-100 transition-colors"
+                        aria-label="Dismiss"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Previously-saved plan versions — tap to reopen */}
               <PlanVersionBar
@@ -397,13 +495,28 @@ export default function PlanPage() {
           {/* ── GENERATING STATE ── */}
           {stage === 'generating' && (
             <div className="space-y-4">
-              {/* Back / board name */}
+              {/* Board name */}
               <div className="flex items-center gap-2">
                 <span className="text-xl">{board.emoji}</span>
                 <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
               </div>
 
+              {/* Agent step log */}
               <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
+
+              {/* Skeleton day strip preview — shows what the plan will look like */}
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-2">Preparing your itinerary…</p>
+                <div className="flex gap-3 overflow-hidden pb-1">
+                  {Array.from({ length: days < 4 ? days : 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex-shrink-0 w-32 h-20 bg-gray-100 rounded-2xl animate-pulse"
+                      style={{ animationDelay: `${i * 120}ms` }}
+                    />
+                  ))}
+                </div>
+              </div>
 
               <button
                 onClick={handleCancel}
@@ -436,6 +549,17 @@ export default function PlanPage() {
                 <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
               )}
 
+              {/* Best time to go — from seasonal signals in saved clips */}
+              {plan.bestTimeToGo && (
+                <div className="bg-sky-50 border border-sky-100 rounded-2xl px-3 py-2.5 flex items-start gap-2">
+                  <span className="text-base flex-shrink-0">🗓</span>
+                  <div>
+                    <p className="text-xs font-semibold text-sky-700 mb-0.5">Best time to go</p>
+                    <p className="text-xs text-sky-800 leading-snug">{plan.bestTimeToGo}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Summary chips */}
               <div className="flex flex-wrap gap-2">
                 {plan.days && (
@@ -460,7 +584,14 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={handleSharePlan}
+                    className="flex items-center justify-center gap-1.5 border border-indigo-200 text-indigo-600 bg-indigo-50 text-xs font-medium py-2 px-3 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                  >
+                    {planShared ? <Check size={14} /> : <Share2 size={14} />}
+                    {planShared ? 'Shared!' : 'Share plan'}
+                  </button>
                   <button
                     onClick={handleExportPDF}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
@@ -488,29 +619,56 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
+              {/* Day strip — staggered entrance */}
               {plan.days && plan.days.length > 0 && (
                 <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                  <div className="flex gap-3" style={{ width: 'max-content' }}>
+                  <motion.div
+                    className="flex gap-3"
+                    style={{ width: 'max-content' }}
+                    variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+                    initial="hidden"
+                    animate="visible"
+                  >
                     {plan.days.map((day, idx) => (
-                      <DayStripCard
+                      <motion.div
                         key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
+                        variants={{
+                          hidden: { opacity: 0, y: 10 },
+                          visible: { opacity: 1, y: 0, transition: { duration: 0.22, ease: 'easeOut' } },
+                        }}
+                      >
+                        <DayStripCard
+                          day={day}
+                          index={idx}
+                          isActive={activeDayIndex === idx}
+                          onSelect={() => setActiveDayIndex(idx)}
+                        />
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 </div>
               )}
 
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-gray-700">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={handleCopyDay}
+                      className="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-indigo-600 transition-colors px-2 py-1 rounded-lg hover:bg-indigo-50"
+                      aria-label="Copy day plan"
+                    >
+                      {dayCopied ? (
+                        <><Check size={12} className="text-green-500" /><span className="text-green-500">Copied!</span></>
+                      ) : (
+                        <><Copy size={12} /><span>Copy</span></>
+                      )}
+                    </button>
+                  </div>
 
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div
@@ -594,5 +752,13 @@ export default function PlanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PlanPage() {
+  return (
+    <Suspense fallback={null}>
+      <PlanPageInner />
+    </Suspense>
   );
 }
