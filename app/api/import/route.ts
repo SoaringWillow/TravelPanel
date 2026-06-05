@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -95,22 +96,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'URL required' }, { status: 400 });
   }
 
+  const hasImage = typeof imageBase64 === 'string' && imageBase64.length > 0;
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  // Skip page fetch for platforms known to block scraping when we already have an image
+  const skipFetch = hasImage && (platform === 'xiaohongshu' || platform === 'wechat' || platform === 'douyin');
+  const page = skipFetch ? null : await fetchPageData(url);
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+${hasImage ? 'Source: screenshot image from the iOS Share Sheet (attached above)' : `Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page)'}`}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
 Do NOT invent or guess coordinates.
+${hasImage ? 'Read any Chinese text in the image carefully — location names, addresses, and place names are often in the image.' : ''}
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
@@ -130,12 +135,34 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (hasImage) {
+      // Vision path: the share payload includes a screenshot (e.g. Xiaohongshu blocks scraping)
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'image' as const,
+                image: `data:image/jpeg;base64,${imageBase64}`,
+              },
+              { type: 'text' as const, text: prompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: scrape the URL and extract from page content
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

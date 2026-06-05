@@ -118,3 +118,5 @@ The extension reuses the existing `/share?url=&title=` flow — zero new backend
 1. B3 — Xiaohongshu / WeChat: accept image payload from iOS Share Sheet, use Claude Vision
 2. B4 — Embedding/vibe search (needs Supabase pgvector from B1)
 3. B5 — Cloud backup export ("Download all my data" as JSON)
+2026-06-05 00:28 | 89aeee5 | feat(B2): Chrome/Safari browser extension clipper
+2026-06-05 | B3: Claude Vision for Xiaohongshu/WeChat — ShareViewController captures images; CapacitorBridge forwards imageB64 via URL scheme; import API uses claude-sonnet-4-6 vision model when image present

@@ -44,17 +44,20 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>[&imageB64=<b64jpeg>]
+        // imageB64 is present when the Share Extension captured a post image (e.g. Xiaohongshu).
         const listener = await App.addListener('appUrlOpen', ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const imageB64 = parsed.searchParams.get('imageB64');
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              if (imageB64) qs.set('imageB64', imageB64);
               router.push(`/share?${qs.toString()}`);
             }
           } catch {

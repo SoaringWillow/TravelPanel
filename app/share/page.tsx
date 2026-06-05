@@ -21,6 +21,9 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  // Optional: base64-encoded JPEG from the iOS Share Sheet (used when URL scraping fails,
+  // e.g. Xiaohongshu/WeChat). Passed by CapacitorBridge via the URL scheme deep link.
+  const imageB64        = searchParams.get('imageB64') ?? '';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -88,9 +91,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image when available (e.g. Xiaohongshu vision path)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageB64 || undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
