@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "short_name": "TravelPanel",
+  "version": "1.0.0",
+  "description": "Clip travel content from any webpage into your TravelPanel boards",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Clip to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus"
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+T",
+        "mac": "Command+Shift+T"
+      },
+      "description": "Open TravelPanel Clipper"
+    }
+  },
+  "options_page": "options.html"
+}
