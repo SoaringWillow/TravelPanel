@@ -10,7 +10,9 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import ProactiveSurface from '@/components/ProactiveSurface';
+import EmptyMapState from '@/components/EmptyMapState';
 import NavBar from '@/components/NavBar';
+import { seedDemoIfFirstLaunch } from '@/lib/seed';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -69,6 +71,12 @@ function HomePageInner() {
     setPrefilledUrl('');
   }
 
+  async function handleTryDemo() {
+    localStorage.removeItem('travelpanel_seeded_v1');
+    const seeded = await seedDemoIfFirstLaunch();
+    if (seeded) window.location.reload();
+  }
+
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
@@ -97,6 +105,16 @@ function HomePageInner() {
 
       {/* Proactive resurfacing card */}
       {!selectedItem && !showImport && <ProactiveSurface />}
+
+      {/* Empty state overlay — shown when map has no items */}
+      <AnimatePresence>
+        {!loading && items.length === 0 && !showImport && (
+          <EmptyMapState
+            onClip={() => setShowImport(true)}
+            onTryDemo={handleTryDemo}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Import FAB */}
       {!selectedItem && (

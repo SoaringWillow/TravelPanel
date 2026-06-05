@@ -229,7 +229,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Board card shows `updatedAt` relative date ("Updated 2d ago")
 
 ### D4 — Home Screen Welcome State
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, new `components/EmptyMapState.tsx`  
 **What to do**:
 - When `items.length === 0` and not loading: show a centered overlay (not full page replacement) with:
