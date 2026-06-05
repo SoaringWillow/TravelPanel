@@ -7,10 +7,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus, Navigation, X, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useProactiveResurfacing } from '@/hooks/useProactiveResurfacing';
 import { getNearbyItems, formatDistance } from '@/lib/geoUtils';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import ResurfacingBanner from '@/components/ResurfacingBanner';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -27,6 +29,7 @@ function HomePageInner() {
   const [nearbyOpen, setNearbyOpen]     = useState(false);
 
   const { position, error: gpsError, watching, loading: gpsLoading, start: startGPS, stop: stopGPS } = useGeolocation();
+  const { signal: resurface, dismiss: dismissResurface } = useProactiveResurfacing(items);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -108,6 +111,15 @@ function HomePageInner() {
           </div>
         </div>
       </div>
+
+      {/* Proactive resurfacing banner (nearby, seasonal, or daily pick) */}
+      {resurface && !selectedItem && !showImport && (
+        <ResurfacingBanner
+          signal={resurface}
+          onDismiss={dismissResurface}
+          onTap={(item) => { setSelectedItem(item); dismissResurface(); }}
+        />
+      )}
 
       {/* GPS error toast */}
       <AnimatePresence>
