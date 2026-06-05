@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -29,13 +29,38 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshot, setScreenshot]           = useState<string | null>(null); // base64 data URL
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef    = useRef<HTMLInputElement | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read screenshot passed from native Share Extension via sessionStorage
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        setScreenshot(stored);
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+  }, []);
+
+  // Handle screenshot file selected via the file input
+  function handleScreenshotFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setScreenshot(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +113,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (Xiaohongshu/WeChat fix)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshot ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +189,52 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot attachment — shown for platforms that block scraping */}
+          {(platform === 'xiaohongshu' || platform === 'wechat' || platform === 'douyin' || screenshot) && (
+            <div className="mt-2">
+              {screenshot ? (
+                <div className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={screenshot}
+                    alt="Screenshot"
+                    className="w-10 h-10 object-cover rounded-lg border border-gray-200 flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-green-700">Screenshot attached</p>
+                    <p className="text-xs text-gray-400">AI will read text from the image</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setScreenshot(null)}
+                    className="text-gray-400 hover:text-gray-600 text-xs px-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium py-1"
+                >
+                  <Camera size={13} />
+                  Add screenshot for better extraction
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleScreenshotFile(file);
+                }}
+              />
+            </div>
           )}
         </div>
 
