@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+
+    <header>
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M21 3L3 10.53v.98l6.84 2.65L12.48 21h.98L21 3z"/>
+        </svg>
+        TravelPanel Clipper
+      </div>
+      <p class="subtitle">Extension Settings</p>
+    </header>
+
+    <form id="settings-form" novalidate>
+      <div class="field">
+        <label for="url-input">TravelPanel App URL</label>
+        <p class="field-desc">The URL where your TravelPanel instance is deployed.</p>
+        <input
+          type="url"
+          id="url-input"
+          placeholder="https://travelpanel.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        >
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="save-btn" class="btn-primary">Save settings</button>
+        <button type="button" id="reset-btn" class="btn-secondary">Reset to default</button>
+      </div>
+
+      <div id="status-msg" class="status-msg hidden"></div>
+    </form>
+
+    <div class="divider"></div>
+
+    <section class="section">
+      <h3>Keyboard Shortcut</h3>
+      <p>
+        Press <kbd>⌘⇧S</kbd> on Mac or <kbd>Ctrl+Shift+S</kbd> on Windows/Linux to open the
+        clipper from any page. Customize it at
+        <a href="chrome://extensions/shortcuts" target="_blank">chrome://extensions/shortcuts</a>.
+      </p>
+    </section>
+
+    <section class="section">
+      <h3>How It Works</h3>
+      <ol class="how-list">
+        <li>Browse to any travel blog, YouTube video, Instagram post, or map.</li>
+        <li>Click the TravelPanel icon in the toolbar (or use the keyboard shortcut).</li>
+        <li>Click <strong>Save to TravelPanel</strong> — a new tab opens with your board picker.</li>
+        <li>Choose a board and TravelPanel extracts locations and tips automatically.</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h3>Safari Web Extension</h3>
+      <p>Convert for Safari (requires Xcode on macOS):</p>
+      <pre>xcrun safari-web-extension-converter browser-extension/ \
+  --app-name "TravelPanel Clipper"</pre>
+      <p class="note">The converted Xcode project can be added to the TravelPanel iOS app target.</p>
+    </section>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
