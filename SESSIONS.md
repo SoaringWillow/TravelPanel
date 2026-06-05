@@ -96,3 +96,25 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+
+---
+
+## Session: 2026-06-05 — Phase B2 Browser Extension
+
+**Branch**: `claude/relaxed-tesla-PDZW1`
+
+### Completed
+- **B2** — Chrome/Safari (MV3) browser extension:
+  - `extension/manifest.json` — Manifest V3, permissions: activeTab, storage, contextMenus, windows
+  - `extension/popup.html` + `popup.js` — Beautiful 360px popup: detects platform (XHS/IG/YouTube/TikTok etc.), shows favicon + title + domain, one-click "Clip to TravelPanel" button opens the share page in a popup window
+  - `extension/background.js` — Service worker registers two context menu items ("Save page" + "Save link") that clip via right-click
+  - `extension/options.html` + `options.js` — Settings page: user enters their TravelPanel URL once, stored in chrome.storage.sync
+  - `extension/icons/` — SVG icon + generate-icons.js (sharp) + pre-built icon16/48/128.png
+
+### Architecture note
+The extension reuses the existing `/share?url=&title=` flow — zero new backend code needed. The popup window that opens handles board selection, enrichment, and save exactly as the iOS Share Extension does.
+
+### Next session plan
+1. B3 — Xiaohongshu / WeChat: accept image payload from iOS Share Sheet, use Claude Vision
+2. B4 — Embedding/vibe search (needs Supabase pgvector from B1)
+3. B5 — Cloud backup export ("Download all my data" as JSON)
