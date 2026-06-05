@@ -104,7 +104,7 @@ All Phase A–C tasks are complete. The app has:
 - After choice, the FAB pulses once to draw attention
 
 ### D8 — Map Style Toggle (Standard / Satellite)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Satellite view is essential for trip planning — users want to see terrain and exact beach/restaurant positions.  
 **Files to change**: `components/MapView.tsx`  
 **What to do**:

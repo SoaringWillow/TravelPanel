@@ -5,12 +5,22 @@ import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Navigation } from 'lucide-react';
+import { Navigation, Layers } from 'lucide-react';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 import { GeoPosition } from '@/hooks/useGeolocation';
 import { haversineKm, formatDistance } from '@/lib/distance';
+
+// ─── Map styles ───────────────────────────────────────────────────────────────
+
+const MAP_STYLES = [
+  { id: 'streets',  label: 'Streets', url: 'https://tiles.openfreemap.org/styles/liberty' },
+  { id: 'light',    label: 'Light',   url: 'https://tiles.openfreemap.org/styles/positron' },
+  { id: 'dark',     label: 'Dark',    url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+] as const;
+
+const MAP_STYLE_KEY = 'travelpanel_map_style';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -342,6 +352,22 @@ export default function MapView({
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
   const nearMeActive = geoStatus === 'active' || geoStatus === 'locating';
 
+  // Map style toggle
+  const [styleIndex, setStyleIndex] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    const saved = localStorage.getItem(MAP_STYLE_KEY);
+    const idx = MAP_STYLES.findIndex((s) => s.id === saved);
+    return idx >= 0 ? idx : 0;
+  });
+
+  function cycleMapStyle() {
+    const next = (styleIndex + 1) % MAP_STYLES.length;
+    setStyleIndex(next);
+    if (typeof window !== 'undefined') localStorage.setItem(MAP_STYLE_KEY, MAP_STYLES[next].id);
+  }
+
+  const currentStyle = MAP_STYLES[styleIndex];
+
   // Fly to user's location when GPS first resolves
   const prevGeoStatusRef = useRef(geoStatus);
   useEffect(() => {
@@ -396,7 +422,7 @@ export default function MapView({
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={currentStyle.url}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
@@ -404,6 +430,34 @@ export default function MapView({
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+
+        {/* Map style toggle button */}
+        <div style={{ position: 'absolute', bottom: 152, left: 12, zIndex: 10 }}>
+          <button
+            type="button"
+            onClick={cycleMapStyle}
+            title={`Style: ${currentStyle.label} (tap to change)`}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'white',
+              border: '1px solid rgba(0,0,0,0.15)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
+            <Layers size={16} color="#374151" />
+            <span style={{ fontSize: 7, fontWeight: 700, color: '#6b7280', lineHeight: 1 }}>
+              {currentStyle.label.toUpperCase()}
+            </span>
+          </button>
+        </div>
 
         {/* Near Me button */}
         <div style={{ position: 'absolute', bottom: 100, right: 12, zIndex: 10 }}>
