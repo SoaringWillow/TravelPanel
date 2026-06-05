@@ -83,7 +83,7 @@ All Phase A–C tasks are complete. The app has:
 - Use `navigator.vibrate` as fallback on web
 
 ### D6 — Offline Detection Banner
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When offline, enrichment silently fails. Users don't know why nothing works.  
 **Files to change**: `app/layout.tsx`, new `components/OfflineBanner.tsx`  
 **What to do**:
