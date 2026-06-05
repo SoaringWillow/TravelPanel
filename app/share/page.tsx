@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImageParam   = searchParams.get('hasImage') === 'true';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,6 +30,8 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageData, setPendingImageData]   = useState<string | undefined>();
+  const [pendingImageMime, setPendingImageMime]   = useState<string | undefined>();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +39,23 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read image payload relayed by CapacitorBridge via sessionStorage
+  useEffect(() => {
+    if (!hasImageParam) return;
+    try {
+      const data = sessionStorage.getItem('pendingShareImageBase64') ?? undefined;
+      const mime = sessionStorage.getItem('pendingShareImageMime') ?? 'image/jpeg';
+      if (data) {
+        setPendingImageData(data);
+        setPendingImageMime(mime);
+        sessionStorage.removeItem('pendingShareImageBase64');
+        sessionStorage.removeItem('pendingShareImageMime');
+      }
+    } catch {
+      // sessionStorage not available (SSR guard)
+    }
+  }, [hasImageParam]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +108,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image data when available (Vision path for Xiaohongshu etc.)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageData, pendingImageMime)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
