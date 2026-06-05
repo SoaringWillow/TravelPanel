@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import { GeoPosition } from '@/hooks/useGeolocation';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -230,12 +231,15 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userPosition?: GeoPosition | null;
+  flyToUser?: boolean;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userPosition, flyToUser }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const prevFlyToUserRef = useRef(false);
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -266,6 +270,19 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     (e: ViewStateChangeEvent) => syncView(e.target as unknown as maplibregl.Map),
     [syncView],
   );
+
+  // Fly to user's GPS position when GPS is first activated
+  useEffect(() => {
+    if (flyToUser && userPosition && mapInstanceRef.current && !prevFlyToUserRef.current) {
+      prevFlyToUserRef.current = true;
+      mapInstanceRef.current.flyTo({
+        center: [userPosition.lng, userPosition.lat],
+        zoom: 14,
+        duration: 1200,
+      });
+    }
+    if (!flyToUser) prevFlyToUserRef.current = false;
+  }, [flyToUser, userPosition]);
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
@@ -328,6 +345,39 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* User GPS location — pulsing blue dot */}
+        {userPosition && Number.isFinite(userPosition.lat) && Number.isFinite(userPosition.lng) && (
+          <Marker longitude={userPosition.lng} latitude={userPosition.lat} anchor="center">
+            <div style={{ position: 'relative', width: 20, height: 20 }}>
+              {/* Accuracy ring */}
+              <div style={{
+                position: 'absolute',
+                inset: -16,
+                borderRadius: '50%',
+                background: 'rgba(59,130,246,0.15)',
+                border: '1px solid rgba(59,130,246,0.3)',
+              }} />
+              {/* Pulse ring */}
+              <div style={{
+                position: 'absolute',
+                inset: -6,
+                borderRadius: '50%',
+                background: 'rgba(59,130,246,0.2)',
+                animation: 'gps-pulse 2s ease-out infinite',
+              }} />
+              {/* Core dot */}
+              <div style={{
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: '#3b82f6',
+                border: '3px solid white',
+                boxShadow: '0 2px 8px rgba(59,130,246,0.6)',
+              }} />
+            </div>
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
