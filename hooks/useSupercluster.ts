@@ -112,5 +112,5 @@ export function useSupercluster(items: SavedItem[]) {
     [index],
   );
 
-  return { clusters, getExpansionZoom, setView };
+  return { clusters, points, getExpansionZoom, setView };
 }

@@ -154,7 +154,7 @@ The remaining work focuses on three areas:
 - Cache-bust stale thumbnails with a timestamp query param if needed
 
 ### G2 — MapView Performance (Many Pins)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: With 100+ clips, adding hundreds of MapLibre Marker elements causes DOM bloat. The GeoJSON source + symbol layer approach is faster.
 **Files**: `components/MapView.tsx`
 **What to do**:
