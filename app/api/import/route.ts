@@ -81,32 +81,9 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Shared prompt instructions ──────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
+const EXTRACTION_INSTRUCTIONS = `
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
@@ -128,14 +105,77 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  try {
+    ({ url, imageBase64 } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // For anti-scraping platforms (Xiaohongshu, WeChat), skip the page fetch
+  // unless we already have an image — the HTML will be empty or blocked anyway.
+  const skipFetch = !imageBase64 && (platform === 'xiaohongshu' || platform === 'wechat');
+  const page = skipFetch ? null : await fetchPageData(url);
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: analyse the screenshot the iOS Share Sheet captured.
+      // Supplements any metadata we could fetch from the URL.
+      const textContext = page
+        ? `URL: ${url}\nPlatform: ${platform}\nTitle: ${page.title || '(unavailable)'}\nDescription: ${page.description || '(unavailable)'}`
+        : `URL: ${url}\nPlatform: ${platform}\n(page content unavailable — use image only)`;
+
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: Buffer.from(imageBase64, 'base64'),
+                mimeType: 'image/jpeg',
+              },
+              {
+                type: 'text',
+                text: `You are a travel content analyzer. This is a screenshot of a ${platform} travel post.\n${textContext}\n${EXTRACTION_INSTRUCTIONS}`,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: analyse scraped page content.
+      const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+${EXTRACTION_INSTRUCTIONS}`;
+
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

@@ -29,12 +29,30 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards and check for a pending screenshot from the iOS Share Extension.
+  // The Share Extension writes the post thumbnail to App Group UserDefaults as
+  // "pendingShareImage" (base64 JPEG) so Claude Vision can extract data when the
+  // platform (e.g. 小红书) blocks standard HTML scraping.
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    const readPendingImage = async () => {
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value } = await Preferences.get({ key: 'pendingShareImage' });
+        if (value) {
+          setPendingImageBase64(value);
+          await Preferences.remove({ key: 'pendingShareImage' });
+        }
+      } catch {
+        // Not in a Capacitor native context — no-op
+      }
+    };
+    readPendingImage();
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +106,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if the Share Extension captured one
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

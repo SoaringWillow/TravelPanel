@@ -166,8 +166,9 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Implemented**: `browser-extension/` — Manifest V3 extension with popup UI (platform detection, travel content hint), settings page, canvas-generated icon, keyboard shortcut (⌘⇧S). Opens TravelPanel `/share` page in a new tab. Load unpacked from `chrome://extensions`.
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+**Status**: `[x]` Done  
+**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance  
+**Implemented**: `ShareViewController.swift` captures image attachments, resizes to 800px, writes base64 JPEG to App Group as `pendingShareImage`. `app/share/page.tsx` reads it from `@capacitor/preferences` on mount. `lib/enrichItem.ts` forwards `imageBase64` to the API. `app/api/import/route.ts` uses Claude Vision (`messages` with `image` content) when `imageBase64` is present; skips page fetch for anti-scraping platforms (小红书, WeChat) when an image is available.
 
 ### B4 — Embedding/Vibe Search
 **Status**: `[ ]` Not started  
