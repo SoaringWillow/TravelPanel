@@ -55,7 +55,7 @@ export default function BoardCard({ board, itemCount, thumbnails = [], onClick, 
     <motion.div
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer flex flex-col"
+      className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden cursor-pointer flex flex-col"
       style={{ minHeight: 160 }}
     >
       {/* Background: mosaic or solid cover */}
@@ -70,7 +70,7 @@ export default function BoardCard({ board, itemCount, thumbnails = [], onClick, 
 
       {/* Item count badge — top right */}
       {itemCount > 0 && (
-        <div className="absolute top-2.5 right-2.5 z-10 bg-white/90 backdrop-blur-sm text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm border border-gray-100">
+        <div className="absolute top-2.5 right-2.5 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-700 dark:text-gray-200 text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm border border-gray-100 dark:border-gray-700">
           {itemCount}
         </div>
       )}
@@ -81,16 +81,16 @@ export default function BoardCard({ board, itemCount, thumbnails = [], onClick, 
         <div className="text-3xl leading-none mb-2.5">{board.emoji}</div>
 
         {/* Name */}
-        <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 mb-auto">
+        <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-auto">
           {board.name}
         </h3>
 
         {/* Footer row: count + relative date */}
-        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100/80">
-          <p className="text-xs text-gray-500 font-medium">
+        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100/80 dark:border-gray-700/80">
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
             {itemCount} place{itemCount !== 1 ? 's' : ''}
           </p>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">
             {relativeDate(board.updatedAt)}
           </p>
         </div>

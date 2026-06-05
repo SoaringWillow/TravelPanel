@@ -250,7 +250,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a "Copy day" button to copy the day's schedule as plain text (for sending via WhatsApp etc.)
 
 ### D6 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/globals.css`, `tailwind.config.js`, various components  
 **What to do**:
 - Add `darkMode: 'class'` to `tailwind.config.js`
