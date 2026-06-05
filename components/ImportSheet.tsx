@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Clipboard } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -34,16 +34,39 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]                     = useState(initialUrl);
+  const [notes, setNotes]                 = useState('');
+  const [stage, setStage]                 = useState<Stage>('idle');
+  const [preview, setPreview]             = useState<ImportResult | null>(null);
+  const [error, setError]                 = useState('');
+  const [clipboardUrl, setClipboardUrl]   = useState('');
+  const abortRef                          = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
+
+  // Detect a URL in the clipboard when the sheet opens
+  const detectClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const trimmed = text?.trim();
+      if (trimmed && /^https?:\/\/.+/.test(trimmed) && trimmed !== url) {
+        setClipboardUrl(trimmed);
+      }
+    } catch {
+      // Clipboard permission denied or unavailable — no-op
+    }
+  }, [url]);
+
+  useEffect(() => {
+    if (open && !url) {
+      detectClipboard();
+    }
+    if (!open) {
+      setClipboardUrl('');
+    }
+  }, [open, url, detectClipboard]);
 
   const trimmedUrl       = url.trim();
   const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
@@ -141,6 +164,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setClipboardUrl('');
   }
 
   function handleClose() {
@@ -181,6 +205,30 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             ))}
           </div>
 
+          {/* ── Clipboard suggestion ─────────────────────────────────────── */}
+          {clipboardUrl && !url && stage === 'idle' && (
+            <button
+              type="button"
+              onClick={() => {
+                setUrl(clipboardUrl);
+                setClipboardUrl('');
+                // Auto-trigger import immediately
+                setTimeout(() => {
+                  document.getElementById('import-trigger')?.click();
+                }, 80);
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-left hover:bg-indigo-100 active:scale-[0.98] transition-all"
+            >
+              <Clipboard size={14} className="text-indigo-500 flex-shrink-0" />
+              <span className="text-indigo-700 font-medium truncate flex-1">
+                {clipboardUrl.length > 50
+                  ? clipboardUrl.slice(0, 47) + '…'
+                  : clipboardUrl}
+              </span>
+              <span className="text-indigo-400 text-xs flex-shrink-0">Paste →</span>
+            </button>
+          )}
+
           {/* ── URL input ────────────────────────────────────────────────── */}
           <div className="relative">
             <Link2
@@ -192,6 +240,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
+                if (e.target.value) setClipboardUrl('');
                 if (stage === 'preview') {
                   setPreview(null);
                   setStage('idle');
@@ -210,6 +259,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (
             <button
+              id="import-trigger"
               type="button"
               onClick={handleImport}
               disabled={!trimmedUrl || stage === 'loading'}
