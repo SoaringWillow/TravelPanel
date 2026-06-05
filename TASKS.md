@@ -381,7 +381,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Log errors to `track('js_error', { message, stack })` for analytics
 
 ### G5 — Clipboard import in share sheet
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ImportSheet.tsx`  
 **What to do**:
 - Add a "Paste URL" button below the URL input in ImportSheet
