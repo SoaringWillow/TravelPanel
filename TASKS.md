@@ -220,7 +220,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Disabled "Plan this trip" button: add a proper tooltip popover explaining why it's disabled (no enriched locations yet), not just `title=`
 
 ### D3 — Trip planner loading state & rate-limit UX
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - During plan generation, show a content-shaped skeleton (day strips as shimmer cards) instead of just agent steps text

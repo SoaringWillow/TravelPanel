@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -35,7 +36,8 @@ export default function PlanPage() {
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
-  const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [planLimitError, setPlanLimitError] = useState<{ message: string; resetsAt: number } | null>(null);
+  const [planLimitDismissed, setPlanLimitDismissed] = useState(false);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
@@ -66,12 +68,13 @@ export default function PlanPage() {
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
+    setPlanLimitDismissed(false);
     const limit = checkPlanLimit();
     if (!limit.allowed) {
-      setPlanLimitError(
-        `You've used all ${5} free plans today. More plans available in ${formatResetsIn(limit.resetsAt)}. ` +
-        `Unlimited plans coming in Pro — stay tuned!`
-      );
+      setPlanLimitError({
+        message: `You've used all 5 free plans today. Unlimited plans are coming in Pro.`,
+        resetsAt: limit.resetsAt,
+      });
       track('plan_limit_hit', { boardId });
       return;
     }
@@ -365,13 +368,39 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Plan rate limit warning */}
-              {planLimitError && (
-                <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 text-xs text-indigo-700">
-                  <Lightbulb size={14} className="flex-shrink-0 mt-0.5 text-indigo-500" />
-                  <span>{planLimitError}</span>
-                </div>
-              )}
+              {/* Plan rate-limit banner — dismissible */}
+              <AnimatePresence>
+                {planLimitError && !planLimitDismissed && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0, paddingTop: 0, paddingBottom: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.22 }}
+                    className="bg-amber-50 border border-amber-200 rounded-2xl p-4"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <Clock size={16} className="flex-shrink-0 text-amber-500 mt-0.5" />
+                        <div className="space-y-0.5 min-w-0">
+                          <p className="text-sm font-semibold text-amber-800">Daily limit reached</p>
+                          <p className="text-xs text-amber-700 leading-relaxed">{planLimitError.message}</p>
+                          <p className="text-xs text-amber-600 font-medium mt-1">
+                            Resets in {formatResetsIn(planLimitError.resetsAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPlanLimitDismissed(true)}
+                        className="flex-shrink-0 p-1 rounded-lg text-amber-400 hover:text-amber-700 hover:bg-amber-100 transition-colors"
+                        aria-label="Dismiss"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Previously-saved plan versions — tap to reopen */}
               <PlanVersionBar
@@ -397,13 +426,28 @@ export default function PlanPage() {
           {/* ── GENERATING STATE ── */}
           {stage === 'generating' && (
             <div className="space-y-4">
-              {/* Back / board name */}
+              {/* Board name */}
               <div className="flex items-center gap-2">
                 <span className="text-xl">{board.emoji}</span>
                 <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
               </div>
 
+              {/* Agent step log */}
               <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
+
+              {/* Skeleton day strip preview — shows what the plan will look like */}
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-2">Preparing your itinerary…</p>
+                <div className="flex gap-3 overflow-hidden pb-1">
+                  {Array.from({ length: days < 4 ? days : 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex-shrink-0 w-32 h-20 bg-gray-100 rounded-2xl animate-pulse"
+                      style={{ animationDelay: `${i * 120}ms` }}
+                    />
+                  ))}
+                </div>
+              </div>
 
               <button
                 onClick={handleCancel}
@@ -488,20 +532,33 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
+              {/* Day strip — staggered entrance */}
               {plan.days && plan.days.length > 0 && (
                 <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                  <div className="flex gap-3" style={{ width: 'max-content' }}>
+                  <motion.div
+                    className="flex gap-3"
+                    style={{ width: 'max-content' }}
+                    variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+                    initial="hidden"
+                    animate="visible"
+                  >
                     {plan.days.map((day, idx) => (
-                      <DayStripCard
+                      <motion.div
                         key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
+                        variants={{
+                          hidden: { opacity: 0, y: 10 },
+                          visible: { opacity: 1, y: 0, transition: { duration: 0.22, ease: 'easeOut' } },
+                        }}
+                      >
+                        <DayStripCard
+                          day={day}
+                          index={idx}
+                          isActive={activeDayIndex === idx}
+                          onSelect={() => setActiveDayIndex(idx)}
+                        />
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 </div>
               )}
 
