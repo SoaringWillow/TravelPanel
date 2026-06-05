@@ -271,7 +271,7 @@ All Phase A–E tasks are complete. The app has:
 - On Capacitor iOS, `navigator.share()` triggers the native iOS share sheet — no extra packages needed
 
 ### F6 — Plan Generation Error Recovery
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: If the plan API times out mid-stream, users see a frozen "Analyzing…" state with no escape other than navigating away.
 **Files to change**: `app/plan/[boardId]/page.tsx`, `components/PlannerAgent.tsx`
 **What to do**:

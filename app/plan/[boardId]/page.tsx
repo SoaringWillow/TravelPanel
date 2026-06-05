@@ -87,18 +87,37 @@ export default function PlanPage() {
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
-    const res = await fetch('/api/plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: boardItems,
-        days,
-        preferences: [
-          ...Array.from(selectedChips),
-          ...(customNotes.trim() ? [customNotes.trim()] : []),
-        ].join('. '),
-      }),
-    });
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort('timeout'), 90_000);
+
+    let res: Response;
+    try {
+      res = await fetch('/api/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: boardItems,
+          days,
+          preferences: [
+            ...Array.from(selectedChips),
+            ...(customNotes.trim() ? [customNotes.trim()] : []),
+          ].join('. '),
+        }),
+        signal: abortController.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isTimeout = err instanceof Error && (err.name === 'AbortError' || (err as Error).message === 'timeout');
+      setPlanLimitError(
+        isTimeout
+          ? 'Plan timed out — try reducing days or simplifying your preferences.'
+          : 'Network error during plan generation — check your connection and try again.'
+      );
+      setStage('idle');
+      return;
+    }
+
+    clearTimeout(timeoutId);
 
     if (!res.ok || !res.body) {
       setStage('idle');
@@ -162,6 +181,7 @@ export default function PlanPage() {
 
   const handleCancel = useCallback(() => {
     setStage('idle');
+    setPlanLimitError(null);
   }, []);
 
   const handleStartOver = useCallback(() => {
