@@ -106,7 +106,7 @@ function HomePageInner() {
         <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
           <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
+          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400" role="status" aria-live="polite">
             {loading ? 'Loading…' : (filterPlatform !== 'all' || filterTags.size > 0)
               ? `${filteredMapItems.length}/${items.length} filtered`
               : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}

@@ -336,7 +336,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `next/image` for any `<img>` tags that use external URLs (thumbnails from OG tags)
 
 ### F4 — Accessibility Pass
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - Add `aria-label` to all icon-only buttons (FAB, close buttons, map controls)
 - Ensure all interactive elements meet 44×44pt minimum tap target

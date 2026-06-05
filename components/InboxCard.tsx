@@ -89,8 +89,8 @@ export default function InboxCard({
           <div className="p-4 space-y-3">
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
             <div className="h-3 bg-gray-200 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
+            <div className="flex items-center gap-2 pt-1" role="status" aria-live="polite">
+              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" aria-hidden="true" />
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
             </div>
           </div>

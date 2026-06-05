@@ -498,10 +498,11 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
           <button
             type="button"
             onClick={() => setNearMeActive((v) => !v)}
+            aria-label={nearMeActive ? 'Show all pins' : `Show pins within ${NEAR_ME_KM}km`}
             title={nearMeActive ? 'Show all pins' : `Show pins within ${NEAR_ME_KM}km`}
             style={{
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               borderRadius: 12,
               background: nearMeActive ? '#6366f1' : 'white',
               color: nearMeActive ? 'white' : '#6366f1',
@@ -523,10 +524,11 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         <button
           type="button"
           onClick={toggleLocation}
+          aria-label={userLocation ? 'Stop location tracking' : 'Show my location'}
           title={userLocation ? 'Stop location tracking' : 'My location'}
           style={{
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             borderRadius: 12,
             background: userLocation ? '#3b82f6' : 'white',
             color: userLocation ? 'white' : '#6b7280',
