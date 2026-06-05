@@ -222,7 +222,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Save updates the board in IndexedDB, refreshes the UI
 
 ### D3 — Swipe-to-Delete on Clip Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect swipe-to-delete. Currently delete is buried in the detail card. This makes managing clips much faster.  
 **Files**: `components/InboxCard.tsx`, possibly add a swipe gesture hook  
 **What to do**:
