@@ -189,7 +189,7 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -215,13 +215,13 @@ export default function InboxCard({
         </span>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -250,7 +250,7 @@ export default function InboxCard({
 
         {/* Tags (first 3) */}
         {item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="flex flex-wrap gap-1 mb-2">
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
@@ -262,8 +262,15 @@ export default function InboxCard({
           </div>
         )}
 
+        {/* Notes preview */}
+        {item.notes && (
+          <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1 mb-2 line-clamp-1 italic">
+            {item.notes.length > 60 ? item.notes.slice(0, 60) + '…' : item.notes}
+          </p>
+        )}
+
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-800">
           <span className="text-xs text-gray-400">{date}</span>
 
           <div className="flex items-center gap-1">

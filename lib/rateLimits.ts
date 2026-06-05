@@ -1,8 +1,10 @@
 'use client';
 
-// ─── Enrichment limit: 10 per hour ───────────────────────────────────────────
+import { isPro, FREE_PLANS_PER_DAY, FREE_ENRICHMENTS_PER_DAY } from './pro';
 
-const ENRICH_LIMIT = 10;
+// ─── Enrichment limit: 20 per hour (free) / unlimited (pro) ─────────────────
+
+const ENRICH_LIMIT = FREE_ENRICHMENTS_PER_DAY;
 const ENRICH_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const ENRICH_KEY = 'enrichmentLog';
 
@@ -30,6 +32,7 @@ function writeLog(key: string, timestamps: number[]): void {
 }
 
 export function checkEnrichmentLimit(): { allowed: boolean; remaining: number; resetsAt: number } {
+  if (isPro()) return { allowed: true, remaining: Infinity, resetsAt: Date.now() };
   const now = Date.now();
   const cutoff = now - ENRICH_WINDOW_MS;
   const log = readLog(ENRICH_KEY).filter((t) => t > cutoff);
@@ -49,13 +52,14 @@ export function recordEnrichment(): void {
   writeLog(ENRICH_KEY, [...log, now]);
 }
 
-// ─── Plan limit: 5 per day ────────────────────────────────────────────────────
+// ─── Plan limit: 3 per day (free) / unlimited (pro) ─────────────────────────
 
-const PLAN_LIMIT = 5;
+const PLAN_LIMIT = FREE_PLANS_PER_DAY;
 const PLAN_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 const PLAN_KEY = 'planLog';
 
 export function checkPlanLimit(): { allowed: boolean; remaining: number; resetsAt: number } {
+  if (isPro()) return { allowed: true, remaining: Infinity, resetsAt: Date.now() };
   const now = Date.now();
   const cutoff = now - PLAN_WINDOW_MS;
   const log = readLog(PLAN_KEY).filter((t) => t > cutoff);

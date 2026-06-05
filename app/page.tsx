@@ -10,6 +10,8 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import OnboardingOverlay from '@/components/OnboardingOverlay';
+import NearbyBanner from '@/components/NearbyBanner';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -78,8 +80,15 @@ function HomePageInner() {
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+          <div className="ml-auto flex items-center gap-2">
+            <NearbyBanner
+              items={items}
+              onFlyTo={(lat, lng) => setFlyTo({ lat, lng, name: '' })}
+              onSelectItem={setSelectedItem}
+            />
+            <span className="text-sm text-gray-500">
+              {loading ? 'Loading…' : `${items.length} saved`}
+            </span>
           </div>
         </div>
       </div>
@@ -114,6 +123,9 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+
+      {/* First-launch onboarding overlay */}
+      <OnboardingOverlay />
     </main>
   );
 }

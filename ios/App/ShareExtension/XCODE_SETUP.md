@@ -56,7 +56,19 @@ Select the **ShareExtension** target → **Build Settings**:
 
 Already done in `ios/App/App/Info.plist` — the `travelpanel://` scheme is registered. Verify it appears in the main **App** target → **Info** tab → **URL Types**.
 
-## Step 6: Build and test
+## Step 6: Generate App Icons (one command)
+
+```bash
+# From the repo root — generates all iOS icon sizes (20×20 to 1024×1024)
+node ios/App/App/Assets.xcassets/AppIcon.appiconset/generate.js
+```
+
+This creates `AppIcon-<size>@<scale>x.png` files + an updated `Contents.json` in the appiconset folder.
+After running, in Xcode right-click `Assets.xcassets` → **Show in Finder** and drag the folder back into Xcode to refresh the asset catalog (or use Xcode → Product → Clean Build Folder, then rebuild).
+
+The script requires no npm dependencies — pure Node.js with built-in zlib.
+
+## Step 7: Build and test
 
 1. Select the **App** scheme
 2. Choose a simulator or device
@@ -64,6 +76,7 @@ Already done in `ios/App/App/Info.plist` — the `travelpanel://` scheme is regi
 4. Run the app
 5. Open Safari, navigate to any page, tap **Share → Save to TravelPanel**
 6. The Share Extension should appear and open TravelPanel
+7. Verify the app icon appears correctly on the home screen (check the 1024×1024 AppStore icon too)
 
 ## Development workflow
 

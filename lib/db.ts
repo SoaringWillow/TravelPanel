@@ -109,6 +109,16 @@ export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedI
   }
 }
 
+export async function updateItemField(
+  id: string,
+  fields: Partial<SavedItem>
+): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...fields });
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,
@@ -189,7 +199,24 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   await tx.done;
 }
 
+export async function reorderBoardItems(boardId: string, newItemIds: string[]): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', boardId);
+  if (!board) return;
+  await db.put('boards', { ...board, itemIds: newItemIds, updatedAt: Date.now() });
+}
+
 // ─── Trips ─────────────────────────────────────────────────────────────────
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    const trips = await db.getAll('trips');
+    return trips.sort((a, b) => b.createdAt - a.createdAt);
+  } catch {
+    return [];
+  }
+}
 
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {
@@ -208,4 +235,33 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+// ─── Backup export ─────────────────────────────────────────────────────────
+
+export async function exportAllData() {
+  const db = await getDB();
+  const [items, boards, trips] = await Promise.all([
+    db.getAll('items'),
+    db.getAll('boards'),
+    db.getAll('trips'),
+  ]);
+  return { items, boards, trips };
+}
+
+// ─── Demo data cleanup ──────────────────────────────────────────────────────
+
+export async function deleteDemoData(): Promise<number> {
+  const db = await getDB();
+  const [items, boards] = await Promise.all([db.getAll('items'), db.getAll('boards')]);
+
+  const demoItemIds = new Set(items.filter((i) => i.isDemo).map((i) => i.id));
+  const demoBoardIds = new Set(boards.filter((b) => b.isDemo).map((b) => b.id));
+
+  const tx = db.transaction(['items', 'boards'], 'readwrite');
+  for (const id of demoItemIds) await tx.objectStore('items').delete(id);
+  for (const id of demoBoardIds) await tx.objectStore('boards').delete(id);
+  await tx.done;
+
+  return demoItemIds.size + demoBoardIds.size;
 }

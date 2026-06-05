@@ -81,31 +81,41 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Image fetch helper (for og:image Vision fallback) ───────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
+type ImageMime = 'image/jpeg' | 'image/png' | 'image/webp';
+
+async function fetchImageAsBase64(imageUrl: string): Promise<{ data: string; mimeType: ImageMime } | null> {
   try {
-    ({ url } = await req.json());
+    const res = await fetch(imageUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TravelPanel/1.0)' },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const ct = res.headers.get('content-type') ?? '';
+    const mimeType: ImageMime = ct.includes('png') ? 'image/png'
+      : ct.includes('webp') ? 'image/webp'
+      : 'image/jpeg';
+    const buf = await res.arrayBuffer();
+    // Limit to 4 MB to stay under Anthropic's per-image limit
+    if (buf.byteLength > 4 * 1024 * 1024) return null;
+    const data = Buffer.from(buf).toString('base64');
+    return { data, mimeType };
   } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return null;
   }
+}
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
+// ─── Shared prompt fragments ─────────────────────────────────────────────────
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildPrompt(platform: string, url: string, page: { title: string; description: string; textContent: string } | null, withImage: boolean): string {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.${withImage ? ' An image of the post is also attached — read any visible text and visual content in it.' : ''}
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ? `Page content:\n${page.textContent}` : '(page content unavailable — rely on image analysis)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -127,15 +137,82 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: ImageMime = 'image/jpeg';
+
+  try {
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = typeof body.imageBase64 === 'string' && body.imageBase64.length > 0
+      ? body.imageBase64 : undefined;
+    if (body.imageMimeType === 'image/png' || body.imageMimeType === 'image/webp') {
+      imageMimeType = body.imageMimeType;
+    }
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+
+  // Decide if Vision is needed:
+  // - Caller supplied an image (iOS Share Sheet payload)
+  // - OR platform is known to block server-side scraping (Xiaohongshu / WeChat)
+  //   and the page fetch returned too little text
+  const isAntiScrape = platform === 'xiaohongshu' || platform === 'wechat';
+  const pageHasContent = !!(page?.description || (page?.textContent && page.textContent.trim().length > 200));
+  const wantsVision = !!imageBase64 || (isAntiScrape && !pageHasContent);
+
+  // Resolve the image to use for Vision (either from caller or fetched from og:image)
+  let resolvedImage: { data: string; mimeType: ImageMime } | null = null;
+  if (imageBase64) {
+    resolvedImage = { data: imageBase64, mimeType: imageMimeType };
+  } else if (wantsVision && page?.thumbnail) {
+    resolvedImage = await fetchImageAsBase64(page.thumbnail);
+  }
+
+  const promptText = buildPrompt(platform, url, page, !!resolvedImage);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (resolvedImage) {
+      // Vision path: image + text for anti-scrape platforms and image payloads
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: promptText },
+              {
+                type: 'image',
+                image: `data:${resolvedImage.mimeType};base64,${resolvedImage.data}`,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text-only path
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: promptText,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

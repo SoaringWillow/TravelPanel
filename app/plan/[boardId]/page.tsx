@@ -1,18 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, NavigationOff, CheckCircle2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
+import { FREE_PLANS_PER_DAY } from '@/lib/pro';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { tapLight, tapSuccess, tapWarning } from '@/lib/haptics';
+import { useGPS } from '@/hooks/useGPS';
+import { haversineKm, formatDistance } from '@/lib/distance';
+import { type NextStopRef } from '@/components/RouteMapView';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import ProUpgradeSheet from '@/components/ProUpgradeSheet';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -32,12 +38,70 @@ export default function PlanPage() {
   const [days, setDays] = useState(3);
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
+  const [tripBudget, setTripBudget] = useState('');
+  const [currency, setCurrency] = useState('USD');
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [showProSheet, setShowProSheet] = useState(false);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+
+  // ── On-Trip GPS mode ─────────────────────────────────────────────────────
+  const gps = useGPS();
+  const [tripModeActive, setTripModeActive]   = useState(false);
+  const [visitedStops, setVisitedStops]       = useState<Set<string>>(new Set());
+
+  // Derive next unvisited stop across all days
+  const nextStop = useMemo<NextStopRef | null>(() => {
+    if (!tripModeActive || !plan?.days) return null;
+    for (let d = 0; d < plan.days.length; d++) {
+      const locs = (plan.days[d]?.locations ?? []).filter(
+        (l) => Number.isFinite(l.lat) && Number.isFinite(l.lng)
+      );
+      for (let l = 0; l < locs.length; l++) {
+        if (!visitedStops.has(`${d}-${l}`)) return { dayIndex: d, locIndex: l };
+      }
+    }
+    return null; // all visited
+  }, [tripModeActive, plan, visitedStops]);
+
+  // Distance to the next stop (when GPS is active)
+  const distanceToNext = useMemo<number | null>(() => {
+    if (!gps.position || !nextStop || !plan?.days) return null;
+    const locs = plan.days[nextStop.dayIndex]?.locations ?? [];
+    const loc  = locs[nextStop.locIndex];
+    if (!loc) return null;
+    return haversineKm(gps.position.lat, gps.position.lng, loc.lat, loc.lng);
+  }, [gps.position, nextStop, plan]);
+
+  const nextStopName = useMemo<string | null>(() => {
+    if (!nextStop || !plan?.days) return null;
+    const locs = plan.days[nextStop.dayIndex]?.locations ?? [];
+    return locs[nextStop.locIndex]?.name ?? null;
+  }, [nextStop, plan]);
+
+  function startTripMode() {
+    setTripModeActive(true);
+    setVisitedStops(new Set());
+    gps.startTracking();
+    track('trip_mode_started', { boardId });
+  }
+
+  function endTripMode() {
+    setTripModeActive(false);
+    gps.stopTracking();
+    setVisitedStops(new Set());
+    track('trip_mode_ended', { boardId });
+  }
+
+  function markNextAsVisited() {
+    if (!nextStop) return;
+    setVisitedStops((prev) => new Set(prev).add(`${nextStop.dayIndex}-${nextStop.locIndex}`));
+    setActiveDayIndex(nextStop.dayIndex);
+    tapSuccess();
+  }
 
   useEffect(() => {
     async function load() {
@@ -69,10 +133,11 @@ export default function PlanPage() {
     const limit = checkPlanLimit();
     if (!limit.allowed) {
       setPlanLimitError(
-        `You've used all ${5} free plans today. More plans available in ${formatResetsIn(limit.resetsAt)}. ` +
-        `Unlimited plans coming in Pro — stay tuned!`
+        `You've used all ${FREE_PLANS_PER_DAY} free plans today. Resets in ${formatResetsIn(limit.resetsAt)}.`
       );
       track('plan_limit_hit', { boardId });
+      tapWarning();
+      setShowProSheet(true);
       return;
     }
 
@@ -93,6 +158,8 @@ export default function PlanPage() {
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
         ].join('. '),
+        tripBudget: tripBudget ? Number(tripBudget) : undefined,
+        currency: currency || 'USD',
       }),
     });
 
@@ -125,6 +192,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') tapSuccess();
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -218,6 +286,7 @@ export default function PlanPage() {
   }, []);
 
   function toggleChip(chip: string) {
+    tapLight();
     setSelectedChips((prev) => {
       const next = new Set(prev);
       if (next.has(chip)) next.delete(chip);
@@ -271,6 +340,8 @@ export default function PlanPage() {
             items={boardItems}
             plan={plan}
             activeDayIndex={activeDayIndex}
+            currentPosition={tripModeActive ? gps.position : null}
+            nextStop={tripModeActive ? nextStop : null}
           />
         )}
       </div>
@@ -355,6 +426,28 @@ export default function PlanPage() {
                   rows={2}
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
                 />
+
+                {/* Budget input */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">💰</span>
+                    <input
+                      type="number"
+                      value={tripBudget}
+                      onChange={(e) => setTripBudget(e.target.value)}
+                      placeholder="Trip budget (optional)"
+                      min={0}
+                      className="w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value.toUpperCase().slice(0, 3))}
+                    placeholder="USD"
+                    className="w-20 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-center font-mono"
+                  />
+                </div>
               </div>
 
               {/* Warning if no locations */}
@@ -458,9 +551,73 @@ export default function PlanPage() {
                 )}
               </div>
 
+              {/* ── Budget summary ── */}
+              {plan.days && plan.days.some((d) => d.activities?.some((a) => a.estimatedCost)) && (
+                <BudgetSummary days={plan.days as import('@/lib/types').DayPlan[]} tripBudget={tripBudget ? Number(tripBudget) : null} currency={currency} />
+              )}
+
+              {/* ── GPS Trip Mode banner ── */}
+              {tripModeActive && (
+                <div className="rounded-2xl overflow-hidden border border-blue-200 bg-blue-50">
+                  {gps.error ? (
+                    <div className="px-3 py-2.5 flex items-center gap-2">
+                      <NavigationOff size={15} className="text-red-500 flex-shrink-0" />
+                      <p className="text-xs text-red-600 flex-1">{gps.error}</p>
+                      <button onClick={endTripMode} className="text-xs text-red-500 font-medium">Exit</button>
+                    </div>
+                  ) : nextStop === null ? (
+                    <div className="px-3 py-2.5 flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" />
+                      <p className="text-xs text-green-700 flex-1 font-medium">All stops visited — trip complete!</p>
+                      <button onClick={endTripMode} className="text-xs text-blue-500 font-medium">Exit</button>
+                    </div>
+                  ) : (
+                    <div className="px-3 py-2.5 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <Navigation size={15} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-blue-800 truncate">
+                            Next: {nextStopName}
+                          </p>
+                          <p className="text-xs text-blue-600">
+                            {gps.position && distanceToNext !== null
+                              ? formatDistance(distanceToNext)
+                              : 'Getting your location…'}
+                          </p>
+                        </div>
+                        <button onClick={endTripMode} className="text-xs text-blue-400 font-medium flex-shrink-0">Exit</button>
+                      </div>
+                      {/* Mark as visited — prominent when within 300m */}
+                      <button
+                        onClick={markNextAsVisited}
+                        className={`w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-xl transition-all active:scale-[0.98] ${
+                          distanceToNext !== null && distanceToNext < 0.3
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-white border border-blue-200 text-blue-600'
+                        }`}
+                      >
+                        <CheckCircle2 size={13} />
+                        {distanceToNext !== null && distanceToNext < 0.3
+                          ? "You're here — Mark as visited!"
+                          : 'Mark as visited'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Export actions */}
               {planIsComplete(plan) && (
                 <div className="flex gap-2">
+                  {!tripModeActive ? (
+                    <button
+                      onClick={startTripMode}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold py-2 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all"
+                    >
+                      <Navigation size={14} />
+                      Start Trip
+                    </button>
+                  ) : null}
                   <button
                     onClick={handleExportPDF}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
@@ -592,6 +749,72 @@ export default function PlanPage() {
           )}
 
         </div>
+      </div>
+
+      {/* Pro upgrade sheet */}
+      <ProUpgradeSheet
+        open={showProSheet}
+        onClose={() => setShowProSheet(false)}
+        onActivated={() => setPlanLimitError(null)}
+      />
+    </div>
+  );
+}
+
+// ─── Budget summary sub-component ────────────────────────────────────────────
+
+import { DayPlan } from '@/lib/types';
+
+function BudgetSummary({
+  days,
+  tripBudget,
+  currency,
+}: {
+  days: DayPlan[];
+  tripBudget: number | null;
+  currency: string;
+}) {
+  const perDay = days.map((day) => {
+    const total = (day.activities ?? []).reduce(
+      (sum, a) => sum + (a.estimatedCost?.amount ?? 0),
+      0
+    );
+    return { day: day.day, total };
+  });
+  const grandTotal = perDay.reduce((s, d) => s + d.total, 0);
+  const dailyAvg = days.length > 0 ? grandTotal / days.length : 0;
+  const overBudget = tripBudget !== null && grandTotal > tripBudget;
+
+  if (grandTotal === 0) return null;
+
+  return (
+    <div className={`rounded-2xl border p-3.5 space-y-2.5 ${overBudget ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+          💰 Budget estimate
+        </span>
+        <span className={`text-sm font-bold ${overBudget ? 'text-red-600' : 'text-emerald-700'}`}>
+          {currency} {grandTotal.toLocaleString()}
+        </span>
+      </div>
+      {tripBudget !== null && (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${overBudget ? 'bg-red-500' : 'bg-emerald-500'}`}
+              style={{ width: `${Math.min(100, (grandTotal / tripBudget) * 100)}%` }}
+            />
+          </div>
+          <span className="text-xs text-gray-500">
+            of {currency} {tripBudget.toLocaleString()} {overBudget ? '💸 over budget' : 'budget'}
+          </span>
+        </div>
+      )}
+      <div className="flex gap-3 text-xs text-gray-500">
+        <span>~{currency} {Math.round(dailyAvg)}/day</span>
+        {perDay.map((d) => d.total > 0 && (
+          <span key={d.day}>Day {d.day}: {currency} {d.total}</span>
+        ))}
       </div>
     </div>
   );

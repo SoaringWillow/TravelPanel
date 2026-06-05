@@ -18,6 +18,11 @@ const sourcedTipSchema = z.object({
   sourceTitle: z.string().describe('The exact title of the saved clip this insight came from'),
 });
 
+const estimatedCostSchema = z.object({
+  amount: z.number().describe('Rough cost estimate in the given currency'),
+  currency: z.string().describe('3-letter currency code e.g. USD, JPY, EUR'),
+});
+
 const activitySchema = z.object({
   time: z.string(),
   location: locationSchema,
@@ -29,6 +34,7 @@ const activitySchema = z.object({
     'Cite the source clip title. Only include when a clip genuinely informs this activity. ' +
     'This is the key differentiator — the plan reflects the user\'s own curated knowledge.'
   ),
+  estimatedCost: estimatedCostSchema.optional().describe('Rough per-person cost for this activity. Omit if free or truly unknown.'),
 });
 
 const dayPlanSchema = z.object({
@@ -49,9 +55,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, tripBudget?: number, currency?: string;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, tripBudget, currency } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -133,6 +139,11 @@ export async function POST(req: NextRequest) {
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
+        const currencyCode = currency || 'USD';
+        const budgetLine = tripBudget
+          ? `\nTrip budget: ${tripBudget} ${currencyCode} total. Flag activities that push the daily average over ${Math.round(tripBudget / days)} ${currencyCode} with a note in their tips.`
+          : '';
+
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
@@ -141,13 +152,13 @@ export async function POST(req: NextRequest) {
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
-User preferences: ${preferences || 'None specified'}
+User preferences: ${preferences || 'None specified'}${budgetLine}
 
 Rules:
 - 2-4 activities per day with realistic timing
 - Cluster geographically nearby places each day
-- Focus on routes and activities only — no bookings or costs
 - Include practical tips for each activity
+- For estimatedCost: provide a realistic per-person cost in ${currencyCode} where applicable (entry fees, meals, transport). Free activities may omit this field.
 - IMPORTANT — Sourced wisdom: each saved clip carries a "substance" array of the
   user's own tips/warnings/opinions. When a clip's substance is relevant to an
   activity, surface it in that activity's "sourcedTips" with the exact clip title
