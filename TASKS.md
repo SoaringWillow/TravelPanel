@@ -186,7 +186,7 @@ The remaining work focuses on three areas:
 - Log the error to PostHog (`track('app_error', { message, stack })`)
 
 ### G5 — Bundle Size Audit
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The app bundle may be large due to MapLibre (1.2MB gzipped) and jsPDF. Checking the actual size and adding code-splitting where needed.
 **Files**: `next.config.js`, various pages
 **What to do**:
