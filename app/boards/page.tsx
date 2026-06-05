@@ -13,6 +13,7 @@ import NavBar from '@/components/NavBar';
 import { SkeletonBoardCard } from '@/components/SkeletonCard';
 import { useTripSuggestion, relativeDaysAgo } from '@/hooks/useTripSuggestion';
 import { Board } from '@/lib/types';
+import { BoardsEmptyIllustration } from '@/components/EmptyStateIllustration';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, editBoard, removeBoard } = useBoards();
@@ -109,9 +110,9 @@ export default function BoardsPage() {
             {Array.from({ length: 4 }).map((_, i) => <SkeletonBoardCard key={i} />)}
           </div>
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">No boards yet.</h3>
+          <div className="flex flex-col items-center justify-center pt-4 pb-10 text-center px-6">
+            <BoardsEmptyIllustration />
+            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 -mt-2">No boards yet.</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
               Create your first board to organise your travel ideas.
             </p>

@@ -17,6 +17,7 @@ import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { SkeletonInboxCard } from '@/components/SkeletonCard';
 import PullToRefresh from '@/components/PullToRefresh';
+import { InboxEmptyIllustration } from '@/components/EmptyStateIllustration';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -157,18 +158,26 @@ export default function InboxPage() {
             {Array.from({ length: 4 }).map((_, i) => <SkeletonInboxCard key={i} />)}
           </div>
         ) : searchResults.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
+          <div className="flex flex-col items-center justify-center pt-6 pb-10 text-center">
+            {query.trim() ? (
+              <>
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">No matches found.</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                  No clips match &quot;{query.trim()}&quot;. Try a different search.
+                </p>
+              </>
+            ) : (
+              <>
+                <InboxEmptyIllustration />
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 -mt-2">
+                  {activePlatform === 'all' ? 'Your inbox is empty.' : `No ${PLATFORM_LABELS[activePlatform as Platform]} clips yet.`}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                  Share content from Instagram, YouTube, or any travel app to get started.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

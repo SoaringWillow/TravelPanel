@@ -65,7 +65,7 @@ The remaining work focuses on three areas:
 - Works on web too (not just native) via pointer events
 
 ### F3 — Empty State Illustrations
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The empty states (empty inbox, empty board, no boards) use emoji + text. Proper illustrated empty states feel much more polished.
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`
 **What to do**:

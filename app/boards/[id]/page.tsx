@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { PinDropIllustration } from '@/components/EmptyStateIllustration';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -166,13 +167,13 @@ export default function BoardDetailPage() {
 
           {/* Items grid */}
           {boardItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                No places saved to this board yet.
+            <div className="flex flex-col items-center justify-center py-4 text-center">
+              <PinDropIllustration />
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 -mt-2 mb-1">
+                No clips on this board yet.
               </p>
-              <p className="text-sm text-gray-400">
-                Go to Inbox to add items.
+              <p className="text-sm text-gray-400 dark:text-gray-500">
+                Go to Inbox and add items to this board.
               </p>
             </div>
           ) : (
