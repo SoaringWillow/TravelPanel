@@ -96,3 +96,7 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-05 12:26 | cc67817 | feat(B2): browser extension — Chrome/Safari MV3 clipper
+2026-06-05 12:33 | 3d75533 | feat(B3): Claude Vision fallback for anti-scraping platforms (Xiaohongshu)
+2026-06-05 12:35 | e9d2bce | feat(B5): settings page with full data export (JSON backup)
+2026-06-05 12:40 | 4767b88 | feat(D1+D2): toast notification system + safe-area NavBar fix
