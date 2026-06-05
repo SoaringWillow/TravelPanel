@@ -12,6 +12,7 @@ interface TravelPanelDB extends DBSchema {
       'by-date': number;
       'by-board': string;
       'by-status': string;
+      'by-notes': string;
     };
   };
   boards: {
@@ -33,13 +34,15 @@ function getDB() {
     throw new Error('IndexedDB unavailable server-side');
   }
   if (!dbPromise) {
-    dbPromise = openDB<TravelPanelDB>('travel-panel', 2, {
+    dbPromise = openDB<TravelPanelDB>('travel-panel', 3, {
       upgrade(db, oldVersion, _newVersion, tx) {
+        // v1 → fresh install: items store with base indexes
         if (oldVersion < 1) {
           const itemStore = db.createObjectStore('items', { keyPath: 'id' });
           itemStore.createIndex('by-platform', 'platform');
           itemStore.createIndex('by-date', 'savedAt');
         }
+        // v2: board/trip stores + additional item indexes
         if (oldVersion < 2) {
           const itemStore = tx.objectStore('items');
           if (!itemStore.indexNames.contains('by-board')) {
@@ -48,11 +51,31 @@ function getDB() {
           if (!itemStore.indexNames.contains('by-status')) {
             itemStore.createIndex('by-status', 'enrichmentStatus');
           }
-          const boardStore = db.createObjectStore('boards', { keyPath: 'id' });
-          boardStore.createIndex('by-date', 'createdAt');
-          const tripStore = db.createObjectStore('trips', { keyPath: 'id' });
-          tripStore.createIndex('by-board', 'boardId');
+          if (!db.objectStoreNames.contains('boards')) {
+            const boardStore = db.createObjectStore('boards', { keyPath: 'id' });
+            boardStore.createIndex('by-date', 'createdAt');
+          }
+          if (!db.objectStoreNames.contains('trips')) {
+            const tripStore = db.createObjectStore('trips', { keyPath: 'id' });
+            tripStore.createIndex('by-board', 'boardId');
+          }
         }
+        // v3: userNotes index on items (for future note-search feature)
+        if (oldVersion < 3) {
+          const itemStore = tx.objectStore('items');
+          if (!itemStore.indexNames.contains('by-notes')) {
+            itemStore.createIndex('by-notes', 'notes');
+          }
+        }
+      },
+      blocked() {
+        console.warn('[TravelPanel DB] upgrade blocked — another tab has an older version open');
+      },
+      blocking() {
+        dbPromise = null;
+      },
+      terminated() {
+        dbPromise = null;
       },
     });
   }

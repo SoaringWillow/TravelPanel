@@ -165,7 +165,7 @@ The remaining work focuses on three areas:
 - Measure: with 200 items, the map should render in < 300ms
 
 ### G3 — IndexedDB Migration Guard
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The DB schema is currently at v2. If the schema changes again (e.g. adding a field), users upgrading from v1 lose all their data or the DB fails silently.
 **Files**: `lib/db.ts`
 **What to do**:
