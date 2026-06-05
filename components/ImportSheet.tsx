@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
 import {
   Drawer,
@@ -27,19 +27,50 @@ interface ImportSheetProps {
 
 type Stage = 'idle' | 'loading' | 'preview';
 
+interface InlinePreview { title: string | null; thumbnail: string | null; platform: string }
+
 const ALL_PLATFORMS = ['wechat', 'xiaohongshu', 'douyin', 'bilibili', 'other'] as const;
 
 const IMPORT_TIMEOUT_MS = 25_000;
+const PREVIEW_DEBOUNCE_MS = 900;
+const MIN_PREVIEW_INTERVAL_MS = 2000;
+
+let lastPreviewFetchAt = 0;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]                 = useState(initialUrl);
+  const [notes, setNotes]             = useState('');
+  const [stage, setStage]             = useState<Stage>('idle');
+  const [preview, setPreview]         = useState<ImportResult | null>(null);
+  const [error, setError]             = useState('');
+  const [inlinePreview, setInlinePreview] = useState<InlinePreview | null>(null);
+  const [inlineLoading, setInlineLoading] = useState(false);
+  const abortRef                      = useRef<AbortController | null>(null);
+  const debounceRef                   = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Lightweight debounced preview fetch (no AI — just og:title + og:image)
+  const fetchInlinePreview = useCallback(async (rawUrl: string) => {
+    const u = rawUrl.trim();
+    if (!u.startsWith('http')) { setInlinePreview(null); return; }
+
+    const now = Date.now();
+    if (now - lastPreviewFetchAt < MIN_PREVIEW_INTERVAL_MS) return;
+    lastPreviewFetchAt = now;
+
+    setInlineLoading(true);
+    try {
+      const res = await fetch(`/api/preview?url=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) throw new Error();
+      const data: InlinePreview = await res.json();
+      setInlinePreview(data);
+    } catch {
+      setInlinePreview(null);
+    } finally {
+      setInlineLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -136,9 +167,12 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   function resetState() {
     abortRef.current?.abort();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     setUrl('');
     setNotes('');
     setPreview(null);
+    setInlinePreview(null);
+    setInlineLoading(false);
     setStage('idle');
     setError('');
   }
@@ -191,12 +225,14 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               type="url"
               value={url}
               onChange={(e) => {
-                setUrl(e.target.value);
-                if (stage === 'preview') {
-                  setPreview(null);
-                  setStage('idle');
-                }
+                const val = e.target.value;
+                setUrl(val);
+                if (stage === 'preview') { setPreview(null); setStage('idle'); }
                 setError('');
+                // Debounced lightweight preview
+                if (debounceRef.current) clearTimeout(debounceRef.current);
+                setInlinePreview(null);
+                debounceRef.current = setTimeout(() => fetchInlinePreview(val), PREVIEW_DEBOUNCE_MS);
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleImport();
@@ -206,6 +242,43 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
             />
           </div>
+
+          {/* ── Inline lightweight preview (while typing, before AI extraction) ── */}
+          {stage === 'idle' && (inlineLoading || inlinePreview) && (
+            <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 animate-in fade-in duration-200">
+              {inlineLoading ? (
+                <Loader2 size={14} className="animate-spin text-gray-400 flex-shrink-0" />
+              ) : inlinePreview?.thumbnail ? (
+                <img
+                  src={inlinePreview.thumbnail}
+                  alt=""
+                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-gray-200 flex-shrink-0 flex items-center justify-center text-lg">✈️</div>
+              )}
+              <div className="min-w-0 flex-1">
+                {inlineLoading ? (
+                  <div className="text-xs text-gray-400 animate-pulse">Fetching page info…</div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-gray-800 line-clamp-1">
+                      {inlinePreview?.title || url.trim()}
+                    </p>
+                    {inlinePreview?.platform && (
+                      <span
+                        className="text-xs font-medium text-white px-2 py-0.5 rounded-full inline-block mt-0.5"
+                        style={{ backgroundColor: PLATFORM_COLORS[inlinePreview.platform as keyof typeof PLATFORM_COLORS] ?? '#6b7280' }}
+                      >
+                        {PLATFORM_LABELS[inlinePreview.platform as keyof typeof PLATFORM_LABELS] ?? inlinePreview.platform}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (

@@ -67,7 +67,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Store last-nudged URL in sessionStorage to avoid repeat nudges in same session
 
 ### D4 — Better Import UX: Inline Preview
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After entering a URL in ImportSheet, users wait with no feedback. Adding a live preview makes the clip feel more intentional.  
 **Files**: `components/ImportSheet.tsx`  
 **What to do**:
