@@ -45,6 +45,7 @@ export default function InboxPage() {
   const [query, setQuery] = useState('');
   const [undoItem, setUndoItem] = useState<{ id: string; boardId: string; boardLabel: string } | null>(null);
   const [enrichLimitBanner, setEnrichLimitBanner] = useState<{ resetsAt: number } | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   // Auto-dismiss undo snackbar
   useEffect(() => {
@@ -121,12 +122,21 @@ export default function InboxPage() {
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
 
+  // Unique tags across all inbox items for the tag filter row
+  const allTags = Array.from(
+    new Set(inboxItems.flatMap((i) => i.tags ?? []))
+  ).sort();
+
   const platformFiltered =
     activePlatform === 'all'
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const tagFiltered = activeTag
+    ? platformFiltered.filter((i) => (i.tags ?? []).includes(activeTag))
+    : platformFiltered;
+
+  const filtered = searchItems(tagFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -186,6 +196,29 @@ export default function InboxPage() {
         <div className="mb-3">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {/* Tag filter chips */}
+        {allTags.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-3 scrollbar-hide">
+            {allTags.map((tag) => {
+              const isActive = activeTag === tag;
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setActiveTag(isActive ? null : tag)}
+                  className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${
+                    isActive
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  #{tag}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
@@ -280,13 +313,15 @@ export default function InboxPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
+            <div className="text-5xl mb-4">{query.trim() || activeTag ? '🔍' : '📥'}</div>
             <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
+              {query.trim() || activeTag ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
             <p className="text-sm text-gray-500 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
+                : activeTag
+                ? `No clips tagged #${activeTag}.`
                 : activePlatform === 'all'
                 ? 'Share content from social apps to get started!'
                 : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}

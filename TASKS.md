@@ -483,7 +483,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Animate the style transition: fade the map to opacity 0 briefly on switch, then back to 1
 
 ### H7 — Clip tag filter chips on Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
 - Below the "Inbox" header, add a horizontal scrollable row of tag filter chips
