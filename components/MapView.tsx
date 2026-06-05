@@ -5,9 +5,18 @@ import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { Layers } from 'lucide-react';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+
+const MAP_STYLES = {
+  street:    'https://tiles.openfreemap.org/styles/liberty',
+  positron:  'https://tiles.openfreemap.org/styles/positron',
+} as const;
+type MapStyle = keyof typeof MAP_STYLES;
+
+const STYLE_KEY = 'mapStyle';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -270,8 +279,21 @@ interface MapViewProps {
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const [substancePeek, setSubstancePeek] = useState<SubstancePeekInfo | null>(null);
+  const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STYLE_KEY);
+      if (saved === 'street' || saved === 'positron') return saved;
+    }
+    return 'street';
+  });
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  function toggleStyle() {
+    const next: MapStyle = mapStyle === 'street' ? 'positron' : 'street';
+    setMapStyle(next);
+    if (typeof window !== 'undefined') localStorage.setItem(STYLE_KEY, next);
+  }
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -305,9 +327,34 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {/* Map layer toggle */}
+      <button
+        type="button"
+        aria-label={`Switch to ${mapStyle === 'street' ? 'light' : 'street'} map`}
+        onClick={toggleStyle}
+        style={{
+          position:        'absolute',
+          top:             52,
+          right:           10,
+          zIndex:          10,
+          width:           30,
+          height:          30,
+          borderRadius:    6,
+          background:      'white',
+          border:          '2px solid rgba(0,0,0,0.12)',
+          boxShadow:       '0 1px 4px rgba(0,0,0,0.18)',
+          cursor:          'pointer',
+          display:         'flex',
+          alignItems:      'center',
+          justifyContent:  'center',
+        }}
+      >
+        <Layers size={15} color={mapStyle === 'positron' ? '#6366f1' : '#6b7280'} />
+      </button>
+
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={MAP_STYLES[mapStyle]}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps

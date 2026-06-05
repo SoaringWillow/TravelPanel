@@ -474,7 +474,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The confirmation should display in the `UIViewController` already shown by the extension before it calls `extensionContext.completeRequest()`
 
 ### H6 — Map layer toggle (street / satellite)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`  
 **What to do**:
 - Add a small toggle button in the map's top-right corner (below the zoom buttons): a layers icon
