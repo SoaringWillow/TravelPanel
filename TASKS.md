@@ -188,7 +188,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Update `Assets.xcassets/AppIcon.appiconset/Contents.json` with all sizes
 
 ### G2 — Splash Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Assets.xcassets/Splash.imageset/`, `capacitor.config.ts`  
 **What to do**:
 - Design a clean splash: teal background + white TravelPanel wordmark + subtle map pin
