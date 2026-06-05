@@ -405,7 +405,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Uses `checkEnrichmentLimit()` and `checkPlanLimit()` from `lib/rateLimits.ts`
 
 ### G8 — Long press on map pin to preview substance
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`, `components/LocationDetailCard.tsx`  
 **What to do**:
 - Long-press (or long-tap) on a map pin shows a quick-peek tooltip with the item's top 2 substance items

@@ -46,6 +46,12 @@ interface PopupInfo {
   latitude: number;
 }
 
+interface SubstancePeekInfo {
+  item: SavedItem;
+  longitude: number;
+  latitude: number;
+}
+
 interface MapControllerProps {
   flyTo?: Location;
 }
@@ -80,17 +86,38 @@ function MapController({ flyTo }: MapControllerProps) {
   return null;
 }
 
+// ─── Substance type icons ─────────────────────────────────────────────────────
+
+const SUBSTANCE_ICON: Record<string, string> = {
+  tip:            '💡',
+  warning:        '⚠️',
+  opinion:        '💬',
+  wisdom:         '🧠',
+  context:        '🌍',
+  recommendation: '⭐',
+};
+
 // ─── Pin component ───────────────────────────────────────────────────────────
 
 interface PinProps {
   item: SavedItem;
   locName: string;
   onClick: () => void;
+  onLongPress?: () => void;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ item, locName, onClick, onLongPress }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function startLongPress() {
+    if (!onLongPress) return;
+    longPressTimer.current = setTimeout(() => onLongPress(), 500);
+  }
+  function cancelLongPress() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }
 
   return (
     <div style={{ position: 'relative' }}>
@@ -131,6 +158,9 @@ function Pin({ item, locName, onClick }: PinProps) {
           onClick={onClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
+          onTouchStart={startLongPress}
+          onTouchEnd={cancelLongPress}
+          onTouchMove={cancelLongPress}
           style={{
             width:        36,
             height:       36,
@@ -143,6 +173,7 @@ function Pin({ item, locName, onClick }: PinProps) {
             display:      'block',
             transform:    hovered ? 'scale(1.15)' : 'scale(1)',
             transition:   'all 0.15s ease',
+            userSelect:   'none',
           }}
         >
           <img
@@ -163,6 +194,9 @@ function Pin({ item, locName, onClick }: PinProps) {
           onClick={onClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
+          onTouchStart={startLongPress}
+          onTouchEnd={cancelLongPress}
+          onTouchMove={cancelLongPress}
           style={{
             width:           emoji ? 34 : 26,
             height:          emoji ? 34 : 26,
@@ -178,6 +212,7 @@ function Pin({ item, locName, onClick }: PinProps) {
             fontSize:        emoji ? 16 : 0,
             transform:       hovered ? 'scale(1.2)' : 'scale(1)',
             transition:      'all 0.15s ease',
+            userSelect:      'none',
           }}
         >
           {emoji ?? ''}
@@ -234,6 +269,7 @@ interface MapViewProps {
 
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [substancePeek, setSubstancePeek] = useState<SubstancePeekInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
@@ -321,8 +357,13 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
                 item={item}
                 locName={location.name}
                 onClick={() => {
+                  setSubstancePeek(null);
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);
+                }}
+                onLongPress={() => {
+                  setPopupInfo(null);
+                  setSubstancePeek({ item, longitude: lng, latitude: lat });
                 }}
               />
             </Marker>
@@ -346,6 +387,44 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
                 {popupInfo.item.title}
               </p>
+            </div>
+          </Popup>
+        )}
+
+        {substancePeek && (
+          <Popup
+            longitude={substancePeek.longitude}
+            latitude={substancePeek.latitude}
+            anchor="top"
+            onClose={() => setSubstancePeek(null)}
+            closeButton
+            closeOnClick={false}
+            offset={[0, -6] as [number, number]}
+            maxWidth="260px"
+          >
+            <div className="px-1 py-1">
+              <p className="text-xs font-bold text-gray-800 leading-tight line-clamp-1 mb-2">
+                {substancePeek.item.title}
+              </p>
+              {substancePeek.item.substance && substancePeek.item.substance.length > 0 ? (
+                <div className="space-y-1.5">
+                  {substancePeek.item.substance.slice(0, 2).map((s, i) => (
+                    <div key={i} className="flex gap-1.5 items-start">
+                      <span style={{ fontSize: 12, lineHeight: 1.4, flexShrink: 0 }}>
+                        {SUBSTANCE_ICON[s.type] ?? '💡'}
+                      </span>
+                      <p className="text-xs text-gray-600 leading-snug line-clamp-2">{s.content}</p>
+                    </div>
+                  ))}
+                  {substancePeek.item.substance.length > 2 && (
+                    <p className="text-xs text-indigo-500 font-medium mt-1">
+                      +{substancePeek.item.substance.length - 2} more tips
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">No wisdom extracted yet</p>
+              )}
             </div>
           </Popup>
         )}
