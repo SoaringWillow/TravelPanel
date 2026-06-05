@@ -233,7 +233,7 @@ All Phase A–E tasks are complete. The app has:
 - Leave `NSAllowsLocalNetworking: true` for dev server access
 
 ### F2 — Capacitor Navigation Lockdown
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: `limitsNavigationsToAppBoundDomains = false` allows the WKWebView to navigate to any URL, breaking App Sandbox and potentially causing App Store rejection.
 **Files to change**: `capacitor.config.ts`
 **What to do**:
