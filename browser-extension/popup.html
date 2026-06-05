@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=320">
+  <title>TravelPanel Clipper</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #eef0fe;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+    }
+
+    .brand-name {
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .badge {
+      background: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.9);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      border-radius: 7px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      transition: background 0.15s;
+      padding: 0;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255,255,255,0.28);
+    }
+
+    /* ── Setup prompt ────────────────────────────── */
+    #setup-prompt {
+      padding: 28px 20px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .setup-emoji {
+      font-size: 44px;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    #setup-prompt h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    #setup-prompt p {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.55;
+      max-width: 220px;
+    }
+
+    .primary-btn {
+      width: 100%;
+      padding: 11px 20px;
+      background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 0 4px 12px rgba(99,102,241,0.35);
+      margin-top: 4px;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(99,102,241,0.45);
+    }
+
+    .primary-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ── Error state ────────────────────────────── */
+    #error-state {
+      padding: 24px 20px;
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    /* ── Main content ───────────────────────────── */
+    #main-content {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Page preview card */
+    .page-card {
+      background: white;
+      border-radius: 11px;
+      padding: 11px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .favicon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
+      background: #f1f5f9;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .favicon {
+      width: 24px;
+      height: 24px;
+      border-radius: 3px;
+    }
+
+    .favicon-fallback {
+      font-size: 18px;
+    }
+
+    .page-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #1e293b;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+
+    .page-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .page-domain {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .platform-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      letter-spacing: 0.1px;
+    }
+
+    /* Travel signal pill */
+    .travel-signal {
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-size: 11.5px;
+      color: #15803d;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    /* Save button */
+    .save-btn {
+      width: 100%;
+      padding: 13px 20px;
+      background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+      color: white;
+      border: none;
+      border-radius: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: all 0.15s;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.32);
+      letter-spacing: -0.2px;
+    }
+
+    .save-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.42);
+    }
+
+    .save-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(99,102,241,0.25);
+    }
+
+    .save-btn.saving {
+      opacity: 0.75;
+      pointer-events: none;
+    }
+
+    .save-hint {
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    /* ── Footer ────────────────────────────────── */
+    .footer {
+      border-top: 1px solid #e2e8f0;
+      padding: 7px 14px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .footer a {
+      font-size: 10.5px;
+      color: #94a3b8;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.1s;
+    }
+
+    .footer a:hover {
+      color: #6366f1;
+    }
+
+    /* Loading skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────── -->
+  <header class="header">
+    <div class="brand">
+      <img src="icons/icon32.png" class="logo" alt="">
+      <span class="brand-name">TravelPanel</span>
+      <span class="badge">Clipper</span>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="settings-btn" title="Settings">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Setup prompt (hidden until needed) ───── -->
+  <div id="setup-prompt" style="display:none">
+    <div class="setup-emoji">🗺️</div>
+    <h3>Connect TravelPanel</h3>
+    <p>Enter your TravelPanel URL to start clipping travel inspiration from any page.</p>
+    <button class="primary-btn" id="setup-btn">Get Started →</button>
+  </div>
+
+  <!-- ── Error state (hidden until needed) ────── -->
+  <div id="error-state" style="display:none">
+    <p id="error-msg">Something went wrong. Please try again.</p>
+  </div>
+
+  <!-- ── Main content ──────────────────────────── -->
+  <div id="main-content" style="display:none">
+    <div class="page-card">
+      <div class="favicon-wrap">
+        <img class="favicon" id="favicon" alt="">
+        <span class="favicon-fallback" id="favicon-fallback" style="display:none">🌐</span>
+      </div>
+      <div class="page-info">
+        <div class="page-title" id="page-title">Loading...</div>
+        <div class="page-meta">
+          <span class="page-domain" id="page-domain"></span>
+          <span class="platform-badge" id="platform-badge"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="travel-signal" id="travel-signal" style="display:none">
+      ✈️ &nbsp;Travel content detected — AI will extract spots, tips &amp; wisdom
+    </div>
+
+    <button class="save-btn" id="save-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z"/>
+        <circle cx="12" cy="9" r="2.5"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+    <p class="save-hint">Opens your boards — pick where to save this clip</p>
+  </div>
+
+  <!-- ── Footer ────────────────────────────────── -->
+  <div class="footer">
+    <a id="footer-link">Settings &middot; TravelPanel Clipper v1.0</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
