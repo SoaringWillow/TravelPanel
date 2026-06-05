@@ -322,7 +322,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fallback: existing recent-boards order unchanged
 
 ### E4 — Best time to visit signal in plans
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/api/plan/route.ts`  
 **What to do**:
 - Extract `wisdom`-type substance items that contain seasonal keywords ("spring", "rainy season", "typhoon", "peak season", "avoid August")

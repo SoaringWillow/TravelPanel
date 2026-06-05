@@ -110,6 +110,7 @@ export interface TripPlan {
   overview: string;
   totalLocations: number;
   estimatedDailyDistance: string;
+  bestTimeToGo?: string;
   days: DayPlan[];
   tips: string[];
 }
