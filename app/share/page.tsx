@@ -48,6 +48,7 @@ function SharePageInner() {
   const [stage, setStage]                     = useState<Stage>('picking');
   const [savedToName, setSavedToName]         = useState('');
   const [newBoardName, setNewBoardName]       = useState('');
+  const [newBoardEmoji, setNewBoardEmoji]     = useState('🗺');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
@@ -79,10 +80,10 @@ function SharePageInner() {
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
 
-  // Most-recently-updated 5 boards for quick-pick
-  const recentBoards = [...boards]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 5);
+  const sortedBoards = [...boards].sort((a, b) => b.updatedAt - a.updatedAt);
+  // Most-recently-updated 4 boards for quick-pick chips
+  const recentBoards = sortedBoards.slice(0, 4);
+  const olderBoards = sortedBoards.slice(4);
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
@@ -153,7 +154,7 @@ function SharePageInner() {
     const newBoard: Board = {
       id: crypto.randomUUID(),
       name,
-      emoji: '🗺',
+      emoji: newBoardEmoji,
       itemIds: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -201,8 +202,8 @@ function SharePageInner() {
         </div>
 
         {/* Middle section — board picker */}
-        <div className="flex-1 flex flex-col justify-center py-8">
-          <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
+        <div className="flex-1 flex flex-col justify-center py-6">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Save to</p>
 
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -213,7 +214,7 @@ function SharePageInner() {
               onClick={() => handleSave(undefined, 'Inbox')}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
-              Inbox
+              📥 Inbox
             </button>
 
             {/* Recent board chips */}
@@ -251,14 +252,29 @@ function SharePageInner() {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
+                {/* Emoji quick-pick */}
+                <div className="flex gap-1.5 mb-2 flex-wrap">
+                  {['🗺', '🏯', '🌏', '🍜', '🏖', '🏔', '🌆', '🎭', '🛍', '✈️'].map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => setNewBoardEmoji(e)}
+                      className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${
+                        newBoardEmoji === e
+                          ? 'bg-indigo-100 ring-2 ring-indigo-400 scale-110'
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newBoardName}
                     onChange={(e) => setNewBoardName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleNewBoardSave();
-                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleNewBoardSave(); }}
                     placeholder="Board name…"
                     autoFocus
                     className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none transition-colors"
@@ -275,6 +291,27 @@ function SharePageInner() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Older boards (if > 4) */}
+          {olderBoards.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Other boards</p>
+              <div className="flex flex-col gap-1">
+                {olderBoards.map((board) => (
+                  <button
+                    key={board.id}
+                    type="button"
+                    disabled={stage === 'saving'}
+                    onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 active:scale-[0.98] transition-all text-left disabled:opacity-50"
+                  >
+                    <span>{board.emoji}</span>
+                    <span>{board.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom — return button (ghost) */}

@@ -77,7 +77,7 @@ The remaining work focuses on three areas:
 - Add subtle CSS animation (gentle float/pulse on the illustration)
 
 ### F4 — Share Sheet "Quick Board" Picker
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The share flow lets users pick a board, but the picker is a simple list. Adding recently-used boards at the top (and a "New Board" button inline) reduces friction significantly.
 **Files**: `app/share/page.tsx`
 **What to do**:
