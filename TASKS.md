@@ -558,6 +558,73 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE J — App Polish & Retention
+
+> All Phase H–I implementable tasks complete. Phase J focuses on engagement features that drive the North Star metric (weekly clips per active user): better empty states, smart notifications, and gamification hints. No Supabase required.
+
+### J1 — Clip count milestone toasts
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, `app/page.tsx`  
+**What to do**:
+- When a user saves their 1st, 5th, 10th, and 25th clip, show a celebratory toast at the top of the screen
+- "🎉 First clip saved! Now try the trip planner." / "✨ 5 clips — you're building a great collection!"
+- Track clip count in localStorage (`totalClipsSaved`) and compare before/after saving
+- Toast auto-dismisses after 4 seconds, has a subtle slide-down entrance from top
+- On the 5th clip, also show a prompt: "Ready to plan? Tap Collections to organise into boards."
+
+### J2 — Empty map state with CTA
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`  
+**What to do**:
+- When the map has no pins (first-time user with no clips), show an overlay on the map with a centered prompt:
+  - Large indigo "+" button (same as the existing + button)
+  - Text: "Your map is empty — tap to save your first inspiration"
+  - Small hint below: "Share from any social app, or paste a URL"
+- The overlay fades out as soon as the first clip with locations is added
+- This replaces the current blank map with a welcoming first-run state (complementary to seed data from A8)
+
+### J3 — Plan generation count badge on boards
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Show a "X trips generated" badge below the board name when savedTrips.length > 0
+- E.g. "3 itineraries generated" — clicking it scrolls to the plan version bar
+- Also add a "Reuse latest plan" quick action below the Plan trip button when savedTrips.length > 0 — navigates to plan page with the most recent trip pre-loaded
+
+### J4 — Substance count on board cards in Collections list
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx`  
+**What to do**:
+- Each board card in the Collections grid currently shows item count and location count
+- Add a third stat: total substance items across all clips in the board (💡 X tips)
+- This surfaces the wisdom layer from the top-level collections view and reinforces the value prop
+- Only show the stat if the board has at least 1 substance item (don't show "0 tips")
+
+### J5 — Clip activity feed on home page
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`  
+**What to do**:
+- The bottom drawer currently shows "5 most recent clips" (implemented in G2)
+- Enhance it: add a "Recent activity" section that shows:
+  - "You saved X clips this week"
+  - "X new places discovered" (sum of all location counts from clips saved this week)
+  - "X tips extracted" (sum of substance counts from clips saved this week)
+- Use `savedAt` timestamp to filter to current week (last 7 days)
+- Show this stats row at the top of the drawer, above the clip cards
+- If no activity this week, show: "No clips this week — share something!"
+
+### J6 — Map pin pulse animation for newly added clip
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- When a new clip is saved and has locations, the map flies to the first pin (already implemented)
+- Add a brief pulse animation on the newly-added pin(s): the pin scales up and then back down 3 times over 1.5 seconds
+- Pass `newestItemId?: string` prop to MapView from the home page
+- In MapView, apply a CSS animation (`@keyframes pulse-pin`) to the marker matching `newestItemId`
+- Animation plays once then stops; reset when `newestItemId` changes to null
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
