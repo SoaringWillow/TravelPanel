@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -26,6 +26,9 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
   { key: 'bilibili', label: 'Bilibili' },
 ];
 
+const SESSION_PLATFORM_KEY = 'tp_filter_platform';
+const SESSION_TAGS_KEY = 'tp_filter_tags';
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
@@ -35,9 +38,35 @@ export default function InboxPage() {
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
-  const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
+  const [activePlatform, setActivePlatformState] = useState<Platform | 'all'>('all');
+  const [activeTags, setActiveTagsState] = useState<Set<string>>(new Set());
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // Restore filters from sessionStorage on mount
+  useEffect(() => {
+    const platform = sessionStorage.getItem(SESSION_PLATFORM_KEY) as Platform | 'all' | null;
+    if (platform) setActivePlatformState(platform);
+    const tags = sessionStorage.getItem(SESSION_TAGS_KEY);
+    if (tags) {
+      try { setActiveTagsState(new Set(JSON.parse(tags))); } catch { /* ignore */ }
+    }
+  }, []);
+
+  function setActivePlatform(p: Platform | 'all') {
+    setActivePlatformState(p);
+    sessionStorage.setItem(SESSION_PLATFORM_KEY, p);
+  }
+
+  function toggleTag(tag: string) {
+    setActiveTagsState((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      sessionStorage.setItem(SESSION_TAGS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -47,12 +76,26 @@ export default function InboxPage() {
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
 
+  // Derive all unique tags across inbox items
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const item of inboxItems) {
+      for (const tag of item.tags) tagSet.add(tag);
+    }
+    return [...tagSet].sort();
+  }, [inboxItems]);
+
   const platformFiltered =
     activePlatform === 'all'
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const tagFiltered =
+    activeTags.size === 0
+      ? platformFiltered
+      : platformFiltered.filter((i) => i.tags.some((t) => activeTags.has(t)));
+
+  const filtered = searchItems(tagFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -73,12 +116,9 @@ export default function InboxPage() {
       if (!movingItemId) return;
 
       if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
         const item = items.find((i) => i.id === movingItemId);
         if (item && item.boardId) {
           await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
           const allItems = await getAllItems();
           const updatedItem = allItems.find((i) => i.id === movingItemId);
           if (updatedItem) {
@@ -90,20 +130,19 @@ export default function InboxPage() {
       }
 
       setMovingItemId(null);
-      // Trigger a soft reload by navigating to the same page
       router.refresh();
     },
     [movingItemId, items, router]
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:border-b dark:border-gray-800 px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
+          <span className="ml-auto bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
         </div>
@@ -114,7 +153,7 @@ export default function InboxPage() {
         </div>
 
         {/* Platform filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {PLATFORM_FILTERS.map((p) => {
             const count =
               p.key === 'all'
@@ -128,7 +167,7 @@ export default function InboxPage() {
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
                 }`}
               >
                 {p.label} ({count})
@@ -136,6 +175,39 @@ export default function InboxPage() {
             );
           })}
         </div>
+
+        {/* Tag filter chips — only shown if any tags exist */}
+        {allTags.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-3 scrollbar-hide mt-1">
+            {allTags.map((tag) => {
+              const isActive = activeTags.has(tag);
+              return (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={`flex-shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all ${
+                    isActive
+                      ? 'bg-purple-600 text-white border-purple-600'
+                      : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-purple-300'
+                  }`}
+                >
+                  #{tag}
+                </button>
+              );
+            })}
+            {activeTags.size > 0 && (
+              <button
+                onClick={() => {
+                  setActiveTagsState(new Set());
+                  sessionStorage.setItem(SESSION_TAGS_KEY, '[]');
+                }}
+                className="flex-shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Clear ×
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -147,15 +219,15 @@ export default function InboxPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
+            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
               {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
+                : activePlatform === 'all' && activeTags.size === 0
                 ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
+                : `No items match the active filters.`}
             </p>
           </div>
         ) : (
@@ -204,21 +276,21 @@ export default function InboxPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white dark:bg-gray-900 rounded-t-3xl"
               style={{ maxHeight: 300 }}
             >
               {/* Handle */}
               <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full" />
               </div>
 
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3">
-                <h3 className="font-semibold text-gray-800">Move to board</h3>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100">Move to board</h3>
                 <button
                   type="button"
                   onClick={() => setMovingItemId(null)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -227,23 +299,21 @@ export default function InboxPage() {
               {/* Board chips */}
               <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: 200 }}>
                 <div className="flex flex-wrap gap-2">
-                  {/* Inbox (unassign) chip */}
                   <button
                     type="button"
                     onClick={() => handleBoardSelect(null)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"
                   >
                     <span>📥</span>
                     <span>Inbox (unassign)</span>
                   </button>
 
-                  {/* Board chips */}
                   {boards.map((board) => (
                     <button
                       key={board.id}
                       type="button"
                       onClick={() => handleBoardSelect(board.id)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"
                     >
                       <span>{board.emoji}</span>
                       <span>{board.name}</span>

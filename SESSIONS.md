@@ -96,3 +96,24 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-05 22:25 | cf367c8 | feat: B2 — Browser Extension (Chrome/Safari Clipper)
+2026-06-05 22:33 | 536503c | feat: B3 — Xiaohongshu / Vision extraction pipeline
+2026-06-05 22:35 | d8959c3 | feat: B5 — Cloud Backup Export (Settings page + JSON download)
+2026-06-05 22:37 | f467aba | feat: C1 — On-Trip GPS Mode (live location + Near Me filter)
+2026-06-05 22:39 | 77f765e | feat: C2 — Post-Trip Timeline view on board detail
+2026-06-05 22:40 | 9a58ead | feat: C4 — Proactive Resurfacing (unplanned board suggestion card)
+2026-06-05 22:42 | 53a9976 | plan: add Phases D–F to TASKS.md (path to beautiful iOS app)
+2026-06-05 22:43 | d0fe82b | feat: D1 — Haptic feedback on key actions
+2026-06-05 22:44 | e51c10f | feat: D2 — InboxCard redesign (polished clip cards)
+2026-06-05 22:46 | 638c7bd | feat: D3 — Beautiful boards grid (thumbnail mosaic + empty state)
+2026-06-05 22:49 | 7b35235 | D4: wire EmptyMapState into home page for empty map onboarding
+2026-06-05 22:51 | 4899c28 | D5: plan UI polish — copy-day button, time estimates, inline sourced tip chips
+2026-06-05 22:53 | c41cdd0 | D6: dark mode — useDarkMode hook, ThemeProvider, dark CSS vars, key component variants
+2026-06-05 22:54 | 2a51d72 | E1: clip notes — editable textarea in LocationDetailCard, auto-save on blur
+2026-06-05 22:56 | 4290222 | E2: visit tracking — mark-as-visited button, map pin dimming, settings stat
+2026-06-05 22:57 | 3e54616 | E3: platform & tag filters — inbox chip row + sessionStorage + map filter sync
+2026-06-05 22:59 | 2686ff5 | F1: Capacitor local notifications — trip-start alert + unplanned boards reminder
+2026-06-05 23:00 | 4c31dbf | F2: app icon — indigo background + white map-pin, all iOS sizes + PWA manifest
+2026-06-05 23:02 | 7a47bb1 | F3: performance audit — next/image for thumbnails, remotePatterns wildcard
+2026-06-05 23:03 | 238e4b6 | F4: accessibility pass — aria-labels, aria-live, 44pt tap targets
+2026-06-05 23:04 | 6d24df8 | F5: error resilience — ErrorBoundary, OfflineBanner, api/plan error message

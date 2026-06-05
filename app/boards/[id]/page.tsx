@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, LayoutGrid, Clock } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import TimelineView from '@/components/TimelineView';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -23,6 +24,7 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('grid');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -164,7 +166,37 @@ export default function BoardDetailPage() {
             )}
           </div>
 
-          {/* Items grid */}
+          {/* View mode toggle */}
+          {boardItems.length > 0 && (
+            <div className="flex items-center gap-1 mb-4 p-1 bg-gray-100 rounded-xl w-fit">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <LayoutGrid size={13} />
+                Grid
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('timeline')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  viewMode === 'timeline'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Clock size={13} />
+                Timeline
+              </button>
+            </div>
+          )}
+
+          {/* Items */}
           {boardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <MapPin className="text-gray-300 mb-3" size={40} />
@@ -175,6 +207,8 @@ export default function BoardDetailPage() {
                 Go to Inbox to add items.
               </p>
             </div>
+          ) : viewMode === 'timeline' ? (
+            <TimelineView items={boardItems} />
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {boardItems.map((item) => (

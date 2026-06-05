@@ -3,6 +3,9 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -23,13 +26,18 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body>
-        <CapacitorBridge />
-        <AnalyticsProvider />
-        <ResourceBanner />
-        <div className="min-h-screen">
-          {children}
-        </div>
+      <body className="bg-background text-foreground">
+        <ErrorBoundary>
+          <ThemeProvider>
+            <OfflineBanner />
+            <CapacitorBridge />
+            <AnalyticsProvider />
+            <ResourceBanner />
+            <div className="min-h-screen">
+              {children}
+            </div>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

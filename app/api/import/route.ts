@@ -5,6 +5,15 @@ import { detectPlatform } from '@/lib/parse-url';
 import { ImportResult } from '@/lib/types';
 import { models } from '@/lib/models';
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
 const locationSchema = z.object({
@@ -81,33 +90,18 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Shared extraction prompt text ──────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
+function buildExtractionContext(platform: string, url: string, title: string, description: string, textContent: string) {
+  return `Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
+Title: ${title}
+Description: ${description}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${textContent}`;
+}
 
-## Layer 1 — Spots (geographic skeleton)
+const EXTRACTION_INSTRUCTIONS = `## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
 Do NOT invent or guess coordinates.
@@ -128,16 +122,109 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+// Platforms that routinely block HTML scraping — prefer Vision path when image available
+const VISION_PREFERRED_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageData: string | undefined;
+  let imageMimeType: string | undefined;
+
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    ({ url, imageData, imageMimeType } = await req.json());
   } catch {
-    // Fall through to defaults
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const isVisionPreferred = VISION_PREFERRED_PLATFORMS.has(platform);
+  const hasImage = typeof imageData === 'string' && imageData.length > 0;
+
+  // ── Vision path ───────────────────────────────────────────────────────────
+  // Use when an image payload is present (Xiaohongshu screenshot, iOS Share Sheet preview, etc.)
+  // Vision is tried first for anti-scraping platforms; falls back to text path on failure.
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  if (hasImage && (isVisionPreferred || !url.startsWith('http'))) {
+    try {
+      const mimeType = (imageMimeType || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp';
+      const imageBuffer = base64ToUint8Array(imageData!);
+
+      const visionPrompt = `You are a travel content analyzer. Extract TWO layers from this travel post image.
+
+${EXTRACTION_INSTRUCTIONS}`;
+
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBuffer, mimeType },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Vision failed — will fall through to text path below
+    }
+  }
+
+  // ── Text path (default + Vision fallback) ────────────────────────────────
+  // Fetch page HTML when: no image, vision failed, or platform doesn't block scraping.
+
+  const page = await fetchPageData(url);
+
+  if (!claudeResult) {
+    // Also try vision as a supplement for scraping-hostile platforms even when
+    // the HTML fetch succeeds — combine both signals.
+    const shouldTryVision = hasImage && !claudeResult;
+
+    const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+${buildExtractionContext(platform, url, page?.title ?? '(unavailable)', page?.description ?? '(unavailable)', page?.textContent ?? '(could not fetch page)')}
+
+${EXTRACTION_INSTRUCTIONS}`;
+
+    try {
+      if (shouldTryVision) {
+        const mimeType = (imageMimeType || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp';
+        const imageBuffer = base64ToUint8Array(imageData!);
+        const { object } = await generateObject({
+          model: models.visionEnrichment,
+          schema: importSchema,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image', image: imageBuffer, mimeType },
+                { type: 'text', text: prompt },
+              ],
+            },
+          ],
+        });
+        claudeResult = object;
+      } else {
+        const { object } = await generateObject({
+          model: models.enrichment,
+          schema: importSchema,
+          prompt,
+        });
+        claudeResult = object;
+      }
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {
