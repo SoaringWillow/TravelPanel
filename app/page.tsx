@@ -4,10 +4,11 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Globe2, Plus, ChevronUp } from 'lucide-react';
+import { Globe2, Plus, ChevronUp, Search, X, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_BG, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { searchItems } from '@/lib/searchItems';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -29,11 +30,18 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [drawerOpen, setDrawerOpen]     = useState(false);
+  const [showSearch, setShowSearch]     = useState(false);
+  const [searchQuery, setSearchQuery]   = useState('');
 
   // 5 most recent enriched items for the bottom drawer
   const recentClips = items
     .filter((i) => i.enrichmentStatus === 'done')
     .slice(0, 5);
+
+  // Live search results across all items
+  const searchResults = searchQuery.trim()
+    ? searchItems(items.filter((i) => i.enrichmentStatus === 'done'), searchQuery)
+    : [];
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -90,11 +98,136 @@ function HomePageInner() {
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-sm text-gray-500">
+              {loading ? '' : `${items.length}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => { setShowSearch(true); setSearchQuery(''); }}
+              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+              aria-label="Search clips"
+            >
+              <Search size={18} />
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Global search sheet */}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            key="search"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[2000] bg-white flex flex-col safe-top"
+          >
+            {/* Search input row */}
+            <div className="px-4 pt-12 pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-2xl px-3 py-2.5">
+                  <Search size={16} className="text-gray-400 flex-shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search clips, locations, tips…"
+                    className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+                  />
+                  {searchQuery && (
+                    <button type="button" onClick={() => setSearchQuery('')} className="text-gray-400">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSearch(false)}
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors flex-shrink-0"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            {/* Results */}
+            <div className="flex-1 overflow-y-auto">
+              {searchQuery.trim() === '' ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center px-8">
+                  <Search size={36} className="text-gray-200 mb-3" />
+                  <p className="text-sm font-medium text-gray-600 mb-1">Search your clips</p>
+                  <p className="text-xs text-gray-400">
+                    Searches titles, locations, tags, and tips from all your saved clips.
+                  </p>
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center px-8">
+                  <p className="text-sm font-medium text-gray-600 mb-1">No results for &ldquo;{searchQuery}&rdquo;</p>
+                  <p className="text-xs text-gray-400">Try a location name, tag, or keyword from a clip.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {searchResults.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setShowSearch(false);
+                        setSelectedItem(item);
+                        if (item.locations.length > 0) setFlyTo(item.locations[0]);
+                      }}
+                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+                    >
+                      {/* Thumbnail or gradient */}
+                      <div
+                        className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center"
+                        style={{
+                          background: item.thumbnail
+                            ? undefined
+                            : `linear-gradient(135deg, ${PLATFORM_COLORS[item.platform]}18, ${PLATFORM_COLORS[item.platform]}30)`,
+                        }}
+                      >
+                        {item.thumbnail ? (
+                          <img src={item.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <span className="text-xs font-bold" style={{ color: PLATFORM_COLORS[item.platform] }}>
+                            {PLATFORM_LABELS[item.platform].slice(0, 2).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span
+                            className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-1.5 py-0.5 rounded-full`}
+                          >
+                            {PLATFORM_LABELS[item.platform]}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.title}</p>
+                        {item.locations.length > 0 && (
+                          <p className="text-xs text-gray-400 flex items-center gap-0.5 mt-0.5">
+                            <MapPin size={9} className="text-indigo-400 flex-shrink-0" />
+                            {item.locations.map((l) => l.name).slice(0, 2).join(', ')}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Arrow */}
+                      <ChevronUp size={14} className="text-gray-300 flex-shrink-0 rotate-90 mt-1" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Selected item detail card */}
       <AnimatePresence>

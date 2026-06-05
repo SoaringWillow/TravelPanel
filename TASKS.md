@@ -364,7 +364,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The map still fills full screen; drawer overlays it at the bottom
 
 ### G3 — Global search on home map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`  
 **What to do**:
 - Tapping the magnifying-glass icon in the top bar opens a full-screen search sheet
