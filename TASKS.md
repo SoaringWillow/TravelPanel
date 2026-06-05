@@ -41,7 +41,7 @@ The remaining work focuses on three areas:
 ## PHASE F — App Store Polish
 
 ### F1 — Onboarding Flow (First Launch Experience)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: New users open the app and see an empty map. The current OnboardingSeed dumps data silently. A proper onboarding flow dramatically improves activation.
 **Files**: new `app/onboarding/page.tsx`, `app/layout.tsx` (redirect logic)
 **What to do**:

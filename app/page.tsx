@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter as useNextRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus, Navigation, NavigationOff } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -22,8 +22,17 @@ type MapFilter = { type: 'all' } | { type: 'board'; value: string } | { type: 't
 
 function HomePageInner() {
   const searchParams = useSearchParams();
+  const nextRouter = useNextRouter();
   const { items, loading, addItem, refreshItem } = useSavedItems();
   const { boards } = useBoards();
+
+  // Redirect new users to onboarding on first launch
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('hasCompletedOnboarding')) {
+      nextRouter.replace('/onboarding');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
