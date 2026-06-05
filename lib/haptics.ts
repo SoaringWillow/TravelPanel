@@ -28,7 +28,18 @@ const WEB_VIBRATE_MAP: Record<HapticStyle, number | number[]> = {
   error:   [80, 40, 80],
 };
 
+export function isHapticsEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  return localStorage.getItem('tp_haptics') !== 'false';
+}
+
+export function setHapticsEnabled(enabled: boolean): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('tp_haptics', enabled ? 'true' : 'false');
+}
+
 export async function feedback(style: HapticStyle = 'light'): Promise<void> {
+  if (!isHapticsEnabled()) return;
   try {
     // Try Capacitor Haptics (iOS native)
     const { Haptics, ImpactStyle, NotificationType } = await import('@capacitor/haptics');

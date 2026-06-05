@@ -10,6 +10,7 @@ import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rate
 import { checkBeforeUse, incrementUsage } from '@/lib/pro';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { feedback } from '@/lib/haptics';
 import ProGateSheet from '@/components/ProGateSheet';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
@@ -72,6 +73,7 @@ export default function PlanPage() {
     const proCheck = checkBeforeUse('planGen');
     if (!proCheck.allowed) {
       setShowProGate(true);
+      feedback('warning');
       track('pro_gate_shown', { feature: 'planGen', boardId });
       return;
     }
@@ -135,6 +137,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') feedback('success');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {

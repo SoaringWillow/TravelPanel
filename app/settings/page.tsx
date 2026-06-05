@@ -1,18 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Download, Database, Shield, Globe2, ChevronRight, CheckCircle2, FileText } from 'lucide-react';
+import { Download, Database, Shield, Globe2, ChevronRight, CheckCircle2, FileText, Vibrate } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { exportAllData, downloadJSON } from '@/lib/exportData';
 import { track } from '@/lib/analytics';
+import { isHapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
 
 type ExportState = 'idle' | 'exporting' | 'done' | 'error';
 
 export default function SettingsPage() {
   const [exportState, setExportState] = useState<ExportState>('idle');
   const [exportSummary, setExportSummary] = useState<{ items: number; boards: number; trips: number } | null>(null);
+  const [hapticsOn, setHapticsOn] = useState(true);
+
+  useEffect(() => {
+    setHapticsOn(isHapticsEnabled());
+  }, []);
+
+  function toggleHaptics() {
+    const next = !hapticsOn;
+    setHapticsOn(next);
+    setHapticsEnabled(next);
+    track('haptics_toggled', { enabled: next });
+  }
 
   async function handleExport() {
     setExportState('exporting');
@@ -125,6 +138,38 @@ export default function SettingsPage() {
               <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full flex-shrink-0">
                 Soon
               </span>
+            </div>
+          </div>
+        </section>
+
+        {/* Preferences section */}
+        <section>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
+            Preferences
+          </p>
+          <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+            <div className="flex items-center gap-3 px-4 py-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <Vibrate size={20} className="text-indigo-600" />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-gray-900 text-sm">Haptic feedback</div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  Vibration on actions like saving clips and completing plans
+                </div>
+              </div>
+              <button
+                onClick={toggleHaptics}
+                className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  hapticsOn ? 'bg-indigo-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                    hapticsOn ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </section>

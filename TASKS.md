@@ -421,7 +421,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This prevents the map from becoming unusable with 50+ clips
 
 ### G5 — Haptic Choreography Audit
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `app/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Audit all primary interactions and ensure every meaningful action has a haptic:
