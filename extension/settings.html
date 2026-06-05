@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Extension Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      padding: 32px 24px;
+      min-width: 360px;
+      max-width: 480px;
+    }
+
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: #6366f1; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; }
+
+    h2 { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+    p.sub { font-size: 13px; color: #6b7280; margin-bottom: 20px; line-height: 1.5; }
+
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+    input[type="url"] {
+      width: 100%;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 14px;
+      color: #111827;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="url"]:focus { border-color: #6366f1; }
+    .hint { font-size: 11px; color: #9ca3af; margin-top: 5px; }
+
+    .save-btn {
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .save-btn:hover { background: #4f46e5; }
+    .save-btn:active { transform: scale(0.98); }
+
+    .status {
+      display: inline-block;
+      margin-left: 10px;
+      font-size: 13px;
+      color: #059669;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .status.visible { opacity: 1; }
+
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+
+    .shortcut-info {
+      background: #eef2ff;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #4338ca;
+      line-height: 1.6;
+    }
+    .shortcut-info kbd {
+      background: white;
+      border: 1px solid #c7d2fe;
+      border-radius: 5px;
+      padding: 1px 6px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <div class="logo-icon">📍</div>
+    <span class="logo-text">TravelPanel</span>
+  </div>
+
+  <h2>Extension Settings</h2>
+  <p class="sub">Configure where the extension sends clips.</p>
+
+  <div class="field">
+    <label>TravelPanel App URL</label>
+    <input type="url" id="appUrl" placeholder="https://your-app.vercel.app" />
+    <p class="hint">Your deployed TravelPanel URL. Leave blank to use the default.</p>
+  </div>
+
+  <button class="save-btn" id="saveBtn">Save Settings</button>
+  <span class="status" id="status">✓ Saved!</span>
+
+  <hr />
+
+  <div class="shortcut-info">
+    <strong>Keyboard shortcut:</strong> Press
+    <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>
+    (Mac: <kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>)
+    on any page to clip it instantly.<br><br>
+    You can also right-click any page or link and choose
+    <strong>"Clip to TravelPanel"</strong>.
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

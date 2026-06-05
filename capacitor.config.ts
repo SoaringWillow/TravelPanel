@@ -33,6 +33,12 @@ const config: CapacitorConfig = {
       backgroundColor: '#6366f1',
       overlaysWebView: false,
     },
+    // Share the same UserDefaults suite as the Share Extension so that
+    // pendingShareURL / pendingShareImage written by the extension are
+    // readable here via @capacitor/preferences.
+    Preferences: {
+      group: 'group.com.travelpanel.app',
+    },
   },
 };
 
