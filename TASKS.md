@@ -111,7 +111,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 - Use touch sensors for iOS compatibility (longpress to activate drag)
 
 ### D9 — Nearby Clips Discovery
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: When users are physically traveling, the app should surface clips near their current location. This closes the loop between saving inspiration and acting on it.  
 **Files to change**: `app/page.tsx`, `components/NearbyBanner.tsx` (new)  
 **What to do**:
