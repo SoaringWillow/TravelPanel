@@ -219,7 +219,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Substance count badge: show as a pill with icon (💡 `N tips`) only when substance.length > 0
 
 ### D3 — Beautiful Boards Grid (boards listing polish)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx`  
 **What to do**:
 - Board cards: show a 2×2 mosaic of item thumbnails (or the emoji on a gradient bg if no thumbnails)
