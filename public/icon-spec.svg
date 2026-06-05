@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- App background gradient: deep indigo to slightly lighter -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#3730a3"/>
+    </linearGradient>
+    <!-- Pin body gradient: white with slight transparency -->
+    <linearGradient id="pin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#e0e7ff" stop-opacity="1"/>
+    </linearGradient>
+    <!-- Drop shadow filter for pin -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#1e1b4b" flood-opacity="0.35"/>
+    </filter>
+    <!-- Subtle inner glow on background rounded rect -->
+    <filter id="bgshadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.3"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square (iOS icon shape handled by OS, but useful for preview) -->
+  <rect width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"/>
+
+  <!-- Subtle grid/map lines in background -->
+  <g opacity="0.08" stroke="#ffffff" stroke-width="2" fill="none">
+    <line x1="0" y1="256" x2="1024" y2="256"/>
+    <line x1="0" y1="512" x2="1024" y2="512"/>
+    <line x1="0" y1="768" x2="1024" y2="768"/>
+    <line x1="256" y1="0" x2="256" y2="1024"/>
+    <line x1="512" y1="0" x2="512" y2="1024"/>
+    <line x1="768" y1="0" x2="768" y2="1024"/>
+  </g>
+
+  <!-- Map pin — centered, slightly high -->
+  <!-- Pin head (teardrop shape) -->
+  <g filter="url(#shadow)" transform="translate(512, 440)">
+    <!-- Teardrop: circle top + triangular point below -->
+    <path
+      d="M0,-200 C110,-200 200,-110 200,0 C200,90 120,170 0,290 C-120,170 -200,90 -200,0 C-200,-110 -110,-200 0,-200 Z"
+      fill="url(#pin)"
+    />
+    <!-- Inner dot (hole in pin) -->
+    <circle cx="0" cy="0" r="72" fill="#4f46e5"/>
+    <!-- Tiny white highlight in dot -->
+    <circle cx="-20" cy="-20" r="22" fill="white" opacity="0.5"/>
+  </g>
+
+  <!-- Small compass rose / sparkle dots beneath pin to suggest travel -->
+  <g opacity="0.45" fill="#c7d2fe">
+    <circle cx="300" cy="720" r="12"/>
+    <circle cx="370" cy="760" r="8"/>
+    <circle cx="650" cy="730" r="10"/>
+    <circle cx="720" cy="700" r="6"/>
+    <circle cx="440" cy="790" r="7"/>
+    <circle cx="560" cy="800" r="9"/>
+  </g>
+</svg>

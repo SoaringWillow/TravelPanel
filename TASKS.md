@@ -260,7 +260,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Matches iOS Mail/Reminders-style interaction pattern
 
 ### D7 — App Icon Polish + Launch Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `ios/App/App/Assets.xcassets/Splash.imageset/`  
 **What to do**:
 - Design the app icon: the indigo 📍 pin logo on a white/gradient background — at minimum generate a production-quality SVG specification that can be rendered at all required iOS sizes (20pt, 29pt, 40pt, 60pt, 76pt, 83.5pt, 1024pt)

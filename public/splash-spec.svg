@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732" width="2732" height="2732">
+  <!-- Solid indigo background for launch screen -->
+  <rect width="2732" height="2732" fill="#4f46e5"/>
+
+  <!-- Centered white map pin — same shape as icon-spec.svg -->
+  <g transform="translate(1366, 1300)">
+    <path
+      d="M0,-280 C154,-280 280,-154 280,0 C280,126 168,238 0,406 C-168,238 -280,126 -280,0 C-280,-154 -154,-280 0,-280 Z"
+      fill="white"
+      opacity="0.95"
+    />
+    <!-- Inner hole -->
+    <circle cx="0" cy="0" r="100" fill="#4f46e5"/>
+  </g>
+
+  <!-- App name wordmark below pin -->
+  <text
+    x="1366"
+    y="1850"
+    font-family="-apple-system, SF Pro Display, Helvetica Neue, sans-serif"
+    font-size="96"
+    font-weight="700"
+    fill="white"
+    opacity="0.9"
+    text-anchor="middle"
+    letter-spacing="4"
+  >TravelPanel</text>
+</svg>
