@@ -39,6 +39,12 @@ function getPinEmoji(tags: string[]): string | null {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+export interface UserPosition {
+  lat: number;
+  lng: number;
+  accuracy: number;
+}
+
 interface PopupInfo {
   item: SavedItem;
   location: Location;
@@ -48,14 +54,17 @@ interface PopupInfo {
 
 interface MapControllerProps {
   flyTo?: Location;
+  userPosition?: UserPosition | null;
 }
 
-// ─── MapController: flies to location when flyTo prop changes ────────────────
+// ─── MapController: flies to location when flyTo or followed user position changes ──
 
-function MapController({ flyTo }: MapControllerProps) {
+function MapController({ flyTo, userPosition }: MapControllerProps) {
   const { current: mapRef } = useMap();
   const prevFlyToRef = useRef<Location | undefined>(undefined);
+  const prevUserPosRef = useRef<{ lat: number; lng: number } | null>(null);
 
+  // Fly to an explicitly requested location
   useEffect(() => {
     if (!flyTo || !mapRef) return;
     if (!Number.isFinite(flyTo.lat) || !Number.isFinite(flyTo.lng)) return;
@@ -70,12 +79,21 @@ function MapController({ flyTo }: MapControllerProps) {
     if (isSame) return;
 
     prevFlyToRef.current = flyTo;
-    mapRef.flyTo({
-      center: [flyTo.lng, flyTo.lat],
-      zoom: 13,
-      duration: 1500,
-    });
+    mapRef.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 13, duration: 1500 });
   }, [flyTo, mapRef]);
+
+  // Follow the user's GPS position (pan only, no zoom change)
+  useEffect(() => {
+    if (!userPosition || !mapRef) return;
+    if (!Number.isFinite(userPosition.lat) || !Number.isFinite(userPosition.lng)) return;
+
+    const prev = prevUserPosRef.current;
+    // Only pan if position moved meaningfully (>5m)
+    if (prev && Math.abs(prev.lat - userPosition.lat) < 0.00005 && Math.abs(prev.lng - userPosition.lng) < 0.00005) return;
+
+    prevUserPosRef.current = { lat: userPosition.lat, lng: userPosition.lng };
+    mapRef.easeTo({ center: [userPosition.lng, userPosition.lat], duration: 800 });
+  }, [userPosition, mapRef]);
 
   return null;
 }
@@ -224,15 +242,62 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── GPS location dot ────────────────────────────────────────────────────────
+
+function GpsDot() {
+  return (
+    <div style={{ position: 'relative', width: 22, height: 22 }}>
+      {/* Accuracy pulse ring */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: -6,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(59, 130, 246, 0.18)',
+          animation: 'gps-pulse 2s ease-out infinite',
+        }}
+      />
+      {/* Outer ring */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '50%',
+          backgroundColor: 'white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.28)',
+        }}
+      />
+      {/* Inner dot */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 4,
+          borderRadius: '50%',
+          backgroundColor: '#3b82f6',
+        }}
+      />
+      <style>{`
+        @keyframes gps-pulse {
+          0%   { transform: scale(1);   opacity: 0.7; }
+          70%  { transform: scale(2.2); opacity: 0;   }
+          100% { transform: scale(2.2); opacity: 0;   }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userPosition?: UserPosition | null;
+  followUser?: boolean;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userPosition, followUser }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -280,7 +345,14 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
       >
         <NavigationControl position="top-right" />
 
-        <MapController flyTo={flyTo} />
+        <MapController flyTo={flyTo} userPosition={followUser ? userPosition : undefined} />
+
+        {/* GPS user location dot */}
+        {userPosition && Number.isFinite(userPosition.lat) && Number.isFinite(userPosition.lng) && (
+          <Marker longitude={userPosition.lng} latitude={userPosition.lat} anchor="center">
+            <GpsDot />
+          </Marker>
+        )}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;

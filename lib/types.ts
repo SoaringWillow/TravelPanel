@@ -99,11 +99,19 @@ export interface Activity {
   sourcedTips?: SourcedTip[]; // wisdom drawn from the user's own clips, cited
 }
 
+export interface WeatherDay {
+  day: number;
+  condition: string;
+  highC: number;
+  lowC: number;
+}
+
 export interface DayPlan {
   day: number;
   theme: string;
   locations: Location[];
   activities: Activity[];
+  weather?: WeatherDay;
 }
 
 export interface TripPlan {

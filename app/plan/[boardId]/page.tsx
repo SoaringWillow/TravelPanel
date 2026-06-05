@@ -9,6 +9,7 @@ import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } fro
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { successNotification } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -128,6 +129,7 @@ export default function PlanPage() {
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              successNotification();
               const trip: Trip = {
                 id: crypto.randomUUID(),
                 boardId,
@@ -508,9 +510,16 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-sm font-bold text-gray-700">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                    {activeDayPlan.weather && (
+                      <span className="flex-shrink-0 text-xs text-sky-700 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-full">
+                        {activeDayPlan.weather.condition} {activeDayPlan.weather.highC}°/{activeDayPlan.weather.lowC}°
+                      </span>
+                    )}
+                  </div>
 
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div

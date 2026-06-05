@@ -1,19 +1,24 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, Navigation2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useCurrentLocation, distanceMetres } from '@/hooks/useCurrentLocation';
+import { useProximityAlert, markLocationPermissionGranted } from '@/hooks/useProximityAlert';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import ProximityBanner from '@/components/ProximityBanner';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 // ─── Inner page (needs useSearchParams) ──────────────────────────────────────
+
+const NEARBY_METRES = 500;
 
 function HomePageInner() {
   const searchParams = useSearchParams();
@@ -22,6 +27,47 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [tripMode, setTripMode]         = useState(false);
+  const [followUser, setFollowUser]     = useState(true);
+
+  const { position: userPosition, error: gpsError } = useCurrentLocation(tripMode);
+
+  // Passive one-shot proximity alert (only if location permission previously granted)
+  const proximityAlert = useProximityAlert(items);
+
+  // When GPS mode activates and user grants permission, record it for future sessions
+  useEffect(() => {
+    if (tripMode && userPosition) markLocationPermissionGranted();
+  }, [tripMode, userPosition]);
+
+  // Items within NEARBY_METRES of the user's current position
+  const nearbyItems = useMemo(() => {
+    if (!userPosition || !tripMode) return [];
+    return items
+      .filter((item) =>
+        item.locations.some(
+          (loc) => distanceMetres(userPosition.lat, userPosition.lng, loc.lat, loc.lng) <= NEARBY_METRES
+        )
+      )
+      .sort((a, b) => {
+        const closestDist = (item: SavedItem) =>
+          Math.min(...item.locations.map((loc) =>
+            distanceMetres(userPosition.lat, userPosition.lng, loc.lat, loc.lng)
+          ));
+        return closestDist(a) - closestDist(b);
+      });
+  }, [userPosition, items, tripMode]);
+
+  // Closest distance for display
+  const closestMetres = useMemo(() => {
+    if (!userPosition || nearbyItems.length === 0) return null;
+    const closest = nearbyItems[0];
+    return Math.round(
+      Math.min(...closest.locations.map((loc) =>
+        distanceMetres(userPosition.lat, userPosition.lng, loc.lat, loc.lng)
+      ))
+    );
+  }, [userPosition, nearbyItems]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,18 +117,137 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        userPosition={tripMode ? userPosition : null}
+        followUser={tripMode && followUser}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+        <div className={`backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 transition-colors duration-300 ${tripMode ? 'bg-blue-600/95' : 'bg-white/90'}`}>
+          <Globe2 className={tripMode ? 'text-blue-100' : 'text-indigo-600'} size={22} />
+          <span className={`font-bold text-lg ${tripMode ? 'text-white' : 'text-gray-800'}`}>
+            {tripMode ? 'On Trip' : 'TravelPanel'}
+          </span>
+          <div className={`ml-auto text-sm ${tripMode ? 'text-blue-100' : 'text-gray-500'}`}>
+            {tripMode
+              ? gpsError
+                ? '📍 Locating…'
+                : userPosition
+                ? `${nearbyItems.length} nearby`
+                : '📍 Getting GPS…'
+              : loading
+              ? 'Loading…'
+              : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
           </div>
+          {/* GPS trip mode toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setTripMode((v) => !v);
+              setFollowUser(true);
+            }}
+            title={tripMode ? 'End trip' : 'Start trip (GPS mode)'}
+            className={`ml-1 p-2 rounded-xl transition-all ${
+              tripMode
+                ? 'bg-white/25 text-white hover:bg-white/35'
+                : 'text-gray-400 hover:bg-gray-100 hover:text-indigo-600'
+            }`}
+          >
+            <Navigation2
+              size={18}
+              className={tripMode ? 'text-white' : ''}
+              style={tripMode ? { animation: 'gps-pulse-icon 2s ease-in-out infinite' } : {}}
+            />
+          </button>
         </div>
+
+        {/* GPS error message */}
+        <AnimatePresence>
+          {tripMode && gpsError && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              className="mt-2 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium px-4 py-2 rounded-xl shadow-lg"
+            >
+              {gpsError} — check location permissions
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Passive proximity alert (shown once on app open when near saved places) */}
+      <AnimatePresence>
+        {proximityAlert && !tripMode && !selectedItem && (
+          <div className="absolute top-[80px] left-0 right-0 z-[999]">
+            <ProximityBanner
+              nearbyItems={proximityAlert.nearbyItems}
+              closestMetres={proximityAlert.closestMetres}
+              onDismiss={proximityAlert.dismiss}
+              onItemClick={(item) => {
+                setSelectedItem(item);
+                if (item.locations[0]) setFlyTo(item.locations[0]);
+                proximityAlert.dismiss();
+              }}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Nearby clips panel (GPS mode) */}
+      <AnimatePresence>
+        {tripMode && userPosition && nearbyItems.length > 0 && !selectedItem && (
+          <motion.div
+            key="nearby-panel"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+            className="absolute bottom-20 left-0 right-0 z-[900] px-4"
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-3">
+              <p className="text-xs font-semibold text-blue-600 mb-2 px-1">
+                📍 {nearbyItems.length} saved place{nearbyItems.length !== 1 ? 's' : ''} nearby
+                {closestMetres !== null && ` · closest ${closestMetres < 1000 ? `${closestMetres}m` : `${(closestMetres / 1000).toFixed(1)}km`}`}
+              </p>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+                {nearbyItems.slice(0, 6).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedItem(item);
+                      if (item.locations[0]) setFlyTo(item.locations[0]);
+                    }}
+                    className="flex-shrink-0 bg-gray-50 rounded-xl p-2.5 text-left hover:bg-indigo-50 active:scale-95 transition-all max-w-[140px]"
+                  >
+                    {item.thumbnail && (
+                      <img
+                        src={item.thumbnail}
+                        alt=""
+                        className="w-full h-16 object-cover rounded-lg mb-1.5"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
+                    <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug">
+                      {item.title}
+                    </p>
+                    {item.locations[0] && (
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {item.locations[0].name}
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Selected item detail card */}
       <AnimatePresence>

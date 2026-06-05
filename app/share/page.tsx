@@ -4,11 +4,13 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getAllItemsByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { consumePendingImage } from '@/lib/pendingImage';
+import { successNotification, tapLight } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,13 +31,24 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
+  // Image captured by the iOS Share Extension (e.g. Xiaohongshu screenshot)
+  const pendingImageRef = useRef<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
-  }, []);
+    // Consume any image captured by the iOS Share Extension (see CapacitorBridge)
+    pendingImageRef.current = consumePendingImage();
+    // Deduplication check
+    if (rawUrl) {
+      getAllItemsByUrl(rawUrl).then((existing) => {
+        if (existing.length > 0) setDuplicateItem(existing[0]);
+      }).catch(() => {});
+    }
+  }, [rawUrl]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -82,15 +95,16 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    successNotification();
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if Share Extension captured one
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -169,6 +183,20 @@ function SharePageInner() {
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
+          {/* Duplicate warning */}
+          {duplicateItem && (
+            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-1">
+              <p className="text-sm font-semibold text-amber-800">Already in your collection</p>
+              <p className="text-xs text-amber-700 line-clamp-2">{duplicateItem.title}</p>
+              <button
+                type="button"
+                onClick={() => setDuplicateItem(null)}
+                className="text-xs text-amber-600 underline"
+              >
+                Save again anyway
+              </button>
+            </div>
+          )}
           <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
 
           {/* Horizontally scrollable chip row */}
@@ -177,7 +205,7 @@ function SharePageInner() {
             <button
               type="button"
               disabled={stage === 'saving'}
-              onClick={() => handleSave(undefined, 'Inbox')}
+              onClick={() => { tapLight(); handleSave(undefined, 'Inbox'); }}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox
@@ -189,7 +217,7 @@ function SharePageInner() {
                 key={board.id}
                 type="button"
                 disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                onClick={() => { tapLight(); handleSave(board.id, `${board.emoji} ${board.name}`); }}
                 className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}

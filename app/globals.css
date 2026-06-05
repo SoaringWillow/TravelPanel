@@ -66,8 +66,44 @@
   display: none;
 }
 
-/* iOS safe area utilities */
-.safe-top    { padding-top:    env(safe-area-inset-top); }
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-.safe-left   { padding-left:   env(safe-area-inset-left); }
-.safe-right  { padding-right:  env(safe-area-inset-right); }
+/* ─── iOS Safe Area ────────────────────────────────────────────────────────── */
+
+/* CSS custom properties for programmatic access */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+}
+
+/* Raw safe-area padding utilities */
+.safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-left   { padding-left:   env(safe-area-inset-left, 0px); }
+.safe-right  { padding-right:  env(safe-area-inset-right, 0px); }
+
+/* Page header top: base 16px + status bar (notch / Dynamic Island) */
+.pt-header-safe {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+}
+
+/* Page scroll container: accounts for NavBar (64px) + home indicator */
+.pb-page-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+}
+
+/* ─── iOS Scroll Feel ───────────────────────────────────────────────────────── */
+
+/* Prevent full-page rubber-band bounce on non-scrollable containers */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Smooth momentum scrolling on scrollable containers */
+.overflow-y-auto,
+.overflow-x-auto,
+[class*="overflow-y-scroll"],
+[class*="overflow-x-scroll"] {
+  -webkit-overflow-scrolling: touch;
+}

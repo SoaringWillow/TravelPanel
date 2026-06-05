@@ -96,3 +96,25 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-05 21:25 | dac0e47 | feat: add Chrome/Safari browser extension (B2)
+2026-06-05 21:32 | e1d5502 | feat: Xiaohongshu/WeChat fix via Claude Vision (B3)
+2026-06-05 21:33 | 5b342af | feat: cloud backup export + settings page (B5)
+2026-06-05 21:36 | 82e8121 | feat: on-trip GPS mode with nearby clip discovery (C1)
+2026-06-05 21:37 | f0a7792 | feat: post-trip timeline view in collections page (C2)
+2026-06-05 21:39 | 659dcd7 | feat: proactive proximity resurfacing on app open (C4)
+2026-06-05 21:41 | 04564b5 | chore: new strategic TASKS.md for iOS polish + power features
+2026-06-05 21:43 | 0fa5217 | fix: iOS safe area, font stack, and scroll polish (D1)
+2026-06-05 21:45 | 2f38ee1 | feat: haptic feedback on key interactions (D2)
+2026-06-05 21:46 | 9ff562f | feat: clipboard URL detection + clip nudge (D3)
+2026-06-05 21:47 | c292095 | feat: offline mode banner (D5)
+2026-06-05 21:48 | 7d38447 | feat: inline URL preview while typing in ImportSheet (D4)
+2026-06-05 21:53 | b5d7108 | feat(D6): pull-to-refresh on Inbox and Boards
+2026-06-05 21:55 | 3938578 | feat(E1): weather enrichment on plan generation via Open-Meteo
+2026-06-05 21:57 | b0fc775 | feat(E4): clip deduplication detection with URL normalization
+2026-06-05 21:58 | 5bd22f1 | feat(E5): enrichment progress indicator in inbox
+2026-06-05 22:00 | 2bb2f23 | feat(E2): batch import — paste multiple URLs at once
+2026-06-05 22:01 | d6eb1aa | feat(E3): smart day-by-day route optimization via distance matrix
+2026-06-05 22:02 | afe12dc | feat(G1): complete iOS app icon set with teal map-pin design
+2026-06-05 22:03 | bcee46d | feat(G2): splash screen with teal map-pin design
+2026-06-05 22:05 | 9fcd889 | feat(G3): privacy policy + terms of service page at /legal
+2026-06-05 22:06 | df98a74 | feat(G4): App Store screenshots guide

@@ -59,6 +59,29 @@ function getDB() {
   return dbPromise;
 }
 
+// ─── URL normalization ─────────────────────────────────────────────────────
+
+export function normalizeUrl(raw: string): string {
+  try {
+    const u = new URL(raw.trim());
+    // Strip tracking query params
+    const keep: [string, string][] = [];
+    u.searchParams.forEach((v, k) => {
+      if (!k.toLowerCase().startsWith('utm_') && k !== 'fbclid' && k !== 'gclid') {
+        keep.push([k, v]);
+      }
+    });
+    u.search = keep.length > 0 ? '?' + keep.map(([k, v]) => `${k}=${v}`).join('&') : '';
+    // Strip www.
+    u.hostname = u.hostname.replace(/^www\./, '');
+    // Strip trailing slash from path
+    u.pathname = u.pathname.replace(/\/$/, '') || '/';
+    return u.toString().toLowerCase();
+  } catch {
+    return raw.trim().toLowerCase();
+  }
+}
+
 // ─── Items ─────────────────────────────────────────────────────────────────
 
 export async function getAllItems(): Promise<SavedItem[]> {
@@ -84,6 +107,16 @@ export async function saveItem(item: SavedItem): Promise<void> {
 export async function deleteItem(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('items', id);
+}
+
+export async function getAllItemsByUrl(url: string): Promise<SavedItem[]> {
+  try {
+    const normalized = normalizeUrl(url);
+    const all = await getAllItems();
+    return all.filter((item) => normalizeUrl(item.url) === normalized);
+  } catch {
+    return [];
+  }
 }
 
 export async function getItemsByPlatform(platform: string): Promise<SavedItem[]> {

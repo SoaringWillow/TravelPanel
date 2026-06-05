@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -12,6 +12,8 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/li
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { runRetryQueue } from '@/lib/retryQueue';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -39,6 +41,13 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const handleRefresh = useCallback(async () => {
+    await runRetryQueue();
+    router.refresh();
+  }, [router]);
+  const { pullDistance, refreshing } = usePullToRefresh({ onRefresh: handleRefresh, scrollRef });
+
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
@@ -46,6 +55,9 @@ export default function InboxPage() {
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
+  const processingCount = items.filter(
+    (i) => i.enrichmentStatus === 'processing' || i.enrichmentStatus === 'pending'
+  ).length;
 
   const platformFiltered =
     activePlatform === 'all'
@@ -99,7 +111,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white shadow-sm px-4 pt-header-safe pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -136,10 +148,34 @@ export default function InboxPage() {
             );
           })}
         </div>
+
+        {/* Enrichment progress banner */}
+        {processingCount > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 border-b border-indigo-100">
+            <Loader2 size={12} className="text-indigo-500 animate-spin flex-shrink-0" />
+            <span className="text-xs text-indigo-600 font-medium">
+              Extracting {processingCount} clip{processingCount !== 1 ? 's' : ''}…
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ overscrollBehaviorY: 'contain' }}>
+        {/* Pull-to-refresh indicator */}
+        {(pullDistance > 0 || refreshing) && (
+          <div
+            className="flex items-center justify-center transition-all duration-150"
+            style={{ height: refreshing ? 48 : pullDistance }}
+          >
+            <Loader2
+              size={20}
+              className={`text-indigo-500 ${refreshing ? 'animate-spin' : ''}`}
+              style={{ opacity: refreshing ? 1 : Math.min(pullDistance / 60, 1) }}
+            />
+          </div>
+        )}
+        <div className="py-4">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -181,6 +217,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
+        </div>
       </div>
 
       {/* Board selector bottom sheet */}
