@@ -285,7 +285,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Floating action buttons: must be above `safe-bottom` height (env(safe-area-inset-bottom))
 
 ### D10 — Swipe-to-move on Inbox cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:
 - Add drag gesture on `InboxCard`: swipe right > 80px = assign to most-recent board (with undo snackbar)

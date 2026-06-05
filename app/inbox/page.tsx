@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, RefreshCw } from 'lucide-react';
@@ -42,6 +42,46 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [undoItem, setUndoItem] = useState<{ id: string; boardId: string; boardLabel: string } | null>(null);
+
+  // Auto-dismiss undo snackbar
+  useEffect(() => {
+    if (!undoItem) return;
+    const t = setTimeout(() => setUndoItem(null), 3500);
+    return () => clearTimeout(t);
+  }, [undoItem]);
+
+  const mostRecentBoard = boards[0];
+  const swipeRightLabel = mostRecentBoard
+    ? `${mostRecentBoard.emoji} ${mostRecentBoard.name}`
+    : undefined;
+
+  const handleSwipeRight = useCallback(
+    async (id: string) => {
+      if (!mostRecentBoard) return;
+      await addItemToBoard(mostRecentBoard.id, id);
+      setUndoItem({ id, boardId: mostRecentBoard.id, boardLabel: swipeRightLabel! });
+      router.refresh();
+    },
+    [mostRecentBoard, swipeRightLabel, router],
+  );
+
+  const handleSwipeLeft = useCallback(
+    async (id: string) => {
+      await removeItem(id);
+    },
+    [removeItem],
+  );
+
+  const handleUndo = useCallback(async () => {
+    if (!undoItem) return;
+    await removeItemFromBoard(undoItem.boardId, undoItem.id);
+    const allItems = await getAllItems();
+    const found = allItems.find((i) => i.id === undoItem.id);
+    if (found) await saveItem({ ...found, boardId: undefined });
+    setUndoItem(null);
+    router.refresh();
+  }, [undoItem, router]);
 
   const onRefresh = useCallback(async () => {
     const retryable = items.filter(
@@ -224,6 +264,9 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    onSwipeRight={mostRecentBoard ? handleSwipeRight : undefined}
+                    onSwipeLeft={handleSwipeLeft}
+                    swipeRightLabel={swipeRightLabel}
                   />
                 </motion.div>
               ))}
@@ -309,6 +352,29 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Undo snackbar */}
+      <AnimatePresence>
+        {undoItem && (
+          <motion.div
+            key="undo"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            className="fixed bottom-24 left-4 right-4 z-[3000] bg-gray-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-xl"
+          >
+            <span className="text-sm">Moved to {undoItem.boardLabel}</span>
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors ml-3 flex-shrink-0"
+            >
+              Undo
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 
