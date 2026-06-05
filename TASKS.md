@@ -30,7 +30,7 @@
 These tasks make TravelPanel feel like a premium iOS app. No external deps required.
 
 ### D1 — iOS Safe Area & Visual Polish 🔴 HIGH PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app likely has layout issues near the notch/Dynamic Island and Home Indicator.  
 **Files**: `app/globals.css`, `app/layout.tsx`, all page files  
 **What to do**:

@@ -51,9 +51,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-page-safe">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-5">
+      <div className="bg-white border-b border-gray-100 px-4 pt-header-safe pb-5">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your TravelPanel data</p>
       </div>

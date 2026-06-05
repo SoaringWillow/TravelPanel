@@ -40,7 +40,7 @@ export default function BoardsPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-3 z-10">
+      <div className="bg-white shadow-sm px-4 pt-header-safe pb-3 z-10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             {viewMode === 'grid'
