@@ -53,7 +53,7 @@ All Phase A–C tasks are complete. The app has:
 - Skeleton should show: thumbnail placeholder, two text lines, tag pill placeholders
 
 ### D3 — Pull-to-Refresh on Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Standard iOS gesture. Users pull down to refresh — app should respond.  
 **Files to change**: `app/inbox/page.tsx`, new `hooks/usePullToRefresh.ts`  
 **What to do**:
