@@ -174,7 +174,7 @@ All Phase A–C tasks are complete. The app has:
 - Dismiss permanently via X or by saving it
 
 ### E5 — Advanced Search (Filters)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `components/SearchBar.tsx`, `lib/searchItems.ts`  
 **What to do**:
 - Add a filter icon next to the search bar that expands a filter panel

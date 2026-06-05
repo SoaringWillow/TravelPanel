@@ -11,7 +11,7 @@ import { PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { searchItems } from '@/lib/searchItems';
+import { searchItems, SearchFilters, DateRangeFilter } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
@@ -186,6 +186,32 @@ export default function InboxPage() {
     if (typeof window !== 'undefined') localStorage.setItem('inbox_sort', sk);
   }
 
+  // Filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterDateRange, setFilterDateRange] = useState<DateRangeFilter>('all');
+  const [filterHasLocations, setFilterHasLocations] = useState(false);
+  const [filterHasWisdom, setFilterHasWisdom] = useState(false);
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+
+  const activeFilterCount =
+    (filterDateRange !== 'all' ? 1 : 0) +
+    (filterHasLocations ? 1 : 0) +
+    (filterHasWisdom ? 1 : 0) +
+    filterTags.length;
+
+  function clearFilters() {
+    setFilterDateRange('all');
+    setFilterHasLocations(false);
+    setFilterHasWisdom(false);
+    setFilterTags([]);
+  }
+
+  const allTags = Array.from(new Set(items.flatMap((i) => i.tags))).sort();
+
+  function toggleFilterTag(tag: string) {
+    setFilterTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
+  }
+
   // Multi-select
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -233,7 +259,14 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query).sort((a, b) => {
+  const activeFilters: SearchFilters = {
+    dateRange: filterDateRange,
+    hasLocations: filterHasLocations || undefined,
+    hasWisdom: filterHasWisdom || undefined,
+    tags: filterTags.length > 0 ? filterTags : undefined,
+  };
+
+  const filtered = searchItems(platformFiltered, query, activeFilters).sort((a, b) => {
     switch (sortKey) {
       case 'oldest':    return a.savedAt - b.savedAt;
       case 'locations': return b.locations.length - a.locations.length;
@@ -352,10 +385,110 @@ export default function InboxPage() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+        {/* Search + filter toggle */}
+        <div className="mb-2">
+          <SearchBar
+            onSearch={handleSearch}
+            filterCount={activeFilterCount}
+            onFilterToggle={() => setShowFilters((v) => !v)}
+          />
         </div>
+
+        {/* Filter panel */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden mb-2"
+            >
+              <div className="bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-3 space-y-3">
+                {/* Date range */}
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Date saved</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {(['all', 'week', 'month'] as const).map((range) => (
+                      <button
+                        key={range}
+                        type="button"
+                        onClick={() => setFilterDateRange(range)}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                          filterDateRange === range
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'
+                        }`}
+                      >
+                        {range === 'all' ? 'All time' : range === 'week' ? 'Last week' : 'Last month'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Toggles */}
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setFilterHasLocations((v) => !v)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1 ${
+                      filterHasLocations
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'
+                    }`}
+                  >
+                    📍 Has locations
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterHasWisdom((v) => !v)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1 ${
+                      filterHasWisdom
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'
+                    }`}
+                  >
+                    💡 Has wisdom
+                  </button>
+                </div>
+
+                {/* Tags */}
+                {allTags.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Tags</p>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {allTags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => toggleFilterTag(tag)}
+                          className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                            filterTags.includes(tag)
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+                          }`}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Clear */}
+                {activeFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Platform filter tabs — cards mode only */}
         <div className={`flex gap-2 overflow-x-auto pb-3 scrollbar-hide ${viewMode === 'timeline' ? 'hidden' : ''}`}>
