@@ -3,11 +3,11 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, LayoutGrid, Clock } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
-import { PLATFORM_LABELS } from '@/lib/parse-url';
+import { Platform, SavedItem } from '@/lib/types';
+import { PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
@@ -15,6 +15,124 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+
+// ─── Timeline helpers ─────────────────────────────────────────────────────────
+
+function formatTimelineDate(ts: number): string {
+  const d = new Date(ts);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (d.toDateString() === today.toDateString()) return 'Today';
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+}
+
+function groupByDay(items: SavedItem[]): Array<{ dateLabel: string; items: SavedItem[] }> {
+  const groups = new Map<string, SavedItem[]>();
+  for (const item of items) {
+    const label = formatTimelineDate(item.savedAt);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label)!.push(item);
+  }
+  return Array.from(groups.entries()).map(([dateLabel, items]) => ({ dateLabel, items }));
+}
+
+function TimelineView({ items, onItemClick }: { items: SavedItem[]; onItemClick: (item: SavedItem) => void }) {
+  const groups = groupByDay(items);
+
+  if (groups.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-60 text-center">
+        <div className="text-5xl mb-4">📅</div>
+        <h3 className="font-semibold text-gray-700 mb-2">No clips yet</h3>
+        <p className="text-sm text-gray-500">Your travel journal will appear here as you clip content.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative pl-10">
+      {/* Vertical line */}
+      <div className="absolute left-[18px] top-2 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 via-indigo-100 to-transparent" />
+
+      {groups.map(({ dateLabel, items: dayItems }) => (
+        <div key={dateLabel} className="mb-6">
+          {/* Date marker */}
+          <div className="flex items-center gap-3 mb-3 -ml-10">
+            <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center shadow-md z-10 flex-shrink-0">
+              <Clock size={15} color="white" />
+            </div>
+            <span className="text-sm font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
+              {dateLabel}
+            </span>
+          </div>
+
+          {/* Day's clips */}
+          <div className="space-y-2.5 ml-1">
+            {dayItems.map((item) => (
+              <motion.button
+                key={item.id}
+                type="button"
+                onClick={() => onItemClick(item)}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="w-full text-left bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex gap-3 hover:border-indigo-200 hover:shadow-md transition-all active:scale-[0.98]"
+              >
+                {/* Thumbnail */}
+                {item.thumbnail ? (
+                  <img
+                    src={item.thumbnail}
+                    alt=""
+                    className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div
+                    className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
+                    style={{ background: `${PLATFORM_COLORS[item.platform]}18` }}
+                  >
+                    🗺
+                  </div>
+                )}
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-snug">
+                    {item.title}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <span
+                      className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: `${PLATFORM_COLORS[item.platform]}18`, color: PLATFORM_COLORS[item.platform] }}
+                    >
+                      {PLATFORM_LABELS[item.platform]}
+                    </span>
+                    {item.locations.length > 0 && (
+                      <span className="text-xs text-gray-500">📍 {item.locations.length}</span>
+                    )}
+                    {(item.substance?.length ?? 0) > 0 && (
+                      <span className="text-xs text-gray-500">💡 {item.substance!.length}</span>
+                    )}
+                  </div>
+                  {item.description && (
+                    <p className="text-xs text-gray-400 mt-1 line-clamp-1">{item.description}</p>
+                  )}
+                </div>
+
+                {/* Time */}
+                <div className="text-xs text-gray-300 flex-shrink-0 mt-0.5">
+                  {new Date(item.savedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -38,14 +156,16 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
 
-  // Only unassigned items (boardId === undefined)
+  // Cards mode: only unassigned items. Timeline mode: all items sorted by savedAt.
   const inboxItems = items.filter((i) => i.boardId === undefined);
+  const timelineItems = [...items].sort((a, b) => b.savedAt - a.savedAt);
 
   const platformFiltered =
     activePlatform === 'all'
@@ -101,11 +221,40 @@ export default function InboxPage() {
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
-          </span>
+          <span className="text-2xl">{viewMode === 'timeline' ? '📅' : '📥'}</span>
+          <h1 className="text-xl font-bold text-gray-800">
+            {viewMode === 'timeline' ? 'Journey' : 'Inbox'}
+          </h1>
+          {viewMode === 'cards' && (
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {inboxItems.length} unsorted
+            </span>
+          )}
+          {viewMode === 'timeline' && (
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {timelineItems.length} clips
+            </span>
+          )}
+
+          {/* View mode toggle */}
+          <div className="ml-auto flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Cards view"
+            >
+              <LayoutGrid size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('timeline')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'timeline' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Timeline view"
+            >
+              <Clock size={14} />
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -113,8 +262,8 @@ export default function InboxPage() {
           <SearchBar onSearch={handleSearch} />
         </div>
 
-        {/* Platform filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+        {/* Platform filter tabs — cards mode only */}
+        <div className={`flex gap-2 overflow-x-auto pb-3 scrollbar-hide ${viewMode === 'timeline' ? 'hidden' : ''}`}>
           {PLATFORM_FILTERS.map((p) => {
             const count =
               p.key === 'all'
@@ -140,7 +289,20 @@ export default function InboxPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
-        {loading ? (
+        {viewMode === 'timeline' ? (
+          loading ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+            </div>
+          ) : (
+            <TimelineView
+              items={timelineItems}
+              onItemClick={(item) => {
+                if (item.locations.length > 0) handleViewOnMap(item.id);
+              }}
+            />
+          )
+        ) : loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
