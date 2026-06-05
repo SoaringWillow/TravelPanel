@@ -17,6 +17,16 @@
 - C1: On-Trip GPS mode with nearby clip discovery
 - C2: Post-trip Timeline view in Collections
 - C4: Proactive proximity resurfacing on app open
+- D1–D6: Full iOS polish (safe area, haptics, clipboard nudge, inline preview, offline banner, pull-to-refresh)
+- E1: Weather enrichment on plan generation (Open-Meteo, no key)
+- E2: Batch import — paste multiple URLs at once
+- E3: Smart day-by-day route optimization (distance matrix)
+- E4: Clip deduplication detection with URL normalization
+- E5: Enrichment progress indicator in inbox (auto-polling)
+- G1: Complete iOS app icon set (all sizes, teal map-pin design)
+- G2: Splash screen (teal + white map pin)
+- G3: Privacy Policy + Terms of Service page at /legal
+- G4: App Store screenshots guide
 
 ### Scaffolded / Waiting on Keys 🔑
 - B1: Supabase (needs `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
@@ -204,7 +214,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Link from the Settings/Profile page
 
 ### G4 — App Store Screenshots (automation)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - Create a `scripts/screenshots.md` with step-by-step guide for taking App Store screenshots
 - Required sizes: iPhone 6.9" (1320×2868), iPhone 6.7" (1290×2796), iPad 12.9" (2048×2732)
