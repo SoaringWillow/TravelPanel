@@ -1,9 +1,13 @@
 'use client';
 
+import { useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { feedback } from '@/lib/haptics';
+
+const SWIPE_THRESHOLD = 80; // px to trigger action
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -189,8 +193,77 @@ export default function InboxCard({
     day: 'numeric',
   });
 
+  return <SwipeableCard item={item} onDelete={onDelete} onMoveToBoard={onMoveToBoard} onViewOnMap={onViewOnMap} date={date} />;
+}
+
+function SwipeableCard({
+  item,
+  onDelete,
+  onMoveToBoard,
+  onViewOnMap,
+  date,
+}: {
+  item: SavedItem;
+  onDelete: (id: string) => void;
+  onMoveToBoard?: (id: string) => void;
+  onViewOnMap: (id: string) => void;
+  date: string;
+}) {
+  const hapticsRef = useRef<{ delete: boolean; move: boolean }>({ delete: false, move: false });
+  const [swiping, setSwiping] = useState<'left' | 'right' | null>(null);
+
+  function handleDrag(_: unknown, info: { offset: { x: number } }) {
+    const x = info.offset.x;
+    if (x < -SWIPE_THRESHOLD && !hapticsRef.current.delete) {
+      hapticsRef.current.delete = true;
+      feedback('light');
+    } else if (x >= -SWIPE_THRESHOLD && hapticsRef.current.delete) {
+      hapticsRef.current.delete = false;
+    }
+    if (x > SWIPE_THRESHOLD && !hapticsRef.current.move) {
+      hapticsRef.current.move = true;
+      feedback('light');
+    } else if (x <= SWIPE_THRESHOLD && hapticsRef.current.move) {
+      hapticsRef.current.move = false;
+    }
+    if (x < -8) setSwiping('left');
+    else if (x > 8) setSwiping('right');
+    else setSwiping(null);
+  }
+
+  function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
+    hapticsRef.current = { delete: false, move: false };
+    setSwiping(null);
+    if (info.offset.x < -SWIPE_THRESHOLD) {
+      feedback('medium');
+      onDelete(item.id);
+    } else if (info.offset.x > SWIPE_THRESHOLD && onMoveToBoard) {
+      feedback('medium');
+      onMoveToBoard(item.id);
+    }
+  }
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative rounded-2xl overflow-hidden">
+      {/* Left action (move to board) — revealed by right swipe */}
+      <div className={`absolute inset-y-0 left-0 flex items-center px-5 rounded-l-2xl transition-opacity ${swiping === 'right' ? 'opacity-100' : 'opacity-0'} bg-indigo-500`}>
+        <LayoutGrid size={20} className="text-white" />
+      </div>
+
+      {/* Right action (delete) — revealed by left swipe */}
+      <div className={`absolute inset-y-0 right-0 flex items-center px-5 rounded-r-2xl transition-opacity ${swiping === 'left' ? 'opacity-100' : 'opacity-0'} bg-red-500`}>
+        <Trash2 size={20} className="text-white" />
+      </div>
+
+      <motion.div
+        drag="x"
+        dragDirectionLock
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.25}
+        onDrag={handleDrag}
+        onDragEnd={handleDragEnd}
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative z-10 cursor-grab active:cursor-grabbing"
+      >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -312,6 +385,7 @@ export default function InboxCard({
           </div>
         </div>
       </div>
+      </motion.div>
     </div>
   );
 }

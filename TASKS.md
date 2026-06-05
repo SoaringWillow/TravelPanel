@@ -250,7 +250,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a `resetKeys` prop that resets the boundary when route changes
 
 ### D6 — Swipe Gestures on Clip Cards (iOS native feel)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:
 - Add swipe-to-delete gesture on InboxCard using `framer-motion` drag constraints
