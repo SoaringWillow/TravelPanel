@@ -448,7 +448,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Also improve the ICS export: add location field (use first location's address if available)
 
 ### G7 — Search Across Clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `app/search/page.tsx`, new `lib/search.ts`  
 **What to do**:
 - Fuzzy text search across: title, description, location names, tags, substance content
