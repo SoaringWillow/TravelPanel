@@ -271,7 +271,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No-op gracefully outside Capacitor context (web/browser)
 
 ### D8 — Clip Notes & Personal Context
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to add personal context to clips: "visited with Sarah", "waiting for cherry blossom season", "too expensive but worth it once". This is distinct from extracted substance — it's user-generated.  
 **Files**: `lib/types.ts`, `lib/db.ts`, `components/LocationDetailCard.tsx`, `components/EditClipSheet.tsx`  
 **What to do**:

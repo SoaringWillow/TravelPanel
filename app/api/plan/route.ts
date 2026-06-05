@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
           title: i.title,
           activities: i.activities,
           tags: i.tags,
+          notes: i.notes || undefined,
           substance: (i.substance ?? []).map((s) => ({
             type: s.type,
             content: s.content,
@@ -153,7 +154,8 @@ Rules:
   activity, surface it in that activity's "sourcedTips" with the exact clip title
   as sourceTitle. This makes the plan reflect the user's curated knowledge, not
   generic advice. ${hasSubstance ? 'The clips DO contain substance — use it.' : 'If no substance is present, return an empty sourcedTips array.'}
-  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.`,
+  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.
+- Personal notes: some clips have a "notes" field with the user's own context ("visited with Sarah", "waiting for cherry blossom season"). Reference these where relevant to personalise the plan.`,
         });
 
         for await (const partial of planStream.partialObjectStream) {
