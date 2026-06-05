@@ -149,7 +149,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 **What to do**: After enrichment, fetch the thumbnail URL and store it as a base64 data URI on the `SavedItem`.
 
 ### E3 — Web Push Notifications
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: "Your 5 Tokyo clips are ready to plan" is the core re-engagement hook.  
 **What to do**: Register a service worker push subscription; send notifications via the surfacing logic when the user has 3+ clips in a location cluster for more than 7 days.
 

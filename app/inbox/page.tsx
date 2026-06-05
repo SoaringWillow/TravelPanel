@@ -14,6 +14,7 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, getAllTrips
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { checkAndNotify } from '@/lib/pushNotifications';
 import InboxCard from '@/components/InboxCard';
 import InboxCardSkeleton from '@/components/InboxCardSkeleton';
 import SearchBar from '@/components/SearchBar';
@@ -50,6 +51,14 @@ export default function InboxPage() {
   useEffect(() => {
     getAllTrips().then(setTrips).catch(() => setTrips([]));
   }, []);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    checkAndNotify(items);
+    const onFocus = () => checkAndNotify(items);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [items]);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);

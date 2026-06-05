@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Trash2, Info, Database, Moon } from 'lucide-react';
+import { Download, Trash2, Info, Database, Moon, Bell } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getTripsForBoard, deleteDemoData } from '@/lib/db';
 import { useTheme, type ThemePreference } from '@/hooks/useTheme';
+import { requestNotificationPermission, hasNotificationPermission } from '@/lib/pushNotifications';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,10 @@ export default function SettingsPage() {
   }
 
   const { preference: themePreference, setPreference: setTheme } = useTheme();
+  const [notifPermission, setNotifPermission] = useState<string>('default');
+  useEffect(() => {
+    if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission);
+  }, []);
   const hasDemoData = (stats?.demoItems ?? 0) + (stats?.demoBoards ?? 0) > 0;
 
   return (
@@ -187,6 +192,39 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Notifications section */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 flex items-center gap-2">
+            <Bell size={15} className="text-gray-400" />
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notifications</span>
+          </div>
+          <div className="px-4 py-4 space-y-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Get nudged when you have 3+ clips in the same destination for 7+ days.
+            </p>
+            {notifPermission === 'granted' ? (
+              <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                <Bell size={14} />
+                Notifications enabled
+              </div>
+            ) : notifPermission === 'denied' ? (
+              <p className="text-sm text-red-500">Notifications blocked — enable in browser settings.</p>
+            ) : (
+              <button
+                type="button"
+                onClick={async () => {
+                  const granted = await requestNotificationPermission();
+                  setNotifPermission(granted ? 'granted' : 'denied');
+                }}
+                className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors"
+              >
+                <Bell size={14} />
+                Enable notifications
+              </button>
+            )}
           </div>
         </div>
 
