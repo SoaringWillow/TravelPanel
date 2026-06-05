@@ -548,7 +548,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Falls back gracefully if canvas capture fails (just copies the text summary instead)
 
 ### I4 — Substance filter in board detail
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`  
 **What to do**:
 - In the board's clip list view (below the map), add a substance filter row: "All" | "💡 Tips" | "⚠️ Warnings" | "🧠 Wisdom"

@@ -47,11 +47,18 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
+  const [substanceFilter, setSubstanceFilter] = useState<'all' | 'tip' | 'warning' | 'wisdom'>('all');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
     ? items.filter((item) => board.itemIds.includes(item.id))
     : [];
+
+  const hasSubstance = boardItems.some((i) => (i.substance?.length ?? 0) > 0);
+
+  const substanceFiltered = substanceFilter === 'all'
+    ? boardItems
+    : boardItems.filter((i) => (i.substance ?? []).some((s) => s.type === substanceFilter));
 
   const hasLocations  = boardItems.some((item) => item.locations && item.locations.length > 0);
   const stillEnriching = boardItems.some(
@@ -269,6 +276,34 @@ export default function BoardDetailPage() {
             )}
           </div>
 
+          {/* Substance filter chips */}
+          {hasSubstance && (
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide mb-2">
+              {([
+                { key: 'all',     label: 'All'       },
+                { key: 'tip',     label: '💡 Tips'    },
+                { key: 'warning', label: '⚠️ Warnings' },
+                { key: 'wisdom',  label: '🧠 Wisdom'  },
+              ] as const).map(({ key, label }) => {
+                const isActive = substanceFilter === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSubstanceFilter(key)}
+                    className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+                      isActive
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Items grid */}
           {boardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
@@ -278,6 +313,15 @@ export default function BoardDetailPage() {
               </p>
               <p className="text-sm text-gray-400">Go to Inbox to add items.</p>
             </div>
+          ) : substanceFiltered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-center">
+              <div className="text-3xl mb-2">
+                {substanceFilter === 'tip' ? '💡' : substanceFilter === 'warning' ? '⚠️' : '🧠'}
+              </div>
+              <p className="text-sm text-gray-500">
+                No clips with {substanceFilter}s in this board yet.
+              </p>
+            </div>
           ) : (
             <motion.div
               className="grid grid-cols-2 gap-3"
@@ -285,7 +329,7 @@ export default function BoardDetailPage() {
               initial="hidden"
               animate="visible"
             >
-              {boardItems.map((item) => (
+              {substanceFiltered.map((item) => (
                 <motion.div
                   key={item.id}
                   variants={{
