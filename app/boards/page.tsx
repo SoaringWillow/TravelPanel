@@ -2,19 +2,21 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid, Clock } from 'lucide-react';
+import { Plus, LayoutGrid, Clock, Sparkles, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import { useTripSuggestion, relativeDaysAgo } from '@/hooks/useTripSuggestion';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const suggestion = useTripSuggestion(boards, items);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -61,6 +63,40 @@ export default function BoardsPage() {
 
       {/* First-launch demo seed banner */}
       <OnboardingSeed />
+
+      {/* Proactive trip suggestion */}
+      {suggestion && (
+        <div className="mx-4 mt-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 shadow-md">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Sparkles size={18} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm">
+                Ready to plan {suggestion.board.emoji} {suggestion.board.name}?
+              </p>
+              <p className="text-white/80 text-xs mt-0.5">
+                You saved {suggestion.clipCount} spots {relativeDaysAgo(suggestion.mostRecentSave)} — let AI build your itinerary.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push(`/plan/${suggestion.board.id}`)}
+                className="mt-2.5 bg-white text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
+              >
+                Plan this trip →
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={suggestion.dismiss}
+              className="text-white/60 hover:text-white transition-colors flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
