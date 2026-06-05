@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface2: #242433;
+      --border: #2e2e42;
+      --text: #f0f0f8;
+      --text2: #8888aa;
+      --text3: #5555770;
+      --accent: #7c6fe0;
+      --accent-hover: #9183f0;
+      --success: #22c55e;
+      --radius: 10px;
+    }
+
+    body {
+      width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    /* ─── Header ─────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #7c6fe0 0%, #a78bfa 100%);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .header-text h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .header-text p {
+      font-size: 10px;
+      color: var(--text2);
+    }
+    .settings-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    .settings-btn:hover { color: var(--text); background: var(--surface2); }
+
+    /* ─── URL Card ───────────────────────────────────── */
+    .url-card {
+      margin: 12px 16px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+    }
+    .url-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .favicon {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      object-fit: cover;
+    }
+    .favicon-placeholder {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+    }
+    .page-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .platform-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+    .url-text {
+      font-size: 10px;
+      color: var(--text2);
+      margin-top: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ─── Board Picker ───────────────────────────────── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text2);
+      padding: 0 16px;
+      margin: 10px 0 6px;
+    }
+    .boards-list {
+      padding: 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .boards-list::-webkit-scrollbar { width: 4px; }
+    .boards-list::-webkit-scrollbar-track { background: transparent; }
+    .boards-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .board-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
+      background: none;
+      width: 100%;
+      text-align: left;
+      color: var(--text);
+    }
+    .board-item:hover { background: var(--surface); border-color: var(--border); }
+    .board-item.selected { background: #7c6fe020; border-color: #7c6fe066; }
+    .board-emoji { font-size: 14px; }
+    .board-name { font-size: 12px; font-weight: 500; flex: 1; }
+    .board-count { font-size: 10px; color: var(--text2); }
+
+    .board-item.inbox-item { }
+    .check-icon { color: var(--accent); flex-shrink: 0; display: none; }
+    .board-item.selected .check-icon { display: block; }
+
+    .no-boards {
+      padding: 8px 16px;
+      font-size: 11px;
+      color: var(--text2);
+      font-style: italic;
+    }
+
+    /* ─── Actions ────────────────────────────────────── */
+    .actions {
+      padding: 10px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      width: 100%;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 16px;
+      background: var(--surface);
+      color: var(--text2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      width: 100%;
+    }
+    .btn-secondary:hover { background: var(--surface2); color: var(--text); }
+
+    /* ─── Success State ──────────────────────────────── */
+    .success-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px 28px;
+      gap: 10px;
+      text-align: center;
+      display: none;
+    }
+    .success-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #22c55e22;
+      border: 2px solid #22c55e66;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .success-title { font-size: 15px; font-weight: 600; }
+    .success-subtitle { font-size: 12px; color: var(--text2); }
+
+    /* ─── Loading ─────────────────────────────────────── */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .main-content { }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">🗺</div>
+  <div class="header-text">
+    <h1>TravelPanel</h1>
+    <p>Clip travel inspiration</p>
+  </div>
+  <button class="settings-btn" id="settingsBtn" title="Settings">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+</div>
+
+<!-- Main content -->
+<div class="main-content" id="mainContent">
+
+  <!-- URL Card -->
+  <div class="url-card" id="urlCard">
+    <div class="url-row">
+      <div class="favicon-placeholder" id="faviconPlaceholder">🌐</div>
+      <img class="favicon" id="favicon" style="display:none" />
+      <span class="page-title" id="pageTitle">Loading…</span>
+      <span class="platform-badge" id="platformBadge" style="display:none"></span>
+    </div>
+    <div class="url-text" id="urlText"></div>
+  </div>
+
+  <!-- Board picker -->
+  <div class="section-label">Save to board</div>
+  <div class="boards-list" id="boardsList">
+    <!-- populated by popup.js -->
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-primary" id="clipBtn">
+      <div class="spinner" id="clipSpinner"></div>
+      <svg id="clipIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span id="clipBtnText">Clip to TravelPanel</span>
+    </button>
+    <button class="btn-secondary" id="openAppBtn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15 3 21 3 21 9"/>
+        <line x1="10" y1="14" x2="21" y2="3"/>
+      </svg>
+      Open in TravelPanel
+    </button>
+  </div>
+</div>
+
+<!-- Success state -->
+<div class="success-view" id="successView">
+  <div class="success-icon">✓</div>
+  <div class="success-title">Clipped!</div>
+  <div class="success-subtitle" id="successSubtitle">Saved to your board</div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

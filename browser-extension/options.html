@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --border: #2e2e42;
+      --text: #f0f0f8;
+      --text2: #8888aa;
+      --accent: #7c6fe0;
+      --radius: 10px;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .container { width: 100%; max-width: 480px; }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #7c6fe0 0%, #a78bfa 100%);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    h1 { font-size: 18px; font-weight: 700; }
+    h1 span { font-weight: 400; color: var(--text2); }
+
+    .section { margin-bottom: 24px; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+    input[type="text"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    .hint { font-size: 11px; color: var(--text2); margin-top: 6px; }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #9183f0; }
+
+    .save-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .save-msg {
+      font-size: 12px;
+      color: #22c55e;
+      display: none;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 28px 0;
+    }
+    .links { display: flex; flex-direction: column; gap: 10px; }
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text2);
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">🗺</div>
+    <h1>TravelPanel <span>Clipper Settings</span></h1>
+  </div>
+
+  <div class="section">
+    <label for="appUrl">TravelPanel App URL</label>
+    <input
+      type="text"
+      id="appUrl"
+      placeholder="http://localhost:3000"
+    />
+    <p class="hint">
+      The URL where your TravelPanel app is running.<br>
+      Local dev: <code>http://localhost:3000</code> &nbsp;·&nbsp;
+      Production: your Vercel URL
+    </p>
+  </div>
+
+  <div class="save-row">
+    <button class="btn-primary" id="saveBtn">Save settings</button>
+    <span class="save-msg" id="saveMsg">✓ Saved</span>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="links">
+    <div class="link-row">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+      </svg>
+      <a href="https://github.com/soaringwillow/travelpanel" target="_blank">Source on GitHub</a>
+    </div>
+    <div class="link-row">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8v4M12 16h.01"/>
+      </svg>
+      <span>v1.0.0 · Chrome Manifest V3</span>
+    </div>
+  </div>
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>
