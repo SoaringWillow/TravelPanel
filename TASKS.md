@@ -203,7 +203,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: every screen feels native, animated, and complete. No spinner-only loading states, no broken empty states, no jagged transitions. This phase transforms the working MVP into an app you'd be proud to show on the App Store.
 
 ### D1 — Boards page entrance animations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx`  
 **What to do**:
 - Add framer-motion stagger to board grid: boards fade+slide-up with 60ms delay between each
@@ -212,7 +212,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Replace static loading spinner with 3 pulse-skeleton board cards
 
 ### D2 — Board detail: adaptive map + plan button polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`  
 **What to do**:
 - Replace hardcoded `min(240px, 35vh)` map height with `clamp(200px, 40vh, 320px)` and add a reveal animation when the map first loads (fade + scale from 0.98)
@@ -229,7 +229,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Once a plan exists, animate the day strips appearing sequentially (stagger 80ms)
 
 ### D4 — iOS haptic feedback
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `components/InboxCard.tsx`, `lib/haptics.ts` (new)  
 **What to do**:
 - Create `lib/haptics.ts` wrapper: `impact(style)`, `notification(type)`, `selection()` — no-ops outside Capacitor native context

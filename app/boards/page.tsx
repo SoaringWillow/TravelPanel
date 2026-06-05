@@ -3,12 +3,24 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+
+// ── Skeleton card shown while IndexedDB loads ─────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 min-h-[160px] p-4 animate-pulse">
+      <div className="h-8 w-8 bg-gray-100 rounded-xl mb-3" />
+      <div className="h-4 w-3/4 bg-gray-100 rounded-md mb-2" />
+      <div className="h-3 w-2/5 bg-gray-100 rounded-md" />
+    </div>
+  );
+}
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
@@ -32,7 +44,7 @@ export default function BoardsPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10 safe-top">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid className="text-indigo-600" size={22} />
@@ -55,11 +67,19 @@ export default function BoardsPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          // Content-shaped skeleton instead of a spinner
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
           </div>
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center justify-center h-60 text-center px-6"
+          >
             <div className="text-5xl mb-4">🗺</div>
             <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
             <p className="text-sm text-gray-500 max-w-xs mb-6">
@@ -73,19 +93,35 @@ export default function BoardsPage() {
               <Plus size={16} />
               Create a Board
             </button>
-          </div>
+          </motion.div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {boards.map((board) => (
-              <BoardCard
-                key={board.id}
-                board={board}
-                itemCount={getItemCount(board.id)}
-                onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
-              />
-            ))}
-          </div>
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-3 gap-3"
+            variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
+            initial="hidden"
+            animate="visible"
+          >
+            <AnimatePresence mode="popLayout">
+              {boards.map((board) => (
+                <motion.div
+                  key={board.id}
+                  variants={{
+                    hidden: { opacity: 0, y: 16 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+                  }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.18 } }}
+                  layout
+                >
+                  <BoardCard
+                    board={board}
+                    itemCount={getItemCount(board.id)}
+                    onClick={() => router.push(`/boards/${board.id}`)}
+                    onDelete={() => handleDelete(board.id)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </div>
 

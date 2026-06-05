@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { impact, notification } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -101,6 +102,7 @@ function SharePageInner() {
 
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    impact('Medium'); // haptic: clip saved
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
@@ -111,6 +113,7 @@ function SharePageInner() {
     enrichItem(itemId, rawUrl, pendingImageBase64)
       .then(async (success) => {
         if (success) {
+          notification('Success'); // haptic: enrichment complete
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
@@ -126,6 +129,8 @@ function SharePageInner() {
               substance: updated.substance,
             } as ImportResult);
           }
+        } else {
+          notification('Warning'); // haptic: enrichment failed/rate-limited
         }
         setEnrichmentLoading(false);
       });
