@@ -4,12 +4,14 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Navigation, NavigationOff } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import NearbyPanel from '@/components/NearbyPanel';
 import NavBar from '@/components/NavBar';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,6 +24,9 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [showNearby, setShowNearby]     = useState(false);
+  const [hasFlewToUser, setHasFlewToUser] = useState(false);
+  const geo                             = useGeolocation();
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -54,6 +59,15 @@ function HomePageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length > 0 ? 'loaded' : 'empty', searchParams.toString()]);
 
+  // Fly to user location when GPS first resolves
+  useEffect(() => {
+    if (geo.location && !hasFlewToUser) {
+      setHasFlewToUser(true);
+      setFlyTo({ lat: geo.location.lat, lng: geo.location.lng, name: 'You are here' });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo.location?.lat, geo.location?.lng]);
+
   function handleItemSaved(item: SavedItem) {
     addItem(item);
     setShowImport(false);
@@ -71,7 +85,12 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        userLocation={geo.location}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -93,6 +112,51 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* GPS On-Trip toggle */}
+      {!selectedItem && (
+        <button
+          onClick={() => {
+            if (geo.tracking) {
+              geo.stop();
+              setShowNearby(false);
+              setHasFlewToUser(false);
+            } else {
+              geo.start();
+              setShowNearby(true);
+            }
+          }}
+          title={geo.tracking ? 'Stop On-Trip mode' : 'Start On-Trip mode'}
+          className={`absolute bottom-24 left-4 z-[1000] rounded-full p-3.5 shadow-xl active:scale-95 transition-all ${
+            geo.tracking
+              ? 'bg-blue-500 text-white hover:bg-blue-600'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+          aria-label={geo.tracking ? 'Stop On-Trip mode' : 'On-Trip mode'}
+        >
+          {geo.tracking ? <Navigation size={20} strokeWidth={2.5} /> : <NavigationOff size={20} />}
+        </button>
+      )}
+
+      {/* Nearby panel (On-Trip mode) */}
+      {showNearby && geo.location && !selectedItem && (
+        <NearbyPanel
+          items={items}
+          userLocation={geo.location}
+          onClose={() => { geo.stop(); setShowNearby(false); }}
+          onItemClick={(item) => {
+            setSelectedItem(item);
+            if (item.locations[0]) setFlyTo(item.locations[0]);
+          }}
+        />
+      )}
+
+      {/* GPS error toast */}
+      {geo.error && (
+        <div className="absolute top-20 left-4 right-4 z-[1100] bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-sm text-red-700 shadow-lg">
+          {geo.error}
+        </div>
+      )}
 
       {/* Import FAB */}
       {!selectedItem && (

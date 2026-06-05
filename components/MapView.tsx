@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import { UserLocation } from '@/hooks/useGeolocation';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -224,15 +225,54 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── User location dot ───────────────────────────────────────────────────────
+
+function UserLocationDot() {
+  return (
+    <div style={{ position: 'relative', width: 20, height: 20 }}>
+      {/* Pulse ring */}
+      <div
+        style={{
+          position:        'absolute',
+          inset:           -6,
+          borderRadius:    '50%',
+          backgroundColor: 'rgba(59,130,246,0.25)',
+          animation:       'tp-gps-pulse 2s ease-out infinite',
+        }}
+      />
+      {/* Blue dot */}
+      <div
+        style={{
+          width:           20,
+          height:          20,
+          borderRadius:    '50%',
+          backgroundColor: '#3b82f6',
+          border:          '3px solid white',
+          boxShadow:       '0 2px 8px rgba(59,130,246,0.6)',
+          position:        'relative',
+          zIndex:          1,
+        }}
+      />
+      <style>{`
+        @keyframes tp-gps-pulse {
+          0%   { transform: scale(1);   opacity: 0.8; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: UserLocation | null;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -349,6 +389,19 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </div>
           </Popup>
         )}
+
+        {/* GPS user location dot */}
+        {userLocation &&
+          Number.isFinite(userLocation.lat) &&
+          Number.isFinite(userLocation.lng) && (
+            <Marker
+              longitude={userLocation.lng}
+              latitude={userLocation.lat}
+              anchor="center"
+            >
+              <UserLocationDot />
+            </Marker>
+          )}
       </Map>
     </div>
   );
