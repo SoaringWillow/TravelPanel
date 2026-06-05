@@ -135,7 +135,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 - Result: Day 1 visits locations that are all in the same neighborhood, Day 2 in another area
 
 ### E4 — Clip Deduplication Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/api/import/route.ts`, `lib/db.ts`  
 **What to do**:
 - Before saving a clip, check if the URL already exists in IndexedDB (normalize URL: strip tracking params, lowercase)

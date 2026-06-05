@@ -15,6 +15,7 @@ import {
   PLATFORM_BG,
   PLATFORM_COLORS,
 } from '@/lib/parse-url';
+import { getAllItemsByUrl } from '@/lib/db';
 
 // ─── Props / types ───────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ interface ImportSheetProps {
   initialUrl?: string;
 }
 
-type Stage = 'idle' | 'loading' | 'preview';
+type Stage = 'idle' | 'loading' | 'preview' | 'duplicate';
 
 interface InlinePreview { title: string | null; thumbnail: string | null; platform: string }
 
@@ -47,6 +48,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [error, setError]             = useState('');
   const [inlinePreview, setInlinePreview] = useState<InlinePreview | null>(null);
   const [inlineLoading, setInlineLoading] = useState(false);
+  const [duplicateItem, setDuplicateItem] = useState<SavedItem | null>(null);
   const abortRef                      = useRef<AbortController | null>(null);
   const debounceRef                   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,6 +85,14 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   async function handleImport() {
     if (!trimmedUrl) return;
+
+    // Deduplicate: check if URL already saved
+    const existing = await getAllItemsByUrl(trimmedUrl);
+    if (existing.length > 0) {
+      setDuplicateItem(existing[0]);
+      setStage('duplicate');
+      return;
+    }
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -173,6 +183,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setInlinePreview(null);
     setInlineLoading(false);
+    setDuplicateItem(null);
     setStage('idle');
     setError('');
   }
@@ -280,8 +291,8 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             </div>
           )}
 
-          {/* ── Import button (hidden during preview) ───────────────────── */}
-          {stage !== 'preview' && (
+          {/* ── Import button (hidden during preview / duplicate) ───────── */}
+          {stage !== 'preview' && stage !== 'duplicate' && (
             <button
               type="button"
               onClick={handleImport}
@@ -297,6 +308,59 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 'Clip & discover places'
               )}
             </button>
+          )}
+
+          {/* ── Duplicate detected ───────────────────────────────────────── */}
+          {stage === 'duplicate' && duplicateItem && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-amber-800">Already in your collection</p>
+              <p className="text-xs text-amber-700 line-clamp-2">{duplicateItem.title}</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setStage('idle'); setDuplicateItem(null); }}
+                  className="flex-1 py-2 rounded-lg border border-amber-300 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors"
+                >
+                  Use different URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Clip anyway — bypass dedup
+                    setDuplicateItem(null);
+                    setStage('loading');
+                    // Re-run import without dedup check
+                    (async () => {
+                      abortRef.current?.abort();
+                      const controller = new AbortController();
+                      abortRef.current = controller;
+                      const timeoutId = setTimeout(() => controller.abort('timeout'), IMPORT_TIMEOUT_MS);
+                      try {
+                        const res = await fetch('/api/import', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ url: trimmedUrl }),
+                          signal: controller.signal,
+                        });
+                        clearTimeout(timeoutId);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const data: ImportResult = await res.json();
+                        setPreview(data);
+                        setStage('preview');
+                      } catch (err) {
+                        clearTimeout(timeoutId);
+                        const isTimeout = err instanceof Error && (err.name === 'AbortError' || err.message === 'timeout');
+                        setError(isTimeout ? 'Taking too long — the page may be private or unsupported.' : 'Could not clip this URL.');
+                        setStage('idle');
+                      }
+                    })();
+                  }}
+                  className="flex-1 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors"
+                >
+                  Clip again anyway
+                </button>
+              </div>
+            </div>
           )}
 
           {/* ── Error message + save-anyway fallback ─────────────────────── */}

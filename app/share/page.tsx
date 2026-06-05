@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getAllItemsByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -31,6 +31,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
   // Image captured by the iOS Share Extension (e.g. Xiaohongshu screenshot)
   const pendingImageRef = useRef<string | null>(null);
 
@@ -41,7 +42,13 @@ function SharePageInner() {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
     // Consume any image captured by the iOS Share Extension (see CapacitorBridge)
     pendingImageRef.current = consumePendingImage();
-  }, []);
+    // Deduplication check
+    if (rawUrl) {
+      getAllItemsByUrl(rawUrl).then((existing) => {
+        if (existing.length > 0) setDuplicateItem(existing[0]);
+      }).catch(() => {});
+    }
+  }, [rawUrl]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -176,6 +183,20 @@ function SharePageInner() {
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
+          {/* Duplicate warning */}
+          {duplicateItem && (
+            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-1">
+              <p className="text-sm font-semibold text-amber-800">Already in your collection</p>
+              <p className="text-xs text-amber-700 line-clamp-2">{duplicateItem.title}</p>
+              <button
+                type="button"
+                onClick={() => setDuplicateItem(null)}
+                className="text-xs text-amber-600 underline"
+              >
+                Save again anyway
+              </button>
+            </div>
+          )}
           <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
 
           {/* Horizontally scrollable chip row */}
