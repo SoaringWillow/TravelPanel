@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import ProactiveSurface from '@/components/ProactiveSurface';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -93,6 +94,9 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Proactive resurfacing card */}
+      {!selectedItem && !showImport && <ProactiveSurface />}
 
       {/* Import FAB */}
       {!selectedItem && (
