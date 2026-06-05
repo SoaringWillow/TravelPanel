@@ -5,6 +5,7 @@ import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { Navigation } from 'lucide-react';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
@@ -224,7 +225,59 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── Haversine distance (km) ─────────────────────────────────────────────────
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ─── User location dot ───────────────────────────────────────────────────────
+
+function UserLocationDot() {
+  return (
+    <div style={{ position: 'relative', width: 20, height: 20 }}>
+      {/* Pulsing ring */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: -8,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(59,130,246,0.25)',
+          animation: 'tp-pulse 2s ease-out infinite',
+        }}
+      />
+      {/* Blue dot */}
+      <div
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          backgroundColor: '#3b82f6',
+          border: '3px solid white',
+          boxShadow: '0 2px 8px rgba(59,130,246,0.5)',
+        }}
+      />
+      <style>{`
+        @keyframes tp-pulse {
+          0%   { transform: scale(0.6); opacity: 0.8; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
+
+const NEAR_ME_KM = 30;
 
 interface MapViewProps {
   items: SavedItem[];
@@ -234,14 +287,69 @@ interface MapViewProps {
 
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
-  const { clusters, getExpansionZoom, setView } = useSupercluster(items);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [nearMeActive, setNearMeActive] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  // Filter items to those with at least one location within NEAR_ME_KM when active
+  const visibleItems =
+    nearMeActive && userLocation
+      ? items.filter((item) =>
+          item.locations.some(
+            (loc) => haversineKm(userLocation.lat, userLocation.lng, loc.lat, loc.lng) <= NEAR_ME_KM,
+          ),
+        )
+      : items;
+
+  const { clusters, getExpansionZoom, setView } = useSupercluster(visibleItems);
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
     (m, c) => (c.properties.cluster ? Math.max(m, (c.properties.point_count as number) || 0) : m),
     1,
   );
+
+  // Start/stop GPS tracking
+  const toggleLocation = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+      setUserLocation(null);
+      setNearMeActive(false);
+      setLocationError(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationError('GPS not supported');
+      return;
+    }
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setUserLocation((prev) => {
+          // Pan to location on first fix
+          if (!prev && mapInstanceRef.current) {
+            mapInstanceRef.current.flyTo({ center: [lng, lat], zoom: 13, duration: 1200 });
+          }
+          return { lat, lng };
+        });
+        setLocationError(null);
+      },
+      () => setLocationError('Location unavailable'),
+      { enableHighAccuracy: true, maximumAge: 10000 },
+    );
+  }, []);
+
+  // Cleanup watch on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    };
+  }, []);
 
   const syncView = useCallback(
     (map: maplibregl.Map) => {
@@ -279,8 +387,14 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
-
         <MapController flyTo={flyTo} />
+
+        {/* User location dot */}
+        {userLocation && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <UserLocationDot />
+          </Marker>
+        )}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;
@@ -350,6 +464,91 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
           </Popup>
         )}
       </Map>
+
+      {/* GPS / location controls */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 88,
+          right: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          zIndex: 10,
+        }}
+      >
+        {/* Near-me toggle — only when location is active */}
+        {userLocation && (
+          <button
+            type="button"
+            onClick={() => setNearMeActive((v) => !v)}
+            title={nearMeActive ? 'Show all pins' : `Show pins within ${NEAR_ME_KM}km`}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: nearMeActive ? '#6366f1' : 'white',
+              color: nearMeActive ? 'white' : '#6366f1',
+              border: nearMeActive ? 'none' : '1.5px solid #e5e7eb',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            {NEAR_ME_KM}k
+          </button>
+        )}
+
+        {/* My Location button */}
+        <button
+          type="button"
+          onClick={toggleLocation}
+          title={userLocation ? 'Stop location tracking' : 'My location'}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: userLocation ? '#3b82f6' : 'white',
+            color: userLocation ? 'white' : '#6b7280',
+            border: userLocation ? 'none' : '1.5px solid #e5e7eb',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s, color 0.2s',
+          }}
+        >
+          <Navigation size={18} strokeWidth={2} />
+        </button>
+      </div>
+
+      {/* Location error toast */}
+      {locationError && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 96,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#1f2937',
+            color: 'white',
+            fontSize: 12,
+            fontWeight: 500,
+            padding: '6px 14px',
+            borderRadius: 20,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            whiteSpace: 'nowrap',
+            zIndex: 20,
+          }}
+        >
+          {locationError}
+        </div>
+      )}
     </div>
   );
 }
