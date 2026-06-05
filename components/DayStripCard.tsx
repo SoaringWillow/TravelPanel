@@ -43,6 +43,12 @@ export default function DayStripCard({ day, index, isActive, onSelect }: DayStri
       <p className="text-xs text-gray-400 mt-1">
         {stopCount} stop{stopCount !== 1 ? 's' : ''}
       </p>
+
+      {day.weather && (
+        <p className="text-xs text-gray-500 mt-1.5 leading-tight">
+          {day.weather.condition.split(' ').slice(0, 2).join(' ')} {day.weather.highC}°/{day.weather.lowC}°
+        </p>
+      )}
     </motion.div>
   );
 }

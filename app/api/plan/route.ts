@@ -1,8 +1,41 @@
 import { NextRequest } from 'next/server';
 import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
-import { SavedItem, AgentStep } from '@/lib/types';
+import { SavedItem, AgentStep, WeatherDay } from '@/lib/types';
 import { models } from '@/lib/models';
+
+// ─── WMO weather code mapping ────────────────────────────────────────────────
+
+const WMO_CODES: Record<number, string> = {
+  0: '☀️ Clear', 1: '🌤 Mainly clear', 2: '⛅ Partly cloudy', 3: '☁️ Overcast',
+  45: '🌫 Fog', 48: '🌫 Icy fog',
+  51: '🌦 Light drizzle', 53: '🌦 Drizzle', 55: '🌧 Heavy drizzle',
+  61: '🌧 Light rain', 63: '🌧 Rain', 65: '🌧 Heavy rain',
+  71: '🌨 Light snow', 73: '🌨 Snow', 75: '❄️ Heavy snow',
+  80: '🌦 Light showers', 81: '🌧 Showers', 82: '⛈ Violent showers',
+  95: '⛈ Thunderstorm', 96: '⛈ Storm with hail', 99: '⛈ Heavy storm with hail',
+};
+
+function wmoToCondition(code: number): string {
+  return WMO_CODES[code] ?? '🌡 Variable';
+}
+
+async function fetchWeather(lat: number, lng: number, daysCount: number): Promise<WeatherDay[]> {
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+    `&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=${Math.min(daysCount, 7)}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const { weathercode, temperature_2m_max, temperature_2m_min } = data.daily ?? {};
+  if (!weathercode) return [];
+  return (weathercode as number[]).map((code: number, i: number) => ({
+    day: i + 1,
+    condition: wmoToCondition(code),
+    highC: Math.round(temperature_2m_max[i]),
+    lowC: Math.round(temperature_2m_min[i]),
+  }));
+}
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -31,11 +64,19 @@ const activitySchema = z.object({
   ),
 });
 
+const weatherDaySchema = z.object({
+  day: z.number(),
+  condition: z.string(),
+  highC: z.number(),
+  lowC: z.number(),
+}).optional();
+
 const dayPlanSchema = z.object({
   day: z.number(),
   theme: z.string(),
   locations: z.array(locationSchema),
   activities: z.array(activitySchema),
+  weather: weatherDaySchema,
 });
 
 const tripPlanSchema = z.object({
@@ -117,7 +158,24 @@ export async function POST(req: NextRequest) {
 
         step('routing', 'Building optimised route…');
 
-        // ── Step 3: Stream full itinerary ────────────────────────────────
+        // ── Step 3: Fetch weather forecast (best-effort) ─────────────────
+        let weatherForecast: WeatherDay[] = [];
+        const primaryLoc = resolvedLocs.locations[0];
+        if (primaryLoc?.lat && primaryLoc?.lng) {
+          try {
+            weatherForecast = await fetchWeather(primaryLoc.lat, primaryLoc.lng, days);
+          } catch {
+            // non-fatal
+          }
+        }
+
+        const weatherContext = weatherForecast.length > 0
+          ? `\nWeather forecast for the destination:\n${weatherForecast.map(
+              (w) => `Day ${w.day}: ${w.condition}, high ${w.highC}°C, low ${w.lowC}°C`
+            ).join('\n')}\n`
+          : '';
+
+        // ── Step 4: Stream full itinerary ────────────────────────────────
         // Include substance (the wisdom layer) so the plan can cite the user's
         // own clips inline — this is the sourced-itinerary moat.
         const contentSummary = items.map((i) => ({
@@ -142,12 +200,14 @@ Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
-
+${weatherContext}
 Rules:
 - 2-4 activities per day with realistic timing
 - Cluster geographically nearby places each day
 - Focus on routes and activities only — no bookings or costs
 - Include practical tips for each activity
+- For each day, set the "weather" field using the forecast data above (match by day number).
+  If no forecast data is available, omit the weather field.
 - IMPORTANT — Sourced wisdom: each saved clip carries a "substance" array of the
   user's own tips/warnings/opinions. When a clip's substance is relevant to an
   activity, surface it in that activity's "sourcedTips" with the exact clip title

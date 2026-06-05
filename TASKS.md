@@ -103,7 +103,7 @@ These tasks make TravelPanel feel like a premium iOS app. No external deps requi
 ## PHASE E — Enrichment & Planning Power-Ups
 
 ### E1 — Weather Enrichment on Plan Generation
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Needs**: Free weather API (Open-Meteo — no key required)  
 **Files**: `app/api/plan/route.ts`  
 **What to do**:
