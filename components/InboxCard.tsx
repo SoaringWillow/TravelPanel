@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
@@ -177,8 +179,63 @@ export default function InboxCard({
     day: 'numeric',
   });
 
+  return <SwipeableCard item={item} date={date} onDelete={onDelete} onViewOnMap={onViewOnMap} onMoveToBoard={onMoveToBoard} />;
+}
+
+// ─── Swipeable wrapper for the done-state card ────────────────────────────────
+
+function SwipeableCard({
+  item,
+  date,
+  onDelete,
+  onViewOnMap,
+  onMoveToBoard,
+}: {
+  item: SavedItem;
+  date: string;
+  onDelete: (id: string) => void;
+  onViewOnMap: (id: string) => void;
+  onMoveToBoard?: (id: string) => void;
+}) {
+  const x = useMotionValue(0);
+  const [swiped, setSwiped] = useState(false);
+
+  // Delete button opacity: visible when x < -60
+  const deleteOpacity = useTransform(x, [-80, -60], [1, 0]);
+  const deleteScale   = useTransform(x, [-80, -60], [1, 0.8]);
+
+  function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
+    if (info.offset.x < -80) {
+      // Confirm delete
+      setSwiped(true);
+      animate(x, -300, { duration: 0.25, ease: 'easeOut' }).then(() => onDelete(item.id));
+    } else {
+      // Snap back
+      animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
+    }
+  }
+
+  if (swiped) return null;
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div className="relative rounded-2xl overflow-hidden">
+      {/* Delete background revealed on swipe */}
+      <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-2xl">
+        <motion.div style={{ opacity: deleteOpacity, scale: deleteScale }} className="flex flex-col items-center gap-1">
+          <Trash2 size={20} color="white" />
+          <span className="text-white text-xs font-semibold">Delete</span>
+        </motion.div>
+      </div>
+
+      {/* Card content — drags left */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -160, right: 0 }}
+        dragElastic={{ left: 0.2, right: 0 }}
+        onDragEnd={handleDragEnd}
+        style={{ x }}
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden cursor-grab active:cursor-grabbing"
+      >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -300,6 +357,7 @@ export default function InboxCard({
           </div>
         </div>
       </div>
+      </motion.div>
     </div>
   );
 }

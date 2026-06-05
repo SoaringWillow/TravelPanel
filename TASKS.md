@@ -63,7 +63,7 @@ All Phase A–C tasks are complete. The app has:
 - Use spring animation for the pull indicator (matches iOS feel)
 
 ### D4 — Swipe-to-Delete on Inbox Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Standard iOS interaction. Users expect to swipe left to reveal a delete button.  
 **Files to change**: `components/InboxCard.tsx`  
 **What to do**:
