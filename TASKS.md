@@ -7,194 +7,298 @@
 
 ---
 
-## ⭐ Recommended Execution Order (revised 2026-05-31)
+## ⭐ Current Status (2026-06-05)
 
-The moat is **Substance over Spots**. A1 made the app *extract* substance, but it's
-currently invisible (only a count badge) and the trip planner throws it away. The two
-highest-value tasks are surfacing substance (A11) and threading it into plans (A12) —
-do these before clustering/search polish.
+All Phase A–E tasks are complete. The app has:
+- 2-layer clip extraction (spots + substance) via Claude
+- Enrichment retry queue
+- PostHog analytics + AI cost guards
+- Pin clustering, full-text search with advanced filters, onboarding boards
+- Plan export (PDF + .ics), multi-version plans, trip collaboration notes
+- Substance "Wisdom view" in clip detail + sourced citations in plans
+- Browser extension (Chrome/Edge/Arc)
+- Claude Vision for Xiaohongshu/WeChat screenshots
+- Settings page with JSON backup export
+- GPS "Near Me" mode with live distance labels
+- Post-Trip Timeline / Journey view in Inbox
+- Shareable board links (hash-encoded)
+- Proactive Resurfacing — nearby clips banner
+- Supabase scaffold (dormant, waiting for keys)
+- Dark mode (system-respecting), skeleton loading, pull-to-refresh
+- Swipe-to-delete, haptic feedback, offline detection banner
+- Map style toggle (Streets / Light / Dark), first-launch welcome overlay
+- Multi-select + batch operations, sort options, duplicate URL detection
+- Quick clip from clipboard (web + native iOS), E6 accessibility pass
+- Universal Links + Associated Domains setup
 
-`A11 → A12 → A3 → A7 → A8 → A6 → A9 → A10`
-
-(A3 is NOT blocked — it no-ops without a key. Build it now; it just stays dormant
-until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
+**Phase F** focuses on App Store readiness and production hardening.
 
 ---
 
-## PHASE A — Bug-Free MVP (Current Sprint)
+## PHASE F — App Store Readiness & Production Hardening
 
-### A1 — Substance Extraction (2-layer clip schema) 🔴 HIGHEST PRIORITY
+---
+
+## PHASE D — iOS Polish & Beauty
+
+### D1 — Dark Mode
 **Status**: `[x]` Done  
-**Why**: This is the #1 strategic moat. Currently `api/import/route.ts` only extracts spots (locations + coordinates). It must ALSO extract substance: tips, warnings, opinions, "go in the morning"-style wisdom from the post content.  
-**File to change**: `app/api/import/route.ts`  
+**Why**: Most iOS users use dark mode. The app is entirely white — it looks jarring at night.  
+**Files to change**: `app/globals.css`, `tailwind.config.ts`, all page/component files  
 **What to do**:
-- Extend the Zod schema to add a `substance` array alongside `locations`
-- Each substance item: `{ type: 'tip'|'warning'|'opinion'|'wisdom'|'context'|'recommendation', content: string, applies_to?: string, source_quote?: string }`
-- Update the Claude prompt to explicitly ask for both layers
-- Update the DB schema in `lib/db.ts` to store `substance: SubstanceItem[]` on `SavedItem`
-- Update `lib/types.ts` with the `SubstanceItem` type
-- Update `components/InboxCard.tsx` to show substance count badge (e.g. "3 tips")
+- Add CSS custom properties for colors (--bg, --surface, --text, etc.) in `app/globals.css`
+- Configure Tailwind `darkMode: 'media'` to respect `prefers-color-scheme`
+- Update all pages/components to use `dark:` variants: bg-white → bg-white dark:bg-gray-900, text-gray-900 → dark:text-gray-100, etc.
+- Test all major views: Home/Map, Inbox, Boards, Settings, Share, Plan, Detail card
 
-### A2 — Enrichment Retry Queue 🔴 HIGH PRIORITY
+### D2 — Skeleton Loading States
 **Status**: `[x]` Done  
-**Why**: Enrichment is currently fire-and-forget. Items silently fail to enrich (no error, no retry). Users see empty cards. This is a retention killer.  
-**Files to change**: `app/share/page.tsx`, `lib/db.ts`, possibly a new `lib/retryQueue.ts`  
+**Why**: Cards flash blank white during enrichment load, which feels broken.  
+**Files to change**: `components/InboxCard.tsx`, new `components/SkeletonCard.tsx`  
 **What to do**:
-- On enrichment failure, set `enrichmentStatus: 'failed'` and increment `retryCount`
-- Create a retry mechanism: on app load, find items with `status: 'failed'` and `retryCount < 3`, re-attempt enrichment with exponential backoff (2s, 4s, 8s)
-- Show a subtle "Retrying..." indicator on failed cards
-- After 3 failures, show a "Failed to extract info" state with a manual retry button
+- Create `SkeletonCard` with animated shimmer (CSS animation on gray placeholder blocks)
+- Show skeleton when `enrichmentStatus === 'processing'` instead of a spinner
+- Use same card dimensions as real InboxCard to prevent layout shift
+- Skeleton should show: thumbnail placeholder, two text lines, tag pill placeholders
 
-### A3 — Error Tracking (PostHog)
+### D3 — Pull-to-Refresh on Inbox
 **Status**: `[x]` Done  
-**Needs**: `NEXT_PUBLIC_POSTHOG_KEY` env var (free tier) — but NOT a blocker; wrappers no-op without it  
-**Files to change**: `app/layout.tsx`, new `lib/analytics.ts`  
+**Why**: Standard iOS gesture. Users pull down to refresh — app should respond.  
+**Files to change**: `app/inbox/page.tsx`, new `hooks/usePullToRefresh.ts`  
 **What to do**:
-- Install `posthog-js`
-- Create `lib/analytics.ts` with `track(event, props)` and `identify(userId)` wrappers that no-op if key is missing
-- Add PostHog provider to `app/layout.tsx`
-- Track key events: `clip_saved`, `plan_generated`, `board_created`, `search_performed`
-- If `NEXT_PUBLIC_POSTHOG_KEY` is missing, trigger resource request notification (see A5)
+- Create `usePullToRefresh(onRefresh, containerRef)` hook using touch events
+- When user pulls down ≥64px past the top, show an animated refresh indicator and call `onRefresh`
+- `onRefresh` in inbox: re-run the enrichment retry queue + reload items
+- Use spring animation for the pull indicator (matches iOS feel)
 
-### A4 — AI Cost Guard
+### D4 — Swipe-to-Delete on Inbox Cards
 **Status**: `[x]` Done  
-**Why**: Heavy users can spike API spend with no ceiling. No visibility into per-user cost.  
-**Files to change**: `app/api/plan/route.ts`, `app/api/import/route.ts`  
+**Why**: Standard iOS interaction. Users expect to swipe left to reveal a delete button.  
+**Files to change**: `components/InboxCard.tsx`  
 **What to do**:
-- Add a simple per-session rate limit: max 10 enrichments per hour (track in localStorage), max 5 plan generations per day (track in IndexedDB)
-- When limit is hit, show a friendly message: "You've hit the daily plan limit. Upgrade to Pro for unlimited plans — coming soon."
-- Log token usage per request to console in dev mode (foundation for cost tracking)
+- Add swipe-left gesture to InboxCard using touch events (or Framer Motion drag)
+- After swiping ≥80px left, reveal a red "Delete" button
+- Tapping Delete confirms and removes; swiping back cancels
+- Works alongside existing long-press / kebab menu
 
-### A5 — In-App Resource Request Notifications
+### D5 — Haptic Feedback on iOS
 **Status**: `[x]` Done  
-**Files**: new `components/ResourceBanner.tsx`, new `app/api/notify/route.ts`  
+**Why**: Haptic feedback makes the app feel native. Saves, deletes, and plan generation should vibrate.  
+**Files to change**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
-- Create a banner component that checks for missing env vars and shows what's needed
-- Create `app/api/notify/route.ts` that sends an email via Resend to jiangnan027@gmail.com when a resource is needed
-- Env vars to check: `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_POSTHOG_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`
-- If `RESEND_API_KEY` is missing, fall back to a mailto: link
-- **NOTE**: Ask user for `RESEND_API_KEY` to enable email notifications (free tier: 100 emails/day)
+- Install `@capacitor/haptics` (already in dependencies from Capacitor setup)
+- Create `lib/haptics.ts` with `lightImpact()`, `mediumImpact()`, `success()`, `error()` wrappers that no-op on web
+- Fire `success()` on clip save, `lightImpact()` on board selection, `mediumImpact()` on plan generation start, `error()` on enrichment failure
+- Use `navigator.vibrate` as fallback on web
 
-### A6 — Pin Clustering at Low Zoom
+### D6 — Offline Detection Banner
 **Status**: `[x]` Done  
+**Why**: When offline, enrichment silently fails. Users don't know why nothing works.  
+**Files to change**: `app/layout.tsx`, new `components/OfflineBanner.tsx`  
+**What to do**:
+- Create `OfflineBanner` that listens to `window.addEventListener('online'/'offline')`
+- Show a subtle banner at the top: "⚡ You're offline — clips will enrich when reconnected"
+- Auto-dismiss with slide-up animation when back online
+- On reconnection, trigger the enrichment retry queue
+
+### D7 — Better First-Launch Empty State
+**Status**: `[x]` Done  
+**Why**: The map is empty on first launch before the user dismisses onboarding. The transition is jarring.  
+**Files to change**: `app/page.tsx`, `lib/seedData.ts`  
+**What to do**:
+- On first launch (no items), show a welcome overlay on the map (not a modal)
+- Overlay has: app name, 1-line value prop ("Clip travel inspiration, AI-plan your trip"), two buttons: "Try with sample boards" and "Start from scratch"
+- "Try with sample boards" loads seed data and dismisses; "Start from scratch" skips seeds
+- Store choice in localStorage `hasChosenOnboarding: true`
+- After choice, the FAB pulses once to draw attention
+
+### D8 — Map Style Toggle (Standard / Satellite)
+**Status**: `[x]` Done  
+**Why**: Satellite view is essential for trip planning — users want to see terrain and exact beach/restaurant positions.  
 **Files to change**: `components/MapView.tsx`  
 **What to do**:
-- Enable MapLibre's built-in cluster layer on the locations source
-- Show count badge on clustered pins
-- On click of cluster, zoom in to reveal individual pins
-- Individual pin color should reflect tag category (food=orange, nature=green, culture=purple, etc.)
+- Add a style toggle button in the bottom-left of the map (📍/🛰 icon)
+- Toggle between: `https://tiles.openfreemap.org/styles/liberty` (streets) and `https://tiles.openfreemap.org/styles/positron` (light) and `https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json` (dark/satellite-like)
+- Store preference in localStorage
+- Button cycles through 3 styles with a tooltip showing the current style name
 
-### A7 — Full-Text Search on Clips
+### D9 — Clip Notes Editor
 **Status**: `[x]` Done  
-**Files**: new `components/SearchBar.tsx`, `app/page.tsx` or `app/inbox/page.tsx`  
+**Why**: Users want to add personal notes to clips ("tried this, overrated", "reservation needed"). Currently no way to edit after saving.  
+**Files to change**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
-- Add a search bar to the main board/inbox view
-- Client-side search across clip title + description + tags + substance content (if present)
-- Debounced (300ms), highlights matching text
-- Empty state: "No clips match '[query]'. Try a different search."
-- Foundation for embedding search in Phase B
+- Add a "Notes" section at the bottom of the LocationDetailCard
+- Tapping the section shows a textarea (inline, not a modal)
+- Auto-saves after 800ms debounce via `updateItemNotes(id, notes)` in db.ts
+- Show note content in the InboxCard's bottom section if notes are non-empty
+- Placeholder: "Add a personal note…"
 
-### A8 — Onboarding Seed Boards
+### D10 — Universal Links (Deep Linking)
 **Status**: `[x]` Done  
-**Files**: new `lib/seedData.ts`, `app/page.tsx`  
+**Why**: Sharing a board link should open the app directly on iOS if installed, not the browser.  
+**Files to change**: `public/apple-app-site-association`, `ios/App/App/Info.plist`, `ios/App/App/AppDelegate.swift`  
 **What to do**:
-- Create 3 seed boards with real-looking clip data (Tokyo, Kyoto, Bali or similar)
-- Each seed board has 4–6 clips with locations, tags, and substance items
-- Show these on first launch (detect via a `hasSeenOnboarding` flag in localStorage)
-- User can dismiss ("I'll add my own clips") or keep them
-- Seed data should showcase the substance layer: each clip has at least 2 substance items
-
-### A9 — Plan Export (PDF + Calendar)
-**Status**: `[x]` Done  
-**Files**: `app/plan/[boardId]/page.tsx`, new `lib/exportPlan.ts`  
-**What to do**:
-- Add Export button to the plan view
-- PDF: use `jspdf` to generate a clean print-layout PDF with day-by-day itinerary
-- Calendar: generate `.ics` file (RFC 5545) with one event per activity, including location coordinates for Apple Maps deep link
-- Both exports include source citations from substance items
-
-### A10 — Multi-Version Plan Support
-**Status**: `[x]` Done  
-**Files**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
-**What to do**:
-- Allow saving a named plan variant ("Relaxed pace", "Budget version")
-- Store multiple plans per board in IndexedDB (`trips` store)
-- Show plan version selector at top of plan view
-- "Regenerate" creates a new version (doesn't overwrite current)
-
-### A11 — Surface Substance in Clip Detail (the "Wisdom view") 🔴 HIGHEST PRIORITY
-**Status**: `[x]` Done  
-**Why**: A1 extracts substance but `LocationDetailCard` never shows it — the moat is invisible. This is the payoff for the count badge users already see.  
-**Files to change**: `components/LocationDetailCard.tsx`, possibly a new `components/SubstanceList.tsx`  
-**What to do**:
-- Add a "Wisdom" section to the detail card rendering `item.substance`
-- Group by type with an icon/color per type: tip 💡, warning ⚠️, opinion 💬, wisdom 🧠, context 🌍, recommendation ⭐
-- Show `content`; if `source_quote` present, show it as a subtle italic citation under the content
-- Extract a reusable `SubstanceList` so the plan view (A12) can reuse it
-- Empty state: don't render the section if `substance` is empty
-
-### A12 — Thread Substance into Trip Plans (sourced itineraries) 🔴 HIGHEST PRIORITY
-**Why**: The strategic promise is "the trip planner generates an itinerary that *cites the source clips inline*." Currently `/api/plan` builds `contentSummary` from only `title/activities/tags` — substance is dropped, so plans can't cite wisdom. This wires the moat end-to-end.  
-**Status**: `[x]` Done  
-**Files to change**: `app/api/plan/route.ts`, `lib/types.ts` (Activity/DayPlan), `components/DayStripCard.tsx` or plan view  
-**What to do**:
-- Include each item's `substance` (with source title) in the `contentSummary` passed to the planner
-- Update the planner prompt: when an activity is informed by a clip's tip/warning, surface that wisdom in the activity's `tips` and note which saved clip it came from
-- Add an optional `sourcedTips?: { content: string; sourceTitle: string }[]` to the `Activity` type so citations render distinctly from generic tips
-- In the day plan UI, render sourced tips with a "from your clip: <title>" attribution
-- Keep it graceful: items without substance still plan fine
+- Create `public/apple-app-site-association` file with paths for `/shared`, `/boards/*`, `/plan/*`
+- Add Associated Domains capability in Xcode (domains: `applinks:yourdomain.vercel.app`)
+- In `AppDelegate.swift`, handle `application:continueUserActivity:restorationHandler:` to route universal links into the web layer via the same `travelpanel://` scheme
+- Add `XCODE_UNIVERSAL_LINKS.md` with step-by-step Xcode instructions
 
 ---
 
-## PHASE B — Cloud Sync + Auth (Next Sprint)
+## PHASE E — Power Features
 
-### B1 — Supabase Setup
-**Status**: `[~]` Scaffolded, dormant until keys  
-**Needs**: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (request from user)  
-**Done** (no-op-until-keyed, same pattern as PostHog A3 — activates the moment keys are pasted):
-- `lib/supabase.ts` — lazy client + auth (magic link, Google OAuth, session, auth-change sub); `cloudEnabled` flag
-- `supabase/schema.sql` — Postgres mirror of IndexedDB (items/boards/trips as JSONB) + per-user RLS + indexes
-- `lib/cloudSync.ts` — `pushToCloud`/`pullFromCloud`/`syncNow`, last-write-wins, demo content excluded
-- `.env.local.example` — documents the two Supabase vars
-- `@supabase/supabase-js` added to deps + lockfile
-**Remaining to fully activate** (next session, once keys exist): create Supabase project, run `schema.sql`,
-add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
+### E1 — Multi-Select & Batch Operations
+**Status**: `[x]` Done  
+**Why**: Users with 50+ clips need to batch-move or batch-delete. One-at-a-time is tedious.  
+**Files to change**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Long-press on any card enters "selection mode" (checkboxes appear on all cards)
+- Floating action bar at bottom: "Move to board" | "Delete (N)"
+- "Move to board" shows the board picker sheet; moves all selected
+- Exit selection mode: tap Cancel or press escape
 
-### B2 — Browser Extension
-**Status**: `[ ]` Not started  
-**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
+### E2 — Sort Options
+**Status**: `[x]` Done  
+**Files to change**: `app/inbox/page.tsx`  
+**What to do**:
+- Add a Sort button (⇅ icon) next to the view toggle in inbox header
+- Options: Newest first (default), Oldest first, Most locations, Most wisdom (substance count), Platform
+- Persist sort preference in localStorage
 
-### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+### E3 — Duplicate URL Detection
+**Status**: `[x]` Done  
+**Files to change**: `components/ImportSheet.tsx`  
+**What to do**:
+- Before saving, check if any existing item has the same URL
+- If found, show an inline warning: "⚠️ You already saved this — [Title]. View it?" with a link
+- User can still save a duplicate (intentional re-clip) by tapping "Save anyway"
 
-### B4 — Embedding/Vibe Search
-**Status**: `[ ]` Not started  
-**Needs**: Supabase pgvector (from B1)  
-**What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
+### E4 — Quick Clip from Clipboard
+**Status**: `[x]` Done  
+**Files to change**: `app/page.tsx`, `components/ImportSheet.tsx`  
+**What to do**:
+- On app focus, check `navigator.clipboard.readText()` for a URL
+- If clipboard contains a URL not yet saved, show a subtle "📋 Clip from clipboard?" banner above the FAB
+- Tapping the banner opens ImportSheet pre-filled with the clipboard URL
+- Dismiss permanently via X or by saving it
 
-### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
-**What to do**: "Download all my data" as JSON from the account settings page
+### E5 — Advanced Search (Filters)
+**Status**: `[x]` Done  
+**Files to change**: `components/SearchBar.tsx`, `lib/searchItems.ts`  
+**What to do**:
+- Add a filter icon next to the search bar that expands a filter panel
+- Filters: date range (last week / last month / custom), tags (multi-select chips), has locations, has wisdom, platform
+- Active filter count badge on the filter icon
+- Combine filters with existing text search
+
+### E6 — Accessibility Pass
+**Status**: `[x]` Done  
+**Files to change**: Multiple components  
+**What to do**:
+- Audit all interactive elements for aria-label, role, and keyboard nav
+- Ensure color contrast meets WCAG AA (especially on map overlays)
+- Add `aria-live` region for enrichment status changes
+- Test with VoiceOver on iOS simulator (check XCODE_SETUP.md for steps)
+- Ensure Dynamic Type scaling works (use `text-[length]` relative units)
+
+### E7 — Trip Collaboration Notes
+**Status**: `[x]` Done  
+**Files to change**: `app/plan/[boardId]/page.tsx`, `lib/types.ts`  
+**What to do**:
+- Add a "Notes" text area to the plan view below the day strips
+- Notes are stored per trip plan version in the `trips` IndexedDB store
+- Export button includes plan notes in the PDF/calendar export
+
+### E8 — Clipboard Import on iOS (Capacitor)
+**Status**: `[x]` Done  
+**Files to change**: `components/CapacitorBridge.tsx`, `app/page.tsx`  
+**What to do**:
+- On app foreground (Capacitor `appStateChange` active event), check `@capacitor/clipboard` for a URL
+- If new URL found, show the quick-clip banner (same as E4 but native clipboard API)
+- Requires `@capacitor/clipboard` package + iOS NSPasteboardUsageDescription in Info.plist
+- Add instructions to `ios/App/ShareExtension/XCODE_SETUP.md`
 
 ---
 
-## PHASE C — On-Trip Mode (Future)
+## PHASE F — App Store Readiness & Production Hardening
 
-### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+### F1 — App Transport Security (ATS) Hardening
+**Status**: `[x]` Done
+**Why**: `NSAllowsArbitraryLoads = true` in `ios/App/App/Info.plist` globally disables HTTPS enforcement — App Store review will flag this as a security violation.
+**Files to change**: `ios/App/App/Info.plist`
+**What to do**:
+- Remove the top-level `NSAllowsArbitraryLoads: true` key
+- Add `NSExceptionDomains` exception for `localhost` (dev) with `NSTemporaryExceptionAllowsInsecureHTTPLoads: true`
+- Add exceptions for `tiles.openfreemap.org` and `basemaps.cartocdn.com` (map tiles) with `NSExceptionMinimumTLSVersion: TLSv1.2`
+- Leave `NSAllowsLocalNetworking: true` for dev server access
 
-### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+### F2 — Capacitor Navigation Lockdown
+**Status**: `[x]` Done
+**Why**: `limitsNavigationsToAppBoundDomains = false` allows the WKWebView to navigate to any URL, breaking App Sandbox and potentially causing App Store rejection.
+**Files to change**: `capacitor.config.ts`
+**What to do**:
+- Set `limitsNavigationsToAppBoundDomains: true` in the iOS server config block
+- Add the deployed Vercel domain and `localhost` to `allowNavigation`
+- Test that deep links (`travelpanel://share?url=...`) still open the share flow
+- Test that external links in clip descriptions open Safari rather than navigating the WKWebView
 
-### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+### F3 — Enrichment Failure UX
+**Status**: `[x]` Done
+**Why**: When enrichment fails silently, users don't know if their clip was processed. This kills trust and forces churn.
+**Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx`
+**What to do**:
+- In InboxCard, when `enrichmentStatus === 'failed'`, render an inline amber banner: "⚠️ Couldn't extract places — Retry" with a button that calls `onRetry(item.id, item.url)`
+- In the inbox header count badge, add red dot indicator when any items have `enrichmentStatus === 'failed'`
+- Show "N clips need attention" amber text link in the header that smoothly scrolls to the first failed card
 
-### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+### F4 — Image Lazy Loading & Map Performance
+**Status**: `[x]` Done
+**Why**: The inbox with 50+ clips loads all thumbnails eagerly, causing scroll jank on low-end iPhones.
+**Files to change**: `components/InboxCard.tsx`, `components/MapView.tsx`
+**What to do**:
+- Add `loading="lazy"` and `decoding="async"` to all `<img>` tags in InboxCard
+- In MapView, scale `useSupercluster` radius with zoom: zoom < 8 → radius 60, zoom 8-12 → radius 40, zoom > 12 → radius 20
+- Add `will-change: transform` to animated Framer Motion elements in InboxCard swipe layer
+
+### F5 — Clip Sharing (Share-to-iOS)
+**Status**: `[x]` Done
+**Why**: Users discover TravelPanel via word-of-mouth. Native share lets them forward clips to friends via iMessage/WhatsApp.
+**Files to change**: `components/LocationDetailCard.tsx`, new `lib/shareClip.ts`
+**What to do**:
+- Create `lib/shareClip.ts` with `shareClip(item: SavedItem)`: calls `navigator.share()` with title + URL + top 2 location names + "Saved with TravelPanel"
+- Fall back to `navigator.clipboard.writeText()` + toast "Copied to clipboard" when `navigator.share` is unavailable
+- Add a Share2 icon button in LocationDetailCard action row (next to "View on map" and "Open original")
+- On Capacitor iOS, `navigator.share()` triggers the native iOS share sheet — no extra packages needed
+
+### F6 — Plan Generation Error Recovery
+**Status**: `[x]` Done
+**Why**: If the plan API times out mid-stream, users see a frozen "Analyzing…" state with no escape other than navigating away.
+**Files to change**: `app/plan/[boardId]/page.tsx`, `components/PlannerAgent.tsx`
+**What to do**:
+- Add a 90-second hard timeout on plan fetch: if no `done` step arrives in 90s, call `handleCancel()` and show error toast: "Plan timed out — try reducing days or simplifying preferences"
+- In PlannerAgent, if last step is `type: 'error'`, show red error card with message + "Try again" button
+- Add max 2 retries (2s exponential backoff) for transient network errors in the plan fetch loop
+
+### F7 — Rich Onboarding Seed Data
+**Status**: `[x]` Done
+**Why**: Current seed data is minimal. New users need to see real value — clips with substance, locations, and a plan — within 10 seconds of opening the app.
+**Files to change**: `lib/seed.ts`, `components/WelcomeOverlay.tsx`
+**What to do**:
+- In `lib/seed.ts`, enrich the 3 seed boards (Tokyo Weekend, Chengdu Food, Bali Retreat) so each board has 4-6 clips with real `substance` items (tips, warnings, costs) and `locations` arrays
+- In WelcomeOverlay, after choosing "Try with sample boards", show a 3-step tooltip sequence: "📍 Tap a pin" → "📥 Go to Inbox" → "🗓 Tap Plan" that auto-advances every 3 seconds or on tap
+- Persist `hasSeenOnboardingTips: true` in localStorage when sequence completes
+
+### F8 — Dark Mode Map Tiles Auto-Switch
+**Status**: `[x]` Done
+**Why**: The map stays on the light tile style even when the device is in dark mode, creating an inconsistent look.
+**Files to change**: `components/MapView.tsx`
+**What to do**:
+- On first load, check `window.matchMedia('(prefers-color-scheme: dark)').matches`; if dark and no stored preference, default to the dark (Carto Dark Matter) style instead of streets
+- Listen to `prefers-color-scheme` media query changes: when user toggles system dark mode, auto-switch between streets↔dark-matter (only if user hasn't manually picked a style in this session)
+- Keep the manual 3-way toggle overriding the auto logic; store manual choice in localStorage as before
 
 ---
 
 ## Completed Tasks
 
-*(Claude marks tasks [x] and moves them here when done)*
+*(All Phase A–E tasks — see git history)*

@@ -10,7 +10,7 @@ function collectSourcedTips(activity: Activity): string[] {
 
 // ─── PDF export ──────────────────────────────────────────────────────────────
 
-export async function exportPlanToPDF(plan: TripPlan, boardName: string, emoji: string): Promise<void> {
+export async function exportPlanToPDF(plan: TripPlan, boardName: string, emoji: string, tripNotes?: string): Promise<void> {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
 
@@ -82,6 +82,14 @@ export async function exportPlanToPDF(plan: TripPlan, boardName: string, emoji: 
     for (const tip of plan.tips) {
       writeWrapped(`• ${tip}`, 10, { color: [120, 53, 15], indent: 12 });
     }
+  }
+
+  // Trip notes
+  if (tripNotes && tripNotes.trim()) {
+    y += 8;
+    ensureSpace(30);
+    writeWrapped('My Notes', 13, { bold: true, color: [79, 70, 229] });
+    writeWrapped(tripNotes.trim(), 10, { color: [55, 65, 81], indent: 12 });
   }
 
   doc.save(`${boardName.replace(/[^\w]+/g, '-')}-itinerary.pdf`);

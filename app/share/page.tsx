@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -29,6 +29,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +37,55 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Pick up screenshot passed from iOS Share Extension via CapacitorBridge → sessionStorage
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        sessionStorage.removeItem('pendingShareImage');
+        setScreenshotBase64(stored);
+      }
+    } catch {
+      // sessionStorage not available (rare)
+    }
+  }, []);
+
+  // Allow pasting a screenshot from clipboard
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const item = Array.from(e.clipboardData?.items ?? []).find((i) =>
+      i.type.startsWith('image/')
+    );
+    if (!item) return;
+    const blob = item.getAsFile();
+    if (!blob) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // Strip the data: prefix; keep only raw base64
+      const base64 = dataUrl.split(',')[1];
+      if (base64) setScreenshotBase64(base64);
+    };
+    reader.readAsDataURL(blob);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
+  // File input handler for manual screenshot upload
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(',')[1];
+      if (base64) setScreenshotBase64(base64);
+    };
+    reader.readAsDataURL(file);
+  }
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +138,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available for Vision extraction
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotBase64 ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -165,6 +215,39 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Screenshot preview / upload — helps Vision extraction for Xiaohongshu, WeChat */}
+          {screenshotBase64 ? (
+            <div className="relative mt-2">
+              <img
+                src={`data:image/jpeg;base64,${screenshotBase64}`}
+                alt="Shared screenshot"
+                className="w-full max-h-40 object-cover rounded-xl border border-gray-200"
+              />
+              <button
+                type="button"
+                onClick={() => setScreenshotBase64(null)}
+                aria-label="Remove screenshot"
+                className="absolute top-1.5 right-1.5 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70"
+              >
+                <X size={12} />
+              </button>
+              <span className="absolute bottom-1.5 left-2 text-xs text-white bg-black/50 rounded px-1.5 py-0.5">
+                📸 Vision enabled
+              </span>
+            </div>
+          ) : (platform === 'xiaohongshu' || platform === 'wechat') ? (
+            <label className="mt-2 flex items-center gap-2 text-xs text-indigo-600 cursor-pointer hover:text-indigo-700">
+              <Camera size={13} />
+              <span>Add screenshot for better extraction</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileInput}
+              />
+            </label>
+          ) : null}
         </div>
 
         {/* Middle section — board picker */}
@@ -294,7 +377,7 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
+            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2" role="status" aria-live="polite">
               <span className="text-sm animate-pulse">🔍 Finding locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (

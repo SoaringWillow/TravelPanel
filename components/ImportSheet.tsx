@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { success as hapticSuccess, hapticError } from '@/lib/haptics';
+import { getAllItems } from '@/lib/db';
 import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
 import {
   Drawer,
@@ -39,6 +41,8 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [stage, setStage]     = useState<Stage>('idle');
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError]     = useState('');
+  const [dupItem, setDupItem] = useState<{ id: string; title: string } | null>(null);
+  const [forceNew, setForceNew] = useState(false);
   const abortRef              = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -52,6 +56,16 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   async function handleImport() {
     if (!trimmedUrl) return;
+
+    // Duplicate check (unless user has already chosen to save anyway)
+    if (!forceNew) {
+      const all = await getAllItems();
+      const dup = all.find((i) => i.url === trimmedUrl);
+      if (dup) {
+        setDupItem({ id: dup.id, title: dup.title || dup.url });
+        return;
+      }
+    }
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -106,6 +120,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    hapticSuccess();
     onSaved(item);
     resetState();
   }
@@ -130,6 +145,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    hapticSuccess();
     onSaved(item);
     resetState();
   }
@@ -141,6 +157,8 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setDupItem(null);
+    setForceNew(false);
   }
 
   function handleClose() {
@@ -197,6 +215,8 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   setStage('idle');
                 }
                 setError('');
+                setDupItem(null);
+                setForceNew(false);
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleImport();
@@ -224,6 +244,25 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 'Clip & discover places'
               )}
             </button>
+          )}
+
+          {/* ── Duplicate URL warning ────────────────────────────────────── */}
+          {dupItem && !forceNew && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 space-y-2">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                ⚠️ You already saved this
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 line-clamp-2">{dupItem.title}</p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setForceNew(true); setDupItem(null); handleImport(); }}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold text-amber-700 border border-amber-300 hover:bg-amber-100 transition-colors"
+                >
+                  Save anyway
+                </button>
+              </div>
+            </div>
           )}
 
           {/* ── Error message + save-anyway fallback ─────────────────────── */}

@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import SkeletonCard from './SkeletonCard';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -12,6 +15,11 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  // Multi-select support
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onLongPress?: (id: string) => void;
+  onSelect?: (id: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +46,10 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  selectionMode = false,
+  isSelected = false,
+  onLongPress,
+  onSelect,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -49,24 +61,12 @@ export default function InboxCard({
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
-      return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
-          <div className="w-full h-32 bg-gray-200" />
-          <div className="p-4 space-y-3">
-            <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
-            <div className="h-3 bg-gray-200 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
-            </div>
-          </div>
-        </div>
-      );
+      return <SkeletonCard />;
     }
 
     // Partial card — title is known, enrichment still running
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-4 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span
@@ -76,7 +76,7 @@ export default function InboxCard({
             </span>
           </div>
 
-          <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2">
             {item.title}
           </h3>
 
@@ -90,7 +90,7 @@ export default function InboxCard({
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
                 aria-label="Open original"
               >
                 <ExternalLink size={13} />
@@ -98,7 +98,7 @@ export default function InboxCard({
               <button
                 type="button"
                 onClick={() => onDelete(item.id)}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                 aria-label="Delete"
               >
                 <Trash2 size={13} />
@@ -116,7 +116,7 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
@@ -127,13 +127,13 @@ export default function InboxCard({
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-gray-400 truncate flex-1 min-w-0 hover:text-indigo-500 hover:underline transition-colors"
+            className="text-xs text-gray-400 dark:text-gray-500 truncate flex-1 min-w-0 hover:text-indigo-500 hover:underline transition-colors"
           >
             {truncateUrl(item.url)}
           </a>
         </div>
 
-        <p className="text-sm font-semibold text-gray-700 line-clamp-2 leading-snug">
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 line-clamp-2 leading-snug">
           {item.title || item.url}
         </p>
 
@@ -153,7 +153,7 @@ export default function InboxCard({
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
               aria-label="Open original"
             >
               <ExternalLink size={14} />
@@ -162,7 +162,7 @@ export default function InboxCard({
               <button
                 type="button"
                 onClick={() => onRetry(item.id, item.url)}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
+                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
               >
                 Retry
               </button>
@@ -170,7 +170,7 @@ export default function InboxCard({
             <button
               type="button"
               onClick={() => onDelete(item.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
               aria-label="Delete"
             >
               <Trash2 size={13} />
@@ -189,20 +189,130 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <SwipeableCard
+      item={item}
+      date={date}
+      onDelete={onDelete}
+      onViewOnMap={onViewOnMap}
+      onMoveToBoard={onMoveToBoard}
+      selectionMode={selectionMode}
+      isSelected={isSelected}
+      onLongPress={onLongPress}
+      onSelect={onSelect}
+    />
+  );
+}
+
+// ─── Swipeable wrapper for the done-state card ────────────────────────────────
+
+function SwipeableCard({
+  item,
+  date,
+  onDelete,
+  onViewOnMap,
+  onMoveToBoard,
+  selectionMode = false,
+  isSelected = false,
+  onLongPress,
+  onSelect,
+}: {
+  item: SavedItem;
+  date: string;
+  onDelete: (id: string) => void;
+  onViewOnMap: (id: string) => void;
+  onMoveToBoard?: (id: string) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onLongPress?: (id: string) => void;
+  onSelect?: (id: string) => void;
+}) {
+  const x = useMotionValue(0);
+  const [swiped, setSwiped] = useState(false);
+  const longPressTimer = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  function handlePointerDown() {
+    if (selectionMode) return;
+    const t = setTimeout(() => onLongPress?.(item.id), 500);
+    longPressTimer[1](t);
+  }
+  function cancelLongPress() {
+    if (longPressTimer[0]) { clearTimeout(longPressTimer[0]); longPressTimer[1](null); }
+  }
+
+  // Delete button opacity: visible when x < -60
+  const deleteOpacity = useTransform(x, [-80, -60], [1, 0]);
+  const deleteScale   = useTransform(x, [-80, -60], [1, 0.8]);
+
+  function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
+    if (info.offset.x < -80) {
+      // Confirm delete
+      setSwiped(true);
+      animate(x, -300, { duration: 0.25, ease: 'easeOut' }).then(() => onDelete(item.id));
+    } else {
+      // Snap back
+      animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
+    }
+  }
+
+  if (swiped) return null;
+
+  return (
+    <div className={`relative rounded-2xl overflow-hidden ${selectionMode && isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}>
+      {/* In selection mode: invisible tap-to-select overlay + checkbox */}
+      {selectionMode && (
+        <>
+          <button
+            type="button"
+            onClick={() => onSelect?.(item.id)}
+            className="absolute inset-0 z-20 w-full h-full"
+            aria-label={isSelected ? 'Deselect' : 'Select'}
+          />
+          <div
+            className="absolute top-2 left-2 z-30 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-sm pointer-events-none"
+            style={{ background: isSelected ? '#4f46e5' : 'rgba(0,0,0,0.4)' }}
+          >
+            {isSelected && <span style={{ color: 'white', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>✓</span>}
+          </div>
+        </>
+      )}
+
+      {/* Delete background revealed on swipe (hidden in selection mode) */}
+      {!selectionMode && (
+        <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-2xl">
+          <motion.div style={{ opacity: deleteOpacity, scale: deleteScale }} className="flex flex-col items-center gap-1">
+            <Trash2 size={20} color="white" />
+            <span className="text-white text-xs font-semibold">Delete</span>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Card content — drags left (disabled in selection mode) */}
+      <motion.div
+        drag={selectionMode ? false : 'x'}
+        dragConstraints={{ left: -160, right: 0 }}
+        dragElastic={{ left: 0.2, right: 0 }}
+        onDragEnd={!selectionMode ? handleDragEnd : undefined}
+        style={{ x: selectionMode ? 0 : x, willChange: 'transform' }}
+        onPointerDown={handlePointerDown}
+        onPointerUp={cancelLongPress}
+        onPointerMove={cancelLongPress}
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden cursor-grab active:cursor-grabbing"
+      >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
           src={item.thumbnail}
           alt={item.title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-32 object-cover"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = 'none';
           }}
         />
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
+        <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <Globe size={32} className="text-gray-300 dark:text-gray-600" />
         </div>
       )}
 
@@ -215,13 +325,13 @@ export default function InboxCard({
         </span>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -230,18 +340,18 @@ export default function InboxCard({
         {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0) && (
           <div className="flex items-center gap-3 mb-2">
             {item.locations.length > 0 && (
-              <span className="text-xs text-gray-500 flex items-center gap-0.5">
+              <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
                 <MapPin size={10} className="text-indigo-400" />
                 {item.locations.length}
               </span>
             )}
             {item.activities.length > 0 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 🎯 {item.activities.length}
               </span>
             )}
             {(item.substance?.length ?? 0) > 0 && (
-              <span className="text-xs text-amber-600 font-medium">
+              <span className="text-xs text-amber-600 dark:text-amber-500 font-medium">
                 💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
               </span>
             )}
@@ -254,7 +364,7 @@ export default function InboxCard({
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-2 py-0.5 rounded-full"
               >
                 #{tag}
               </span>
@@ -262,16 +372,23 @@ export default function InboxCard({
           </div>
         )}
 
+        {/* Personal notes preview */}
+        {item.notes && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg px-2.5 py-2 mb-2">
+            <p className="text-xs text-amber-800 dark:text-amber-300 line-clamp-2 leading-relaxed">{item.notes}</p>
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-xs text-gray-400">{date}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-700">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
 
           <div className="flex items-center gap-1">
             {/* View on Map */}
             <button
               type="button"
               onClick={() => onViewOnMap(item.id)}
-              className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
+              className="text-xs text-indigo-600 font-medium hover:text-indigo-800 dark:hover:text-indigo-400 transition-colors px-1.5 py-1"
             >
               Map
             </button>
@@ -281,7 +398,7 @@ export default function InboxCard({
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
               aria-label={`Open in ${PLATFORM_LABELS[item.platform]}`}
             >
               <ExternalLink size={13} />
@@ -292,7 +409,7 @@ export default function InboxCard({
               <button
                 type="button"
                 onClick={() => onMoveToBoard(item.id)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 aria-label="Move to collection"
               >
                 <LayoutGrid size={13} />
@@ -303,7 +420,7 @@ export default function InboxCard({
             <button
               type="button"
               onClick={() => onDelete(item.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
               aria-label="Delete"
             >
               <Trash2 size={13} />
@@ -311,6 +428,7 @@ export default function InboxCard({
           </div>
         </div>
       </div>
+      </motion.div>
     </div>
   );
 }

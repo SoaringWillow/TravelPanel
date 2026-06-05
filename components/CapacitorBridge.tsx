@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share URL (and optional screenshot) stored by the iOS Share Extension
+// via App Groups. The App Group suite name must match the one in ShareViewController.swift.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
@@ -12,8 +12,18 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImageBase64' }),
+    ]);
+
+    // Pass image via sessionStorage (too large for URL params)
+    if (imageBase64) {
+      try { sessionStorage.setItem('pendingShareImage', imageBase64); } catch { /* quota */ }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -43,26 +53,63 @@ export function CapacitorBridge() {
           import('@capacitor/splash-screen'),
         ]);
 
+        // On app foreground, check native clipboard for a URL and bubble it up
+        // as a custom DOM event so the home page can show the quick-clip banner.
+        const readClipboardAndBroadcast = async () => {
+          try {
+            const { Clipboard } = await import('@capacitor/clipboard');
+            const { type, value } = await Clipboard.read();
+            if (type === 'text/plain' && /^https?:\/\//i.test(value.trim())) {
+              window.dispatchEvent(new CustomEvent('travelpanel:clipboardUrl', { detail: value.trim() }));
+            }
+          } catch { /* Clipboard unavailable */ }
+        };
+
+        const stateListener = await App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) readClipboardAndBroadcast();
+        });
+
+        // Also check once on startup
+        readClipboardAndBroadcast();
+
+        const urlListener = cleanup;
+
+        cleanup = () => { stateListener.remove(); urlListener?.(); };
+
         // Handle URL scheme deep links from the iOS Share Extension.
         // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasScreenshot = parsed.searchParams.get('hasScreenshot') === '1';
 
-            if (shareUrl) {
-              const qs = new URLSearchParams({ url: shareUrl });
-              if (shareTitle) qs.set('title', shareTitle);
-              router.push(`/share?${qs.toString()}`);
+            if (!shareUrl) return;
+
+            // If the Share Extension stored a screenshot, pull it into sessionStorage
+            if (hasScreenshot) {
+              try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+                if (imageBase64) {
+                  await Preferences.remove({ key: 'pendingShareImageBase64' });
+                  try { sessionStorage.setItem('pendingShareImage', imageBase64); } catch { /* quota */ }
+                }
+              } catch { /* Preferences unavailable */ }
             }
+
+            const qs = new URLSearchParams({ url: shareUrl });
+            if (shareTitle) qs.set('title', shareTitle);
+            router.push(`/share?${qs.toString()}`);
           } catch {
             // Malformed URL — ignore
           }
         });
 
-        cleanup = () => listener.remove();
+        const prevCleanup = cleanup;
+        cleanup = () => { listener.remove(); prevCleanup?.(); };
 
         // Status bar styling
         try {

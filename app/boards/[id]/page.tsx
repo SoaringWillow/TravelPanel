@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { encodeBoardShare, buildShareUrl } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -23,6 +24,26 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  async function handleShare() {
+    if (!board) return;
+    const encoded = encodeBoardShare(board, boardItems);
+    const url = buildShareUrl(window.location.origin, encoded);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${board.emoji} ${board.name}`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      }
+    } catch {
+      await navigator.clipboard.writeText(url).catch(() => {});
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
+  }
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -110,6 +131,21 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {/* Share button */}
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={boardItems.length === 0}
+            title={shareCopied ? 'Link copied!' : 'Share board'}
+            className={`p-2 rounded-xl transition-colors flex-shrink-0 ${
+              shareCopied
+                ? 'bg-green-100 text-green-600'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed'
+            }`}
+          >
+            {shareCopied ? <Check size={18} /> : <Share2 size={18} />}
+          </button>
         </div>
       </div>
 

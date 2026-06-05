@@ -5,9 +5,22 @@ import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { Navigation, Layers } from 'lucide-react';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import { GeoPosition } from '@/hooks/useGeolocation';
+import { haversineKm, formatDistance } from '@/lib/distance';
+
+// ─── Map styles ───────────────────────────────────────────────────────────────
+
+const MAP_STYLES = [
+  { id: 'streets',  label: 'Streets', url: 'https://tiles.openfreemap.org/styles/liberty' },
+  { id: 'light',    label: 'Light',   url: 'https://tiles.openfreemap.org/styles/positron' },
+  { id: 'dark',     label: 'Dark',    url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+] as const;
+
+const MAP_STYLE_KEY = 'travelpanel_map_style';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -80,15 +93,78 @@ function MapController({ flyTo }: MapControllerProps) {
   return null;
 }
 
+// ─── User location dot ───────────────────────────────────────────────────────
+
+function UserLocationDot({ accuracy }: { accuracy: number }) {
+  return (
+    <div style={{ position: 'relative', width: 20, height: 20 }}>
+      {/* Accuracy ring — scales with real accuracy radius */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          // Cap the visual ring at 60px; actual accuracy is shown via label elsewhere
+          width: Math.min(60, 12 + accuracy * 0.02),
+          height: Math.min(60, 12 + accuracy * 0.02),
+          borderRadius: '50%',
+          background: 'rgba(59,130,246,0.12)',
+          border: '1px solid rgba(59,130,246,0.3)',
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Pulsing ring */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          background: 'rgba(59,130,246,0.2)',
+          animation: 'gps-pulse 2s ease-out infinite',
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Blue dot */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 14,
+          height: 14,
+          borderRadius: '50%',
+          background: '#3b82f6',
+          border: '2.5px solid white',
+          boxShadow: '0 2px 6px rgba(59,130,246,0.5)',
+        }}
+      />
+      <style>{`
+        @keyframes gps-pulse {
+          0% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
+          70% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
+          100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Pin component ───────────────────────────────────────────────────────────
 
 interface PinProps {
   item: SavedItem;
   locName: string;
   onClick: () => void;
+  distanceLabel?: string;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ item, locName, onClick, distanceLabel }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
 
@@ -120,6 +196,36 @@ function Pin({ item, locName, onClick }: PinProps) {
              className="line-clamp-2">
             {item.title}
           </p>
+          {distanceLabel && (
+            <p style={{ fontSize: 10, color: '#3b82f6', fontWeight: 600, marginTop: 2, margin: 0 }}>
+              📍 {distanceLabel}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Persistent distance badge (when near-me is active) */}
+      {distanceLabel && !hovered && (
+        <div
+          style={{
+            position:   'absolute',
+            top:        '100%',
+            left:       '50%',
+            transform:  'translateX(-50%)',
+            marginTop:  3,
+            background: '#3b82f6',
+            color:      'white',
+            borderRadius: 10,
+            padding:    '1px 6px',
+            fontSize:   9,
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            boxShadow:  '0 1px 4px rgba(0,0,0,0.2)',
+            pointerEvents: 'none',
+            zIndex:     5,
+          }}
+        >
+          {distanceLabel}
         </div>
       )}
 
@@ -230,12 +336,79 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  // GPS lifted from parent for shared state with NearbyBanner
+  geoPosition?: GeoPosition | null;
+  geoStatus?: 'idle' | 'locating' | 'active' | 'error';
+  geoError?: string;
+  onToggleNearMe?: () => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({
+  items, onPinClick, flyTo,
+  geoPosition = null, geoStatus = 'idle', geoError, onToggleNearMe,
+}: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const nearMeActive = geoStatus === 'active' || geoStatus === 'locating';
+
+  // Map style toggle — defaults to dark tile style when system is in dark mode
+  // and no manual preference has been stored.
+  const [styleIndex, setStyleIndex] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    const saved = localStorage.getItem(MAP_STYLE_KEY);
+    if (saved) {
+      const idx = MAP_STYLES.findIndex((s) => s.id === saved);
+      return idx >= 0 ? idx : 0;
+    }
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? MAP_STYLES.findIndex((s) => s.id === 'dark') : 0;
+  });
+
+  // Track whether user has manually picked a style this session
+  const manualStyleRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (manualStyleRef.current) return; // respect manual choice
+      const saved = localStorage.getItem(MAP_STYLE_KEY);
+      if (saved) return; // respect persisted manual choice
+      setStyleIndex(e.matches ? MAP_STYLES.findIndex((s) => s.id === 'dark') : 0);
+    };
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
+
+  function cycleMapStyle() {
+    manualStyleRef.current = true;
+    const next = (styleIndex + 1) % MAP_STYLES.length;
+    setStyleIndex(next);
+    if (typeof window !== 'undefined') localStorage.setItem(MAP_STYLE_KEY, MAP_STYLES[next].id);
+  }
+
+  const currentStyle = MAP_STYLES[styleIndex];
+
+  // Fly to user's location when GPS first resolves
+  const prevGeoStatusRef = useRef(geoStatus);
+  useEffect(() => {
+    if (
+      geoStatus === 'active' &&
+      prevGeoStatusRef.current === 'locating' &&
+      mapInstanceRef.current &&
+      geoPosition
+    ) {
+      mapInstanceRef.current.flyTo({
+        center: [geoPosition.lng, geoPosition.lat],
+        zoom: 14,
+        duration: 1200,
+      });
+    }
+    prevGeoStatusRef.current = geoStatus;
+  }, [geoStatus, geoPosition]);
+
+  const userPos = geoPosition;
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -271,7 +444,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={currentStyle.url}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
@@ -279,6 +452,91 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+
+        {/* Map style toggle button */}
+        <div style={{ position: 'absolute', bottom: 152, left: 12, zIndex: 10 }}>
+          <button
+            type="button"
+            onClick={cycleMapStyle}
+            title={`Style: ${currentStyle.label} (tap to change)`}
+            aria-label={`Map style: ${currentStyle.label}. Tap to change.`}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'white',
+              border: '1px solid rgba(0,0,0,0.15)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
+            <Layers size={16} color="#374151" />
+            <span style={{ fontSize: 7, fontWeight: 700, color: '#6b7280', lineHeight: 1 }}>
+              {currentStyle.label.toUpperCase()}
+            </span>
+          </button>
+        </div>
+
+        {/* Near Me button */}
+        <div style={{ position: 'absolute', bottom: 100, right: 12, zIndex: 10 }}>
+          <button
+            type="button"
+            onClick={onToggleNearMe}
+            title={nearMeActive ? 'Stop tracking' : 'Near me'}
+            aria-label={nearMeActive ? 'Stop location tracking' : 'Show nearby clips'}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: nearMeActive ? '#3b82f6' : 'white',
+              border: nearMeActive ? '2px solid #2563eb' : '1px solid rgba(0,0,0,0.15)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+            }}
+          >
+            <Navigation
+              size={18}
+              color={nearMeActive ? 'white' : '#374151'}
+              fill={nearMeActive ? 'white' : 'none'}
+              style={{ transform: 'rotate(0deg)' }}
+            />
+          </button>
+
+          {/* Error tooltip */}
+          {geoStatus === 'error' && geoError && (
+            <div role="alert" aria-live="assertive" style={{
+              position: 'absolute',
+              bottom: '110%',
+              right: 0,
+              background: '#ef4444',
+              color: 'white',
+              borderRadius: 8,
+              padding: '4px 10px',
+              fontSize: 11,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            }}>
+              {geoError}
+            </div>
+          )}
+        </div>
+
+        {/* User location dot */}
+        {userPos && (
+          <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
+            <UserLocationDot accuracy={userPos.accuracy} />
+          </Marker>
+        )}
 
         <MapController flyTo={flyTo} />
 
@@ -310,6 +568,9 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
 
           // ── Individual pin ──
           const { item, location } = feature.properties;
+          const distanceLabel = userPos
+            ? formatDistance(haversineKm(userPos.lat, userPos.lng, lat, lng))
+            : undefined;
           return (
             <Marker
               key={`${item.id}-${location.lat},${location.lng}`}
@@ -320,6 +581,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <Pin
                 item={item}
                 locName={location.name}
+                distanceLabel={distanceLabel}
                 onClick={() => {
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);

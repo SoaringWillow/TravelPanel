@@ -96,3 +96,36 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-05 13:26 | d618b6a | feat: add browser extension for one-click URL clipping (B2)
+2026-06-05 13:32 | 45ab141 | feat: Claude Vision extraction for Xiaohongshu/WeChat screenshots (B3)
+2026-06-05 13:34 | 0f0d0ad | feat: Settings page with JSON backup export (B5)
+2026-06-05 13:37 | 085b6cf | feat: On-Trip GPS mode with live location dot and distance labels (C1)
+2026-06-05 13:39 | dad074c | feat: Post-Trip Timeline (Journey view) in Inbox page (C2)
+2026-06-05 13:41 | 9cfd73f | feat: shareable read-only board links (C3)
+2026-06-05 13:43 | 7373d5e | feat: proactive resurfacing — nearby clips banner on map (C4)
+2026-06-05 13:54 | 40ae4a0 | feat(D1): implement dark mode across all views
+2026-06-05 13:55 | dc0add4 | feat(D2): skeleton loading states with CSS shimmer animation
+2026-06-05 13:58 | 4faeda8 | feat(D3): pull-to-refresh on inbox with spring animation
+2026-06-05 13:59 | 72104e0 | feat(D4): swipe-to-delete on inbox cards
+2026-06-05 14:01 | 633a689 | feat(D5): haptic feedback on iOS / PWA
+2026-06-05 14:02 | 3552be3 | feat(D6): offline detection banner
+2026-06-05 14:03 | 5eda836 | feat(D7): first-launch welcome overlay on map
+2026-06-05 14:04 | a29fff9 | feat(D8): map style toggle (Streets / Light / Dark)
+2026-06-05 14:05 | 2a31eaf | feat(D9): inline clip notes editor with 800ms debounce
+2026-06-05 14:06 | 462a04e | feat(D10): Universal Links (deep linking) scaffold
+2026-06-05 14:09 | beef108 | feat(E1): multi-select & batch operations for inbox cards
+2026-06-05 14:09 | 84d1a85 | feat(E2): sort options for inbox (newest/oldest/locations/wisdom/platform)
+2026-06-05 14:13 | 20d9a69 | feat(E3): duplicate URL detection before save
+2026-06-05 14:14 | cd92963 | feat(E4): quick clip from clipboard banner
+2026-06-05 14:16 | bb3b4da | feat(E5): advanced search filters panel
+2026-06-05 14:18 | 648c8f2 | feat(E6): accessibility pass — aria-labels, roles, live regions
+2026-06-05 14:21 | 1803c0d | feat(E7): trip collaboration notes per plan version
+2026-06-05 14:23 | 38e3079 | feat(E8): native clipboard import on iOS foreground (Capacitor)
+2026-06-05 14:26 | 02839c1 | fix(F1): replace NSAllowsArbitraryLoads with scoped ATS exceptions
+2026-06-05 14:26 | 1b38fec | fix(F2): Capacitor navigation lockdown for App Store compliance
+2026-06-05 14:27 | e5a964c | feat(F3): enrichment failure UX — failed items badge in inbox header
+2026-06-05 14:28 | 4d0163c | perf(F4): lazy image loading and zoom-adaptive map clustering
+2026-06-05 14:29 | 8fc861f | feat(F5): native iOS share sheet for clips
+2026-06-05 14:30 | 853c466 | feat(F6): plan generation timeout and error recovery
+2026-06-05 14:32 | c66bef1 | feat(F7): rich onboarding seed data and tooltip walkthrough
+2026-06-05 14:33 | 8af4f48 | feat(F8): map tiles auto-switch to dark style with system dark mode

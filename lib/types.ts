@@ -118,12 +118,13 @@ export interface Trip {
   id: string;
   boardId: string;
   boardName: string;
-  name?: string; // user-facing variant name, e.g. "Relaxed pace"
+  name?: string;
   days: number;
   preferences: string;
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  notes?: string;
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

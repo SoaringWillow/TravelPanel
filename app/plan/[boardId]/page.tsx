@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
-import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, updateTripNotes } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { mediumImpact } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -38,6 +39,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [tripNotes, setTripNotes] = useState('');
+  const tripNotesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -76,6 +79,7 @@ export default function PlanPage() {
       return;
     }
 
+    mediumImpact();
     setStage('generating');
     setSteps([]);
     setPlan(null);
@@ -83,18 +87,37 @@ export default function PlanPage() {
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
-    const res = await fetch('/api/plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: boardItems,
-        days,
-        preferences: [
-          ...Array.from(selectedChips),
-          ...(customNotes.trim() ? [customNotes.trim()] : []),
-        ].join('. '),
-      }),
-    });
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort('timeout'), 90_000);
+
+    let res: Response;
+    try {
+      res = await fetch('/api/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: boardItems,
+          days,
+          preferences: [
+            ...Array.from(selectedChips),
+            ...(customNotes.trim() ? [customNotes.trim()] : []),
+          ].join('. '),
+        }),
+        signal: abortController.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isTimeout = err instanceof Error && (err.name === 'AbortError' || (err as Error).message === 'timeout');
+      setPlanLimitError(
+        isTimeout
+          ? 'Plan timed out — try reducing days or simplifying your preferences.'
+          : 'Network error during plan generation — check your connection and try again.'
+      );
+      setStage('idle');
+      return;
+    }
+
+    clearTimeout(timeoutId);
 
     if (!res.ok || !res.body) {
       setStage('idle');
@@ -142,6 +165,7 @@ export default function PlanPage() {
               await saveTrip(trip);
               setSavedTrips((prev) => [...prev, trip]);
               setCurrentTripId(trip.id);
+              setTripNotes('');
             }
           }
           if (msg.t === 'plan') {
@@ -157,6 +181,7 @@ export default function PlanPage() {
 
   const handleCancel = useCallback(() => {
     setStage('idle');
+    setPlanLimitError(null);
   }, []);
 
   const handleStartOver = useCallback(() => {
@@ -166,6 +191,8 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setSelectedChips(new Set());
     setCustomNotes('');
+    setTripNotes('');
+    setCurrentTripId(null);
   }, []);
 
   // Export is only meaningful for a fully-formed plan (days + activities present).
@@ -174,7 +201,7 @@ export default function PlanPage() {
 
   const handleExportPDF = useCallback(async () => {
     if (!planIsComplete(plan) || !board) return;
-    await exportPlanToPDF(plan, board.name, board.emoji);
+    await exportPlanToPDF(plan, board.name, board.emoji, tripNotes);
     track('plan_exported', { format: 'pdf', boardId });
   }, [plan, board, boardId]);
 
@@ -192,8 +219,18 @@ export default function PlanPage() {
     setDays(trip.days);
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
+    setTripNotes(trip.notes ?? '');
     setStage('complete');
   }, []);
+
+  function handleTripNotesChange(val: string) {
+    setTripNotes(val);
+    if (tripNotesDebounceRef.current) clearTimeout(tripNotesDebounceRef.current);
+    if (!currentTripId) return;
+    tripNotesDebounceRef.current = setTimeout(() => {
+      updateTripNotes(currentTripId!, val);
+    }, 800);
+  }
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
     const trip = savedTrips.find((t) => t.id === tripId);
@@ -396,7 +433,7 @@ export default function PlanPage() {
 
           {/* ── GENERATING STATE ── */}
           {stage === 'generating' && (
-            <div className="space-y-4">
+            <div className="space-y-4" aria-live="polite" aria-label="Plan generation progress">
               {/* Back / board name */}
               <div className="flex items-center gap-2">
                 <span className="text-xl">{board.emoji}</span>
@@ -579,6 +616,19 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Trip notes */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Trip notes</p>
+                <textarea
+                  value={tripNotes}
+                  onChange={(e) => handleTripNotesChange(e.target.value)}
+                  placeholder="Add notes, reminders, or ideas for this trip plan…"
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:border-indigo-400 focus:outline-none transition-colors text-gray-700 placeholder:text-gray-400"
+                  aria-label="Trip notes"
+                />
+              </div>
 
               {/* Start Over */}
               <button

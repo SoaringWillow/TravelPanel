@@ -6,6 +6,15 @@ import type { CapacitorConfig } from '@capacitor/cli';
 //   CAPACITOR_SERVER_URL=https://your-app.vercel.app npm run ios:build
 const serverUrl = process.env.CAPACITOR_SERVER_URL;
 
+// Domains the WKWebView is allowed to navigate to (beyond the app itself).
+// External URLs (tap on clip link etc.) open in Safari via target=_blank.
+const allowNavigation = [
+  'localhost',
+  '*.vercel.app',
+  '*.openfreemap.org',
+  '*.cartocdn.com',
+];
+
 const config: CapacitorConfig = {
   appId: 'com.travelpanel.app',
   appName: 'TravelPanel',
@@ -14,12 +23,13 @@ const config: CapacitorConfig = {
     ...(serverUrl ? { url: serverUrl, cleartext: serverUrl.startsWith('http://') } : {}),
     iosScheme: 'https',
     androidScheme: 'https',
+    allowNavigation,
   },
   ios: {
     contentInset: 'automatic',
     backgroundColor: '#f9fafb',
     scrollEnabled: true,
-    limitsNavigationsToAppBoundDomains: false,
+    limitsNavigationsToAppBoundDomains: true,
   },
   plugins: {
     SplashScreen: {

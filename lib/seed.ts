@@ -65,6 +65,11 @@ export async function seedDemoIfFirstLaunch(): Promise<boolean> {
   return true;
 }
 
+// Skip seeding entirely — marks as seeded so the auto-seed never triggers.
+export function markSeedSkipped(): void {
+  if (typeof window !== 'undefined') localStorage.setItem(SEEDED_FLAG, '1');
+}
+
 // True if any demo content currently lives in the DB.
 export async function hasDemoData(): Promise<boolean> {
   const [items, boards] = await Promise.all([getAllItems(), getAllBoards()]);

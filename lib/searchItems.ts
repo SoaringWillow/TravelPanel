@@ -1,19 +1,47 @@
 import { SavedItem } from './types';
 
-// Lightweight client-side full-text search across the fields that matter:
-// title, description, tags, location names, activities, and — crucially —
-// substance content (the wisdom layer). Foundation for embedding search in Phase B.
-export function searchItems(items: SavedItem[], query: string): SavedItem[] {
+export type DateRangeFilter = 'all' | 'week' | 'month';
+
+export interface SearchFilters {
+  dateRange?: DateRangeFilter;
+  hasLocations?: boolean;
+  hasWisdom?: boolean;
+  tags?: string[];
+}
+
+export function searchItems(items: SavedItem[], query: string, filters?: SearchFilters): SavedItem[] {
+  let result = items;
+
   const q = query.trim().toLowerCase();
-  if (!q) return items;
+  if (q) {
+    const terms = q.split(/\s+/).filter(Boolean);
+    result = result.filter((item) => {
+      const haystack = buildHaystack(item);
+      return terms.every((t) => haystack.includes(t));
+    });
+  }
 
-  // Support multi-term AND matching: "tokyo cafe" matches items with both terms.
-  const terms = q.split(/\s+/).filter(Boolean);
+  if (filters?.dateRange && filters.dateRange !== 'all') {
+    const now = Date.now();
+    const cutoff = filters.dateRange === 'week' ? now - 7 * 86_400_000 : now - 30 * 86_400_000;
+    result = result.filter((item) => item.savedAt >= cutoff);
+  }
 
-  return items.filter((item) => {
-    const haystack = buildHaystack(item);
-    return terms.every((t) => haystack.includes(t));
-  });
+  if (filters?.hasLocations) {
+    result = result.filter((item) => item.locations.length > 0);
+  }
+
+  if (filters?.hasWisdom) {
+    result = result.filter((item) => (item.substance?.length ?? 0) > 0);
+  }
+
+  if (filters?.tags && filters.tags.length > 0) {
+    result = result.filter((item) =>
+      filters.tags!.every((tag) => item.tags.includes(tag))
+    );
+  }
+
+  return result;
 }
 
 function buildHaystack(item: SavedItem): string {
