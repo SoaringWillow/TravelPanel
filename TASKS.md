@@ -176,7 +176,7 @@ This queue focuses on iOS quality, polish, and App Store readiness.
 **What to do**: Add a `isPro` flag to local storage. Gate plan generation beyond 3 plans/day and unlimited enrichments. Show a "TravelPanel Pro" upgrade sheet (no payment integration yet — just the scaffold).
 
 ### F2 — Revenue Cat / StoreKit Integration
-**Status**: `[ ]` Not started  
+**Status**: `[ ]` Blocked — needs Apple Developer account + Capacitor Purchase plugin  
 **Needs**: Apple Developer account + Capacitor Purchase plugin  
 **What to do**: Wire `@capgo/capacitor-purchases` (RevenueCat SDK) for in-app subscriptions. Activate the Pro gate from F1.
 
