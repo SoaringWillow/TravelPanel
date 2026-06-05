@@ -319,7 +319,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use `@capacitor/local-notifications` — no server required
 
 ### F2 — App Icon & Splash Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `public/icon-192.png`, `public/icon-512.png`  
 **What to do**:
 - Create a proper app icon: indigo background (#6366F1) + white map pin SVG, exported to all required iOS sizes (20, 29, 40, 60, 76, 83.5, 1024 @1x/2x/3x)
