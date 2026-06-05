@@ -1,17 +1,28 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X, MapPin, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
+import EditClipSheet from './EditClipSheet';
 
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
+  onUpdated?: (item: SavedItem) => void;
 }
 
-export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onUpdated }: LocationDetailCardProps) {
+  const [current, setCurrent] = useState<SavedItem>(item);
+  const [showEdit, setShowEdit] = useState(false);
+
+  function handleSaved(updated: SavedItem) {
+    setCurrent(updated);
+    onUpdated?.(updated);
+  }
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -37,41 +48,51 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
           <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">
             <div className="flex-1 min-w-0 pr-3">
               <span
-                className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2 py-0.5 rounded-full inline-block mb-2`}
+                className={`${PLATFORM_BG[current.platform]} text-white text-xs font-medium px-2 py-0.5 rounded-full inline-block mb-2`}
               >
-                {PLATFORM_LABELS[item.platform]}
+                {PLATFORM_LABELS[current.platform]}
               </span>
               <h3 className="font-bold text-gray-800 text-base leading-snug line-clamp-2">
-                {item.title}
+                {current.title}
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="Close"
-            >
-              <X size={18} className="text-gray-500" />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowEdit(true)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Edit clip"
+              >
+                <Pencil size={16} className="text-gray-400" />
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
           </div>
 
           {/* ── Scrollable body ──────────────────────────────────────────── */}
           <div className="overflow-y-auto px-4 pb-4 space-y-3">
             {/* Description */}
-            {item.description && (
+            {current.description && (
               <p className="text-sm text-gray-600 leading-relaxed">
-                {item.description}
+                {current.description}
               </p>
             )}
 
             {/* Locations */}
-            {item.locations.length > 0 && (
+            {current.locations.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                   Locations
                 </p>
                 <div className="space-y-2">
-                  {item.locations.map((loc, i) => (
+                  {current.locations.map((loc, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <MapPin size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
                       <div>
@@ -92,13 +113,13 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             )}
 
             {/* Activities */}
-            {item.activities.length > 0 && (
+            {current.activities.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                   Activities
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {item.activities.map((a) => (
+                  {current.activities.map((a) => (
                     <span
                       key={a}
                       className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full"
@@ -111,12 +132,12 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             )}
 
             {/* Substance — the Wisdom view (the moat) */}
-            <SubstanceList items={item.substance ?? []} />
+            <SubstanceList items={current.substance ?? []} />
 
             {/* Tags */}
-            {item.tags.length > 0 && (
+            {current.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {item.tags.map((t) => (
+                {current.tags.map((t) => (
                   <span
                     key={t}
                     className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
@@ -128,15 +149,26 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             )}
 
             {/* Notes */}
-            {item.notes && (
+            {current.notes && (
               <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+                <p className="text-xs font-semibold text-amber-700 mb-0.5">Your Notes</p>
+                <p className="text-sm text-amber-800 leading-relaxed">{current.notes}</p>
               </div>
             )}
           </div>
         </div>
       </motion.div>
+
+      {/* Edit sheet — layered above the detail card */}
+      <AnimatePresence>
+        {showEdit && (
+          <EditClipSheet
+            item={current}
+            onClose={() => setShowEdit(false)}
+            onSaved={handleSaved}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

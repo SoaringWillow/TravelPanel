@@ -195,6 +195,135 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & Beautiful UX (Current Sprint)
+
+> All Phase A–C completable tasks are done. Phase D focuses on making the app
+> genuinely beautiful and complete for the iOS App Store — the things that
+> separate a prototype from a product.
+
+### D1 — Clip Editing
+**Status**: `[x]` Done  
+**Why**: Users can't edit clips after saving. Wrong titles (Xiaohongshu share text is often garbage), missing tags, and wanting to add personal notes are all common. This is a core product gap.  
+**Files**: `components/LocationDetailCard.tsx`, new `components/EditClipSheet.tsx`, `lib/db.ts`  
+**What to do**:
+- Add `updateItem(id, Partial<SavedItem>)` to lib/db.ts
+- Create EditClipSheet: bottom sheet with fields for title, description, tags (multi-select chips), personal notes (textarea)
+- Add "Edit" button (pencil icon) to LocationDetailCard header
+- After save: update item in IndexedDB + refresh the UI state
+- Tags: show existing extracted tags as toggle chips + allow adding custom tags
+
+### D2 — Board Editing
+**Status**: `[ ]` Not started  
+**Why**: Users can't rename boards or change their emoji. With auto-created boards from the Share Extension having generic names like "🗺 New Board", this is a significant UX gap.  
+**Files**: `components/BoardCard.tsx`, `app/boards/[id]/page.tsx`, possibly new `components/EditBoardModal.tsx`  
+**What to do**:
+- Long-press (or context menu via ⋯ button) on a board card → "Edit board"
+- Modal with name input + emoji picker (grid of travel emojis)
+- Save updates the board in IndexedDB, refreshes the UI
+
+### D3 — Swipe-to-Delete on Clip Cards
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect swipe-to-delete. Currently delete is buried in the detail card. This makes managing clips much faster.  
+**Files**: `components/InboxCard.tsx`, possibly add a swipe gesture hook  
+**What to do**:
+- Add left-swipe gesture on InboxCard (and BoardCard clip list)
+- Reveal red delete button on swipe
+- Confirm delete (or instant with undo toast, 3s grace period)
+- Use `@use-gesture/react` or framer-motion drag for the gesture
+
+### D4 — Map Filtering by Tag/Board
+**Status**: `[ ]` Not started  
+**Why**: With 50+ clips, the map becomes overwhelming. Users need to filter by "show only food pins" or "show only Tokyo board pins".  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add a filter bar below the top header on the home/map page
+- Filter chips: "All" + one per board (emoji+name) + tag filters (food, nature, etc.)
+- When a filter is active, only show pins for matching items
+- Filter chips scroll horizontally; active chip highlighted in indigo
+
+### D5 — Skeleton Loading States
+**Status**: `[ ]` Not started  
+**Why**: The app currently shows blank screens or spinners while loading from IndexedDB. Skeleton screens dramatically improve perceived performance.  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create a `SkeletonCard` component: animated shimmer placeholder matching InboxCard dimensions
+- Show 3–4 skeleton cards while IndexedDB loads on the Inbox and Boards pages
+- Use CSS animation: `@keyframes shimmer { from { opacity: 0.6 } to { opacity: 1 } }`
+
+### D6 — Dark Mode
+**Status**: `[ ]` Not started  
+**Why**: iOS 15+ users expect dark mode. The app is currently white-only, which looks jarring in system dark mode.  
+**Files**: `app/globals.css`, `tailwind.config.js`, all page/component files  
+**What to do**:
+- Enable `darkMode: 'class'` or `darkMode: 'media'` in tailwind.config.js
+- Update every `bg-white`, `text-gray-900`, etc. with dark: variants
+- Key surfaces: page backgrounds → `dark:bg-gray-950`, cards → `dark:bg-gray-900`, text → `dark:text-gray-100`
+- Test on the Map, Inbox, Boards, Share, Plan, Settings pages
+
+### D7 — Haptic Feedback on iOS
+**Status**: `[ ]` Not started  
+**Why**: iOS apps feel incomplete without haptic feedback on key actions. It's a small detail that significantly improves the native feel.  
+**Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` wrapping `@capacitor/haptics` (lightweight, already used pattern)
+- Add `impact('medium')` on: clip saved, plan generated, board created
+- Add `notification('success')` on: enrichment complete
+- No-op gracefully outside Capacitor context (web/browser)
+
+### D8 — Clip Notes & Personal Context
+**Status**: `[ ]` Not started  
+**Why**: Users want to add personal context to clips: "visited with Sarah", "waiting for cherry blossom season", "too expensive but worth it once". This is distinct from extracted substance — it's user-generated.  
+**Files**: `lib/types.ts`, `lib/db.ts`, `components/LocationDetailCard.tsx`, `components/EditClipSheet.tsx`  
+**What to do**:
+- Add `notes?: string` to SavedItem (already in the type, just not surfaced in the UI)
+- Surface notes in LocationDetailCard below the substance section
+- Editable in EditClipSheet (D1) — a textarea with "Your notes" placeholder
+- Include notes in the planner prompt so Claude can reference personal context
+
+---
+
+## PHASE E — Power Features (Next Sprint)
+
+### E1 — Vibe Search (client-side, no Supabase)
+**Status**: `[ ]` Not started  
+**Why**: B4 is blocked on Supabase. But we can implement a good semantic-ish search using TF-IDF + substance content without embeddings. At 200 clips this works well; switch to pgvector when B1 is active.  
+**Files**: new `lib/vibeSearch.ts`, `components/SearchBar.tsx`  
+**What to do**:
+- Extend the existing SearchBar to search across: title, description, tags, substance content, notes
+- Weight substance items higher (they contain the real wisdom)
+- Add "vibe" tokens: map common intents to tag sets ("cheap" → budget, "romantic" → relaxation, "foodie" → food)
+- Show matched substance snippet in results (not just clip title)
+
+### E2 — Location Editing on Map
+**Status**: `[ ]` Not started  
+**Why**: Claude sometimes extracts wrong coordinates. Users need a way to fix a pin by dragging it or searching for the correct place.  
+**Files**: `components/MapView.tsx`, `components/EditClipSheet.tsx`, `lib/db.ts`  
+**What to do**:
+- In EditClipSheet (D1), show the extracted locations list
+- "Fix location" button per location: opens a mini map with draggable pin
+- On save: update the location coordinates in the item
+
+### E3 — Trip Day Editing
+**Status**: `[ ]` Not started  
+**Why**: AI-generated plans are a great starting point but users need to adjust them. Move activities between days, add/remove stops.  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Make each activity in the plan draggable between days (drag-and-drop)
+- "Remove" button per activity (×)
+- "Add note" to an activity (user context)
+- Re-save the edited plan as the current version
+
+### E4 — Offline-First Enrichment Queue
+**Status**: `[ ]` Not started  
+**Why**: On iOS, if the user saves a clip without network, enrichment silently fails. Items get stuck in 'pending'.  
+**Files**: `lib/enrichItem.ts`, service worker / background fetch  
+**What to do**:
+- Register a Background Fetch (iOS) or service worker background sync
+- When network returns, automatically retry pending/failed items
+- Show a "Back online — enriching 3 saved clips" toast
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*

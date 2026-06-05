@@ -81,6 +81,13 @@ export async function saveItem(item: SavedItem): Promise<void> {
   await db.put('items', item);
 }
 
+export async function updateItem(id: string, updates: Partial<SavedItem>): Promise<void> {
+  const db = await getDB();
+  const existing = await db.get('items', id);
+  if (!existing) return;
+  await db.put('items', { ...existing, ...updates });
+}
+
 export async function deleteItem(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('items', id);
