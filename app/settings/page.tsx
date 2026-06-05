@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Download, Database, Shield, Globe2, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Download, Database, Shield, Globe2, ChevronRight, CheckCircle2, FileText } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { exportAllData, downloadJSON } from '@/lib/exportData';
 import { track } from '@/lib/analytics';
@@ -134,17 +135,37 @@ export default function SettingsPage() {
             About
           </p>
           <div className="bg-white rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
-            <div className="flex items-center gap-3 px-4 py-4">
+            <Link
+              href="/legal/privacy"
+              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            >
               <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
                 <Shield size={20} className="text-indigo-600" />
               </div>
               <div className="flex-1">
-                <div className="font-semibold text-gray-900 text-sm">Privacy</div>
+                <div className="font-semibold text-gray-900 text-sm">Privacy Policy</div>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  Your data stays on your device. AI extraction uses the Anthropic API over HTTPS.
+                  How your data is stored and used
                 </div>
               </div>
-            </div>
+              <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+            </Link>
+
+            <Link
+              href="/legal/terms"
+              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <FileText size={20} className="text-indigo-600" />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-gray-900 text-sm">Terms of Service</div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  Usage terms and acceptable use policy
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+            </Link>
 
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-sm text-gray-500">Version</span>

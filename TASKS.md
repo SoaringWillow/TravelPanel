@@ -231,7 +231,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `public/manifest.json` with proper PWA metadata, icons, theme color (#4f46e5)
 
 ### D4 — Privacy Policy + Terms of Service
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: New `app/legal/privacy/page.tsx`, new `app/legal/terms/page.tsx`, `app/settings/page.tsx`  
 **What to do**:
 - Create `/legal/privacy` page with a well-formatted privacy policy covering: data stored locally (IndexedDB), data sent to Anthropic API (URLs + page text), PostHog analytics (anonymous), no account required, no data sold
