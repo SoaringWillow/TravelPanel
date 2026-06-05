@@ -96,3 +96,9 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-05 17:28 | 6bb165f | feat(B2): add browser extension for one-click URL clipping
+2026-06-05 17:33 | 9808dea | feat(B3): Claude Vision fallback for anti-scrape platforms (Xiaohongshu, WeChat)
+2026-06-05 17:35 | 9195650 | feat(B5): settings page with full JSON data export + settings NavBar tab
+2026-06-05 17:37 | a87b4fd | feat(C1): on-trip GPS mode — locate me button + nearby places strip
+2026-06-05 17:39 | 971cf78 | feat(C2): post-trip timeline — browse all generated itineraries chronologically
+2026-06-05 17:41 | 7aaf530 | feat(D1,D2): JSON restore from backup + native share on clip detail
