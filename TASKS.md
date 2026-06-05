@@ -193,7 +193,7 @@ All Phase A–C tasks are complete. The app has:
 - Ensure Dynamic Type scaling works (use `text-[length]` relative units)
 
 ### E7 — Trip Collaboration Notes
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `app/plan/[boardId]/page.tsx`, `lib/types.ts`  
 **What to do**:
 - Add a "Notes" text area to the plan view below the day strips

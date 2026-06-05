@@ -216,3 +216,10 @@ export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
 }
+
+export async function updateTripNotes(id: string, notes: string): Promise<void> {
+  const db = await getDB();
+  const trip = await db.get('trips', id);
+  if (!trip) return;
+  await db.put('trips', { ...trip, notes: notes.trim() || undefined });
+}
