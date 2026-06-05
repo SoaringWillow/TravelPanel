@@ -6,9 +6,12 @@ import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { useNearbyItems } from '@/hooks/useNearbyItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import NearbyBanner from '@/components/NearbyBanner';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -18,6 +21,9 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
+  const { state: geoState, start: startGeo, stop: stopGeo } = useGeolocation();
+  const userPos = geoState.status === 'active' ? geoState.position : null;
+  const nearbyItems = useNearbyItems(items, userPos?.lat ?? null, userPos?.lng ?? null);
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
@@ -71,7 +77,15 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        geoPosition={userPos ?? null}
+        geoStatus={geoState.status}
+        geoError={geoState.status === 'error' ? geoState.message : undefined}
+        onToggleNearMe={() => { geoState.status === 'idle' || geoState.status === 'error' ? startGeo() : stopGeo(); }}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -93,6 +107,17 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Nearby banner — proactive resurfacing when GPS is active */}
+      {!selectedItem && nearbyItems.length > 0 && (
+        <NearbyBanner
+          results={nearbyItems}
+          onItemClick={(id) => {
+            const found = items.find((i) => i.id === id);
+            if (found) setSelectedItem(found);
+          }}
+        />
+      )}
 
       {/* Import FAB */}
       {!selectedItem && (

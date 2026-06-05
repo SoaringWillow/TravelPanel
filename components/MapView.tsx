@@ -9,7 +9,7 @@ import { Navigation } from 'lucide-react';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { GeoPosition } from '@/hooks/useGeolocation';
 import { haversineKm, formatDistance } from '@/lib/distance';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
@@ -326,37 +326,41 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  // GPS lifted from parent for shared state with NearbyBanner
+  geoPosition?: GeoPosition | null;
+  geoStatus?: 'idle' | 'locating' | 'active' | 'error';
+  geoError?: string;
+  onToggleNearMe?: () => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({
+  items, onPinClick, flyTo,
+  geoPosition = null, geoStatus = 'idle', geoError, onToggleNearMe,
+}: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
-  const { state: geoState, start: startGeo, stop: stopGeo } = useGeolocation();
-  const nearMeActive = geoState.status === 'active' || geoState.status === 'locating';
+  const nearMeActive = geoStatus === 'active' || geoStatus === 'locating';
 
   // Fly to user's location when GPS first resolves
-  const prevGeoStatusRef = useRef(geoState.status);
+  const prevGeoStatusRef = useRef(geoStatus);
   useEffect(() => {
     if (
-      geoState.status === 'active' &&
+      geoStatus === 'active' &&
       prevGeoStatusRef.current === 'locating' &&
-      mapInstanceRef.current
+      mapInstanceRef.current &&
+      geoPosition
     ) {
       mapInstanceRef.current.flyTo({
-        center: [geoState.position.lng, geoState.position.lat],
+        center: [geoPosition.lng, geoPosition.lat],
         zoom: 14,
         duration: 1200,
       });
     }
-    prevGeoStatusRef.current = geoState.status;
-  }, [geoState]);
+    prevGeoStatusRef.current = geoStatus;
+  }, [geoStatus, geoPosition]);
 
-  function toggleNearMe() {
-    if (nearMeActive) { stopGeo(); } else { startGeo(); }
-  }
-
-  const userPos = geoState.status === 'active' ? geoState.position : null;
+  const userPos = geoPosition;
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -405,7 +409,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         <div style={{ position: 'absolute', bottom: 100, right: 12, zIndex: 10 }}>
           <button
             type="button"
-            onClick={toggleNearMe}
+            onClick={onToggleNearMe}
             title={nearMeActive ? 'Stop tracking' : 'Near me'}
             style={{
               width: 40,
@@ -430,7 +434,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
           </button>
 
           {/* Error tooltip */}
-          {geoState.status === 'error' && (
+          {geoStatus === 'error' && geoError && (
             <div style={{
               position: 'absolute',
               bottom: '110%',
@@ -444,7 +448,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               whiteSpace: 'nowrap',
               boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             }}>
-              {geoState.message}
+              {geoError}
             </div>
           )}
         </div>
