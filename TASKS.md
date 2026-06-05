@@ -282,7 +282,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Settings page: show "X places visited" stat alongside clips/boards/trips
 
 ### E3 — Platform & Tag Filter on Map/Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, `components/MapView.tsx`, `app/inbox/page.tsx`  
 **What to do**:
 - Filter bar on the inbox page: horizontal chip row for platforms + tags (toggle chips)

@@ -13,6 +13,7 @@ import ProactiveSurface from '@/components/ProactiveSurface';
 import EmptyMapState from '@/components/EmptyMapState';
 import NavBar from '@/components/NavBar';
 import { seedDemoIfFirstLaunch } from '@/lib/seed';
+import type { Platform } from '@/lib/types';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -25,6 +26,18 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [filterPlatform, setFilterPlatform] = useState<Platform | 'all'>('all');
+  const [filterTags, setFilterTags]         = useState<Set<string>>(new Set());
+
+  // Read persisted inbox filters so map pins match what the user was browsing
+  useEffect(() => {
+    const platform = sessionStorage.getItem('tp_filter_platform') as Platform | 'all' | null;
+    if (platform) setFilterPlatform(platform);
+    const tags = sessionStorage.getItem('tp_filter_tags');
+    if (tags) {
+      try { setFilterTags(new Set(JSON.parse(tags))); } catch { /* ignore */ }
+    }
+  }, []);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -77,10 +90,16 @@ function HomePageInner() {
     if (seeded) window.location.reload();
   }
 
+  const filteredMapItems = items.filter((item) => {
+    if (filterPlatform !== 'all' && item.platform !== filterPlatform) return false;
+    if (filterTags.size > 0 && !item.tags.some((t) => filterTags.has(t))) return false;
+    return true;
+  });
+
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={filteredMapItems} onPinClick={setSelectedItem} flyTo={flyTo} />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -88,7 +107,9 @@ function HomePageInner() {
           <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
           <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
           <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+            {loading ? 'Loading…' : (filterPlatform !== 'all' || filterTags.size > 0)
+              ? `${filteredMapItems.length}/${items.length} filtered`
+              : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
           </div>
         </div>
       </div>
