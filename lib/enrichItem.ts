@@ -5,6 +5,23 @@ import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
+// For Xiaohongshu/WeChat anti-scrape: the iOS Share Extension writes a
+// base64 JPEG screenshot to App Group UserDefaults. Read and clear it here
+// so Claude Vision can extract content when URL fetching returns nothing.
+async function readAndClearPendingImage(): Promise<string | null> {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value } = await Preferences.get({ key: 'pendingShareImageBase64' });
+    if (value) {
+      await Preferences.remove({ key: 'pendingShareImageBase64' });
+      return value;
+    }
+  } catch {
+    // Not a Capacitor context — no-op
+  }
+  return null;
+}
+
 export async function enrichItem(id: string, url: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
@@ -18,10 +35,13 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
   await updateItemEnrichment(id, 'processing');
   recordEnrichment();
   try {
+    const imageBase64 = await readAndClearPendingImage();
+    const body: Record<string, string> = { url };
+    if (imageBase64) body.imageBase64 = imageBase64;
     const res = await fetch('/api/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(body),
       keepalive: true,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -106,6 +107,7 @@ Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
 ${page?.textContent ?? '(could not fetch page)'}
+${imageBase64 ? '\nA screenshot of the post is attached. Use it as the primary source — it contains the full post text, photos, and comments that the URL fetch may have missed (common with Xiaohongshu and WeChat).' : ''}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,11 +132,25 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
+    // Use Vision (multimodal) when a screenshot is available — critical for
+    // Xiaohongshu/WeChat which block server-side URL fetching.
+    const { object } = imageBase64
+      ? await generateObject({
+          model: models.enrichment,
+          schema: importSchema,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image', image: Buffer.from(imageBase64, 'base64'), mimeType: 'image/jpeg' },
+            ],
+          }],
+        })
+      : await generateObject({
+          model: models.enrichment,
+          schema: importSchema,
+          prompt,
+        });
     claudeResult = object;
   } catch {
     // Fall through to defaults
