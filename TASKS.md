@@ -149,7 +149,7 @@ All Phase A–C tasks are complete. The app has:
 - Exit selection mode: tap Cancel or press escape
 
 ### E2 — Sort Options
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `app/inbox/page.tsx`  
 **What to do**:
 - Add a Sort button (⇅ icon) next to the view toggle in inbox header

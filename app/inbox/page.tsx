@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, LayoutGrid, Clock, RefreshCw } from 'lucide-react';
+import { X, LayoutGrid, Clock, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform, SavedItem } from '@/lib/types';
@@ -165,6 +165,26 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
+  type SortKey = 'newest' | 'oldest' | 'locations' | 'wisdom' | 'platform';
+  const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
+    { key: 'newest',    label: 'Newest first' },
+    { key: 'oldest',   label: 'Oldest first' },
+    { key: 'locations', label: 'Most locations' },
+    { key: 'wisdom',   label: 'Most tips' },
+    { key: 'platform', label: 'Platform' },
+  ];
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    if (typeof window === 'undefined') return 'newest';
+    return (localStorage.getItem('inbox_sort') as SortKey) ?? 'newest';
+  });
+
+  function applySortKey(sk: SortKey) {
+    setSortKey(sk);
+    setShowSortMenu(false);
+    if (typeof window !== 'undefined') localStorage.setItem('inbox_sort', sk);
+  }
 
   // Multi-select
   const [selectionMode, setSelectionMode] = useState(false);
@@ -213,7 +233,15 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const filtered = searchItems(platformFiltered, query).sort((a, b) => {
+    switch (sortKey) {
+      case 'oldest':    return a.savedAt - b.savedAt;
+      case 'locations': return b.locations.length - a.locations.length;
+      case 'wisdom':    return (b.substance?.length ?? 0) - (a.substance?.length ?? 0);
+      case 'platform':  return a.platform.localeCompare(b.platform);
+      default:          return b.savedAt - a.savedAt;
+    }
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -277,8 +305,34 @@ export default function InboxPage() {
             </span>
           )}
 
+          {/* Sort button */}
+          <div className="ml-auto relative">
+            <button
+              type="button"
+              onClick={() => setShowSortMenu((v) => !v)}
+              className={`p-1.5 rounded-lg transition-colors ${showSortMenu ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              title="Sort"
+            >
+              <ArrowUpDown size={14} />
+            </button>
+            {showSortMenu && (
+              <div className="absolute right-0 top-8 z-[9999] bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden min-w-[160px]">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => applySortKey(opt.key)}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${sortKey === opt.key ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  >
+                    {sortKey === opt.key ? '✓ ' : ''}{opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* View mode toggle */}
-          <div className="ml-auto flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 gap-0.5">
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 gap-0.5">
             <button
               type="button"
               onClick={() => setViewMode('cards')}

@@ -113,3 +113,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 14:04 | a29fff9 | feat(D8): map style toggle (Streets / Light / Dark)
 2026-06-05 14:05 | 2a31eaf | feat(D9): inline clip notes editor with 800ms debounce
 2026-06-05 14:06 | 462a04e | feat(D10): Universal Links (deep linking) scaffold
+2026-06-05 14:09 | beef108 | feat(E1): multi-select & batch operations for inbox cards
