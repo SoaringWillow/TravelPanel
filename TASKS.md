@@ -280,7 +280,7 @@ All Phase A–E tasks are complete. The app has:
 - Add max 2 retries (2s exponential backoff) for transient network errors in the plan fetch loop
 
 ### F7 — Rich Onboarding Seed Data
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Current seed data is minimal. New users need to see real value — clips with substance, locations, and a plan — within 10 seconds of opening the app.
 **Files to change**: `lib/seed.ts`, `components/WelcomeOverlay.tsx`
 **What to do**:
