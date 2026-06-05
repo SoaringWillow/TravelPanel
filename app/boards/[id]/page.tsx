@@ -85,7 +85,7 @@ export default function BoardDetailPage() {
             <div className="h-6 w-32 bg-gray-100 rounded animate-pulse" />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 pb-24 safe-bottom space-y-4">
           <div className="h-48 bg-gray-100 rounded-2xl animate-pulse" />
           <div className="h-12 bg-gray-100 rounded-2xl animate-pulse" />
           <div className="grid grid-cols-2 gap-3">
@@ -149,7 +149,7 @@ export default function BoardDetailPage() {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto pb-24 safe-bottom">
         {/* Map — adaptive height + reveal animation */}
         <AnimatePresence>
           {boardItems.length > 0 && (

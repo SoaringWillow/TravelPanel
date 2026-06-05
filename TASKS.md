@@ -276,7 +276,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On image load error: fall back to a clean icon placeholder (not broken-image browser default)
 
 ### D9 — Safe area & dynamic island audit
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/layout.tsx`, all page files  
 **What to do**:
 - Verify `safe-top` / `safe-bottom` classes are applied to all pages (share, plan, settings, boards, inbox, home)

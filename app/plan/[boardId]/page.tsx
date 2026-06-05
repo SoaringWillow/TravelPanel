@@ -279,7 +279,7 @@ export default function PlanPage() {
       </div>
 
       {/* Bottom scrollable panel */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+      <div className="flex-1 overflow-y-auto safe-bottom" style={{ minHeight: 0 }}>
         <div className="px-4 pb-8 pt-4">
 
           {/* ── PRE-GENERATE STATE ── */}

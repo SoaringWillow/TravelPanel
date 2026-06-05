@@ -119,7 +119,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10 safe-top">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -275,7 +275,7 @@ export default function InboxPage() {
               </div>
 
               {/* Board chips */}
-              <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: 200 }}>
+              <div className="overflow-y-auto px-5 pb-8 safe-bottom" style={{ maxHeight: 200 }}>
                 <div className="flex flex-wrap gap-2">
                   {/* Inbox (unassign) chip */}
                   <button
