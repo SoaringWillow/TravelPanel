@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Download, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Download, Upload, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import NavBar from '@/components/NavBar';
 import { exportAllData, importBackup, ImportResult } from '@/lib/exportData';
 
@@ -173,6 +174,16 @@ export default function SettingsPage() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Data</span>
               <span className="text-sm font-medium text-gray-400">Stored locally on device</span>
+            </div>
+            <div className="flex justify-between items-center pt-1">
+              <span className="text-sm text-gray-600">Privacy</span>
+              <Link
+                href="/privacy"
+                className="text-sm font-medium text-indigo-600 flex items-center gap-1 hover:underline"
+              >
+                Privacy Policy
+                <ExternalLink size={12} />
+              </Link>
             </div>
           </div>
         </section>

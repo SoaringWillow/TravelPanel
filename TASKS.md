@@ -176,7 +176,7 @@ The remaining work focuses on three areas:
 - Test: verify the DB opens cleanly on a fresh install and on an upgrade
 
 ### G4 — Error Boundary
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: If a component crashes (e.g. malformed item data), the entire app goes white. An error boundary recovers gracefully.
 **Files**: new `components/ErrorBoundary.tsx`, `app/layout.tsx`
 **What to do**:
@@ -215,7 +215,7 @@ The remaining work focuses on three areas:
 - In the settings page, add a "Pro Plan" section showing current tier + "Coming soon" upgrade button
 
 ### H2 — App Store Privacy Labels
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: App Store submission requires privacy labels for every data type the app collects.
 **Files**: new `docs/privacy-labels.md` (reference doc only, no code)
 **What to do**:
