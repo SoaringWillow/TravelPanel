@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, RefreshCw, AlertTriangle } from 'lucide-react';
+import { X, RefreshCw, AlertTriangle, ArrowUpDown, Check } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -46,6 +46,8 @@ export default function InboxPage() {
   const [undoItem, setUndoItem] = useState<{ id: string; boardId: string; boardLabel: string } | null>(null);
   const [enrichLimitBanner, setEnrichLimitBanner] = useState<{ resetsAt: number } | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'most_places'>('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   // Auto-dismiss undo snackbar
   useEffect(() => {
@@ -136,7 +138,13 @@ export default function InboxPage() {
     ? platformFiltered.filter((i) => (i.tags ?? []).includes(activeTag))
     : platformFiltered;
 
-  const filtered = searchItems(tagFiltered, query);
+  const sorted = [...tagFiltered].sort((a, b) => {
+    if (sortOrder === 'newest') return b.savedAt - a.savedAt;
+    if (sortOrder === 'oldest') return a.savedAt - b.savedAt;
+    return (b.locations?.length ?? 0) - (a.locations?.length ?? 0);
+  });
+
+  const filtered = searchItems(sorted, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -187,9 +195,60 @@ export default function InboxPage() {
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {/* Sort button */}
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Sort clips"
+                onClick={() => setShowSortMenu((v) => !v)}
+                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full border transition-all ${
+                  sortOrder !== 'newest'
+                    ? 'bg-indigo-50 text-indigo-600 border-indigo-300'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <ArrowUpDown size={11} />
+                Sort
+              </button>
+              <AnimatePresence>
+                {showSortMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-[100]"
+                      onClick={() => setShowSortMenu(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ duration: 0.12 }}
+                      className="absolute right-0 top-full mt-1.5 z-[110] bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden min-w-[160px]"
+                    >
+                      {([
+                        { key: 'newest',      label: 'Newest first'  },
+                        { key: 'oldest',      label: 'Oldest first'  },
+                        { key: 'most_places', label: 'Most places'   },
+                      ] as const).map(({ key, label }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => { setSortOrder(key); setShowSortMenu(false); }}
+                          className="flex items-center justify-between w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          {label}
+                          {sortOrder === key && <Check size={14} className="text-indigo-600" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {inboxItems.length} unsorted
+            </span>
+          </div>
         </div>
 
         {/* Search */}

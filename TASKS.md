@@ -495,7 +495,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Empty state when filter has no results: "No clips tagged '${tag}'"
 
 ### H8 — Clip sort order selector
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
 - Add a sort button to the Inbox header (small "↕ Sort" label or a sort icon)
