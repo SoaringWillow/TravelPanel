@@ -327,7 +327,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: Make TravelPanel a business. These tasks unlock distribution, revenue, and viral loops.
 
 ### F1 — App Store Connect Setup
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - Create app listing in App Store Connect
 - Write app store metadata: name "TravelPanel", subtitle "AI Travel Inspiration", description (highlight: substance over spots, Share Extension, AI planning), keywords
