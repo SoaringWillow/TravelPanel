@@ -97,3 +97,7 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
 2026-06-05 | B2 | feat(B2): browser extension — Chrome/Edge Manifest V3 clipper with popup UI, settings page, and icon generator
+2026-06-05 10:24 | e7ddbc2 | feat(B2): Chrome/Edge browser extension for one-click clipping
+2026-06-05 10:29 | 32f7706 | feat(B3): Xiaohongshu/WeChat Vision extraction via shared screenshot
+2026-06-05 10:30 | cb6c7d1 | feat(B5): cloud backup export + Settings page
+2026-06-05 10:34 | f6c2079 | fix(safe-areas): proper iOS safe area handling across all pages
