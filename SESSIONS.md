@@ -114,3 +114,18 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-05 14:05 | 2a31eaf | feat(D9): inline clip notes editor with 800ms debounce
 2026-06-05 14:06 | 462a04e | feat(D10): Universal Links (deep linking) scaffold
 2026-06-05 14:09 | beef108 | feat(E1): multi-select & batch operations for inbox cards
+2026-06-05 14:09 | 84d1a85 | feat(E2): sort options for inbox (newest/oldest/locations/wisdom/platform)
+2026-06-05 14:13 | 20d9a69 | feat(E3): duplicate URL detection before save
+2026-06-05 14:14 | cd92963 | feat(E4): quick clip from clipboard banner
+2026-06-05 14:16 | bb3b4da | feat(E5): advanced search filters panel
+2026-06-05 14:18 | 648c8f2 | feat(E6): accessibility pass — aria-labels, roles, live regions
+2026-06-05 14:21 | 1803c0d | feat(E7): trip collaboration notes per plan version
+2026-06-05 14:23 | 38e3079 | feat(E8): native clipboard import on iOS foreground (Capacitor)
+2026-06-05 14:26 | 02839c1 | fix(F1): replace NSAllowsArbitraryLoads with scoped ATS exceptions
+2026-06-05 14:26 | 1b38fec | fix(F2): Capacitor navigation lockdown for App Store compliance
+2026-06-05 14:27 | e5a964c | feat(F3): enrichment failure UX — failed items badge in inbox header
+2026-06-05 14:28 | 4d0163c | perf(F4): lazy image loading and zoom-adaptive map clustering
+2026-06-05 14:29 | 8fc861f | feat(F5): native iOS share sheet for clips
+2026-06-05 14:30 | 853c466 | feat(F6): plan generation timeout and error recovery
+2026-06-05 14:32 | c66bef1 | feat(F7): rich onboarding seed data and tooltip walkthrough
+2026-06-05 14:33 | 8af4f48 | feat(F8): map tiles auto-switch to dark style with system dark mode
