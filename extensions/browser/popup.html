@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── Header ────────────────────────────────── -->
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="10" r="6" fill="#6366f1"/>
+          <circle cx="12" cy="10" r="2.8" fill="white"/>
+          <path d="M10.2 15.2 L12 22 L13.8 15.2" fill="#6366f1"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="settings-btn" aria-label="Settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- ── Loading state ─────────────────────────── -->
+    <div id="state-loading" class="state">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- ── Setup state ───────────────────────────── -->
+    <div id="state-setup" class="state hidden">
+      <div class="state-emoji">✈️</div>
+      <p class="state-title">One-time setup</p>
+      <p class="state-desc">Add your TravelPanel URL to start clipping travel content with one click.</p>
+      <button class="btn-outline" id="goto-settings">Configure URL →</button>
+    </div>
+
+    <!-- ── Error state (non-clippable page) ─────── -->
+    <div id="state-error" class="state hidden">
+      <div class="state-emoji">🧭</div>
+      <p class="state-title">Nothing to clip here</p>
+      <p class="state-desc">Navigate to a travel blog, Instagram post, YouTube video, or any travel content page.</p>
+    </div>
+
+    <!-- ── Main state ────────────────────────────── -->
+    <div id="state-main" class="hidden">
+
+      <!-- Page preview card -->
+      <div class="page-card">
+        <div class="page-row">
+          <div class="favicon-wrap">
+            <img id="favicon" class="favicon" alt="" />
+            <div id="favicon-fallback" class="favicon-fallback">🌐</div>
+          </div>
+          <div class="page-info">
+            <span id="platform-badge" class="badge"></span>
+            <p id="page-title" class="page-title"></p>
+            <p id="page-url" class="page-url"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Primary action -->
+      <div class="action-wrap">
+        <button id="clip-btn" class="btn-clip">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span id="clip-label">Clip to TravelPanel</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ── Footer ────────────────────────────────── -->
+    <footer class="footer">
+      <button class="footer-link" id="open-app">
+        Open TravelPanel
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </button>
+    </footer>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
