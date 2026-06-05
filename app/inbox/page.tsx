@@ -10,7 +10,7 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
-import { searchItems } from '@/lib/searchItems';
+import { searchItemsScored } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
@@ -53,7 +53,8 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const searchResults = searchItemsScored(platformFiltered, query);
+  const filtered = searchResults;
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -145,7 +146,7 @@ export default function InboxPage() {
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => <SkeletonInboxCard key={i} />)}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : searchResults.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
             <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -162,7 +163,7 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map((item) => (
+              {searchResults.map(({ item, snippet }) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -176,6 +177,7 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    searchSnippet={query.trim() ? snippet : undefined}
                   />
                 </motion.div>
               ))}

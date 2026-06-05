@@ -285,7 +285,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — Power Features (Next Sprint)
 
 ### E1 — Vibe Search (client-side, no Supabase)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: B4 is blocked on Supabase. But we can implement a good semantic-ish search using TF-IDF + substance content without embeddings. At 200 clips this works well; switch to pgvector when B1 is active.  
 **Files**: new `lib/vibeSearch.ts`, `components/SearchBar.tsx`  
 **What to do**:

@@ -13,6 +13,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  searchSnippet?: string;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -39,6 +40,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  searchSnippet,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -228,10 +230,20 @@ export default function InboxCard({
           </h3>
 
           {/* Description */}
-          {item.description && (
+          {item.description && !searchSnippet && (
             <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
               {item.description}
             </p>
+          )}
+
+          {/* Search snippet (matched substance content) */}
+          {searchSnippet && (
+            <div className="flex items-start gap-1 mb-2">
+              <span className="text-amber-500 text-xs mt-0.5 flex-shrink-0">💡</span>
+              <p className="text-xs text-amber-700 dark:text-amber-400 line-clamp-3 leading-relaxed italic">
+                {searchSnippet}
+              </p>
+            </div>
           )}
 
           {/* Meta row: location count + activity count + substance count */}
