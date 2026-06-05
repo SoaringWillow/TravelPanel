@@ -101,6 +101,9 @@ export default function PlanPage() {
 
     if (!res.ok || !res.body) {
       setStage('idle');
+      setPlanLimitError(
+        `Plan generation failed (${res.status}). Check your connection and try again.`
+      );
       return;
     }
 

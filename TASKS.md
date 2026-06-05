@@ -344,7 +344,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `role="status"` and `aria-live="polite"` to enrichment loading states
 
 ### F5 — Error Resilience & Offline UX
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/layout.tsx`, new `components/ErrorBoundary.tsx`  
 **What to do**:
 - Add a React error boundary in layout.tsx that catches unhandled JS errors and shows a graceful "Something went wrong. Tap to reload." screen
