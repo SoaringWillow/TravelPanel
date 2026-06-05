@@ -7,9 +7,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus, Navigation2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useCurrentLocation, distanceMetres } from '@/hooks/useCurrentLocation';
+import { useProximityAlert, markLocationPermissionGranted } from '@/hooks/useProximityAlert';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import ProximityBanner from '@/components/ProximityBanner';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -29,6 +31,14 @@ function HomePageInner() {
   const [followUser, setFollowUser]     = useState(true);
 
   const { position: userPosition, error: gpsError } = useCurrentLocation(tripMode);
+
+  // Passive one-shot proximity alert (only if location permission previously granted)
+  const proximityAlert = useProximityAlert(items);
+
+  // When GPS mode activates and user grants permission, record it for future sessions
+  useEffect(() => {
+    if (tripMode && userPosition) markLocationPermissionGranted();
+  }, [tripMode, userPosition]);
 
   // Items within NEARBY_METRES of the user's current position
   const nearbyItems = useMemo(() => {
@@ -169,6 +179,24 @@ function HomePageInner() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Passive proximity alert (shown once on app open when near saved places) */}
+      <AnimatePresence>
+        {proximityAlert && !tripMode && !selectedItem && (
+          <div className="absolute top-[80px] left-0 right-0 z-[999]">
+            <ProximityBanner
+              nearbyItems={proximityAlert.nearbyItems}
+              closestMetres={proximityAlert.closestMetres}
+              onDismiss={proximityAlert.dismiss}
+              onItemClick={(item) => {
+                setSelectedItem(item);
+                if (item.locations[0]) setFlyTo(item.locations[0]);
+                proximityAlert.dismiss();
+              }}
+            />
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Nearby clips panel (GPS mode) */}
       <AnimatePresence>
