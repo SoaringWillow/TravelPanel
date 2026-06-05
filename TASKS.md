@@ -306,7 +306,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - After batch: board locations count updates, "Plan trip" button unlocks if locations found
 
 ### E2 — Duplicate URL detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Before saving, check IndexedDB for an existing item with the same URL

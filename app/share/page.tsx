@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { impact, notification } from '@/lib/haptics';
@@ -31,6 +31,7 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
+  const [duplicateItem, setDuplicateItem]     = useState<{ id: string; title: string; boardId?: string; boardName: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,9 +40,28 @@ function SharePageInner() {
   // "pendingShareImage" (base64 JPEG) so Claude Vision can extract data when the
   // platform (e.g. 小红书) blocks standard HTML scraping.
   useEffect(() => {
-    getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    const init = async () => {
+      const [loadedBoards, allItems] = await Promise.all([
+        getAllBoards().catch(() => [] as Board[]),
+        getAllItems().catch(() => []),
+      ]);
+      setBoards(loadedBoards);
 
-    const readPendingImage = async () => {
+      // Check for duplicate URL
+      if (rawUrl) {
+        const existing = allItems.find((i) => i.url === rawUrl);
+        if (existing) {
+          const board = loadedBoards.find((b) => b.id === existing.boardId);
+          setDuplicateItem({
+            id: existing.id,
+            title: existing.title || rawUrl,
+            boardId: existing.boardId,
+            boardName: board ? `${board.emoji} ${board.name}` : 'Inbox',
+          });
+        }
+      }
+
+      // Check for pending screenshot from iOS Share Extension
       try {
         const { Preferences } = await import('@capacitor/preferences');
         const { value } = await Preferences.get({ key: 'pendingShareImage' });
@@ -53,8 +73,8 @@ function SharePageInner() {
         // Not in a Capacitor native context — no-op
       }
     };
-    readPendingImage();
-  }, []);
+    init();
+  }, [rawUrl]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -192,6 +212,43 @@ function SharePageInner() {
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
+          {/* Duplicate warning */}
+          <AnimatePresence>
+            {duplicateItem && (
+              <motion.div
+                key="dup"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5"
+              >
+                <p className="text-sm font-semibold text-amber-800 mb-0.5">📎 Already in your collection</p>
+                <p className="text-sm text-amber-700 line-clamp-2 mb-1 leading-snug">{duplicateItem.title}</p>
+                <p className="text-xs text-amber-600 mb-3">Saved to {duplicateItem.boardName}</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const path = duplicateItem.boardId ? `/boards/${duplicateItem.boardId}` : '/inbox';
+                      window.location.href = path;
+                    }}
+                    className="flex-1 bg-amber-600 text-white text-sm font-semibold px-3 py-2 rounded-xl hover:bg-amber-700 active:scale-95 transition-all"
+                  >
+                    View clip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDuplicateItem(null)}
+                    className="flex-1 bg-white border border-amber-300 text-amber-700 text-sm font-semibold px-3 py-2 rounded-xl hover:bg-amber-50 active:scale-95 transition-all"
+                  >
+                    Save again
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
 
           {/* Horizontally scrollable chip row */}
