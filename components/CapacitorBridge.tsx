@@ -53,6 +53,29 @@ export function CapacitorBridge() {
           import('@capacitor/splash-screen'),
         ]);
 
+        // On app foreground, check native clipboard for a URL and bubble it up
+        // as a custom DOM event so the home page can show the quick-clip banner.
+        const readClipboardAndBroadcast = async () => {
+          try {
+            const { Clipboard } = await import('@capacitor/clipboard');
+            const { type, value } = await Clipboard.read();
+            if (type === 'text/plain' && /^https?:\/\//i.test(value.trim())) {
+              window.dispatchEvent(new CustomEvent('travelpanel:clipboardUrl', { detail: value.trim() }));
+            }
+          } catch { /* Clipboard unavailable */ }
+        };
+
+        const stateListener = await App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) readClipboardAndBroadcast();
+        });
+
+        // Also check once on startup
+        readClipboardAndBroadcast();
+
+        const urlListener = cleanup;
+
+        cleanup = () => { stateListener.remove(); urlListener?.(); };
+
         // Handle URL scheme deep links from the iOS Share Extension.
         // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
         const listener = await App.addListener('appUrlOpen', async ({ url }) => {
@@ -85,7 +108,8 @@ export function CapacitorBridge() {
           }
         });
 
-        cleanup = () => listener.remove();
+        const prevCleanup = cleanup;
+        cleanup = () => { listener.remove(); prevCleanup?.(); };
 
         // Status bar styling
         try {

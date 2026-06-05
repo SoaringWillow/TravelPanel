@@ -81,3 +81,21 @@ CAPACITOR_SERVER_URL=http://192.168.1.100:3000 npm run ios:sync
 CAPACITOR_SERVER_URL=https://your-app.vercel.app npm run ios:build
 # Then archive from Xcode: Product → Archive
 ```
+
+## Enabling native clipboard access (E8 — Quick Clip on iOS foreground)
+
+The app uses `@capacitor/clipboard` to check the clipboard when returning from background. This requires a usage description in `ios/App/App/Info.plist`.
+
+1. Open `ios/App/App/Info.plist` in Xcode (or a text editor)
+2. Add the following key inside the top-level `<dict>`:
+
+```xml
+<key>NSPasteboardUsageDescription</key>
+<string>TravelPanel reads the clipboard to let you quickly clip travel links you've copied.</string>
+```
+
+3. Run `npx cap sync ios` to install `@capacitor/clipboard` into the Xcode project
+4. In Xcode, confirm `CapacitorClipboard.framework` appears under **Frameworks, Libraries, and Embedded Content** for the App target
+
+Once set up, whenever you return to the app with a copied travel URL, a quick-clip banner will appear above the + button.
+

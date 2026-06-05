@@ -201,7 +201,7 @@ All Phase A–C tasks are complete. The app has:
 - Export button includes plan notes in the PDF/calendar export
 
 ### E8 — Clipboard Import on iOS (Capacitor)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files to change**: `components/CapacitorBridge.tsx`, `app/page.tsx`  
 **What to do**:
 - On app foreground (Capacitor `appStateChange` active event), check `@capacitor/clipboard` for a URL

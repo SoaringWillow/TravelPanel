@@ -46,15 +46,26 @@ function HomePageInner() {
     }
   }, []);
 
-  // Check clipboard on mount and on app focus
+  // Check clipboard on mount and on app focus (web + native Capacitor)
   useEffect(() => {
     checkClipboard();
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') checkClipboard();
     };
+    // Native Capacitor fires this when returning from background
+    const handleNativeClipboard = (e: Event) => {
+      const url = (e as CustomEvent<string>).detail;
+      if (!url || showImport) return;
+      if (sessionStorage.getItem(`clip_dismissed_${url}`)) return;
+      setClipboardUrl(url);
+    };
     document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [checkClipboard]);
+    window.addEventListener('travelpanel:clipboardUrl', handleNativeClipboard);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('travelpanel:clipboardUrl', handleNativeClipboard);
+    };
+  }, [checkClipboard, showImport]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
