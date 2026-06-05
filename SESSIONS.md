@@ -122,3 +122,4 @@ The extension reuses the existing `/share?url=&title=` flow — zero new backend
 2026-06-05 | B3: Claude Vision for Xiaohongshu/WeChat — ShareViewController captures images; CapacitorBridge forwards imageB64 via URL scheme; import API uses claude-sonnet-4-6 vision model when image present
 2026-06-05 00:35 | 746c581 | feat(B3): Claude Vision extraction for Xiaohongshu/WeChat
 2026-06-05 00:37 | 2332298 | feat(B5): data backup export — download all clips, boards & trips as JSON
+2026-06-05 00:40 | 24bea83 | feat(D1): clipboard URL detection in import sheet
