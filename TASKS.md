@@ -354,7 +354,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: AI SDK v6 renamed `mimeType` → `mediaType` on `ImagePart`. Fix the property name so the project compiles without errors.
 
 ### G2 — Home page bottom drawer (recently clipped panel)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`  
 **What to do**:
 - Add a sliding bottom drawer on the home/map page showing the 5 most-recently clipped items
