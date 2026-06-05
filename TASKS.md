@@ -314,7 +314,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Options: "View clip" (navigate to board) or "Save again anyway" (proceeds normally)
 
 ### E3 — Smart board suggestions on save
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`  
 **What to do**:
 - After Claude extracts locations: if a location matches city/country tags in an existing board, surface that board first in the picker (above recently-updated boards)

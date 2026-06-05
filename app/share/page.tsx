@@ -15,6 +15,62 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 type Stage = 'picking' | 'saving' | 'done';
 
+// ─── Smart board matching ─────────────────────────────────────────────────────
+
+const STOP_WORDS = new Set([
+  'the','a','an','in','on','at','to','for','of','and','or','is','are','was',
+  'be','by','from','with','this','that','it','as','your','my','our','their',
+  'i','you','he','she','we','they','how','what','where','when','who','why',
+  'travel','trip','visit','guide','tips','best','top','must','see','things',
+  'places','spots','food','eat','do','day','days','week','year','time',
+]);
+
+function extractKeywords(text: string): string[] {
+  return text
+    .split(/[\s,\-|/!?#@]+/)
+    .map((w) => w.replace(/[^\w一-鿿]/g, ''))
+    .filter((w) => w.length >= 2 && !STOP_WORDS.has(w.toLowerCase()))
+    .slice(0, 12);
+}
+
+interface SmartMatch {
+  board: Board;
+  matchCount: number;
+  matchedNames: string[];
+}
+
+function findSmartMatches(boards: Board[], allItems: SavedItem[], keywords: string[]): SmartMatch[] {
+  if (keywords.length === 0) return [];
+  const kwLower = keywords.map((k) => k.toLowerCase());
+
+  return boards
+    .map((board) => {
+      const boardItems = allItems.filter((i) => i.boardId === board.id);
+      let matchCount = 0;
+      const matchedNames = new Set<string>();
+
+      for (const item of boardItems) {
+        for (const loc of item.locations ?? []) {
+          const locLower = loc.name.toLowerCase();
+          if (kwLower.some((k) => locLower.includes(k) || k.includes(locLower))) {
+            matchCount++;
+            matchedNames.add(loc.name);
+          }
+        }
+        for (const tag of item.tags ?? []) {
+          const tagLower = tag.toLowerCase();
+          if (kwLower.some((k) => tagLower.includes(k) || k.includes(tagLower))) {
+            matchCount++;
+          }
+        }
+      }
+
+      return { board, matchCount, matchedNames: Array.from(matchedNames) };
+    })
+    .filter((r) => r.matchCount > 0)
+    .sort((a, b) => b.matchCount - a.matchCount);
+}
+
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function SharePageInner() {
@@ -32,6 +88,7 @@ function SharePageInner() {
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
   const [duplicateItem, setDuplicateItem]     = useState<{ id: string; title: string; boardId?: string; boardName: string } | null>(null);
+  const [smartMatches, setSmartMatches]       = useState<SmartMatch[]>([]);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -46,6 +103,11 @@ function SharePageInner() {
         getAllItems().catch(() => []),
       ]);
       setBoards(loadedBoards);
+
+      // Smart board suggestions: match title keywords against board items
+      const keywords = extractKeywords(sharedTitle);
+      const matches = findSmartMatches(loadedBoards, allItems, keywords);
+      if (matches.length > 0) setSmartMatches(matches);
 
       // Check for duplicate URL
       if (rawUrl) {
@@ -74,7 +136,7 @@ function SharePageInner() {
       }
     };
     init();
-  }, [rawUrl]);
+  }, [rawUrl, sharedTitle]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -245,6 +307,41 @@ function SharePageInner() {
                     Save again
                   </button>
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Smart board suggestion */}
+          <AnimatePresence>
+            {smartMatches.length > 0 && !duplicateItem && (
+              <motion.div
+                key="smart"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+                className="mb-4"
+              >
+                <p className="text-xs font-medium text-indigo-500 mb-2">Best match:</p>
+                <button
+                  type="button"
+                  disabled={stage === 'saving'}
+                  onClick={() => handleSave(
+                    smartMatches[0].board.id,
+                    `${smartMatches[0].board.emoji} ${smartMatches[0].board.name}`
+                  )}
+                  className="w-full flex items-center gap-3 bg-indigo-50 border-2 border-indigo-200 text-indigo-800 text-sm font-semibold px-4 py-3 rounded-2xl hover:bg-indigo-100 active:scale-95 transition-all disabled:opacity-50 text-left"
+                >
+                  <span className="text-xl">{smartMatches[0].board.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate">{smartMatches[0].board.name}</p>
+                    {smartMatches[0].matchedNames.length > 0 && (
+                      <p className="text-xs text-indigo-500 font-normal truncate">
+                        {smartMatches[0].matchedNames.slice(0, 2).join(', ')} clips
+                      </p>
+                    )}
+                  </div>
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
