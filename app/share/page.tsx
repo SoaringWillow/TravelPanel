@@ -16,12 +16,32 @@ type Stage = 'picking' | 'saving' | 'done';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
+// Reads the pending screenshot saved by the Share Extension into App Group Preferences.
+// Returns base64 JPEG string or null if not in a native context / no image pending.
+async function readPendingImage(): Promise<string | null> {
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    if (!Capacitor.isNativePlatform()) return null;
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value } = await Preferences.get({ key: 'pendingShareImageBase64' });
+    if (value) {
+      await Preferences.remove({ key: 'pendingShareImageBase64' });
+      await Preferences.remove({ key: 'pendingShareImageTitle' });
+      await Preferences.remove({ key: 'pendingShareImageDate' });
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
+
 function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
   const fromExtension   = searchParams.get('source') === 'browser-extension';
+  const hasImage        = searchParams.get('hasImage') === 'true';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -93,9 +113,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — use vision path if a screenshot was shared
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const imageBase64 = hasImage ? await readPendingImage() ?? undefined : undefined;
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -152,13 +173,18 @@ function SharePageInner() {
         {/* Top section */}
         <div className="space-y-2 pt-4">
           {/* Platform chip */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
               className="text-white text-xs font-semibold px-3 py-1 rounded-full"
               style={{ backgroundColor: platformColor }}
             >
               {platformLabel}
             </span>
+            {hasImage && (
+              <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">
+                📷 Screenshot — AI will read the image
+              </span>
+            )}
           </div>
 
           {/* Title */}
