@@ -411,7 +411,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Route: `/clips/[id]` — link from InboxCard (tap anywhere on card body navigates here)
 
 ### G4 — Map Clustering
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (pre-existing — MapView uses useSupercluster hook + ClusterMarker component)  
 **Files**: `components/MapView.tsx`, `lib/clusterPoints.ts`  
 **What to do**:
 - When 10+ clips are in view, cluster nearby pins into a single circle showing the count
@@ -436,7 +436,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Update `feedback()` in `lib/haptics.ts` to check this flag
 
 ### G6 — Trip Plan PDF Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/exportPlan.ts`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - The `exportPlanToPDF` function exists but needs a proper layout
