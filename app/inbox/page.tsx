@@ -34,7 +34,7 @@ export default function InboxPage() {
   const { boards } = useBoards();
   const router = useRouter();
 
-  const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { retryItem, onlineToast } = useEnrichmentRetry(refreshItem);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -139,6 +139,14 @@ export default function InboxPage() {
           })}
         </div>
       </div>
+
+      {/* Online restore toast */}
+      {onlineToast && (
+        <div className="mx-4 mt-2 bg-emerald-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2">
+          <span>📶</span>
+          <span>{onlineToast}</span>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">

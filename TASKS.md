@@ -314,7 +314,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Re-save the edited plan as the current version
 
 ### E4 — Offline-First Enrichment Queue
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On iOS, if the user saves a clip without network, enrichment silently fails. Items get stuck in 'pending'.  
 **Files**: `lib/enrichItem.ts`, service worker / background fetch  
 **What to do**:
