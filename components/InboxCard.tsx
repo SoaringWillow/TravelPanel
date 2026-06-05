@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion';
-import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil, Check } from 'lucide-react';
+import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil, Check, Star } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -18,6 +18,7 @@ interface InboxCardProps {
   onSwipeLeft?: (id: string) => void;
   swipeRightLabel?: string;
   onNotesChange?: (id: string, notes: string) => void;
+  onStar?: (id: string, starred: boolean) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -50,6 +51,7 @@ export default function InboxCard({
   onSwipeLeft,
   swipeRightLabel,
   onNotesChange,
+  onStar,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
   const [imgFailed, setImgFailed] = useState(false);
@@ -278,6 +280,19 @@ export default function InboxCard({
       >
         {/* Fixed 16:9 thumbnail container */}
         <div className="aspect-video relative overflow-hidden">
+          {onStar && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onStar(item.id, !item.starred); }}
+              className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-sm transition-all"
+              aria-label={item.starred ? 'Unstar clip' : 'Star clip'}
+            >
+              <Star
+                size={13}
+                className={item.starred ? 'text-amber-400 fill-amber-400' : 'text-white'}
+              />
+            </button>
+          )}
           {showThumbnail ? (
             <img
               src={item.thumbnail}

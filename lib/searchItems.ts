@@ -10,10 +10,12 @@ export function searchItems(items: SavedItem[], query: string): SavedItem[] {
   // Support multi-term AND matching: "tokyo cafe" matches items with both terms.
   const terms = q.split(/\s+/).filter(Boolean);
 
-  return items.filter((item) => {
+  const matched = items.filter((item) => {
     const haystack = buildHaystack(item);
     return terms.every((t) => haystack.includes(t));
   });
+  // Starred clips bubble to the top of results
+  return matched.sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0));
 }
 
 function buildHaystack(item: SavedItem): string {

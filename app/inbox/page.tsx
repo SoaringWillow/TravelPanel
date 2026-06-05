@@ -137,7 +137,9 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const tagFiltered = activeTag
+  const tagFiltered = activeTag === '⭐ Starred'
+    ? platformFiltered.filter((i) => i.starred)
+    : activeTag
     ? platformFiltered.filter((i) => (i.tags ?? []).includes(activeTag))
     : platformFiltered;
 
@@ -196,6 +198,13 @@ export default function InboxPage() {
     const found = allItems.find((i) => i.id === id);
     if (found) await saveItem({ ...found, notes: notes.trim() || undefined });
   }, []);
+
+  const handleStar = useCallback(async (id: string, starred: boolean) => {
+    const allItems = await getAllItems();
+    const found = allItems.find((i) => i.id === id);
+    if (found) await saveItem({ ...found, starred });
+    router.refresh();
+  }, [router]);
 
   function exitSelectMode() {
     setSelectMode(false);
@@ -325,8 +334,23 @@ export default function InboxPage() {
         </div>
 
         {/* Tag filter chips */}
-        {allTags.length > 0 && (
+        {(allTags.length > 0 || inboxItems.some((i) => i.starred)) && (
           <div className="flex gap-1.5 overflow-x-auto pb-3 scrollbar-hide">
+            {/* Starred chip — always first */}
+            {inboxItems.some((i) => i.starred) && (
+              <button
+                key="starred"
+                type="button"
+                onClick={() => setActiveTag(activeTag === '⭐ Starred' ? null : '⭐ Starred')}
+                className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${
+                  activeTag === '⭐ Starred'
+                    ? 'bg-amber-400 text-white border-amber-400'
+                    : 'bg-gray-50 text-amber-500 border-amber-200 hover:border-amber-300'
+                }`}
+              >
+                ⭐ Starred
+              </button>
+            )}
             {allTags.map((tag) => {
               const isActive = activeTag === tag;
               return (
@@ -497,6 +521,7 @@ export default function InboxPage() {
                       onSwipeLeft={selectMode ? undefined : handleSwipeLeft}
                       swipeRightLabel={swipeRightLabel}
                       onNotesChange={handleNotesChange}
+                      onStar={handleStar}
                     />
                   </motion.div>
                 );

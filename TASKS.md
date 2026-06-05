@@ -625,6 +625,88 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE K — Discovery, Delight & Deep Polish
+
+> Phase J complete. Phase K focuses on discoverability features, micro-interactions, and completing the user journey end-to-end. All tasks are locally implementable without Supabase.
+
+### K1 — Starred / favourite clips
+**Status**: `[x]` Done  
+**Files**: `lib/types.ts`, `lib/db.ts`, `components/InboxCard.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Add `starred?: boolean` field to the `SavedItem` interface in `lib/types.ts`
+- Add a star icon button (top-right corner of InboxCard header area) that toggles `starred` via `saveItem`
+- Show star as filled gold (`⭐`) when starred, outline when not
+- In Inbox, add a "⭐ Starred" tag chip at the front of the tag chips row (before auto-tags)
+- When "⭐ Starred" chip is active, filter to only starred items
+- Starred clips sort to the top of search results in `lib/searchItems.ts`
+
+### K2 — "Surprise me" random clip discovery
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`  
+**What to do**:
+- Add a "🎲 Surprise me" button inside the bottom drawer handle bar area (right side, next to the chevron)
+- On tap: pick a random enriched clip that has locations, fly map to its first location, open its LocationDetailCard
+- Subtle shake animation on the dice icon (CSS `@keyframes` `rotate(-15deg) → rotate(15deg)` × 3) when tapped
+- If no enriched clips exist, show a brief toast: "Save some clips first!"
+- Button only visible when `recentClips.length > 0`
+
+### K3 — Open source URL from detail card
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`  
+**What to do**:
+- Add an "Open source" button at the bottom of LocationDetailCard
+- Use `window.open(item.url, '_blank', 'noopener')` to open the original URL in the system browser
+- Style: outlined secondary button with ExternalLink icon, sits below the main action area
+- Show the platform label in the button: e.g. "Open in Instagram", "Open in YouTube"
+
+### K4 — Result count label in Inbox filters
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- When any filter is active (activeTag is set, or sortOrder is not 'newest'), show a line below the filter chips: "Showing X clips" in gray-400 text
+- When search/tag filter returns 0 results, show "No clips match — try a different filter"
+- This replaces the silent empty state when filters are active
+
+### K5 — Board cover photo from first clip thumbnail
+**Status**: `[ ]` Not started  
+**Files**: `lib/types.ts`, `lib/db.ts`, `hooks/useBoards.ts`, `app/boards/[id]/page.tsx`, `components/BoardCard.tsx`  
+**What to do**:
+- Add `coverThumbnail?: string` field to the `Board` interface (already defined in types? check first)
+- When an item with a thumbnail is added to a board (or when a board is opened), if `board.coverThumbnail` is not set, set it to the first item's thumbnail; persist via `saveBoard`
+- In `BoardCard`, if `board.coverThumbnail` is set: show it as a blurred/dimmed background image behind the card content (position absolute, inset-0, object-cover, opacity-20)
+- The cover auto-updates when the first item changes
+
+### K6 — Clip archive (hide without deleting)
+**Status**: `[ ]` Not started  
+**Files**: `lib/types.ts`, `lib/db.ts`, `components/InboxCard.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Add `archived?: boolean` field to `SavedItem`
+- Add "Archive" swipe action / context-menu option on InboxCard (alongside Delete)
+- Archived items are hidden from Inbox by default
+- Add "Show archived" toggle at the bottom of Inbox (small link: "X archived clips — show")
+- When shown, archived clips render with reduced opacity (0.6) and an "Unarchive" button
+
+### K7 — Clip count animation on new save
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`  
+**What to do**:
+- The top bar shows `{items.length}` as a plain number
+- Animate it: when `items.length` increments, the number briefly scales up (1 → 1.3 → 1) over 300ms using framer-motion `AnimatePresence` with key={items.length}
+- Use `motion.span` with `initial={{ scale: 1.3, opacity: 0 }}` → `animate={{ scale: 1, opacity: 1 }}`
+- This gives tactile feedback that the save was registered
+
+### K8 — Per-board enrichment progress ring
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx`, `components/BoardCard.tsx`  
+**What to do**:
+- Compute `enrichedCount` and `totalCount` for each board from the board's `itemIds` cross-referenced with `items`
+- If `enrichedCount < totalCount`, show a small SVG progress ring (24px) in the bottom-right of BoardCard instead of (or next to) the delete button
+- Ring fill = `enrichedCount / totalCount`, color = indigo-400 when in-progress, green-400 when complete
+- When all items are enriched, the ring transitions to a green checkmark for 2 seconds then disappears
+- If `totalCount === 0`, show nothing
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
