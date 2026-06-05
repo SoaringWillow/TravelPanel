@@ -348,7 +348,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This builds a waitlist before the paywall goes live
 
 ### F3 — Referral Loop from Shared Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/shareBoard.ts`, `app/import-board/page.tsx`  
 **What to do**:
 - Add `referrer` field to the shared board URL (user's anonymous ID from PostHog)

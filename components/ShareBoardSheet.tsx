@@ -4,7 +4,8 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Share2, Copy, Check, X, ChevronDown } from 'lucide-react';
 import { Board, SavedItem } from '@/lib/types';
-import { encodeSharedBoard, buildShareUrl, buildShareText, SharedBoard } from '@/lib/shareBoard';
+import { encodeSharedBoard, buildShareUrl, buildShareText, getAnonymousId, SharedBoard } from '@/lib/shareBoard';
+import { track } from '@/lib/analytics';
 
 type ShareState = 'idle' | 'building' | 'ready' | 'copied' | 'shared';
 
@@ -25,7 +26,9 @@ export default function ShareBoardSheet({ open, onClose, board, items }: ShareBo
     // Let the UI update before the encoding work
     await new Promise((r) => setTimeout(r, 50));
     const encoded = encodeSharedBoard(board, items);
-    const url = buildShareUrl(encoded);
+    const referrerId = getAnonymousId();
+    const url = buildShareUrl(encoded, referrerId);
+    track('board_shared', { boardId: board.id, clipCount: items.length, referrerId });
     setShareUrl(url);
     const { decodeSharedBoard } = await import('@/lib/shareBoard');
     setShareData(decodeSharedBoard(encoded));

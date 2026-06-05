@@ -76,11 +76,23 @@ export function decodeSharedBoard(encoded: string): SharedBoard | null {
 
 // ─── Share URL builder ────────────────────────────────────────────────────────
 
-export function buildShareUrl(encoded: string): string {
+export function buildShareUrl(encoded: string, referrerId?: string): string {
   const base = typeof window !== 'undefined'
     ? `${window.location.origin}/import-board`
     : '/import-board';
-  return `${base}?d=${encoded}`;
+  const params = new URLSearchParams({ d: encoded });
+  if (referrerId) params.set('ref', referrerId);
+  return `${base}?${params.toString()}`;
+}
+
+export function getAnonymousId(): string {
+  if (typeof window === 'undefined') return '';
+  let id = localStorage.getItem('tp_anon_id');
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem('tp_anon_id', id);
+  }
+  return id;
 }
 
 // ─── Plain-text summary for native share sheet ────────────────────────────────

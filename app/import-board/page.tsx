@@ -10,6 +10,7 @@ import { Board, SavedItem } from '@/lib/types';
 import { detectPlatform } from '@/lib/parse-url';
 import { checkBeforeUse, incrementUsage } from '@/lib/pro';
 import ProGateSheet from '@/components/ProGateSheet';
+import { track } from '@/lib/analytics';
 
 function ImportBoardInner() {
   const searchParams = useSearchParams();
@@ -26,6 +27,8 @@ function ImportBoardInner() {
     const decoded = decodeSharedBoard(d);
     if (!decoded) { setDecodeError(true); return; }
     setBoard(decoded);
+    const referrer = searchParams.get('ref');
+    track('board_import_viewed', { referrer: referrer ?? 'direct' });
   }, [searchParams]);
 
   async function handleImport() {
@@ -84,6 +87,8 @@ function ImportBoardInner() {
         await addItemToBoard(targetBoardId, item.id);
       }
 
+      const referrer = searchParams.get('ref');
+      track('board_imported', { clipCount: board.clips.length, referrer: referrer ?? 'direct' });
       setImportState('done');
     } catch {
       setImportState('error');
@@ -221,6 +226,18 @@ function ImportBoardInner() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Made with TravelPanel banner */}
+      <div className="px-5 mt-8 mb-2">
+        <a
+          href="/"
+          className="flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 rounded-2xl text-white text-sm font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors"
+          onClick={() => track('referral_cta_tapped', { source: 'import_board' })}
+        >
+          <span>✈️</span>
+          Made with TravelPanel — Get it free
+        </a>
       </div>
 
       {showProGate && (
