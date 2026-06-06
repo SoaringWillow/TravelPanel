@@ -101,3 +101,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-06 13:32 | ee2bdd2 | feat: B5 — data export (JSON backup of all clips, boards & trips)
 2026-06-06 13:35 | 38f6e56 | feat: C1 — On-Trip GPS Mode (Near Me)
 2026-06-06 13:36 | e486b8c | feat: C2 — Post-Trip Timeline (chronological travel diary)
+2026-06-06 13:39 | 9ea6c66 | feat: B4 — Vibe Search via Claude semantic expansion (no Supabase required)
+2026-06-06 13:40 | d0c4e54 | docs: add Phase D (Native Polish) + Phase E (Production Ready) to TASKS.md

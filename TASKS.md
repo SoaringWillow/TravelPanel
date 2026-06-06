@@ -201,7 +201,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Priority order: `D1 → D2 → D3 → D4 → D5 → D6`
 
 ### D1 — Loading Skeletons
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/SkeletonCard.tsx` (new), `app/inbox/page.tsx`, `app/timeline/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Create a `SkeletonCard` component: a shimmering grey rectangle the same size as `InboxCard` using a CSS animation (`@keyframes shimmer`)

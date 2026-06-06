@@ -7,6 +7,7 @@ import { Clock3, MapPin, Sparkles, Camera } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { SkeletonTimelineEntry } from '@/components/SkeletonCard';
 import NavBar from '@/components/NavBar';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -169,8 +170,8 @@ export default function TimelinePage() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="text-sm text-gray-400 animate-pulse">Loading timeline…</div>
+        <div className="px-4 pt-4">
+          {Array.from({ length: 3 }).map((_, i) => <SkeletonTimelineEntry key={i} />)}
         </div>
       ) : items.length === 0 ? (
         /* Empty state */
