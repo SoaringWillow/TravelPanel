@@ -143,6 +143,7 @@ export default function PlanPage() {
                 agentSteps: collectedSteps,
                 plan: latestPlan as TripPlan,
                 createdAt: Date.now(),
+                ...(startDate ? { startDate } : {}),
               };
               await saveTrip(trip);
               setSavedTrips((prev) => [...prev, trip]);

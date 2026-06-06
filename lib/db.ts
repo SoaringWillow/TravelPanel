@@ -217,6 +217,15 @@ export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   }
 }
 
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
 export async function saveTrip(trip: Trip): Promise<void> {
   const db = await getDB();
   await db.put('trips', trip);

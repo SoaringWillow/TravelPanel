@@ -571,7 +571,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Persist "visited" checkmarks per activity in localStorage `visitedActivities:{tripId}:{dayIdx}:{actIdx}`
 
 ### H4 — Trip Countdown Banner
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When a trip is 7 days away or less, users need a contextual reminder that creates anticipation and drives them back into the app.  
 **Files**: `app/boards/page.tsx` (or boards list), `lib/db.ts`  
 **What to do**:

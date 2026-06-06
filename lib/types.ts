@@ -124,6 +124,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  startDate?: string; // ISO date string, e.g. "2026-07-15"
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

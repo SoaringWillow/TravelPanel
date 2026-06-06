@@ -10,6 +10,7 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import { PullToRefresh } from '@/components/PullToRefresh';
+import { CountdownBanner } from '@/components/CountdownBanner';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
@@ -60,6 +61,9 @@ export default function BoardsPage() {
 
       {/* First-launch demo seed banner */}
       <OnboardingSeed />
+
+      {/* Trip countdown banner */}
+      <CountdownBanner />
 
       {/* Content */}
       <PullToRefresh onRefresh={refreshBoards} className="flex-1">
