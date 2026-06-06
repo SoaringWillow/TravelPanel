@@ -143,7 +143,7 @@ All tasks done. See completed tasks below.
 - Reorder boards: long-press + drag in the boards list (Framer Motion `Reorder.Group`)
 
 ### D5 — Dark Mode Support
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/layout.tsx`, `tailwind.config.js`, all component files
 **What to do**:
 - Add `darkMode: 'class'` to `tailwind.config.js` (already might be there)
