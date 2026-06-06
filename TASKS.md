@@ -472,7 +472,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Smooth transition when new items load in (framer-motion stagger)
 
 ### G2 — Animated Map Route Playback
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/RouteMapView.tsx`  
 **Why**: The plan view shows a static route. An animated "trace" of the route would be visually striking and show the day's journey at a glance.  
 **What to do**:
