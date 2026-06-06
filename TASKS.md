@@ -299,7 +299,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only trigger once (store `hasRequestedReview: true` in localStorage after showing)
 
 ### E3 — PWA Offline Banner
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/layout.tsx`, new `components/OfflineBanner.tsx`  
 **What to do**:
 - Listen to `navigator.onLine` events (online/offline)
