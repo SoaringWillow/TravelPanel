@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, Banknote } from 'lucide-react';
 import { Activity } from '@/lib/types';
 
 interface TimelineActivityProps {
@@ -65,10 +65,18 @@ export default function TimelineActivity({
                   {activity.location.name}
                 </Link>
               </div>
-              <span className="flex-shrink-0 flex items-center gap-0.5 text-[11px] text-gray-400 font-medium">
-                <Clock size={11} />
-                {activity.duration}
-              </span>
+              <div className="flex-shrink-0 flex items-center gap-1">
+                {activity.estimatedCost && (
+                  <span className="flex items-center gap-0.5 text-[11px] text-emerald-700 font-medium bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                    <Banknote size={11} />
+                    {activity.estimatedCost}
+                  </span>
+                )}
+                <span className="flex items-center gap-0.5 text-[11px] text-gray-400 font-medium">
+                  <Clock size={11} />
+                  {activity.duration}
+                </span>
+              </div>
             </div>
 
             {/* Activity name */}

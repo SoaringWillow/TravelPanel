@@ -509,9 +509,16 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-sm font-bold text-gray-700">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                    {activeDayPlan.dailyCostEstimate && (
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg flex-shrink-0">
+                        Est. {activeDayPlan.dailyCostEstimate}
+                      </span>
+                    )}
+                  </div>
 
                   {activeDayPlan.activities.map((activity, aIdx) => {
                     const thumbnail = boardItems

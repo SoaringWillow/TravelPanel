@@ -97,6 +97,7 @@ export interface Activity {
   duration: string;
   tips: string[];
   sourcedTips?: SourcedTip[]; // wisdom drawn from the user's own clips, cited
+  estimatedCost?: string;     // e.g. "~¥80/person", "Free", "$15 entry"
 }
 
 export interface DayPlan {
@@ -104,6 +105,7 @@ export interface DayPlan {
   theme: string;
   locations: Location[];
   activities: Activity[];
+  dailyCostEstimate?: string; // rough total for the day, e.g. "¥300–500/person"
 }
 
 export interface TripPlan {

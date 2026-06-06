@@ -271,7 +271,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Auto-pan map to user location when activated
 
 ### D9 — Budget Signals in Plans
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Substance items often contain price signals ("人均 ¥80", "entry fee $15", "free on Tuesdays"). Surfacing these in the trip plan turns vague advice into actionable budget planning.  
 **Files**: `app/api/plan/route.ts`, `lib/types.ts`, `components/DayStripCard.tsx`  
 **What to do**:

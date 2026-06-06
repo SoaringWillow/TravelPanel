@@ -29,6 +29,10 @@ const activitySchema = z.object({
     'Cite the source clip title. Only include when a clip genuinely informs this activity. ' +
     'This is the key differentiator — the plan reflects the user\'s own curated knowledge.'
   ),
+  estimatedCost: z.string().optional().describe(
+    'Cost estimate for this activity, extracted from substance price signals ' +
+    '(e.g. "~¥80/person", "Free", "$15 entry fee"). Omit if no price data is available.'
+  ),
 });
 
 const dayPlanSchema = z.object({
@@ -36,6 +40,10 @@ const dayPlanSchema = z.object({
   theme: z.string(),
   locations: z.array(locationSchema),
   activities: z.array(activitySchema),
+  dailyCostEstimate: z.string().optional().describe(
+    'Rough total cost for the day (sum of activities with known costs), ' +
+    'e.g. "¥300–500/person". Omit if fewer than 2 activities have cost data.'
+  ),
 });
 
 const tripPlanSchema = z.object({
@@ -153,7 +161,12 @@ Rules:
   activity, surface it in that activity's "sourcedTips" with the exact clip title
   as sourceTitle. This makes the plan reflect the user's curated knowledge, not
   generic advice. ${hasSubstance ? 'The clips DO contain substance — use it.' : 'If no substance is present, return an empty sourcedTips array.'}
-  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.`,
+  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.
+- Budget signals: scan each clip's substance for price patterns (¥N, $N, €N, CNY,
+  "free", "entry fee", "per person", "budget", "expensive"). When found, set
+  estimatedCost on the matching activity (e.g. "~¥80/person" or "Free entry").
+  Also compute dailyCostEstimate when ≥2 activities for a day have cost data.
+  Never invent costs — only use what appears in the substance items.`,
         });
 
         for await (const partial of planStream.partialObjectStream) {
