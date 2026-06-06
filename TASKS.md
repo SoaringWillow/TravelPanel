@@ -53,7 +53,7 @@ All tasks done. See completed tasks below.
 ## PHASE C — On-Trip Mode
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: new `app/trip/page.tsx`, `components/NearbyClips.tsx`
 **What to do**:
 - New `/trip` route accessible from the bottom nav (add a "Trip" icon when a board has a generated plan)

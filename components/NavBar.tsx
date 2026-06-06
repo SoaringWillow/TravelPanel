@@ -1,27 +1,44 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Globe2, Inbox, LayoutGrid, Settings } from 'lucide-react';
+import { Globe2, Inbox, LayoutGrid, Settings, Navigation } from 'lucide-react';
 
 interface NavBarProps {
-  active: 'home' | 'inbox' | 'boards' | 'settings';
+  active: 'home' | 'inbox' | 'boards' | 'settings' | 'trip';
 }
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { key: 'home',     label: 'Map',         icon: Globe2,     href: '/'          },
   { key: 'inbox',    label: 'Inspiration', icon: Inbox,      href: '/inbox'     },
   { key: 'boards',   label: 'Collections', icon: LayoutGrid, href: '/boards'    },
   { key: 'settings', label: 'Settings',    icon: Settings,   href: '/settings'  },
 ] as const;
 
+const TRIP_ITEM = { key: 'trip', label: 'Trip', icon: Navigation, href: '/trip' } as const;
+
 export default function NavBar({ active }: NavBarProps) {
+  const [hasTripBoard, setHasTripBoard] = useState(false);
+
+  useEffect(() => {
+    const check = () => setHasTripBoard(!!localStorage.getItem('activeTripBoardId'));
+    check();
+    // Re-check when storage changes (e.g. trip started in another tab)
+    window.addEventListener('storage', check);
+    return () => window.removeEventListener('storage', check);
+  }, []);
+
+  const items = hasTripBoard
+    ? [BASE_NAV_ITEMS[0], BASE_NAV_ITEMS[1], TRIP_ITEM, BASE_NAV_ITEMS[2], BASE_NAV_ITEMS[3]]
+    : [...BASE_NAV_ITEMS];
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800"
       style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
     >
       <div className="flex items-stretch">
-        {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {
+        {items.map(({ key, label, icon: Icon, href }) => {
           const isActive = active === key;
           return (
             <Link
@@ -36,7 +53,7 @@ export default function NavBar({ active }: NavBarProps) {
               {/* Active indicator dot */}
               <span
                 className={`mt-0.5 rounded-full transition-all duration-200 ${
-                  isActive ? 'w-1 h-1 bg-indigo-600' : 'w-0 h-1 bg-transparent'
+                  isActive ? 'w-1 h-1 bg-indigo-600 dark:bg-indigo-400' : 'w-0 h-1 bg-transparent'
                 }`}
               />
             </Link>

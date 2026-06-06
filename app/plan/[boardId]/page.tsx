@@ -677,9 +677,22 @@ export default function PlanPage() {
         </div>
       </div>
 
-      {/* Floating "New version" FAB — always visible in complete state */}
+      {/* Floating action buttons — always visible in complete state */}
       {stage === 'complete' && (
-        <div className="absolute bottom-6 right-4 z-[1000]">
+        <div className="absolute bottom-6 left-4 right-4 z-[1000] flex items-center justify-between">
+          {/* Start Trip — sets activeTripBoardId in localStorage */}
+          <button
+            onClick={() => {
+              localStorage.setItem('activeTripBoardId', boardId);
+              window.dispatchEvent(new Event('storage'));
+              router.push('/trip');
+            }}
+            className="flex items-center gap-2 bg-emerald-500 text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-xl hover:bg-emerald-600 active:scale-95 transition-all"
+          >
+            ✈️ Start Trip
+          </button>
+
+          {/* New version FAB */}
           <button
             onClick={handleNewVersion}
             className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
