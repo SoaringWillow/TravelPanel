@@ -195,6 +195,189 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — Native iOS Polish (Current Sprint — beauty + feel)
+
+> Goal: make TravelPanel feel like a premium iOS travel app, not a web app wrapped in a shell.
+> Execution order: `D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10`
+
+### D1 — Beautiful Empty States 🔴 HIGH IMPACT
+**Status**: `[ ]` Not started  
+**Why**: Every new user hits the empty state. Right now it's a blank map. This is the first impression.  
+**Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- **Map empty state**: When `items.length === 0` and not loading, show a floating card above the NavBar:
+  - "Start exploring — save your first travel inspiration"
+  - A subtle animated ping on the FAB button to draw attention
+  - Show 3 example source icons (Instagram, YouTube, 小红书)
+- **Inbox empty state**: Large centered illustration (SVG globe + sparkles), headline "Your travel inspiration starts here", subline "Share any travel URL from Instagram, YouTube, or 小红书 to clip it", and a "Try a sample clip" button that pre-fills a demo URL
+- **Boards empty state**: "No collections yet — save a clip and organize it into a trip board"
+- All empty states should animate in with framer-motion (fade + slide up)
+
+### D2 — Swipe Actions on Clip Cards
+**Status**: `[ ]` Not started  
+**Why**: The standard mobile gesture for delete/move. Users expect it. Without it, the only way to delete is buried.  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Use `@use-gesture/react` (already compatible with framer-motion) or framer-motion `drag` for horizontal swipe detection
+- Swipe left (red destructive zone): shows "Delete" label with trash icon — on release past 40% width, confirm delete with a brief shake animation then remove
+- Swipe right (indigo zone): shows "Move" label with board icon — on release, open a bottom sheet board picker
+- Both directions: rubber-band spring-back if not released past threshold
+- Haptic feedback (via `@capacitor/haptics`) at the threshold crossing point
+- Install `@use-gesture/react` if framer-motion drag isn't sufficient: `npm install @use-gesture/react`
+
+### D3 — Pull-to-Refresh on Inbox and Boards
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Implement native-feel pull-to-refresh using CSS overscroll + touch events (no library needed)
+- On release: re-query IndexedDB + trigger retry for any `enrichmentStatus: 'failed'` items with `retryCount < 3`
+- Show a spinner (indigo, 20px) at the top of the list while refreshing
+- On Capacitor: also use `App.addListener('resume', ...)` to refresh when app returns to foreground
+
+### D4 — Clip Editing (Notes + Tags)
+**Status**: `[ ]` Not started  
+**Why**: Users save clips and often want to add personal notes or correct tags. Right now notes are write-once.  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an "Edit" button (pencil icon) to `LocationDetailCard`
+- In edit mode, show: editable notes textarea (multiline), tag chips that can be toggled on/off, and a "Save" button
+- On save, call a new `updateItemNotes(id, { notes, tags })` function in `lib/db.ts`
+- Animate edit mode in (slide up panel or in-place expansion)
+- Support markdown-lite in notes: `**bold**`, `- bullets` rendered on save
+
+### D5 — Board Cover Images from Clip Thumbnails
+**Status**: `[ ]` Not started  
+**Files**: `lib/db.ts`, `app/boards/page.tsx`, `components/BoardCard.tsx` (create if needed)  
+**What to do**:
+- When an item with a thumbnail is added to a board (via `addItemToBoard`), auto-set `board.coverThumbnail` if not already set
+- Board cards on the `/boards` page should show the cover image as a full-bleed card header (top 60% of card = image, bottom 40% = name/stats)
+- Add a subtle gradient overlay so white text is always readable
+- If no cover image, show a gradient background using the board's emoji as a large watermark
+- Implement `BoardCard` component if not already separated
+
+### D6 — "Quick Plan" Button on Board Cards
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx` or `components/BoardCard.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Add a "Plan trip →" button to each board card that has ≥2 clips with locations
+- On tap: navigate to `/plan/[boardId]` with pre-filled defaults: 3 days, preferences = "balanced itinerary with morning spots first"
+- Auto-start generation (skip the form step) — show agent progress immediately
+- If board has <2 location clips: show "Add more clips with locations to plan a trip" tooltip
+
+### D7 — Haptic Feedback via Capacitor Haptics
+**Status**: `[ ]` Not started  
+**Files**: `components/ImportSheet.tsx`, `app/share/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Install `@capacitor/haptics` (already in `@capacitor` org, same install pattern as other plugins)
+- Create `lib/haptics.ts` with: `lightImpact()`, `mediumImpact()`, `heavyImpact()`, `successNotification()`, `errorNotification()` — all no-op in browser
+- Fire `successNotification()` when a clip is saved
+- Fire `lightImpact()` at swipe gesture threshold crossing (D2)
+- Fire `heavyImpact()` when delete is confirmed
+- Fire `mediumImpact()` on plan generation start
+
+### D8 — Map Tag Filters (Filter Pins by Category)
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add a horizontally scrollable chip row floating above the NavBar (below the FAB)
+- Chips: All, Food, Nature, Culture, Adventure, Beach, City, History (match the tag constants)
+- When a chip is active, only show pins for items with that tag; inactive pins fade to 30% opacity
+- "All" chip resets the filter
+- Selected chip shows filled indigo bg; unselected shows white with border
+- Filter state is local to the session (not persisted)
+
+### D9 — Enrichment Progress on Inbox Cards (Live Status)
+**Status**: `[ ]` Not started  
+**Why**: After saving, users see a static "pending" card. There's no visual progress. This feels broken.  
+**Files**: `components/InboxCard.tsx`, `hooks/useSavedItems.ts`  
+**What to do**:
+- Show a shimmer/skeleton animation on cards with `enrichmentStatus: 'pending'` or `'processing'`
+- Once enrichment completes (status → `'done'`), animate the card content in with a subtle fade
+- Show location count pill (e.g. "📍 3 places") once enrichment completes
+- Show substance count pill (e.g. "💡 5 tips") if substance items > 0
+- Failed enrichment: show a red "Retry" button inline on the card
+
+### D10 — Beautiful Trip Plan Day Cards
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
+**What to do**:
+- Redesign DayStripCard with a timeline layout: vertical line on the left, activity dots on the timeline
+- Each activity shows: time (e.g. "9:00am"), name, duration, and sourced tips collapsed (tap to expand)
+- Sourced tips show "from your clip: [title]" attribution with an indigo left border
+- Day theme shown as a badge above the first activity
+- Smooth accordion expand/collapse for activity details using framer-motion
+- "View on Map" button per day that filters the RouteMapView to that day's locations
+
+---
+
+## PHASE E — App Store Readiness
+
+> Goal: everything needed to submit to the iOS App Store and acquire first 1000 users.
+
+### E1 — App Icon Set (All iOS Sizes)
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`  
+**What to do**:
+- Design a 1024×1024px master icon: indigo gradient background (#6366f1 → #8b5cf6), white globe with location pin
+- Export all required sizes using a script (`generate-app-icons.js` using sharp): 20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024px
+- Update `Contents.json` in the appiconset to reference all sizes
+- Also create a 1024×1024 App Store icon (no alpha channel, no rounded corners — Apple applies them)
+
+### E2 — Launch Screen Redesign
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/Base.lproj/LaunchScreen.storyboard` or Capacitor splash config  
+**What to do**:
+- Replace the default white splash with: indigo gradient background, centered white TravelPanel globe logo, app name in SF Pro Display Bold
+- Use Capacitor SplashScreen plugin config in `capacitor.config.ts` (already partially configured)
+- Show for 800ms then fade out (already configured via `launchShowDuration: 800`)
+
+### E3 — Onboarding Flow (First Launch)
+**Status**: `[ ]` Not started  
+**Files**: new `app/onboarding/page.tsx`, `app/layout.tsx`  
+**What to do**:
+- 3-step swipeable onboarding carousel shown once (localStorage flag `hasSeenOnboarding2`)
+  - Step 1: "Your travel feed, organized" — show the map + pins animation
+  - Step 2: "Clip from anywhere" — show iOS Share Sheet + browser extension
+  - Step 3: "AI plans your trip" — show itinerary with sourced tips
+- Each step has a headline, sub-copy, and looping Lottie/SVG illustration
+- "Get Started" button on last step → navigates to home and loads seed data
+- Skip button on all steps
+- Check flag on app load in `app/layout.tsx`; if not set, redirect to `/onboarding`
+
+### E4 — App Store Screenshots
+**Status**: `[ ]` Not started  
+**What to do**:
+- Automate screenshot generation for 6.7" (iPhone 15 Pro Max) and 12.9" (iPad Pro)
+- Use Playwright to navigate the app and take screenshots in a seeded state
+- 5 required screenshots per device size:
+  1. Map with colorful pins + "35 places saved" counter
+  2. Import sheet analyzing a Xiaohongshu URL
+  3. Clip detail with wisdom section expanded
+  4. Board view with cover images
+  5. Trip plan day card with sourced tips
+- Script: `scripts/screenshots.ts`
+
+### E5 — Privacy Policy + Terms Pages
+**Status**: `[ ]` Not started  
+**Files**: `app/privacy/page.tsx`, `app/terms/page.tsx`  
+**What to do**:
+- Required for App Store submission
+- Privacy policy: data stored on-device, AI processing via Anthropic (no training use), optional PostHog analytics (opt-in), no ads
+- Terms: user owns their content, no warranty, 18+ or parental consent
+- Link both from Settings page
+
+### E6 — App Store Rating Prompt
+**Status**: `[ ]` Not started  
+**Files**: `lib/ratingPrompt.ts`, `app/share/page.tsx`  
+**What to do**:
+- After a user's 3rd successful clip save, show an in-app rating prompt
+- On iOS: use `@capacitor-community/app-review` (or direct `SKStoreReviewController`)
+- Track in localStorage: `clipSaveCount`. When it hits 3, request review.
+- Only request once (set `hasRequestedReview` flag after first request)
+- On web (non-native): no-op
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
