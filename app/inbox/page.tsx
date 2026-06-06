@@ -13,6 +13,7 @@ import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import { SwipeCard } from '@/components/SwipeCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
@@ -209,23 +210,34 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
+              {filtered.map((item) => {
+                const isLoading =
+                  item.enrichmentStatus === 'pending' ||
+                  (item.enrichmentStatus === 'processing' && (!item.title || item.title === item.url));
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <SwipeCard
+                      onDelete={() => removeItem(item.id)}
+                      onMoveToBoard={() => handleMoveToBoard(item.id)}
+                      disabled={isLoading}
+                    >
+                      <InboxCard
+                        item={item}
+                        onDelete={removeItem}
+                        onViewOnMap={handleViewOnMap}
+                        onMoveToBoard={handleMoveToBoard}
+                        onRetry={retryItem}
+                      />
+                    </SwipeCard>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         )}

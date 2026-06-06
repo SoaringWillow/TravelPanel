@@ -100,3 +100,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-06 14:31 | 7c8a83f | feat(B3): Xiaohongshu fix — Claude Vision for screenshot shares
 2026-06-06 14:33 | 6356d8d | feat(B5): Settings page with full data export/import backup
 2026-06-06 14:34 | 88fe293 | docs: add Phase D (native iOS polish) and Phase E (App Store readiness) tasks
+2026-06-06 14:36 | 2879677 | feat(D1): beautiful animated empty states across all three main views

@@ -214,7 +214,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - All empty states should animate in with framer-motion (fade + slide up)
 
 ### D2 — Swipe Actions on Clip Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The standard mobile gesture for delete/move. Users expect it. Without it, the only way to delete is buried.  
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
 **What to do**:
