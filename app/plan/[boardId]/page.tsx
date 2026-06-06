@@ -1,17 +1,29 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, X, Download, CalendarPlus, Share2, RefreshCw } from 'lucide-react';
+import { Board, SavedItem, AgentStep, AgentStepType, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+
+const STEP_ICON: Record<AgentStepType, string> = {
+  searching:  '🔍',
+  found:      '📍',
+  clustering: '🗺',
+  routing:    '📐',
+  validating: '✅',
+  done:       '🎉',
+  error:      '❌',
+};
+
+const CONFETTI_COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
-import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
 
@@ -39,6 +51,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const confettiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -126,6 +140,10 @@ export default function PlanPage() {
             collectedSteps.push(msg.step);
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
+              if (msg.step.type === 'done') {
+                setShowConfetti(true);
+                confettiTimerRef.current = setTimeout(() => setShowConfetti(false), 1800);
+              }
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
             }
             // Persist the finished plan as a new named variant.
@@ -261,7 +279,28 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
+      {/* Confetti burst on plan completion */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center overflow-hidden">
+          {CONFETTI_COLORS.flatMap((color, ci) =>
+            Array.from({ length: 3 }, (_, i) => (
+              <span
+                key={`${ci}-${i}`}
+                className="confetti-dot"
+                style={{
+                  backgroundColor: color,
+                  left: `${15 + ci * 10 + i * 3}%`,
+                  top: `${40 + (i % 2 === 0 ? -10 : 10)}%`,
+                  animationDelay: `${(ci * 0.07 + i * 0.03).toFixed(2)}s`,
+                  animationDuration: `${0.8 + (ci % 3) * 0.15}s`,
+                }}
+              />
+            ))
+          )}
+        </div>
+      )}
+
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -400,17 +439,48 @@ export default function PlanPage() {
           {/* ── GENERATING STATE ── */}
           {stage === 'generating' && (
             <div className="space-y-4">
-              {/* Back / board name */}
+              {/* Board name */}
               <div className="flex items-center gap-2">
                 <span className="text-xl">{board.emoji}</span>
-                <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+                <span className="text-base font-bold text-gray-800 dark:text-gray-100 flex-1 truncate">{board.name}</span>
               </div>
 
-              <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
+              {/* Animated step cards */}
+              <div className="space-y-2 min-h-[200px]">
+                <AnimatePresence initial={false}>
+                  {steps.length === 0 ? (
+                    <motion.div
+                      key="waiting"
+                      initial={{ y: 16, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3"
+                    >
+                      <span className="text-2xl animate-pulse">🤔</span>
+                      <p className="text-sm text-gray-400 dark:text-gray-500">Starting your adventure…</p>
+                    </motion.div>
+                  ) : (
+                    steps.map((step, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3"
+                      >
+                        <span className="text-2xl flex-shrink-0">{STEP_ICON[step.type]}</span>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 leading-snug">{step.message}</p>
+                        {i === steps.length - 1 && step.type !== 'done' && step.type !== 'error' && (
+                          <span className="flex-shrink-0 w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                        )}
+                      </motion.div>
+                    ))
+                  )}
+                </AnimatePresence>
+              </div>
 
               <button
                 onClick={handleCancel}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                className="flex items-center justify-center gap-2 w-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
               >
                 <X size={15} />
                 Cancel
@@ -466,17 +536,24 @@ export default function PlanPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
                     Export PDF
                   </button>
                   <button
                     onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
                     Add to Calendar
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium py-2 px-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
+                    aria-label="Share plan"
+                  >
+                    <Share2 size={14} />
                   </button>
                 </div>
               )}
@@ -511,58 +588,67 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  {/* Sticky day header */}
+                  <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-gray-50 dark:bg-gray-950">
+                    <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                  </div>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const hasWisdom = (activity.sourcedTips?.length ?? 0) > 0;
+                    return (
+                      <div
+                        key={aIdx}
+                        className={`bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700 space-y-1 transition-shadow ${
+                          hasWisdom ? 'shadow-indigo-100 dark:shadow-none' : ''
+                        }`}
+                        style={hasWisdom ? { borderLeft: '3px solid #818cf8' } : undefined}
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="flex-shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.time}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
+                              {activity.location.name}
+                            </p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200">{activity.name}</p>
+                          </div>
+                          <span className="flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.duration}
+                          </span>
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
+
+                        {activity.tips.length > 0 && (
+                          <ul className="space-y-0.5 pl-1">
+                            {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                              <li key={tIdx} className="text-xs text-gray-500 dark:text-gray-400 leading-snug">
+                                · {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {/* Sourced tips — wisdom cited from the user's own clips */}
+                        {hasWisdom && (
+                          <div className="space-y-1 pt-1">
+                            {activity.sourcedTips!.map((st, sIdx) => (
+                              <div
+                                key={sIdx}
+                                className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg px-2 py-1.5 border-l-2 border-indigo-300 dark:border-indigo-700"
+                              >
+                                <p className="text-xs text-indigo-900 dark:text-indigo-200 leading-snug">💡 {st.content}</p>
+                                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-0.5 truncate">
+                                  from your clip: {st.sourceTitle}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -583,19 +669,31 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Start Over */}
-              <button
-                onClick={handleStartOver}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                <RotateCcw size={15} />
-                Start Over
-              </button>
+              {/* Bottom padding so FAB doesn't overlap last card */}
+              <div className="h-20" />
             </div>
           )}
 
         </div>
       </div>
+
+      {/* Floating "New version" FAB — always visible in complete state */}
+      {stage === 'complete' && (
+        <div className="absolute bottom-6 right-4 z-[1000]">
+          <button
+            onClick={handleNewVersion}
+            className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          >
+            <RefreshCw size={15} />
+            New version
+            {savedTrips.length > 0 && (
+              <span className="bg-white/20 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                v{savedTrips.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

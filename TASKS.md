@@ -181,7 +181,7 @@ All tasks done. See completed tasks below.
 - Check `app/page.tsx` for the existing import sheet component and extend it
 
 ### D8 — Plan View Polish (Gift Moment UX)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`
 **What to do**:
 - The plan generation is "a gift moment" — implement a dramatic reveal:

@@ -66,6 +66,19 @@
   display: none;
 }
 
+/* Confetti burst — plan completion celebration */
+@keyframes confetti-burst {
+  0%   { transform: translateY(0) rotate(0deg) scale(1);   opacity: 1; }
+  100% { transform: translateY(-80px) rotate(720deg) scale(0); opacity: 0; }
+}
+.confetti-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: confetti-burst 0.9s ease-out forwards;
+}
+
 /* Shimmer skeleton animation */
 @keyframes shimmer {
   from { background-position: -400px 0; }
