@@ -1,0 +1,240 @@
+/* ── Reset & base ──────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: #1f2937;
+  background: #ffffff;
+  width: 340px;
+  min-height: 220px;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f0f0f5;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-text {
+  font-weight: 700;
+  font-size: 15px;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.icon-btn {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255,255,255,0.85);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.icon-btn:hover {
+  background: rgba(255,255,255,0.25);
+  color: #ffffff;
+}
+
+/* ── Page card ─────────────────────────────────────────────────────────────── */
+
+.page-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #f0f0f5;
+  min-height: 56px;
+}
+
+.favicon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  object-fit: contain;
+  background: #f3f4f6;
+}
+
+.page-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.page-title {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #111827;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.page-url {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Platform chip ─────────────────────────────────────────────────────────── */
+
+.chip-row {
+  padding: 8px 16px 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: #e0e7ff;
+  color: #4338ca;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.chip.instagram  { background: #fce7f3; color: #be185d; }
+.chip.youtube    { background: #fee2e2; color: #b91c1c; }
+.chip.tiktok     { background: #f0f0f0; color: #111827; }
+.chip.xiaohongshu { background: #fee2e2; color: #b91c1c; }
+.chip.weibo      { background: #fef3c7; color: #92400e; }
+.chip.douyin     { background: #f0f0f0; color: #111827; }
+.chip.bilibili   { background: #eff6ff; color: #1d4ed8; }
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+
+.clip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 32px);
+  margin: 10px 16px 0;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: -0.1px;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.35);
+}
+
+.clip-btn:hover  { opacity: 0.92; }
+.clip-btn:active { transform: scale(0.98); opacity: 0.88; }
+
+.secondary-btn {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 8px 16px 14px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6366f1;
+  background: #f0f0ff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: center;
+}
+
+.secondary-btn:hover { background: #e0e7ff; }
+
+/* ── Setup view ────────────────────────────────────────────────────────────── */
+
+.setup-view {
+  padding: 28px 20px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.setup-icon {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.setup-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.setup-body {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.55;
+  max-width: 240px;
+}
+
+/* ── Success overlay ───────────────────────────────────────────────────────── */
+
+.success-overlay {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+
+.success-icon-wrap { font-size: 44px; line-height: 1; }
+
+.success-heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 4px;
+}
+
+.success-body {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ── Hidden utility ────────────────────────────────────────────────────────── */
+[hidden] { display: none !important; }

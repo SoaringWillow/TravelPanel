@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #1f2937;
+      background: #f9fafb;
+      width: 400px;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      padding: 18px 20px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-text {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+    }
+
+    .logo-sub {
+      font-size: 12px;
+      color: rgba(255,255,255,0.65);
+      margin-top: 1px;
+    }
+
+    .body {
+      padding: 20px;
+    }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    input[type="url"], input[type="text"] {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.15s;
+      background: #ffffff;
+      color: #111827;
+    }
+
+    input:focus { border-color: #6366f1; }
+
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .save-btn {
+      flex: 1;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      box-shadow: 0 2px 6px rgba(99,102,241,0.3);
+    }
+
+    .save-btn:hover { opacity: 0.9; }
+
+    .reset-btn {
+      padding: 11px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b7280;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .reset-btn:hover { background: #e5e7eb; }
+
+    #status {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      min-height: 20px;
+      transition: opacity 0.3s;
+    }
+
+    #status.success { color: #16a34a; }
+    #status.error   { color: #dc2626; }
+
+    .divider {
+      height: 1px;
+      background: #f0f0f5;
+      margin: 4px 0 18px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #9ca3af;
+      margin-bottom: 10px;
+    }
+
+    .info-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .info-list li {
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+
+    .info-list li::before { content: "• "; color: #6366f1; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <svg width="24" height="24" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="10" fill="rgba(255,255,255,0.25)"/>
+      <circle cx="10" cy="7.5" r="3.2" fill="#fff"/>
+      <path d="M7.2 9.3 L10 16 L12.8 9.3 Z" fill="#fff"/>
+      <circle cx="10" cy="7.5" r="1.3" fill="#6366f1"/>
+    </svg>
+    <div>
+      <div class="logo-text">TravelPanel Clipper</div>
+      <div class="logo-sub">Extension Settings</div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="field">
+      <label for="travelPanelUrl">TravelPanel URL</label>
+      <input
+        type="url"
+        id="travelPanelUrl"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="hint">The base URL of your deployed TravelPanel instance (e.g. <em>https://travelpanel.vercel.app</em>).</p>
+    </div>
+
+    <div class="btn-row">
+      <button class="save-btn" id="saveBtn">Save</button>
+      <button class="reset-btn" id="resetBtn">Clear</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="divider"></div>
+
+    <p class="section-title">How it works</p>
+    <ul class="info-list">
+      <li>Click the extension icon on any travel page to clip it.</li>
+      <li>Right-click any page or link → "Clip to TravelPanel".</li>
+      <li>TravelPanel opens and lets you choose a board, then enriches the clip with AI-extracted locations and wisdom.</li>
+    </ul>
+
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
