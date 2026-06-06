@@ -195,6 +195,141 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — Native iOS Polish (Current Sprint)
+
+> Goal: Every interaction should feel native iOS — smooth, tactile, fast. No spinner text.
+> Priority order: `D1 → D2 → D3 → D4 → D5 → D6`
+
+### D1 — Loading Skeletons
+**Status**: `[ ]` Not started  
+**Files**: `components/SkeletonCard.tsx` (new), `app/inbox/page.tsx`, `app/timeline/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create a `SkeletonCard` component: a shimmering grey rectangle the same size as `InboxCard` using a CSS animation (`@keyframes shimmer`)
+- Replace all `animate-spin` loading spinners and "Loading…" text with skeleton grids
+- In inbox: show 6 skeleton cards (2-column grid) while `loading === true`
+- In timeline: show 3 skeleton entries (full-width card shape) while loading
+- In boards page: show 4 skeleton board cards while loading
+- Use `bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer` (add `shimmer` keyframe to `globals.css`)
+
+### D2 — Pull-to-Refresh
+**Status**: `[ ]` Not started  
+**Files**: `hooks/usePullToRefresh.ts` (new), `app/inbox/page.tsx`, `app/timeline/page.tsx`  
+**What to do**:
+- Create `usePullToRefresh(onRefresh: () => Promise<void>)` hook using pointer events (works on both web and iOS WebView):
+  - Track `touchstart` / `touchmove` / `touchend` on the scroll container
+  - When pulled down >80px from top and `scrollTop === 0`, trigger `onRefresh`
+  - Show a spinning indicator at the top during pull and while refreshing
+- In inbox page: pull-to-refresh re-fetches all items from IndexedDB and re-runs pending enrichment retry
+- In timeline page: pull-to-refresh re-fetches items
+- The refresh indicator should be an indigo spinner that scales in from 0 as the user drags
+
+### D3 — Haptic Feedback
+**Status**: `[ ]` Not started  
+**Files**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `components/NearMePanel.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` with `haptic(style: 'light' | 'medium' | 'heavy' | 'success' | 'warning')` that:
+  - Calls `@capacitor/haptics` `ImpactOccurred` / `NotificationOccurred` when in Capacitor context
+  - No-ops on web (graceful)
+- Fire `haptic('success')` when a clip is saved in `app/share/page.tsx`
+- Fire `haptic('light')` on board chip tap in the share page
+- Fire `haptic('medium')` on long-press delete in `InboxCard`
+- Fire `haptic('light')` when Near Me panel clips are tapped
+
+### D4 — Edit Clip (title + notes)
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an "Edit" button (pencil icon) to the `LocationDetailCard` header
+- Tapping opens an inline edit mode for:
+  - Title (text input, max 200 chars)  
+  - Notes (textarea, max 1000 chars, currently stored as `notes?: string` on `SavedItem`)
+- Add `updateItemNotes(id: string, title: string, notes: string): Promise<void>` to `lib/db.ts`
+- Save button commits and exits edit mode; ESC/dismiss cancels
+- Show a small "Edited" badge on the card if notes are non-empty
+
+### D5 — Duplicate Detection
+**Status**: `[ ]` Not started  
+**Files**: `lib/db.ts`, `app/share/page.tsx`, `components/ImportSheet.tsx`  
+**What to do**:
+- Add `findItemByUrl(url: string): Promise<SavedItem | null>` to `lib/db.ts`
+  - Scan all items, normalize URLs (strip trailing slash, lowercase scheme/host) for matching
+- In `app/share/page.tsx`, before showing the board picker, check if the URL is already saved
+- If duplicate found: show a yellow banner "Already saved as: [title]" with a link to view it on the map
+- User can still save again if they want (dismiss banner and proceed)
+- In `ImportSheet`, add the same check after URL is entered (show inline "Already saved" hint)
+
+### D6 — Bulk Operations
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Add a "Select" toggle button to the inbox header (appears when items exist)
+- When in select mode, each card shows a checkbox overlay; tapping toggles selection
+- Show an action bar at the bottom: "Delete [N]" and "Move to board [N]"
+- Delete: confirm dialog, then batch-delete selected items from IndexedDB
+- Move: show the board picker bottom sheet, then bulk-assign `boardId`
+- "Select all" shortcut in the action bar
+- Exit select mode with the X button or after completing an action
+
+---
+
+## PHASE E — Production Ready
+
+> Goal: App Store submission quality — no rough edges, proper error handling, import from backup.
+> Priority order: `E1 → E2 → E3 → E4 → E5`
+
+### E1 — Import from JSON Backup
+**Status**: `[ ]` Not started  
+**Files**: `lib/importData.ts` (new), `components/SettingsSheet.tsx`  
+**What to do**:
+- Create `lib/importData.ts` with `importFromBackup(file: File): Promise<{imported: number; skipped: number}>`
+  - Parse the JSON from `lib/exportData.ts` format (version 2)
+  - For each item/board/trip: upsert via `saveItem`/`saveBoard`/`saveTrip` (skip if ID already exists)
+  - Return counts for a success toast
+- Add an "Import backup" button to `SettingsSheet` below the export button
+- Trigger a hidden `<input type="file" accept=".json">` on click
+- Show a result toast: "Imported 42 clips (3 already existed)"
+
+### E2 — In-App Review Prompt
+**Status**: `[ ]` Not started  
+**Files**: `lib/db.ts` (or localStorage), `app/share/page.tsx`  
+**What to do**:
+- After the 5th clip is saved (track `clipCount` in localStorage), trigger a review prompt
+- Use `@capacitor/rate-app` `requestReview()` in native context
+- On web, show a subtle "Enjoying TravelPanel? ★ Rate us" banner that links to App Store URL
+- Only trigger once (store `hasRequestedReview: true` in localStorage after showing)
+
+### E3 — PWA Offline Banner
+**Status**: `[ ]` Not started  
+**Files**: `app/layout.tsx`, new `components/OfflineBanner.tsx`  
+**What to do**:
+- Listen to `navigator.onLine` events (online/offline)
+- When offline, show a subtle yellow banner at the top: "Offline — saved clips still available"
+- The banner animates in from the top and dismisses when connectivity returns
+- The map will still load tiles from the cache (MapLibre caches tiles automatically)
+- Add a `manifest.json` to the Next.js public folder with proper PWA metadata
+
+### E4 — Global Error Boundary
+**Status**: `[ ]` Not started  
+**Files**: `components/ErrorBoundary.tsx` (new), `app/layout.tsx`  
+**What to do**:
+- Create a React class `ErrorBoundary` component with `componentDidCatch`
+- On error, render a clean fallback: "Something went wrong" with a "Reload" button
+- Wrap the `<body>` content in `app/layout.tsx` with `<ErrorBoundary>`
+- In development, render the error stack; in production, just the reload button
+- Log to PostHog if key is present: `track('app_error', { message, stack })`
+
+### E5 — Board Cover Image
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx` or boards-related components  
+**What to do**:
+- Each board card should show a cover image auto-selected from the first item in the board that has a thumbnail
+- Add `getCoverImage(boardId: string): Promise<string | null>` to `lib/db.ts` — fetches the first item with a thumbnail
+- In the board list/grid view, show the cover image behind the board name (with a gradient overlay)
+- If no items have thumbnails, fall back to the board emoji on a solid indigo background
+- Lazy-load cover images with a skeleton shimmer placeholder
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
