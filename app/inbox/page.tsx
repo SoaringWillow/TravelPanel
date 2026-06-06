@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import ProactiveBanner from '@/components/ProactiveBanner';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -138,8 +139,13 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Proactive insights banner */}
+      <div className="pt-3">
+        <ProactiveBanner items={items} boards={boards} />
+      </div>
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-2 pb-24">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
