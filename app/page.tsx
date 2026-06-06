@@ -4,13 +4,15 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus, Settings } from 'lucide-react';
+import { Globe2, Plus, Settings, Navigation } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import SettingsSheet from '@/components/SettingsSheet';
+import NearMePanel from '@/components/NearMePanel';
 import NavBar from '@/components/NavBar';
+import { haversineKm } from '@/lib/distance';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -21,9 +23,20 @@ function HomePageInner() {
   const { items, loading, addItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showNearMe, setShowNearMe]     = useState(false);
+  const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+
+  // Count nearby items for the "Near Me" pill label
+  const nearbyCount = userLocation
+    ? items.filter(item =>
+        item.locations.some(loc =>
+          haversineKm(userLocation.lat, userLocation.lng, loc.lat, loc.lng) <= 10
+        )
+      ).length
+    : 0;
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -73,7 +86,12 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        onUserLocated={(lat, lng) => setUserLocation({ lat, lng })}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -105,6 +123,23 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
+      {/* Near Me pill — appears once GPS position is known */}
+      {!selectedItem && userLocation && (
+        <button
+          onClick={() => setShowNearMe(true)}
+          className="absolute bottom-28 left-4 z-[1000] flex items-center gap-2 bg-white shadow-lg border border-blue-100 text-blue-600 font-semibold text-sm rounded-full px-4 py-2.5 hover:bg-blue-50 active:scale-95 transition-all"
+          aria-label="Show nearby clips"
+        >
+          <Navigation size={15} className="text-blue-500" />
+          Near Me
+          {nearbyCount > 0 && (
+            <span className="bg-blue-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
+              {nearbyCount}
+            </span>
+          )}
+        </button>
+      )}
+
       {/* Import FAB */}
       {!selectedItem && (
         <button
@@ -129,6 +164,20 @@ function HomePageInner() {
         onClose={() => setShowSettings(false)}
         itemCount={items.length}
       />
+
+      {userLocation && (
+        <NearMePanel
+          open={showNearMe}
+          userLat={userLocation.lat}
+          userLng={userLocation.lng}
+          items={items}
+          onClose={() => setShowNearMe(false)}
+          onItemClick={(item) => {
+            setSelectedItem(item);
+            if (item.locations.length > 0) setFlyTo(item.locations[0]);
+          }}
+        />
+      )}
 
       <NavBar active="home" />
     </main>
