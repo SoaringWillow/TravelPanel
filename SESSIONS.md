@@ -96,3 +96,22 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-06 00:26 | 352a84b | feat(B2): add Chrome/Safari browser extension for one-click URL clipping
+2026-06-06 00:31 | 0884519 | feat(B3): Claude Vision fallback for Xiaohongshu/WeChat anti-scraping
+2026-06-06 00:33 | efce237 | feat(B5): cloud backup export + settings page
+2026-06-06 00:36 | cda0850 | docs: new TASKS.md — Phase D iOS polish + C/E roadmap
+2026-06-06 00:37 | 57081be | feat(D1): haptic feedback on clip save and plan generation
+2026-06-06 00:39 | cd134ee | feat(D2): swipe-to-delete gesture on clip cards
+2026-06-06 00:41 | 321c0f3 | feat(D3): inline item editing in detail card (title, notes, tags)
+2026-06-06 00:42 | 9c96e89 | feat(D4): board rename, emoji picker, delete with confirm
+2026-06-06 00:50 | 0fa7626 | feat(D5): dark mode support across all primary components
+2026-06-06 00:51 | 782c12c | feat(D6): skeleton loading states with shimmer animation
+2026-06-06 00:53 | b46ce6e | feat(D7): paste-URL import with clipboard auto-fill
+2026-06-06 00:56 | 9f3aa7f | feat(D8): plan view polish — dramatic reveal UX
+2026-06-06 00:58 | a151d2e | feat(C1): on-trip GPS mode with live location + nearby clips
+2026-06-06 01:00 | a6e6930 | feat(C4): trip countdown — departure date + proactive home banner
+2026-06-06 01:02 | d64a969 | feat(C2): post-trip timeline with check-ins
+2026-06-06 01:08 | 4271cc2 | feat(E2): real-world enrichment signals injected into trip planner
+2026-06-06 01:09 | 08ff3ba | feat(E1): Wisdom tab on board detail page — aggregated substance library
+2026-06-06 01:13 | 18cf2eb | feat(F1/F2/F4/F6): App Store readiness — onboarding, badge, offline, tag filter
+2026-06-06 01:14 | 3564eb2 | feat(F3/F5): pull-to-refresh inbox + 4:3 thumbnail aspect ratio
