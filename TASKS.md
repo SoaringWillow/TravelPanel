@@ -132,7 +132,7 @@ All tasks done. See completed tasks below.
 - Notes field: shown below substance items in view mode when non-empty, styled as a handwritten-style memo card
 
 ### D4 — Board Management (Rename, Emoji, Reorder)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `lib/db.ts`
 **What to do**:
 - Long-press on a board card in the boards list opens a context menu: "Rename", "Change emoji", "Delete"

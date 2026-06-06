@@ -2,19 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence } from 'framer-motion';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { Board } from '@/lib/types';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
+import { EditBoardSheet } from '@/components/EditBoardSheet';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, editBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -23,6 +27,11 @@ export default function BoardsPage() {
 
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
+  }
+
+  async function handleEdit(name: string, emoji: string) {
+    if (!editingBoard) return;
+    await editBoard(editingBoard.id, name, emoji);
   }
 
   async function handleDelete(id: string) {
@@ -82,7 +91,7 @@ export default function BoardsPage() {
                 board={board}
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
+                onEdit={() => setEditingBoard(board)}
               />
             ))}
           </div>
@@ -95,6 +104,19 @@ export default function BoardsPage() {
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
       />
+
+      {/* Edit board sheet */}
+      <AnimatePresence>
+        {editingBoard && (
+          <EditBoardSheet
+            key={editingBoard.id}
+            board={editingBoard}
+            onSave={handleEdit}
+            onDelete={() => handleDelete(editingBoard.id)}
+            onClose={() => setEditingBoard(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <NavBar active="boards" />
     </div>

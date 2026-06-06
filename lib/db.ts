@@ -154,6 +154,13 @@ export async function saveBoard(board: Board): Promise<void> {
   await db.put('boards', board);
 }
 
+export async function updateBoard(id: string, updates: Partial<Board>): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', id);
+  if (!board) return;
+  await db.put('boards', { ...board, ...updates, updatedAt: Date.now() });
+}
+
 export async function deleteBoard(id: string): Promise<void> {
   const db = await getDB();
   const items = await db.getAllFromIndex('items', 'by-board', id);
