@@ -15,7 +15,7 @@ Goal: a beautiful, fully functional iOS app that achieves the product vision —
 
 These are pure iOS UX polish tasks. Each makes the app feel more native, more trustworthy, more delightful — no new infrastructure required.
 
-**After D-phase is done**: `C1 → C4 → C2 → E2 → E1` (E2 done, E1 next)
+**After D-phase is done**: `C1 → C4 → C2 → E2 → E1` ✅ All done
 
 Blocked on Supabase keys: `B4 → E3 → E4`
 
@@ -198,7 +198,7 @@ All tasks done. See completed tasks below.
 ## PHASE E — Discovery & Depth
 
 ### E1 — Wisdom Board View (Substance Library)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/boards/[id]/page.tsx`, new `components/WisdomTab.tsx`
 **What to do**:
 - Add a "Wisdom" tab to the board detail page (alongside existing "Clips" and "Map" tabs if present)
