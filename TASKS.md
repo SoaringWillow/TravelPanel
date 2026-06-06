@@ -332,7 +332,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show for 800ms then fade out (already configured via `launchShowDuration: 800`)
 
 ### E3 — Onboarding Flow (First Launch)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/onboarding/page.tsx`, `app/layout.tsx`  
 **What to do**:
 - 3-step swipeable onboarding carousel shown once (localStorage flag `hasSeenOnboarding2`)
