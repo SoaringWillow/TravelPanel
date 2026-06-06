@@ -224,7 +224,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The refresh indicator should be an indigo spinner that scales in from 0 as the user drags
 
 ### D3 — Haptic Feedback
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `components/NearMePanel.tsx`  
 **What to do**:
 - Create `lib/haptics.ts` with `haptic(style: 'light' | 'medium' | 'heavy' | 'success' | 'warning')` that:

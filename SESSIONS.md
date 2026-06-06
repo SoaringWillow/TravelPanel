@@ -104,3 +104,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-06 13:39 | 9ea6c66 | feat: B4 — Vibe Search via Claude semantic expansion (no Supabase required)
 2026-06-06 13:40 | d0c4e54 | docs: add Phase D (Native Polish) + Phase E (Production Ready) to TASKS.md
 2026-06-06 13:41 | b7c7a9e | feat: D1 — loading skeletons replace all spinners
+2026-06-06 13:43 | e289101 | feat: D2 — pull-to-refresh on inbox and timeline

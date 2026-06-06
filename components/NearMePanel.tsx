@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { haversineKm, formatDistance } from '@/lib/distance';
+import { haptic } from '@/lib/haptics';
 
 interface NearItem {
   item: SavedItem;
@@ -122,6 +123,7 @@ export default function NearMePanel({
                       type="button"
                       className="w-full flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
                       onClick={() => {
+                        haptic('light');
                         onClose();
                         onItemClick(item);
                       }}
