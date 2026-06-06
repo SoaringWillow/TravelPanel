@@ -29,6 +29,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +37,28 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // On iOS: read any screenshot the Share Extension stored in App Group.
+  // This is the Xiaohongshu fix — the URL fetch is blocked by anti-scraping,
+  // but the user's shared screenshot contains all the content we need.
+  useEffect(() => {
+    if (!rawUrl) return;
+    async function readPendingImage() {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value } = await Preferences.get({ key: 'pendingShareImageBase64' });
+        if (value) {
+          pendingImageRef.current = value;
+          await Preferences.remove({ key: 'pendingShareImageBase64' });
+        }
+      } catch {
+        // Not in native context or Capacitor not available
+      }
+    }
+    readPendingImage();
+  }, [rawUrl]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +111,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (Xiaohongshu vision path)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
