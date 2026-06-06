@@ -456,6 +456,79 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE G — Performance, Polish & Power Features
+
+> Goal: make TravelPanel feel instant, delight power users, and close the remaining quality gaps before v1.0 App Store launch.
+> Execution order: `G1 → G2 → G3 → G4 → G5 → G6`
+
+### G1 — Infinite Scroll / Pagination on Inbox
+**Status**: `[ ]` Not started  
+**Why**: At 200+ clips, rendering all cards at once causes jank and high memory usage.  
+**Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts`  
+**What to do**:
+- Load first 30 items; show "Load more" button (or intersection observer infinite scroll)
+- When search is active, search all items client-side but paginate the display
+- Show total count in the header: "47 clips (showing 30)"
+- Smooth transition when new items load in (framer-motion stagger)
+
+### G2 — Animated Map Route Playback
+**Status**: `[ ]` Not started  
+**Files**: `components/RouteMapView.tsx`  
+**Why**: The plan view shows a static route. An animated "trace" of the route would be visually striking and show the day's journey at a glance.  
+**What to do**:
+- On day selection, animate the route line drawing in from the first pin to the last
+- Use MapLibre's `line-dasharray` animation via a `requestAnimationFrame` loop
+- Each activity pin pops in with a scale animation, staggered 200ms apart
+- "Replay" button to restart the animation
+- Only animate when the day changes; static otherwise
+
+### G3 — Clip Deduplication Warning
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, `lib/db.ts`  
+**Why**: Users frequently clip the same URL twice. Silent duplicates waste enrichment quota and pollute the inbox.  
+**What to do**:
+- In `handleSave`, check if a clip with the same URL already exists in IndexedDB
+- If it does: show an inline warning in the share sheet "You've already saved this link ([clip title]) — save again anyway?"
+- Two actions: "Save Anyway" and "View Existing" (navigates to the existing clip)
+- Don't block the user, just inform
+
+### G4 — Substance Highlights on Board Detail Page
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`  
+**Why**: The board detail page shows a grid of InboxCards but doesn't surface the wisdom extracted from clips. This is the payoff of substance extraction.  
+**What to do**:
+- Add a "Highlights" section between the map and the clips grid
+- Show the top 3 substance items across all clips in the board (prioritize `warning` and `tip` types)
+- Each highlight: icon (💡/⚠️/💬), content text, "from: [clip title]" attribution
+- "See all tips" expands to show all substance items from all board clips
+- Only show if board has at least 2 clips with substance items
+
+### G5 — Haptic Feedback Audit & Polish
+**Status**: `[ ]` Not started  
+**Files**: Multiple components  
+**Why**: Haptics are inconsistently applied. Key interactions like board creation, plan generation start, and milestone celebration are missing haptic feedback.  
+**What to do**:
+- Board created: `haptics.success()`
+- Plan generation starts: `haptics.medium()`
+- Milestone celebration fires: `haptics.success()` + brief delay + `haptics.light()`
+- Day selector pill tap in plan view: `haptics.light()`
+- Pull-to-refresh trigger point: `haptics.light()`
+- Error toast appears: `haptics.error()`
+- Audit all existing haptic calls to ensure they fire at the right moment
+
+### G6 — Clip Search Highlight (Match Highlighting)
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`, `lib/searchItems.ts`  
+**Why**: When a search returns results, users can't see WHY a clip matched. Highlighting the matching text dramatically improves search UX.  
+**What to do**:
+- `searchItems.ts`: return match positions alongside results (or a `highlight(text, query)` helper)
+- `InboxCard`: if a search query is active, wrap matching substring in a `<mark>` with yellow/indigo bg
+- Highlight in: title, description, location names, substance content
+- Performance: only compute highlights when query is non-empty (no-op otherwise)
+- Use a simple regex split approach, not a full diff algorithm
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
