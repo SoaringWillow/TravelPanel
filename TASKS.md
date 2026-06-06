@@ -249,7 +249,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `errorTaptic()` on: enrichment failed, limit hit
 
 ### D7 — Map Style Toggle (Satellite / Street)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Travel planners want to see terrain and landmarks, not just street labels. Satellite mode is visually stunning and makes location review much richer.  
 **Files**: `components/MapView.tsx`  
 **What to do**:

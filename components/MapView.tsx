@@ -10,6 +10,23 @@ import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { taptic } from '@/lib/haptics';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
+// ─── Map style definitions ───────────────────────────────────────────────────
+
+const MAP_STYLES = [
+  { id: 'streets',   label: 'Streets',   icon: '🗺',  url: 'https://tiles.openfreemap.org/styles/liberty'   },
+  { id: 'satellite', label: 'Satellite', icon: '🛰',  url: 'https://tiles.openfreemap.org/styles/positron'  },
+  { id: 'topo',      label: 'Terrain',   icon: '🏔',  url: 'https://tiles.openfreemap.org/styles/fiord'     },
+] as const;
+
+type MapStyleId = (typeof MAP_STYLES)[number]['id'];
+
+const STYLE_KEY = 'tp_map_style';
+
+function loadStyleId(): MapStyleId {
+  if (typeof window === 'undefined') return 'streets';
+  return (localStorage.getItem(STYLE_KEY) as MapStyleId) ?? 'streets';
+}
+
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
 const TAG_EMOJI: Record<string, string> = {
@@ -240,9 +257,22 @@ interface MapViewProps {
 }
 
 export default function MapView({ items, onPinClick, flyTo, tripPlan, showRoute }: MapViewProps) {
-  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [popupInfo, setPopupInfo]     = useState<PopupInfo | null>(null);
+  const [styleId, setStyleId]         = useState<MapStyleId>(loadStyleId);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  const cycleStyle = useCallback(() => {
+    setStyleId((current) => {
+      const idx     = MAP_STYLES.findIndex((s) => s.id === current);
+      const next    = MAP_STYLES[(idx + 1) % MAP_STYLES.length];
+      localStorage.setItem(STYLE_KEY, next.id);
+      return next.id;
+    });
+  }, []);
+
+  const currentStyle   = MAP_STYLES.find((s) => s.id === styleId) ?? MAP_STYLES[0];
+  const nextStyle      = MAP_STYLES[(MAP_STYLES.findIndex((s) => s.id === styleId) + 1) % MAP_STYLES.length];
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -278,7 +308,7 @@ export default function MapView({ items, onPinClick, flyTo, tripPlan, showRoute 
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={currentStyle.url}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
@@ -402,6 +432,35 @@ export default function MapView({ items, onPinClick, flyTo, tripPlan, showRoute 
           ));
         })}
       </Map>
+
+      {/* Style toggle — bottom right, above zoom controls */}
+      <button
+        type="button"
+        onClick={cycleStyle}
+        aria-label={`Switch to ${nextStyle.label}`}
+        style={{
+          position:        'absolute',
+          bottom:          104,
+          right:           10,
+          zIndex:          10,
+          background:      'white',
+          border:          '2px solid rgba(0,0,0,0.15)',
+          borderRadius:    8,
+          width:           34,
+          height:          34,
+          display:         'flex',
+          alignItems:      'center',
+          justifyContent:  'center',
+          fontSize:        16,
+          cursor:          'pointer',
+          boxShadow:       '0 2px 6px rgba(0,0,0,0.2)',
+          transition:      'transform 0.15s ease',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+      >
+        {nextStyle.icon}
+      </button>
     </div>
   );
 }
