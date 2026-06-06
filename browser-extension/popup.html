@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-mark" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" fill="#2563eb"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="main">
+
+      <div id="state-loading" class="state">
+        <div class="spinner"></div>
+        <p class="state-label">Fetching page info…</p>
+      </div>
+
+      <div id="state-error" class="state hidden">
+        <div class="state-emoji">⚠️</div>
+        <p class="state-label" id="errorMsg">Cannot clip this page</p>
+        <p class="state-hint">Navigate to a travel post and try again.</p>
+      </div>
+
+      <div id="state-ready" class="state hidden">
+        <div class="platform-row">
+          <span class="platform-badge" id="platformBadge"></span>
+        </div>
+
+        <div class="page-card">
+          <div class="thumb-wrap hidden" id="thumbWrap">
+            <img class="thumb-img" id="thumbImg" alt="">
+          </div>
+          <div class="page-text">
+            <p class="page-title" id="pageTitle"></p>
+            <p class="page-url" id="pageUrl"></p>
+          </div>
+        </div>
+
+        <button class="save-btn" id="saveBtn">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Save to TravelPanel
+        </button>
+
+        <div class="success hidden" id="successMsg">
+          <span class="success-icon">✓</span> Opened in TravelPanel
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="footer">
+      <a id="openAppLink" href="#" target="_blank" rel="noopener">Open TravelPanel ↗</a>
+    </footer>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
