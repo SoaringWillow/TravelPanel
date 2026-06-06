@@ -368,7 +368,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Empty state: "Save some clips with substance to see wisdom here"
 
 ### F4 — Plan View Guided Empty State + Progress Indicator
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/plan/[boardId]/page.tsx`
 **What to do**:
 - When board has items but none have coordinates: show a "Not enough location data" empty state with a helpful tip to retry enrichment
