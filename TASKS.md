@@ -583,7 +583,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show the banner on the main map page too (as a floating card above the NavBar)
 
 ### H5 — Board Preview Page (Public Share Destination)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: F2 implemented board sharing (generates `travelpanel.app/board/[id]?preview=true` deep links) but the target page doesn't exist. Every shared link is a dead end.  
 **Files**: new `app/board/[id]/page.tsx` (server component), `app/api/board-preview/[id]/route.ts`  
 **What to do**:

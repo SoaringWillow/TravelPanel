@@ -70,7 +70,26 @@ export default function BoardDetailPage() {
   }
 
   async function handleShareBoard() {
-    const shareUrl = `${window.location.origin}/boards/${boardId}?preview=true`;
+    // Write lightweight metadata for the preview page to read
+    const locationNames = boardItems
+      .flatMap((i) => i.locations.map((l) => l.name))
+      .filter(Boolean)
+      .slice(0, 8);
+    try {
+      localStorage.setItem(
+        `sharedBoardMeta:${boardId}`,
+        JSON.stringify({
+          id: boardId,
+          name: board?.name ?? '',
+          emoji: board?.emoji ?? '🗺',
+          itemCount: boardItems.length,
+          locationNames,
+          sharedAt: Date.now(),
+        })
+      );
+    } catch {}
+
+    const shareUrl = `${window.location.origin}/board/${boardId}`;
     const shareData = {
       title: `${board?.emoji} ${board?.name} — TravelPanel`,
       text: `Check out my travel board with ${boardItems.length} places!`,
@@ -78,11 +97,9 @@ export default function BoardDetailPage() {
     };
 
     try {
-      // Try native share sheet (iOS/Android)
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Fallback: copy to clipboard
         await navigator.clipboard.writeText(shareUrl);
         alert('Link copied to clipboard!');
       }
