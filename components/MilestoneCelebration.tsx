@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { haptics } from '@/lib/haptics';
 
 const MILESTONES = [10, 25, 50, 100, 250, 500];
 const MILESTONE_KEY = 'shownMilestones';
@@ -68,6 +69,8 @@ function Confetti() {
 export function MilestoneCelebration({ milestone, onDone }: MilestoneCelebrationProps) {
   useEffect(() => {
     markMilestoneShown(milestone);
+    haptics.success();
+    setTimeout(() => haptics.light(), 300);
     const timer = setTimeout(onDone, 2800);
     return () => clearTimeout(timer);
   }, [milestone, onDone]);

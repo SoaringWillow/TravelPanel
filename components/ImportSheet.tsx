@@ -79,6 +79,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     } catch (err) {
       clearTimeout(timeoutId);
       const isTimeout = err instanceof Error && (err.name === 'AbortError' || err.message === 'timeout');
+      haptics.error();
       setError(
         isTimeout
           ? 'Taking too long — the page may be private or unsupported. You can save the URL for later.'

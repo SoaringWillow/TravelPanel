@@ -504,7 +504,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only show if board has at least 2 clips with substance items
 
 ### G5 — Haptic Feedback Audit & Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: Multiple components  
 **Why**: Haptics are inconsistently applied. Key interactions like board creation, plan generation start, and milestone celebration are missing haptic feedback.  
 **What to do**:

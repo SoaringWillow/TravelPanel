@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { haptics } from '@/lib/haptics';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -44,6 +45,7 @@ export function PullToRefresh({ onRefresh, children, className = '' }: PullToRef
     startY.current = null;
 
     if (pullDistance >= THRESHOLD && !isRefreshing) {
+      haptics.light();
       setIsRefreshing(true);
       setPullDistance(THRESHOLD); // hold the indicator at threshold height
       try {

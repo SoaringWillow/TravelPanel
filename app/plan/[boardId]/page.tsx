@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { haptics } from '@/lib/haptics';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
@@ -81,6 +82,7 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    haptics.medium();
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
@@ -504,7 +506,7 @@ export default function PlanPage() {
                         <button
                           key={day.day}
                           type="button"
-                          onClick={() => setActiveDayIndex(idx)}
+                          onClick={() => { setActiveDayIndex(idx); haptics.light(); }}
                           className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-2xl border-2 transition-all active:scale-95 ${
                             isActive
                               ? 'border-indigo-500 bg-indigo-50 shadow-md'
