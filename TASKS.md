@@ -294,7 +294,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Create a simple white-on-blue splash screen matching the icon
 
 ### D11 — Share Plan as Beautiful Link
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Trip plans are created in isolation. Users want to share their Tokyo 5-day itinerary with travel companions. This is a viral growth mechanism.  
 **Files**: `app/plan/[boardId]/page.tsx`, new `app/plan/[boardId]/share/page.tsx`, new `app/api/share-plan/route.ts`  
 **What to do**:

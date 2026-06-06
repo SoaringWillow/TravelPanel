@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2, CheckCircle2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
+import { encodePlan } from '@/lib/sharePlan';
 import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
@@ -39,6 +40,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -184,6 +187,21 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  const handleShare = useCallback(async () => {
+    if (!planIsComplete(plan)) return;
+    const encoded = await encodePlan(plan);
+    const url = `${window.location.origin}/plan/shared#${encoded}`;
+    setShareUrl(url);
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      // Clipboard denied — user can copy manually from the shown URL
+    }
+    track('plan_shared', { boardId });
+  }, [plan, boardId]);
 
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
@@ -555,6 +573,25 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Share plan */}
+              <div className="space-y-2">
+                <button
+                  onClick={handleShare}
+                  className="flex items-center justify-center gap-2 w-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-medium py-2.5 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                >
+                  {shareCopied ? <CheckCircle2 size={15} /> : <Share2 size={15} />}
+                  {shareCopied ? 'Link copied!' : 'Share plan'}
+                </button>
+                {shareUrl && !shareCopied && (
+                  <input
+                    readOnly
+                    value={shareUrl}
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                    className="w-full text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 font-mono truncate cursor-text"
+                  />
+                )}
+              </div>
 
               {/* Start Over */}
               <button
