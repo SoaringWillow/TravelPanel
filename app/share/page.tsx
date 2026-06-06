@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -13,6 +13,9 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Stage = 'picking' | 'saving' | 'done';
+
+// Platforms whose content is blocked by anti-scraping — screenshot helps
+const SCREENSHOT_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -29,12 +32,27 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef    = useRef<HTMLInputElement>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Read screenshot passed by CapacitorBridge (written to sessionStorage before navigation)
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem('pendingShareImage');
+      if (pending) {
+        setScreenshotDataUrl(pending);
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing edge cases)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +106,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot when available (helps with Xiaohongshu/WeChat)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotDataUrl ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -166,6 +184,67 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Screenshot upload prompt — shown for platforms with anti-scraping */}
+        {SCREENSHOT_PLATFORMS.has(platform) && stage === 'picking' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  const result = ev.target?.result as string;
+                  if (result) setScreenshotDataUrl(result);
+                };
+                reader.readAsDataURL(file);
+                // reset input so the same file can be re-selected
+                e.target.value = '';
+              }}
+            />
+            {screenshotDataUrl ? (
+              <div className="flex items-center gap-3">
+                <img
+                  src={screenshotDataUrl}
+                  alt="Screenshot"
+                  className="w-12 h-12 rounded-lg object-cover border border-amber-300"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-amber-800">Screenshot added ✓</p>
+                  <p className="text-xs text-amber-600">Claude Vision will read it</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setScreenshotDataUrl(null)}
+                  className="text-amber-400 hover:text-amber-600 transition-colors"
+                  aria-label="Remove screenshot"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 w-full text-left"
+              >
+                <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <Camera size={17} className="text-amber-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-amber-800">Add a screenshot for better results</p>
+                  <p className="text-xs text-amber-600 leading-tight">
+                    {platformLabel} blocks content fetching — a screenshot lets Claude Vision read it
+                  </p>
+                </div>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
