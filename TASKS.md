@@ -265,7 +265,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - If board has <2 location clips: show "Add more clips with locations to plan a trip" tooltip
 
 ### D7 — Haptic Feedback via Capacitor Haptics
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ImportSheet.tsx`, `app/share/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:
 - Install `@capacitor/haptics` (already in `@capacitor` org, same install pattern as other plugins)

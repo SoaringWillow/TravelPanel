@@ -102,3 +102,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-06 14:34 | 88fe293 | docs: add Phase D (native iOS polish) and Phase E (App Store readiness) tasks
 2026-06-06 14:36 | 2879677 | feat(D1): beautiful animated empty states across all three main views
 2026-06-06 14:38 | 1f9c2de | feat(D2): swipe-to-delete and swipe-to-move on inbox clip cards
+2026-06-06 14:40 | f8f1fa3 | feat(D3): pull-to-refresh on Inbox and Boards pages

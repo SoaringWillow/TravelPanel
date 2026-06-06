@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Trash2, LayoutGrid } from 'lucide-react';
+import { haptics } from '@/lib/haptics';
 
 // ─── SwipeCard ────────────────────────────────────────────────────────────────
 // Wraps any card with horizontal swipe gestures:
@@ -32,16 +33,15 @@ export function SwipeCard({ children, onDelete, onMoveToBoard, disabled }: Swipe
     const offset = info.offset.x;
 
     if (offset < -THRESHOLD) {
-      // Slide card off to the left, then trigger delete
+      haptics.heavy();
       const width = containerRef.current?.offsetWidth ?? 240;
       await animate(x, -width * 1.5, { duration: 0.22, ease: 'easeIn' });
       onDelete();
     } else if (offset > THRESHOLD && onMoveToBoard) {
-      // Spring back to center, then open board picker
+      haptics.light();
       await animate(x, 0, { type: 'spring', stiffness: 450, damping: 34 });
       onMoveToBoard();
     } else {
-      // Below threshold — spring back without action
       animate(x, 0, { type: 'spring', stiffness: 450, damping: 34 });
     }
   }

@@ -15,6 +15,7 @@ import {
   PLATFORM_BG,
   PLATFORM_COLORS,
 } from '@/lib/parse-url';
+import { haptics } from '@/lib/haptics';
 
 // ─── Props / types ───────────────────────────────────────────────────────────
 
@@ -106,6 +107,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    haptics.success();
     onSaved(item);
     resetState();
   }
@@ -130,6 +132,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    haptics.medium();
     onSaved(item);
     resetState();
   }
