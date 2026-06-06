@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#4f46e5"/>
+  <!-- Map pin body -->
+  <path d="M64 22c-14.36 0-26 11.64-26 26 0 18.2 26 58 26 58s26-39.8 26-58c0-14.36-11.64-26-26-26z" fill="white"/>
+  <!-- Map pin inner circle -->
+  <circle cx="64" cy="48" r="10" fill="#4f46e5"/>
+</svg>
