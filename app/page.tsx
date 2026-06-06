@@ -12,6 +12,7 @@ import LocationDetailCard from '@/components/LocationDetailCard';
 import SettingsSheet from '@/components/SettingsSheet';
 import NearMePanel from '@/components/NearMePanel';
 import NavBar from '@/components/NavBar';
+import OnboardingTour, { useShowOnboarding } from '@/components/OnboardingTour';
 import { haversineKm } from '@/lib/distance';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -21,6 +22,8 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
+  const showOnboarding = useShowOnboarding();
+  const [onboardingDone, setOnboardingDone] = useState(false);
   const [showImport, setShowImport]     = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showNearMe, setShowNearMe]     = useState(false);
@@ -81,6 +84,11 @@ function HomePageInner() {
   function handleImportClose() {
     setShowImport(false);
     setPrefilledUrl('');
+  }
+
+  // Show onboarding on first launch
+  if (showOnboarding && !onboardingDone) {
+    return <OnboardingTour onDone={() => setOnboardingDone(true)} />;
   }
 
   return (

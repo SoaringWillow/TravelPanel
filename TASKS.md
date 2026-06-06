@@ -346,7 +346,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - When items exist but none have coordinates (all enrichment pending), show a subtle pill: "Locations loading…" with a spinner at the top of the map
 
 ### F2 — First-Launch Onboarding Tour
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: new `components/OnboardingTour.tsx`, `app/page.tsx`
 **What to do**:
 - Create a 3-step full-screen modal that shows on first launch (gate with `localStorage.tp_onboarded`)
