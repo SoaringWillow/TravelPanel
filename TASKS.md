@@ -226,7 +226,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Install `@use-gesture/react` if framer-motion drag isn't sufficient: `npm install @use-gesture/react`
 
 ### D3 — Pull-to-Refresh on Inbox and Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Implement native-feel pull-to-refresh using CSS overscroll + touch events (no library needed)
