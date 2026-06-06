@@ -105,7 +105,7 @@ export default function VibeSearchBar({ items, onResults }: VibeSearchBarProps) 
           type="text"
           value={query}
           onChange={(e) => handleChange(e.target.value)}
-          placeholder="Vibe search: "minimalist café Tokyo"…"
+          placeholder='Vibe search: "minimalist café Tokyo"…'
           className="w-full bg-indigo-50 rounded-xl pl-9 pr-9 py-2.5 text-sm text-gray-700 placeholder:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-shadow"
         />
 

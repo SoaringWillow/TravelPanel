@@ -3,12 +3,12 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, CheckSquare, Trash2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, deleteItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
@@ -51,6 +51,9 @@ export default function InboxPage() {
   const [query, setQuery] = useState('');
   const [vibeMode, setVibeMode] = useState(false);
   const [vibeResults, setVibeResults] = useState<VibeResult[] | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkMoving, setBulkMoving] = useState(false);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -114,6 +117,44 @@ export default function InboxPage() {
     [movingItemId, items, router]
   );
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    const confirmed = window.confirm(`Delete ${selectedIds.size} clip${selectedIds.size !== 1 ? 's' : ''}?`);
+    if (!confirmed) return;
+    await Promise.all(Array.from(selectedIds).map((id) => deleteItem(id)));
+    track('bulk_delete', { count: selectedIds.size });
+    exitSelectMode();
+    router.refresh();
+  }
+
+  async function handleBulkBoardSelect(boardId: string | null) {
+    if (selectedIds.size === 0) return;
+    if (boardId === null) {
+      const affectedItems = items.filter((i) => selectedIds.has(i.id) && i.boardId);
+      await Promise.all(affectedItems.map((i) => removeItemFromBoard(i.boardId!, i.id)));
+    } else {
+      await Promise.all(Array.from(selectedIds).map((id) => addItemToBoard(boardId, id)));
+    }
+    track('bulk_move', { count: selectedIds.size, toBoard: boardId !== null });
+    exitSelectMode();
+    setBulkMoving(false);
+    router.refresh();
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 relative">
       {/* Header */}
@@ -121,9 +162,32 @@ export default function InboxPage() {
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
-          </span>
+          {selectMode ? (
+            <button
+              type="button"
+              onClick={exitSelectMode}
+              className="ml-auto flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+            >
+              <X size={13} />
+              Done
+            </button>
+          ) : (
+            <>
+              <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                {inboxItems.length} unsorted
+              </span>
+              {inboxItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectMode(true)}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                >
+                  <CheckSquare size={13} />
+                  Select
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         {/* Search — toggle between text search and vibe (semantic) search */}
@@ -224,6 +288,9 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    selectMode={selectMode}
+                    selected={selectedIds.has(item.id)}
+                    onSelect={toggleSelect}
                   />
                 </motion.div>
               ))}
@@ -303,6 +370,127 @@ export default function InboxPage() {
                     <p className="text-sm text-gray-400 py-2">
                       No boards yet. Create one from the Boards tab.
                     </p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk action bar */}
+      <AnimatePresence>
+        {selectMode && (
+          <motion.div
+            key="bulk-bar"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+            className="fixed bottom-[64px] left-0 right-0 z-[1990] bg-white border-t border-gray-100 shadow-lg px-4 py-3"
+          >
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const allIds = displayItems.map((i) => i.id);
+                  const allSelected = allIds.every((id) => selectedIds.has(id));
+                  if (allSelected) {
+                    setSelectedIds(new Set());
+                  } else {
+                    setSelectedIds(new Set(allIds));
+                  }
+                }}
+                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 px-2 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors flex-shrink-0"
+              >
+                {displayItems.every((i) => selectedIds.has(i.id)) ? 'Deselect all' : 'Select all'}
+              </button>
+              <span className="text-xs text-gray-400 flex-shrink-0">
+                {selectedIds.size} selected
+              </span>
+              <div className="flex gap-2 ml-auto">
+                <button
+                  type="button"
+                  disabled={selectedIds.size === 0}
+                  onClick={() => setBulkMoving(true)}
+                  className="text-xs font-semibold px-3 py-2 rounded-xl border-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 transition-colors"
+                >
+                  Move ({selectedIds.size})
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedIds.size === 0}
+                  onClick={handleBulkDelete}
+                  className="text-xs font-semibold px-3 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 disabled:opacity-40 transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 size={13} />
+                  Delete ({selectedIds.size})
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk board selector bottom sheet */}
+      <AnimatePresence>
+        {bulkMoving && (
+          <>
+            <motion.div
+              key="bulk-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1999] bg-black/40"
+              onClick={() => setBulkMoving(false)}
+            />
+            <motion.div
+              key="bulk-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
+              style={{ maxHeight: 300 }}
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+              <div className="flex items-center justify-between px-5 py-3">
+                <h3 className="font-semibold text-gray-800">
+                  Move {selectedIds.size} clip{selectedIds.size !== 1 ? 's' : ''} to board
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setBulkMoving(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: 200 }}>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleBulkBoardSelect(null)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                  >
+                    <span>📥</span>
+                    <span>Inbox (unassign)</span>
+                  </button>
+                  {boards.map((board) => (
+                    <button
+                      key={board.id}
+                      type="button"
+                      onClick={() => handleBulkBoardSelect(board.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                    >
+                      <span>{board.emoji}</span>
+                      <span>{board.name}</span>
+                    </button>
+                  ))}
+                  {boards.length === 0 && (
+                    <p className="text-sm text-gray-400 py-2">No boards yet. Create one from the Boards tab.</p>
                   )}
                 </div>
               </div>
