@@ -278,7 +278,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Priority order: `E1 → E2 → E3 → E4 → E5`
 
 ### E1 — Import from JSON Backup
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/importData.ts` (new), `components/SettingsSheet.tsx`  
 **What to do**:
 - Create `lib/importData.ts` with `importFromBackup(file: File): Promise<{imported: number; skipped: number}>`
