@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { highlight } from '@/lib/searchItems';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  query?: string;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +40,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  query = '',
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -216,13 +219,13 @@ export default function InboxCard({
 
         {/* Title */}
         <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
-          {item.title}
+          {highlight(item.title, query)}
         </h3>
 
         {/* Description */}
         {item.description && (
           <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
-            {item.description}
+            {highlight(item.description, query)}
           </p>
         )}
 

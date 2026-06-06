@@ -517,7 +517,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Audit all existing haptic calls to ensure they fire at the right moment
 
 ### G6 — Clip Search Highlight (Match Highlighting)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `lib/searchItems.ts`  
 **Why**: When a search returns results, users can't see WHY a clip matched. Highlighting the matching text dramatically improves search UX.  
 **What to do**:

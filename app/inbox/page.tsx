@@ -267,6 +267,7 @@ export default function InboxPage() {
                           onViewOnMap={handleViewOnMap}
                           onMoveToBoard={handleMoveToBoard}
                           onRetry={retryItem}
+                          query={query}
                         />
                       </SwipeCard>
                     </motion.div>
