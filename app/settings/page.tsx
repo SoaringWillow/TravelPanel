@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Download, Upload, Trash2, Globe2, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Download, Upload, Trash2, Globe2, CheckCircle2, AlertCircle, Info, ChevronRight, Shield, FileText } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, saveItem, saveBoard } from '@/lib/db';
 import { SavedItem, Board } from '@/lib/types';
@@ -62,6 +63,7 @@ async function importData(file: File): Promise<{ items: number; boards: number }
 type ActionState = 'idle' | 'busy' | 'success' | 'error';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [exportState, setExportState]       = useState<ActionState>('idle');
   const [importState, setImportState]       = useState<ActionState>('idle');
   const [importMessage, setImportMessage]   = useState('');
@@ -216,6 +218,30 @@ export default function SettingsPage() {
             <Row label="Analytics" value="Opt-in, anonymous usage only" />
             <Row label="AI processing" value="URLs sent to Anthropic Claude for extraction" />
             <Row label="Data storage" value="On-device (IndexedDB) — never uploaded" />
+          </div>
+        </Section>
+
+        {/* ── Legal ── */}
+        <Section title="Legal">
+          <div className="divide-y divide-gray-100">
+            <button
+              type="button"
+              onClick={() => router.push('/privacy')}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors"
+            >
+              <Shield size={16} className="text-indigo-500 flex-shrink-0" />
+              <span className="flex-1 text-sm text-gray-800 font-medium">Privacy Policy</span>
+              <ChevronRight size={16} className="text-gray-400" />
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/terms')}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors"
+            >
+              <FileText size={16} className="text-indigo-500 flex-shrink-0" />
+              <span className="flex-1 text-sm text-gray-800 font-medium">Terms of Use</span>
+              <ChevronRight size={16} className="text-gray-400" />
+            </button>
           </div>
         </Section>
 

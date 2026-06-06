@@ -358,7 +358,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Script: `scripts/screenshots.ts`
 
 ### E5 — Privacy Policy + Terms Pages
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/privacy/page.tsx`, `app/terms/page.tsx`  
 **What to do**:
 - Required for App Store submission
