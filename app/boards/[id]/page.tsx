@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Sparkles } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -110,6 +110,18 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={() => router.push(`/boards/${boardId}/timeline`)}
+              className="flex items-center gap-1 text-amber-600 hover:text-amber-700 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors flex-shrink-0"
+              title="Post-trip timeline"
+            >
+              <Sparkles size={13} />
+              Timeline
+            </button>
+          )}
         </div>
       </div>
 
