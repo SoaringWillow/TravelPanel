@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Clock } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -132,19 +132,19 @@ export default function BoardDetailPage() {
         )}
 
         <div className="px-4 py-4">
-          {/* Plan this trip CTA */}
-          <div className="mb-4">
+          {/* Action row: Plan + Timeline */}
+          <div className="mb-4 flex gap-2">
             {hasLocations ? (
               <button
                 type="button"
                 onClick={() => router.push(`/plan/${boardId}`)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
+                className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
               >
                 <Rocket size={18} />
                 Plan this trip
               </button>
             ) : (
-              <div className="relative group">
+              <div className="relative group flex-1">
                 <button
                   type="button"
                   disabled
@@ -153,7 +153,6 @@ export default function BoardDetailPage() {
                   <Rocket size={18} />
                   Plan this trip
                 </button>
-                {/* Tooltip */}
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
                   <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
                     Add items with identified locations to plan a trip
@@ -162,6 +161,16 @@ export default function BoardDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Timeline button */}
+            <button
+              type="button"
+              onClick={() => router.push(`/boards/${boardId}/timeline`)}
+              className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 font-medium text-sm px-3 py-3.5 rounded-2xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+            >
+              <Clock size={16} />
+              Timeline
+            </button>
           </div>
 
           {/* Items grid */}

@@ -127,6 +127,18 @@ export interface Trip {
   departureDate?: string; // ISO date string YYYY-MM-DD, for trip countdown
 }
 
+// ─── Check-ins (post-trip timeline) ─────────────────────────────────────────
+
+export interface Checkin {
+  id: string;
+  boardId: string;
+  itemId?: string;        // the SavedItem it relates to (optional)
+  activityName: string;  // plan activity name
+  locationName: string;  // location name
+  checkedInAt: number;   // ms timestamp
+  notes?: string;
+}
+
 // ─── API types ───────────────────────────────────────────────────────────────
 
 export interface ImportResult {

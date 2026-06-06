@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Navigation2, X, Loader2, RefreshCw } from 'lucide-react';
-import { getAllItems, getTripsForBoard } from '@/lib/db';
+import { MapPin, Navigation2, X, Loader2, RefreshCw, CheckSquare } from 'lucide-react';
+import { getAllItems, getTripsForBoard, saveCheckin } from '@/lib/db';
 import { SavedItem, Activity, Trip } from '@/lib/types';
 import NavBar from '@/components/NavBar';
 
@@ -50,6 +50,7 @@ export default function TripPage() {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [pos, setPos] = useState<Pos | null>(null);
   const [geoState, setGeoState] = useState<GeoState>('idle');
+  const [checkedIn, setCheckedIn] = useState<Set<number>>(new Set());
 
   // ── Load trip data ─────────────────────────────────────────────────────────
 
@@ -293,6 +294,30 @@ export default function TripPage() {
                           ))}
                         </ul>
                       )}
+
+                      {/* Check in */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (checkedIn.has(idx) || !boardId) return;
+                          await saveCheckin({
+                            id: crypto.randomUUID(),
+                            boardId,
+                            activityName: activity.name,
+                            locationName: activity.location.name,
+                            checkedInAt: Date.now(),
+                          });
+                          setCheckedIn((prev) => new Set([...prev, idx]));
+                        }}
+                        className={`mt-2 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
+                          checkedIn.has(idx)
+                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        <CheckSquare size={12} />
+                        {checkedIn.has(idx) ? 'Checked in ✓' : 'Check in'}
+                      </button>
                     </div>
                   </motion.div>
                 );

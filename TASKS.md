@@ -66,7 +66,7 @@ All tasks done. See completed tasks below.
 - Add "Trip" tab to NavBar only when `localStorage.activeTripBoardId` is set (set it when user taps "Start Trip" on the plan view)
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: new `app/boards/[id]/timeline/page.tsx`, `lib/db.ts` (add `checkins` store)
 **What to do**:
 - Add a `checkins` store to IndexedDB: `{ id, itemId, boardId, checkedInAt: number, notes?: string }`
