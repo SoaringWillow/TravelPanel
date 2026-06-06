@@ -107,3 +107,17 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-06 13:43 | e289101 | feat: D2 — pull-to-refresh on inbox and timeline
 2026-06-06 13:45 | 3bfcefc | feat: D3 — haptic feedback for key interactions
 2026-06-06 13:46 | 34d0a4e | feat: D4 — edit clip title and personal notes inline
+2026-06-06 13:47 | 0d7bf7e | feat: D5 — duplicate URL detection before saving
+2026-06-06 13:53 | 2a78dd0 | D6 — Bulk Operations in Inbox
+2026-06-06 13:54 | 61f80d1 | E1 — Import from JSON Backup
+2026-06-06 13:55 | e792ded | E2 — In-App Review Prompt after 5th clip
+2026-06-06 13:56 | 509c61d | E3 — PWA Offline Banner
+2026-06-06 13:57 | b32ae6e | E4 — Global Error Boundary
+2026-06-06 13:58 | aad18d8 | E5 — Board Cover Image with gradient overlay
+2026-06-06 13:59 | 0e9cb5c | Mark E1 done in TASKS.md (was missed in earlier commit)
+2026-06-06 14:02 | 33ee3e8 | F1 — Map Welcome State for new users
+2026-06-06 14:03 | 29565a6 | F2 — First-Launch Onboarding Tour
+2026-06-06 14:05 | ae65cfe | F3 — Wisdom Feed + fix pre-existing TS errors
+2026-06-06 14:06 | 1495c51 | F4 — Plan View Guided Empty State + Streaming Progress Bar
+2026-06-06 14:06 | 998636a | F5 — Pending Enrichment Badge on Inbox Tab
+2026-06-06 14:07 | 83f6cb9 | F6 — Board Detail Substance Highlights
