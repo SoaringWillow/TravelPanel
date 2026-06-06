@@ -426,7 +426,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test: switch device to dark mode → all text readable, no white flash, map style switches
 
 ### F5 — Clip Count Milestone Celebrations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/ratingPrompt.ts` → extend, new `components/MilestoneCelebration.tsx`  
 **What to do**:
 - At 10, 25, 50, 100 clips: show a confetti burst + "🎉 You've saved 50 places!" modal for 2 seconds
