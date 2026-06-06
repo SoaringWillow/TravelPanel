@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#e0e7ff" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+
+  <!-- Map pin body (teardrop) -->
+  <!-- Pin centered at 512,480; total height ~480 -->
+  <path d="
+    M512,160
+    C380,160 274,266 274,398
+    C274,500 340,580 390,640
+    L512,820
+    L634,640
+    C684,580 750,500 750,398
+    C750,266 644,160 512,160
+    Z
+  " fill="url(#pin)" opacity="0.95"/>
+
+  <!-- Inner circle (hole in pin) -->
+  <circle cx="512" cy="390" r="90" fill="url(#bg)" opacity="0.85"/>
+  <circle cx="512" cy="390" r="60" fill="white" opacity="0.3"/>
+</svg>

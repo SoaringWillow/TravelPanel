@@ -3,16 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2, CheckCircle2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
+import { encodePlan } from '@/lib/sharePlan';
 import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import TimelineActivity from '@/components/TimelineActivity';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -38,6 +40,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -183,6 +187,21 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  const handleShare = useCallback(async () => {
+    if (!planIsComplete(plan)) return;
+    const encoded = await encodePlan(plan);
+    const url = `${window.location.origin}/plan/shared#${encoded}`;
+    setShareUrl(url);
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      // Clipboard denied — user can copy manually from the shown URL
+    }
+    track('plan_shared', { boardId });
+  }, [plan, boardId]);
 
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
@@ -508,58 +527,33 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-sm font-bold text-gray-700">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                    {activeDayPlan.dailyCostEstimate && (
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg flex-shrink-0">
+                        Est. {activeDayPlan.dailyCostEstimate}
+                      </span>
+                    )}
+                  </div>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const thumbnail = boardItems
+                      .find((item) =>
+                        item.locations.some((loc) => loc.name === activity.location.name)
+                      )?.thumbnail;
+                    return (
+                      <TimelineActivity
+                        key={aIdx}
+                        activity={activity}
+                        index={aIdx}
+                        isLast={aIdx === activeDayPlan.activities.length - 1}
+                        thumbnail={thumbnail}
+                        boardId={boardId}
+                      />
+                    );
+                  })}
                 </div>
               )}
 
@@ -579,6 +573,25 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Share plan */}
+              <div className="space-y-2">
+                <button
+                  onClick={handleShare}
+                  className="flex items-center justify-center gap-2 w-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-medium py-2.5 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                >
+                  {shareCopied ? <CheckCircle2 size={15} /> : <Share2 size={15} />}
+                  {shareCopied ? 'Link copied!' : 'Share plan'}
+                </button>
+                {shareUrl && !shareCopied && (
+                  <input
+                    readOnly
+                    value={shareUrl}
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                    className="w-full text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 font-mono truncate cursor-text"
+                  />
+                )}
+              </div>
 
               {/* Start Over */}
               <button

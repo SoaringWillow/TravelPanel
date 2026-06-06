@@ -81,6 +81,16 @@ export async function saveItem(item: SavedItem): Promise<void> {
   await db.put('items', item);
 }
 
+// Partial update for user-editable fields (title, notes, tags, locations)
+export async function patchItem(id: string, patch: Partial<SavedItem>): Promise<SavedItem | undefined> {
+  const db = await getDB();
+  const existing = await db.get('items', id);
+  if (!existing) return undefined;
+  const updated = { ...existing, ...patch };
+  await db.put('items', updated);
+  return updated;
+}
+
 export async function deleteItem(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('items', id);
@@ -190,6 +200,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 }
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
 
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {

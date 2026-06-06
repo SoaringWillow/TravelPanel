@@ -3,11 +3,29 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, Source, Layer, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { SavedItem, Location } from '@/lib/types';
+import { SavedItem, Location, TripPlan } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
+import { taptic } from '@/lib/haptics';
 import { useSupercluster } from '@/hooks/useSupercluster';
+
+// ─── Map style definitions ───────────────────────────────────────────────────
+
+const MAP_STYLES = [
+  { id: 'streets',   label: 'Streets',   icon: '🗺',  url: 'https://tiles.openfreemap.org/styles/liberty'   },
+  { id: 'satellite', label: 'Satellite', icon: '🛰',  url: 'https://tiles.openfreemap.org/styles/positron'  },
+  { id: 'topo',      label: 'Terrain',   icon: '🏔',  url: 'https://tiles.openfreemap.org/styles/fiord'     },
+] as const;
+
+type MapStyleId = (typeof MAP_STYLES)[number]['id'];
+
+const STYLE_KEY = 'tp_map_style';
+
+function loadStyleId(): MapStyleId {
+  if (typeof window === 'undefined') return 'streets';
+  return (localStorage.getItem(STYLE_KEY) as MapStyleId) ?? 'streets';
+}
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -224,18 +242,55 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── Route overlay colours (matches RouteMapView) ────────────────────────────
+
+const DAY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#06b6d4'];
+
 // ─── Main component ──────────────────────────────────────────────────────────
+
+// GeoJSON circle approximation (64-point polygon)
+function circleGeoJSON(
+  lat: number, lng: number, radiusKm: number
+): GeoJSON.Feature<GeoJSON.Polygon> {
+  const points = 64;
+  const coords: [number, number][] = [];
+  for (let i = 0; i <= points; i++) {
+    const angle = (i * 360) / points;
+    const rad   = (angle * Math.PI) / 180;
+    const dLat  = (radiusKm / 111.32) * Math.cos(rad);
+    const dLng  = (radiusKm / (111.32 * Math.cos((lat * Math.PI) / 180))) * Math.sin(rad);
+    coords.push([lng + dLng, lat + dLat]);
+  }
+  return { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] }, properties: {} };
+}
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  tripPlan?: Partial<TripPlan> | null;
+  showRoute?: boolean;
+  userPos?: { lat: number; lng: number };
+  nearMeRadius?: number; // km — if provided, draws the radius circle
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
-  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+export default function MapView({ items, onPinClick, flyTo, tripPlan, showRoute, userPos, nearMeRadius }: MapViewProps) {
+  const [popupInfo, setPopupInfo]     = useState<PopupInfo | null>(null);
+  const [styleId, setStyleId]         = useState<MapStyleId>(loadStyleId);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  const cycleStyle = useCallback(() => {
+    setStyleId((current) => {
+      const idx     = MAP_STYLES.findIndex((s) => s.id === current);
+      const next    = MAP_STYLES[(idx + 1) % MAP_STYLES.length];
+      localStorage.setItem(STYLE_KEY, next.id);
+      return next.id;
+    });
+  }, []);
+
+  const currentStyle   = MAP_STYLES.find((s) => s.id === styleId) ?? MAP_STYLES[0];
+  const nextStyle      = MAP_STYLES[(MAP_STYLES.findIndex((s) => s.id === styleId) + 1) % MAP_STYLES.length];
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -271,7 +326,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={currentStyle.url}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
@@ -321,6 +376,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
                 item={item}
                 locName={location.name}
                 onClick={() => {
+                  taptic();
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);
                 }}
@@ -349,7 +405,105 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </div>
           </Popup>
         )}
+
+        {/* ── Near Me: radius circle + user dot ── */}
+        {userPos && nearMeRadius && (
+          <Source id="near-me-circle" type="geojson" data={circleGeoJSON(userPos.lat, userPos.lng, nearMeRadius)}>
+            <Layer
+              id="near-me-fill"
+              type="fill"
+              paint={{ 'fill-color': '#6366f1', 'fill-opacity': 0.08 }}
+            />
+            <Layer
+              id="near-me-border"
+              type="line"
+              paint={{ 'line-color': '#6366f1', 'line-width': 2, 'line-opacity': 0.5, 'line-dasharray': [4, 3] }}
+            />
+          </Source>
+        )}
+        {userPos && (
+          <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
+            <div style={{
+              width: 16, height: 16, borderRadius: '50%',
+              backgroundColor: '#6366f1', border: '3px solid white',
+              boxShadow: '0 0 0 3px rgba(99,102,241,0.3)',
+            }} />
+          </Marker>
+        )}
+
+        {/* ── Trip route overlay ── */}
+        {showRoute && tripPlan?.days?.map((day, dayIdx) => {
+          const locs = (day.locations ?? []).filter(
+            (l) => Number.isFinite(l.lat) && Number.isFinite(l.lng)
+          );
+          if (locs.length < 2) return null;
+          const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+          const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: locs.map((l) => [l.lng, l.lat]) },
+            properties: {},
+          };
+          return (
+            <Source key={`route-src-${dayIdx}`} id={`route-src-${dayIdx}`} type="geojson" data={geojson}>
+              <Layer
+                id={`route-line-${dayIdx}`}
+                type="line"
+                paint={{ 'line-color': color, 'line-width': 4, 'line-opacity': 0.85 }}
+                layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              />
+            </Source>
+          );
+        })}
+
+        {showRoute && tripPlan?.days?.flatMap((day, dayIdx) => {
+          const locs = (day.locations ?? []).filter(
+            (l) => Number.isFinite(l.lat) && Number.isFinite(l.lng)
+          );
+          const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+          return locs.map((loc, locIdx) => (
+            <Marker key={`route-pin-${dayIdx}-${locIdx}`} longitude={loc.lng} latitude={loc.lat} anchor="center">
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%',
+                backgroundColor: color, border: '2.5px solid white',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontSize: 10, fontWeight: 700,
+              }}>
+                {locIdx + 1}
+              </div>
+            </Marker>
+          ));
+        })}
       </Map>
+
+      {/* Style toggle — bottom right, above zoom controls */}
+      <button
+        type="button"
+        onClick={cycleStyle}
+        aria-label={`Switch to ${nextStyle.label}`}
+        style={{
+          position:        'absolute',
+          bottom:          104,
+          right:           10,
+          zIndex:          10,
+          background:      'white',
+          border:          '2px solid rgba(0,0,0,0.15)',
+          borderRadius:    8,
+          width:           34,
+          height:          34,
+          display:         'flex',
+          alignItems:      'center',
+          justifyContent:  'center',
+          fontSize:        16,
+          cursor:          'pointer',
+          boxShadow:       '0 2px 6px rgba(0,0,0,0.2)',
+          transition:      'transform 0.15s ease',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+      >
+        {nextStyle.icon}
+      </button>
     </div>
   );
 }

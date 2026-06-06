@@ -5,11 +5,15 @@ import UniformTypeIdentifiers
 
 // TravelPanel Share Extension
 //
-// Receives a URL (and optional title) from the iOS Share Sheet and opens
+// Receives a URL (and optional screenshot) from the iOS Share Sheet and opens
 // the main TravelPanel app with the travelpanel://share?url=...&title=...
 // URL scheme, which the CapacitorBridge component routes to /share.
 //
-// Supported source types: URLs, plain text containing a URL, web pages.
+// For platforms like Xiaohongshu that block server-side scraping, the extension
+// also captures any image in the share payload, compresses it, and writes it to
+// the App Group so CapacitorBridge can pass it to Claude Vision.
+//
+// Supported source types: URLs, plain text containing a URL, web pages, images.
 
 class ShareViewController: UIViewController {
 
@@ -34,7 +38,8 @@ class ShareViewController: UIViewController {
                         guard let self else { return }
                         if let url = data as? URL {
                             let title = item.attributedContentText?.string ?? url.host ?? ""
-                            self.openApp(url: url.absoluteString, title: title)
+                            // Look for a co-attached image before opening the app
+                            self.extractImageThenOpen(url: url.absoluteString, title: title, attachments: attachments)
                         } else {
                             self.finish()
                         }
@@ -49,7 +54,7 @@ class ShareViewController: UIViewController {
                     attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
                         guard let self else { return }
                         if let text = data as? String, let url = self.extractURL(from: text) {
-                            self.openApp(url: url, title: text)
+                            self.extractImageThenOpen(url: url, title: text, attachments: attachments)
                         } else {
                             self.finish()
                         }
@@ -62,10 +67,59 @@ class ShareViewController: UIViewController {
         finish()
     }
 
+    // After resolving the URL, look for an image in the same share payload.
+    // Xiaohongshu often attaches a preview image alongside the URL.
+    private func extractImageThenOpen(url: String, title: String, attachments: [NSItemProvider]) {
+        for attachment in attachments {
+            if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { [weak self] data, _ in
+                    guard let self else { return }
+                    let image: UIImage?
+                    switch data {
+                    case let uiImage as UIImage:
+                        image = uiImage
+                    case let fileURL as URL:
+                        image = UIImage(contentsOfFile: fileURL.path)
+                    default:
+                        image = nil
+                    }
+                    if let image = image {
+                        self.saveImageToAppGroup(image)
+                    }
+                    self.openApp(url: url, title: title)
+                }
+                return
+            }
+        }
+        // No image attachment found — open without screenshot
+        openApp(url: url, title: title)
+    }
+
     private func extractURL(from text: String) -> String? {
         let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
         let matches = detector?.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
         return matches?.first.flatMap { $0.url?.absoluteString }
+    }
+
+    // Compress image to ≤800 px longest side at 50 % JPEG quality and store
+    // as base64 in App Group so CapacitorBridge can forward it to Claude Vision.
+    private func saveImageToAppGroup(_ image: UIImage) {
+        let maxSide: CGFloat = 800
+        let scale = min(maxSide / image.size.width, maxSide / image.size.height, 1.0)
+        let targetSize = CGSize(width: floor(image.size.width * scale),
+                                height: floor(image.size.height * scale))
+
+        UIGraphicsBeginImageContextWithOptions(targetSize, true, 1.0)
+        image.draw(in: CGRect(origin: .zero, size: targetSize))
+        let resized = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        guard let jpegData = (resized ?? image).jpegData(compressionQuality: 0.5),
+              let defaults = UserDefaults(suiteName: "group.com.travelpanel.app")
+        else { return }
+
+        defaults.set(jpegData.base64EncodedString(), forKey: "pendingShareImageBase64")
+        defaults.synchronize()
     }
 
     private func openApp(url: String, title: String) {
@@ -102,7 +156,7 @@ class ShareViewController: UIViewController {
 
     private func savePendingShareToAppGroup(url: String, title: String) {
         // App Group identifier must match the one configured in Xcode capabilities.
-        // See ios-setup.md for configuration instructions.
+        // See ios/App/ShareExtension/XCODE_SETUP.md for configuration instructions.
         guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
         defaults.set(url, forKey: "pendingShareURL")
         defaults.set(title, forKey: "pendingShareTitle")

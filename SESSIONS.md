@@ -96,3 +96,17 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-06 15:26 | 43090a3 | feat(B2): add Chrome/Safari browser extension (TravelPanel Clipper)
+2026-06-06 15:34 | 575c496 | feat(B3): Xiaohongshu Vision fix — screenshot path end-to-end
+2026-06-06 15:36 | c63b570 | feat(B5): cloud backup export + settings page
+2026-06-06 15:40 | 879bbe7 | feat(D1): clip edit mode — edit title, notes, tags, locations in detail card
+2026-06-06 15:43 | 3f017be | feat(D2): move clip to collection — shared BoardPickerSheet + map card wiring
+2026-06-06 15:44 | 47c6242 | feat(D3): import backup — restore JSON in settings
+2026-06-06 15:47 | 925f744 | D4: Replace plan activity cards with TimelineActivity timeline component
+2026-06-06 15:49 | 915c7c1 | D5: Map trip route overlay with show/hide toggle
+2026-06-06 15:51 | d43ec70 | D6: Haptic feedback via Capacitor (no-op in browser)
+2026-06-06 15:52 | bd7bb8b | D7: Map style toggle (Streets → Satellite → Terrain)
+2026-06-06 15:53 | 2c3fee2 | D8: Near Me filter with GPS, radius circle, and adjustable slider
+2026-06-06 15:54 | 3f99775 | D9: Budget signals in plans — cost badges and daily estimates
+2026-06-06 15:56 | 0f3c9b9 | D10: iOS App Icon + Splash Screen assets
+2026-06-06 15:58 | 2cfb4dd | D11: Share plan as a shareable link (offline-first URL hash encoding)

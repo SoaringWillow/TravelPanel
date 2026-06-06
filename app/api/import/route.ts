@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,7 +99,62 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  // Vision path: image provided (typically when page content is blocked, e.g. Xiaohongshu/WeChat)
+  if (imageBase64) {
+    // Strip data URI prefix if present and detect mimeType
+    const mimeMatch = imageBase64.match(/^data:(image\/[^;]+);base64,/);
+    const mimeType = (mimeMatch?.[1] ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+    const cleanBase64 = imageBase64.replace(/^data:image\/[^;]+;base64,/, '');
+
+    const visionPrompt = `You are a travel content analyzer. You are looking at a screenshot of a ${platform} post shared by a traveler.
+
+URL: ${url}
+${page?.title ? `Title from URL metadata: ${page.title}` : ''}
+
+Read every piece of text visible in this screenshot (including Chinese/Japanese/Korean characters) and extract TWO layers:
+
+## Layer 1 — Spots (geographic skeleton)
+Identify real, named locations visible in the post — restaurants, temples, neighbourhoods, viewpoints, etc.
+Provide accurate GPS coordinates for each place you are confident about.
+Do NOT invent coordinates.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Extract every actionable insight, tip, warning, opinion, or recommendation visible in the text.
+Examples:
+- "开门前30分钟到" (arrive 30 minutes before opening) → tip
+- "现金支付" (cash only) → warning
+- "人均消费约100元" (average spend ~¥100) → context
+- "周末人很多建议早去" (weekends are crowded, go early) → tip
+- "隐藏菜单必点" (must-order secret menu items) → recommendation
+
+For list-format posts ("10个必知" / "35个错误"), extract ALL listed items as substance items.
+Translate non-English content naturally but preserve the meaning precisely.`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: cleanBase64, mimeType },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Vision failed — fall through to text path below
+    }
+  }
+
+  // Text path: no image or vision failed
+  if (!claudeResult) {
+    const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -128,16 +184,16 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {

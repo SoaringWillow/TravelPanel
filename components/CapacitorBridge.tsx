@@ -3,7 +3,24 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+// Reads a screenshot the Share Extension may have stored alongside the URL.
+// Called from BOTH code paths (URL scheme and App Group fallback) so the image
+// is always moved to sessionStorage before the share page renders.
+async function transferPendingImage() {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+    if (!imageBase64) return;
+    await Preferences.remove({ key: 'pendingShareImageBase64' });
+    // sessionStorage is read by the share page on mount; key cleared after read
+    sessionStorage.setItem('pendingShareImage', `data:image/jpeg;base64,${imageBase64}`);
+  } catch {
+    // Not in native context or sessionStorage unavailable
+  }
+}
+
 // Reads a pending share URL stored by the iOS Share Extension via App Groups.
+// This fires only when the URL scheme open wasn't available (fallback path).
 // The App Group suite name must match the one in ShareViewController.swift.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
@@ -14,6 +31,9 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+
+    // Transfer any screenshot stored in App Group → sessionStorage
+    await transferPendingImage();
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -45,14 +65,17 @@ export function CapacitorBridge() {
 
         // Handle URL scheme deep links from the iOS Share Extension.
         // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // Any screenshot is stored separately in App Group and transferred here.
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
-            // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
 
             if (shareUrl) {
+              // Transfer screenshot to sessionStorage before navigating
+              await transferPendingImage();
+
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);
