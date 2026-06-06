@@ -94,7 +94,7 @@ All tasks done. See completed tasks below.
 ## PHASE D — iOS Native Polish 🎯 CURRENT SPRINT
 
 ### D1 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/share/page.tsx`, `components/InboxCard.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:
 - Create `lib/haptics.ts` with `haptic(type: 'light' | 'medium' | 'heavy' | 'success' | 'error')` that calls `navigator.vibrate()` on Android and `Haptics.impact()` from `@capacitor/haptics` on iOS
