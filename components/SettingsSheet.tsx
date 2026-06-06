@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, X, Database, Loader2 } from 'lucide-react';
+import { Download, Upload, X, Database, Loader2 } from 'lucide-react';
 
 interface SettingsSheetProps {
   open: boolean;
@@ -13,6 +13,32 @@ interface SettingsSheetProps {
 export default function SettingsSheet({ open, onClose, itemCount }: SettingsSheetProps) {
   const [exporting, setExporting] = useState(false);
   const [exported, setExported]   = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const { importFromBackup } = await import('@/lib/importData');
+      const result = await importFromBackup(file);
+      const skipped = result.skippedItems + result.skippedBoards;
+      setImportMsg(
+        `Imported ${result.importedItems} clip${result.importedItems !== 1 ? 's' : ''}` +
+        (result.importedBoards > 0 ? `, ${result.importedBoards} board${result.importedBoards !== 1 ? 's' : ''}` : '') +
+        (skipped > 0 ? ` (${skipped} already existed)` : '')
+      );
+    } catch {
+      setImportMsg('Could not read backup file. Make sure it\'s a TravelPanel JSON export.');
+    } finally {
+      setImporting(false);
+      setTimeout(() => setImportMsg(null), 5000);
+    }
+  }
 
   async function handleExport() {
     setExporting(true);
@@ -109,6 +135,44 @@ export default function SettingsSheet({ open, onClose, itemCount }: SettingsShee
               {itemCount === 0 && (
                 <p className="text-xs text-center text-gray-400 pt-1">
                   Save some clips first to enable export
+                </p>
+              )}
+
+              {/* Import button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleImport}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="w-full flex items-center gap-3 px-4 py-3.5 bg-gray-50 hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 rounded-2xl transition-all"
+              >
+                {importing ? (
+                  <Loader2 size={18} className="text-gray-500 animate-spin flex-shrink-0" />
+                ) : (
+                  <Upload size={18} className="text-gray-500 flex-shrink-0" />
+                )}
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-700">
+                    Import backup
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Restore from a TravelPanel JSON backup
+                  </p>
+                </div>
+              </button>
+
+              {importMsg && (
+                <p className={`text-xs text-center px-2 py-1.5 rounded-xl ${
+                  importMsg.startsWith('Could not')
+                    ? 'bg-red-50 text-red-600'
+                    : 'bg-green-50 text-green-700'
+                }`}>
+                  {importMsg.startsWith('Could not') ? '' : '✓ '}{importMsg}
                 </p>
               )}
             </div>

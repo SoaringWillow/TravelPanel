@@ -259,7 +259,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - In `ImportSheet`, add the same check after URL is entered (show inline "Already saved" hint)
 
 ### D6 — Bulk Operations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
 - Add a "Select" toggle button to the inbox header (appears when items exist)
