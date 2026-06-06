@@ -345,7 +345,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Check flag on app load in `app/layout.tsx`; if not set, redirect to `/onboarding`
 
 ### E4 — App Store Screenshots
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (script created; run `npm run screenshots` with a local dev server)  
 **What to do**:
 - Automate screenshot generation for 6.7" (iPhone 15 Pro Max) and 12.9" (iPad Pro)
 - Use Playwright to navigate the app and take screenshots in a seeded state
