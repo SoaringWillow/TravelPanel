@@ -282,7 +282,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep it graceful: activities without price signals don't show anything
 
 ### D10 — iOS App Icon + Splash Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The current iOS app uses the default Capacitor/Ionic icon. This looks unprofessional and will be rejected by App Store review. A proper icon is required for TestFlight.  
 **Files**: `ios/App/App/Assets.xcassets/`, `public/icons/`, new `scripts/generate-icons.js`  
 **What to do**:
