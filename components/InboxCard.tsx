@@ -190,29 +190,35 @@ export default function InboxCard({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-      {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300 dark:text-gray-500" />
-        </div>
-      )}
-
-      <div className="p-4">
-        {/* Platform badge */}
+      {/* Thumbnail — 4:3 aspect ratio, consistent across all post types */}
+      <div className="relative w-full aspect-[4/3] overflow-hidden">
+        {item.thumbnail ? (
+          <img
+            src={item.thumbnail}
+            alt={item.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              const el = e.currentTarget as HTMLImageElement;
+              el.style.display = 'none';
+              const parent = el.parentElement;
+              if (parent) parent.classList.add('fallback-thumb');
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center">
+            <Globe size={28} className="text-white/60" />
+          </div>
+        )}
+        {/* Gradient overlay + platform badge on thumbnail */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         <span
-          className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full inline-block mb-2`}
+          className={`absolute top-2 left-2 ${PLATFORM_BG[item.platform]} text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm`}
         >
           {PLATFORM_LABELS[item.platform]}
         </span>
+      </div>
+
+      <div className="p-3">
 
         {/* Title */}
         <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">

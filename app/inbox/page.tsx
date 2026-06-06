@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -41,11 +41,43 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  const [pullY, setPullY] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const touchStartY = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (isRefreshing) return;
+    const el = scrollRef.current;
+    if (!el || el.scrollTop > 0) return;
+    const delta = e.touches[0].clientY - touchStartY.current;
+    if (delta > 0) setPullY(Math.min(delta * 0.4, 60));
+  }
+
+  async function onTouchEnd() {
+    if (pullY >= 55 && !isRefreshing) {
+      setIsRefreshing(true);
+      setPullY(0);
+      // Retry all pending/failed items in inbox
+      const pending = items.filter(
+        (i) => i.boardId === undefined &&
+          (i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'failed')
+      );
+      await Promise.allSettled(pending.map((i) => retryItem(i.id, i.url)));
+      setIsRefreshing(false);
+    } else {
+      setPullY(0);
+    }
+  }
 
   function toggleTag(tag: string) {
     setActiveTags((prev) => {
@@ -196,7 +228,24 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        style={{ paddingTop: `${Math.max(16, pullY)}px` }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Pull-to-refresh indicator */}
+        {(pullY > 10 || isRefreshing) && (
+          <div
+            className="flex items-center justify-center gap-2 mb-3 text-xs text-indigo-600 dark:text-indigo-400 font-medium"
+            style={{ opacity: isRefreshing ? 1 : pullY / 55 }}
+          >
+            <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+            {isRefreshing ? 'Refreshing…' : 'Pull to refresh'}
+          </div>
+        )}
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}

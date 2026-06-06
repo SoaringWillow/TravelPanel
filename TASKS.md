@@ -274,7 +274,7 @@ All tasks done. See completed tasks below.
 - The badge disappears when all clips finish processing
 
 ### F3 — Pull-to-Refresh on Inbox
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/inbox/page.tsx`
 **What to do**:
 - Add pull-to-refresh gesture: track `touchstart`/`touchmove`/`touchend` on the scrollable list container
@@ -294,7 +294,7 @@ All tasks done. See completed tasks below.
 - This works with the local-first IndexedDB architecture — clips still save offline, enrichment queues
 
 ### F5 — Better Clip Card Thumbnails (Aspect-Ratio Fix)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/InboxCard.tsx`, `components/SkeletonCard.tsx`
 **What to do**:
 - Current thumbnail area uses a fixed height; social media thumbnails come in all ratios (9:16 portrait from Reels/TikTok, 1:1 square from Xiaohongshu, 16:9 from YouTube)
