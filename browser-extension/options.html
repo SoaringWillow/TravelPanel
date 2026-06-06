@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="options-body">
+  <div class="options-header">
+    <span class="options-logo">✈️</span>
+    <div>
+      <div class="options-title">TravelPanel Clipper</div>
+      <div class="options-subtitle">Extension Settings</div>
+    </div>
+  </div>
+
+  <!-- App URL -->
+  <div class="option-group">
+    <label class="option-label" for="api-url">TravelPanel App URL</label>
+    <input
+      type="url"
+      id="api-url"
+      class="option-input"
+      placeholder="https://your-app.vercel.app"
+    />
+    <div class="option-hint">
+      The URL where your TravelPanel app is deployed.
+      For local development use <code>http://localhost:3000</code>.
+    </div>
+  </div>
+
+  <!-- Boards management -->
+  <div class="option-group">
+    <label class="option-label">Boards</label>
+    <div id="boards-container" style="margin-bottom: 8px;">
+      <div id="boards-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;"></div>
+      <div style="display: flex; gap: 8px;">
+        <input
+          type="text"
+          id="new-board-name"
+          class="option-input"
+          placeholder="Board name (e.g. Tokyo Trip)"
+          style="flex: 1; font-family: inherit;"
+        />
+        <input
+          type="text"
+          id="new-board-emoji"
+          class="option-input"
+          placeholder="🗺"
+          style="width: 56px; text-align: center;"
+          maxlength="2"
+        />
+        <button id="add-board-btn" class="options-save-btn" style="white-space: nowrap;">Add</button>
+      </div>
+    </div>
+    <div class="option-hint">
+      Boards created here will be available when clipping. Sync with the app is coming soon.
+    </div>
+  </div>
+
+  <!-- Usage stats -->
+  <div class="option-group">
+    <label class="option-label">Usage Today</label>
+    <div id="usage-stats" style="font-size: 13px; color: #374151;">Loading...</div>
+    <div class="option-hint">Free limit: 30 clips per day (resets at midnight UTC).</div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+    <button id="save-btn" class="options-save-btn">Save Settings</button>
+    <span id="save-status" class="options-status hidden"></span>
+  </div>
+
+  <!-- Danger zone -->
+  <div class="option-group">
+    <label class="option-label" style="color: #b91c1c;">Danger Zone</label>
+    <button
+      id="clear-data-btn"
+      style="padding: 7px 14px; background: none; border: 1px solid #fecaca; color: #b91c1c; border-radius: 7px; font-size: 12px; cursor: pointer;"
+    >
+      Clear all saved clips
+    </button>
+    <div class="option-hint" style="color: #ef4444;">Permanently deletes all clips stored in the extension. Cannot be undone.</div>
+  </div>
+
+  <div class="options-footer">
+    <strong>TravelPanel Clipper</strong> v1.0.0 &mdash;
+    Open source. Built with ❤️ for travelers who collect inspiration everywhere.<br>
+    Extension clips are stored locally in Chrome. Cloud sync coming in a future update.
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
