@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
@@ -38,6 +38,7 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -217,6 +218,11 @@ export default function PlanPage() {
     setCurrentTripId(null);
   }, []);
 
+  function handleViewDayOnMap(dayIdx: number) {
+    setActiveDayIndex(dayIdx);
+    scrollAreaRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
       const next = new Set(prev);
@@ -276,7 +282,7 @@ export default function PlanPage() {
       </div>
 
       {/* Bottom scrollable panel */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
         <div className="px-4 pb-8 pt-4">
 
           {/* ── PRE-GENERATE STATE ── */}
@@ -488,79 +494,43 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
+              {/* Day selector pills */}
               {plan.days && plan.days.length > 0 && (
-                <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                  <div className="flex gap-3" style={{ width: 'max-content' }}>
-                    {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
-                    ))}
+                <div className="overflow-x-auto pb-1 -mx-4 px-4">
+                  <div className="flex gap-2" style={{ width: 'max-content' }}>
+                    {plan.days.map((day, idx) => {
+                      const isActive = activeDayIndex === idx;
+                      return (
+                        <button
+                          key={day.day}
+                          type="button"
+                          onClick={() => setActiveDayIndex(idx)}
+                          className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-2xl border-2 transition-all active:scale-95 ${
+                            isActive
+                              ? 'border-indigo-500 bg-indigo-50 shadow-md'
+                              : 'border-transparent bg-white shadow-sm hover:border-indigo-200'
+                          }`}
+                        >
+                          <span className={`text-xs font-bold ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}>
+                            Day {idx + 1}
+                          </span>
+                          <span className="text-xs font-medium text-gray-700 max-w-[80px] truncate mt-0.5">
+                            {day.theme}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* Active day activities */}
+              {/* Active day timeline */}
               {activeDayPlan && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
-
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <DayStripCard
+                  day={activeDayPlan}
+                  index={activeDayIndex}
+                  onViewOnMap={() => handleViewDayOnMap(activeDayIndex)}
+                />
               )}
 
               {/* Trip tips */}
