@@ -161,20 +161,20 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
-**Status**: `[ ]` Not started  
-**Needs**: Supabase pgvector (from B1)  
+**Status**: `[x]` Done  
+**Needs**: Supabase pgvector (from B1) — implemented without it using Claude semantic expansion  
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
@@ -182,16 +182,219 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C3 — Shared Boards v1
 **Status**: `[ ]` Not started
 
 ### C4 — Proactive Resurfacing
 **Status**: `[ ]` Not started
+
+---
+
+## PHASE D — Native iOS Polish (Current Sprint)
+
+> Goal: Every interaction should feel native iOS — smooth, tactile, fast. No spinner text.
+> Priority order: `D1 → D2 → D3 → D4 → D5 → D6`
+
+### D1 — Loading Skeletons
+**Status**: `[x]` Done  
+**Files**: `components/SkeletonCard.tsx` (new), `app/inbox/page.tsx`, `app/timeline/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create a `SkeletonCard` component: a shimmering grey rectangle the same size as `InboxCard` using a CSS animation (`@keyframes shimmer`)
+- Replace all `animate-spin` loading spinners and "Loading…" text with skeleton grids
+- In inbox: show 6 skeleton cards (2-column grid) while `loading === true`
+- In timeline: show 3 skeleton entries (full-width card shape) while loading
+- In boards page: show 4 skeleton board cards while loading
+- Use `bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer` (add `shimmer` keyframe to `globals.css`)
+
+### D2 — Pull-to-Refresh
+**Status**: `[x]` Done  
+**Files**: `hooks/usePullToRefresh.ts` (new), `app/inbox/page.tsx`, `app/timeline/page.tsx`  
+**What to do**:
+- Create `usePullToRefresh(onRefresh: () => Promise<void>)` hook using pointer events (works on both web and iOS WebView):
+  - Track `touchstart` / `touchmove` / `touchend` on the scroll container
+  - When pulled down >80px from top and `scrollTop === 0`, trigger `onRefresh`
+  - Show a spinning indicator at the top during pull and while refreshing
+- In inbox page: pull-to-refresh re-fetches all items from IndexedDB and re-runs pending enrichment retry
+- In timeline page: pull-to-refresh re-fetches items
+- The refresh indicator should be an indigo spinner that scales in from 0 as the user drags
+
+### D3 — Haptic Feedback
+**Status**: `[x]` Done  
+**Files**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `components/NearMePanel.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` with `haptic(style: 'light' | 'medium' | 'heavy' | 'success' | 'warning')` that:
+  - Calls `@capacitor/haptics` `ImpactOccurred` / `NotificationOccurred` when in Capacitor context
+  - No-ops on web (graceful)
+- Fire `haptic('success')` when a clip is saved in `app/share/page.tsx`
+- Fire `haptic('light')` on board chip tap in the share page
+- Fire `haptic('medium')` on long-press delete in `InboxCard`
+- Fire `haptic('light')` when Near Me panel clips are tapped
+
+### D4 — Edit Clip (title + notes)
+**Status**: `[x]` Done  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an "Edit" button (pencil icon) to the `LocationDetailCard` header
+- Tapping opens an inline edit mode for:
+  - Title (text input, max 200 chars)  
+  - Notes (textarea, max 1000 chars, currently stored as `notes?: string` on `SavedItem`)
+- Add `updateItemNotes(id: string, title: string, notes: string): Promise<void>` to `lib/db.ts`
+- Save button commits and exits edit mode; ESC/dismiss cancels
+- Show a small "Edited" badge on the card if notes are non-empty
+
+### D5 — Duplicate Detection
+**Status**: `[x]` Done  
+**Files**: `lib/db.ts`, `app/share/page.tsx`, `components/ImportSheet.tsx`  
+**What to do**:
+- Add `findItemByUrl(url: string): Promise<SavedItem | null>` to `lib/db.ts`
+  - Scan all items, normalize URLs (strip trailing slash, lowercase scheme/host) for matching
+- In `app/share/page.tsx`, before showing the board picker, check if the URL is already saved
+- If duplicate found: show a yellow banner "Already saved as: [title]" with a link to view it on the map
+- User can still save again if they want (dismiss banner and proceed)
+- In `ImportSheet`, add the same check after URL is entered (show inline "Already saved" hint)
+
+### D6 — Bulk Operations
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Add a "Select" toggle button to the inbox header (appears when items exist)
+- When in select mode, each card shows a checkbox overlay; tapping toggles selection
+- Show an action bar at the bottom: "Delete [N]" and "Move to board [N]"
+- Delete: confirm dialog, then batch-delete selected items from IndexedDB
+- Move: show the board picker bottom sheet, then bulk-assign `boardId`
+- "Select all" shortcut in the action bar
+- Exit select mode with the X button or after completing an action
+
+---
+
+## PHASE E — Production Ready
+
+> Goal: App Store submission quality — no rough edges, proper error handling, import from backup.
+> Priority order: `E1 → E2 → E3 → E4 → E5`
+
+### E1 — Import from JSON Backup
+**Status**: `[x]` Done  
+**Files**: `lib/importData.ts` (new), `components/SettingsSheet.tsx`  
+**What to do**:
+- Create `lib/importData.ts` with `importFromBackup(file: File): Promise<{imported: number; skipped: number}>`
+  - Parse the JSON from `lib/exportData.ts` format (version 2)
+  - For each item/board/trip: upsert via `saveItem`/`saveBoard`/`saveTrip` (skip if ID already exists)
+  - Return counts for a success toast
+- Add an "Import backup" button to `SettingsSheet` below the export button
+- Trigger a hidden `<input type="file" accept=".json">` on click
+- Show a result toast: "Imported 42 clips (3 already existed)"
+
+### E2 — In-App Review Prompt
+**Status**: `[x]` Done  
+**Files**: `lib/db.ts` (or localStorage), `app/share/page.tsx`  
+**What to do**:
+- After the 5th clip is saved (track `clipCount` in localStorage), trigger a review prompt
+- Use `@capacitor/rate-app` `requestReview()` in native context
+- On web, show a subtle "Enjoying TravelPanel? ★ Rate us" banner that links to App Store URL
+- Only trigger once (store `hasRequestedReview: true` in localStorage after showing)
+
+### E3 — PWA Offline Banner
+**Status**: `[x]` Done  
+**Files**: `app/layout.tsx`, new `components/OfflineBanner.tsx`  
+**What to do**:
+- Listen to `navigator.onLine` events (online/offline)
+- When offline, show a subtle yellow banner at the top: "Offline — saved clips still available"
+- The banner animates in from the top and dismisses when connectivity returns
+- The map will still load tiles from the cache (MapLibre caches tiles automatically)
+- Add a `manifest.json` to the Next.js public folder with proper PWA metadata
+
+### E4 — Global Error Boundary
+**Status**: `[x]` Done  
+**Files**: `components/ErrorBoundary.tsx` (new), `app/layout.tsx`  
+**What to do**:
+- Create a React class `ErrorBoundary` component with `componentDidCatch`
+- On error, render a clean fallback: "Something went wrong" with a "Reload" button
+- Wrap the `<body>` content in `app/layout.tsx` with `<ErrorBoundary>`
+- In development, render the error stack; in production, just the reload button
+- Log to PostHog if key is present: `track('app_error', { message, stack })`
+
+### E5 — Board Cover Image
+**Status**: `[x]` Done  
+**Files**: `app/boards/page.tsx` or boards-related components  
+**What to do**:
+- Each board card should show a cover image auto-selected from the first item in the board that has a thumbnail
+- Add `getCoverImage(boardId: string): Promise<string | null>` to `lib/db.ts` — fetches the first item with a thumbnail
+- In the board list/grid view, show the cover image behind the board name (with a gradient overlay)
+- If no items have thumbnails, fall back to the board emoji on a solid indigo background
+- Lazy-load cover images with a skeleton shimmer placeholder
+
+---
+
+## PHASE F — Delight & Discovery (iOS Polish Sprint 2)
+
+> Goal: Transform from functional to delightful. Every screen should feel purposeful and premium.
+> Priority order: `F1 → F2 → F3 → F4 → F5 → F6`
+
+### F1 — Map Welcome State
+**Status**: `[x]` Done
+**Files**: `app/page.tsx`
+**What to do**:
+- When `items.length === 0` and map is loaded, show a centered overlay card on the map:
+  - Big emoji 🌍, bold headline "Clip your first destination", subtitle "Share a post from WeChat, Douyin, or Instagram to get started"
+  - A "Clip something" button that opens `ImportSheet`
+  - Card should float above the map with blur backdrop: `bg-white/90 backdrop-blur-md rounded-3xl shadow-xl`
+- When items exist but none have coordinates (all enrichment pending), show a subtle pill: "Locations loading…" with a spinner at the top of the map
+
+### F2 — First-Launch Onboarding Tour
+**Status**: `[x]` Done
+**Files**: new `components/OnboardingTour.tsx`, `app/page.tsx`
+**What to do**:
+- Create a 3-step full-screen modal that shows on first launch (gate with `localStorage.tp_onboarded`)
+- Step 1: "📱 Clip from anywhere" — illustration of share sheet, text explaining iOS Share Extension
+- Step 2: "🗺 AI finds the spots" — show example InboxCard with locations + substance badge
+- Step 3: "✈️ Plan your trip" — show example plan itinerary snippet
+- Each step: image/illustration area (160px, indigo bg with emoji), title, subtitle, Next/Get Started button
+- Progress dots at bottom; "Skip" link top-right; final button navigates to main app
+
+### F3 — Substance Feed (Wisdom Across Clips)
+**Status**: `[x]` Done
+**Files**: new `app/wisdom/page.tsx`, `components/NavBar.tsx`
+**What to do**:
+- Add a "Wisdom" tab to NavBar (💡 icon, 5th tab — or replace an existing less-used tab)
+- `app/wisdom/page.tsx`: aggregates all `substance` items from all saved clips
+- Group by `type`: Tips (💡), Warnings (⚠️), Recommendations (⭐), Opinions (💬), Context (🌍)
+- Each item shows: icon + type label, `content`, source clip title (italic, gray), location if applicable
+- Filter chips at top to toggle types; search bar filters by content
+- Empty state: "Save some clips with substance to see wisdom here"
+
+### F4 — Plan View Guided Empty State + Progress Indicator
+**Status**: `[x]` Done
+**Files**: `app/plan/[boardId]/page.tsx`
+**What to do**:
+- When board has items but none have coordinates: show a "Not enough location data" empty state with a helpful tip to retry enrichment
+- When board has fewer than 2 locations: show a step-by-step guide card above the generate button:
+  - "You have N location(s). For best results, add 3+ spots." with a count indicator
+- Show a visual progress bar while streaming: "Crafting your day 1… 2… 3…" that advances as each day object arrives in the NDJSON stream
+- Replace the plain spinner with an animated indigo progress bar at the top of the streaming plan
+
+### F5 — Pending Enrichment Badge on Inbox Tab
+**Status**: `[x]` Done
+**Files**: `components/NavBar.tsx`, `app/page.tsx` or `app/layout.tsx`
+**What to do**:
+- When items have `enrichmentStatus: 'pending'` or `'processing'`, show a small pulsing indigo dot badge on the Inbox tab icon
+- Source the count from a `usePendingCount` hook that queries IndexedDB via `getItemsByStatus`
+- Badge should pulse (CSS animation) while pending, disappear when all done
+- Keep it subtle: 8px dot, no number, just the visual indicator
+
+### F6 — Board Detail Polish (Substance Highlights)
+**Status**: `[x]` Done
+**Files**: `app/boards/[boardId]/page.tsx` (or create it if missing)
+**What to do**:
+- Read the board detail page (check if it exists). If it does, add a "Highlights" row below the board header
+- Show the top 3 substance items (highest quality tips/recommendations) from all clips in the board
+- Use `SubstanceList` component; style as a horizontal scroll of mini-cards
+- Each card: icon + type + content truncated to 2 lines + source clip title
+- If no substance, show a "Add more clips for AI insights" prompt
 
 ---
 

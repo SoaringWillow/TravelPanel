@@ -357,13 +357,38 @@ export default function PlanPage() {
                 />
               </div>
 
-              {/* Warning if no locations */}
-              {!hasLocations && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
-                  <MapPin size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>Add items with identified locations to plan a trip.</span>
+              {/* Location readiness indicator */}
+              {boardItems.length === 0 ? (
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-center">
+                  <div className="text-3xl mb-2">📭</div>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">No clips in this board yet</p>
+                  <p className="text-xs text-gray-400">Add travel clips from the Inbox tab to start planning.</p>
                 </div>
-              )}
+              ) : !hasLocations ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin size={15} className="text-amber-600 flex-shrink-0" />
+                    <p className="text-sm font-semibold text-amber-800">No locations extracted yet</p>
+                  </div>
+                  <p className="text-xs text-amber-700 leading-relaxed">
+                    Your clips are saved but AI hasn't found any coordinates. Try retrying enrichment from the Clips tab.
+                  </p>
+                </div>
+              ) : itemsWithLocations.length < 3 ? (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-indigo-700">Location readiness</span>
+                    <span className="text-xs font-bold text-indigo-600">{itemsWithLocations.length} / 3+ recommended</span>
+                  </div>
+                  <div className="w-full h-2 bg-indigo-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, (itemsWithLocations.length / 3) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-indigo-500 mt-1.5">Add more clips for a richer itinerary.</p>
+                </div>
+              ) : null}
 
               {/* Plan rate limit warning */}
               {planLimitError && (
@@ -402,6 +427,28 @@ export default function PlanPage() {
                 <span className="text-xl">{board.emoji}</span>
                 <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
               </div>
+
+              {/* Streaming progress bar */}
+              {(() => {
+                const daysLoaded = plan?.days?.length ?? 0;
+                const progress = daysLoaded > 0 ? Math.min(95, Math.round((daysLoaded / days) * 100)) : 0;
+                return (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-indigo-600 font-medium animate-pulse">
+                        {daysLoaded > 0 ? `Crafting day ${daysLoaded}…` : 'Thinking…'}
+                      </span>
+                      <span className="text-gray-400">{progress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-indigo-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                        style={{ width: `${progress === 0 ? 8 : progress}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
 
               <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
 

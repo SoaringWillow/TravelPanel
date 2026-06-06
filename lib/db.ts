@@ -86,6 +86,26 @@ export async function deleteItem(id: string): Promise<void> {
   await db.delete('items', id);
 }
 
+export async function findItemByUrl(url: string): Promise<SavedItem | null> {
+  try {
+    const db = await getDB();
+    const all = await db.getAll('items');
+    const normalise = (u: string) =>
+      u.toLowerCase().replace(/\/+$/, '').replace(/^https?:\/\//, '');
+    const target = normalise(url);
+    return all.find(item => normalise(item.url) === target) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateItemNotes(id: string, title: string, notes: string): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, title: title.trim() || item.title, notes: notes.trim() || undefined });
+}
+
 export async function getItemsByPlatform(platform: string): Promise<SavedItem[]> {
   const db = await getDB();
   return db.getAllFromIndex('items', 'by-platform', platform);
@@ -189,7 +209,27 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   await tx.done;
 }
 
+export async function getCoverImage(boardId: string): Promise<string | null> {
+  try {
+    const db = await getDB();
+    const items = await db.getAllFromIndex('items', 'by-board', boardId);
+    const first = items.find((i) => i.thumbnail);
+    return first?.thumbnail ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Trips ─────────────────────────────────────────────────────────────────
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
 
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {

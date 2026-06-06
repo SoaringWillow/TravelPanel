@@ -96,3 +96,28 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-06 13:24 | dd20060 | feat: B2 — Chrome/Safari browser extension for one-click URL clipping
+2026-06-06 13:30 | 3074d52 | feat: B3 — Xiaohongshu fix via Claude Vision + iOS image capture
+2026-06-06 13:32 | ee2bdd2 | feat: B5 — data export (JSON backup of all clips, boards & trips)
+2026-06-06 13:35 | 38f6e56 | feat: C1 — On-Trip GPS Mode (Near Me)
+2026-06-06 13:36 | e486b8c | feat: C2 — Post-Trip Timeline (chronological travel diary)
+2026-06-06 13:39 | 9ea6c66 | feat: B4 — Vibe Search via Claude semantic expansion (no Supabase required)
+2026-06-06 13:40 | d0c4e54 | docs: add Phase D (Native Polish) + Phase E (Production Ready) to TASKS.md
+2026-06-06 13:41 | b7c7a9e | feat: D1 — loading skeletons replace all spinners
+2026-06-06 13:43 | e289101 | feat: D2 — pull-to-refresh on inbox and timeline
+2026-06-06 13:45 | 3bfcefc | feat: D3 — haptic feedback for key interactions
+2026-06-06 13:46 | 34d0a4e | feat: D4 — edit clip title and personal notes inline
+2026-06-06 13:47 | 0d7bf7e | feat: D5 — duplicate URL detection before saving
+2026-06-06 13:53 | 2a78dd0 | D6 — Bulk Operations in Inbox
+2026-06-06 13:54 | 61f80d1 | E1 — Import from JSON Backup
+2026-06-06 13:55 | e792ded | E2 — In-App Review Prompt after 5th clip
+2026-06-06 13:56 | 509c61d | E3 — PWA Offline Banner
+2026-06-06 13:57 | b32ae6e | E4 — Global Error Boundary
+2026-06-06 13:58 | aad18d8 | E5 — Board Cover Image with gradient overlay
+2026-06-06 13:59 | 0e9cb5c | Mark E1 done in TASKS.md (was missed in earlier commit)
+2026-06-06 14:02 | 33ee3e8 | F1 — Map Welcome State for new users
+2026-06-06 14:03 | 29565a6 | F2 — First-Launch Onboarding Tour
+2026-06-06 14:05 | ae65cfe | F3 — Wisdom Feed + fix pre-existing TS errors
+2026-06-06 14:06 | 1495c51 | F4 — Plan View Guided Empty State + Streaming Progress Bar
+2026-06-06 14:06 | 998636a | F5 — Pending Enrichment Badge on Inbox Tab
+2026-06-06 14:07 | 83f6cb9 | F6 — Board Detail Substance Highlights

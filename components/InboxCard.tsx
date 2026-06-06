@@ -12,6 +12,9 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +41,9 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  selectMode = false,
+  selected = false,
+  onSelect,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -189,7 +195,28 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div
+      className={`relative bg-white rounded-2xl shadow-sm border overflow-hidden transition-all ${
+        selected ? 'border-indigo-400 ring-2 ring-indigo-300' : 'border-gray-100'
+      } ${selectMode ? 'cursor-pointer' : ''}`}
+      onClick={selectMode ? () => onSelect?.(item.id) : undefined}
+    >
+      {/* Checkbox overlay */}
+      {selectMode && (
+        <div className="absolute top-2 right-2 z-10">
+          <div
+            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+              selected ? 'bg-indigo-600 border-indigo-600' : 'bg-white/80 border-gray-300'
+            }`}
+          >
+            {selected && (
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
