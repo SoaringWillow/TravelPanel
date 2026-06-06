@@ -290,7 +290,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a result toast: "Imported 42 clips (3 already existed)"
 
 ### E2 — In-App Review Prompt
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/db.ts` (or localStorage), `app/share/page.tsx`  
 **What to do**:
 - After the 5th clip is saved (track `clipCount` in localStorage), trigger a review prompt

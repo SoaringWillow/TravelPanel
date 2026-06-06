@@ -8,8 +8,10 @@ import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { incrementClipCount, shouldPromptReview, requestReview } from '@/lib/reviewPrompt';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import ReviewBanner from '@/components/ReviewBanner';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,7 @@ function SharePageInner() {
   const [dismissedDuplicate, setDismissedDuplicate] = useState(false);
   // Populated by CapacitorBridge when the iOS Share Extension includes a screenshot
   const [sharedImageBase64, setSharedImageBase64] = useState<string | undefined>();
+  const [showReviewBanner, setShowReviewBanner] = useState(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -106,6 +109,17 @@ function SharePageInner() {
     await saveItem(item);
     haptic('medium');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+
+    const count = incrementClipCount();
+    if (count >= 5 && shouldPromptReview()) {
+      // In Capacitor context, this fires the native sheet; on web it just marks done
+      requestReview().then(() => {
+        // Show web fallback banner only if not in native context
+        if (typeof window !== 'undefined' && !(window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()) {
+          setShowReviewBanner(true);
+        }
+      });
+    }
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
@@ -302,6 +316,9 @@ function SharePageInner() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      {showReviewBanner && (
+        <ReviewBanner onDismiss={() => setShowReviewBanner(false)} />
+      )}
       {/* Success content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12">
         {/* Animated green checkmark */}
