@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">📍</div>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Main view -->
+  <div id="mainView" class="main-content">
+    <!-- Page preview card -->
+    <div class="page-card">
+      <div class="page-card-top">
+        <img class="page-favicon" id="favicon" alt="" />
+        <div class="page-info">
+          <div class="page-title" id="pageTitle">
+            <div class="skeleton skeleton-title"></div>
+          </div>
+          <div class="page-url" id="pageUrl">
+            <div class="skeleton skeleton-url"></div>
+          </div>
+        </div>
+      </div>
+      <div id="platformBadge" class="platform-badge" style="display:none"></div>
+    </div>
+
+    <!-- Setup notice (shown when URL not configured) -->
+    <div id="setupNotice" class="setup-notice" style="display:none">
+      First time? <a id="setupLink">Set your TravelPanel URL</a> in settings.
+    </div>
+
+    <!-- Primary clip button -->
+    <button class="clip-btn" id="clipBtn" disabled>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+  </div>
+
+  <!-- Settings view -->
+  <div id="settingsView" class="settings-content" style="display:none">
+    <div class="settings-title">Settings</div>
+    <div class="form-group">
+      <label class="form-label" for="tpUrlInput">TravelPanel URL</label>
+      <input
+        type="url"
+        id="tpUrlInput"
+        class="form-input"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="form-hint">The URL where your TravelPanel app is deployed.<br/>Use <code>http://localhost:3000</code> for local development.</div>
+    </div>
+    <button class="save-btn" id="saveBtn">Save Settings</button>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-text">TravelPanel Clipper v1.0</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
