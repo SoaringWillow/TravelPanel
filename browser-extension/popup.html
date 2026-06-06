@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <span class="header-logo">✈️</span>
+    <span class="header-title">TravelPanel</span>
+    <button class="header-btn" id="settings-btn" title="Settings">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Unconfigured state -->
+  <div id="unconfigured-state" class="unconfigured-state hidden animate-in">
+    <div class="unconfigured-icon">🔧</div>
+    <div class="unconfigured-title">Setup required</div>
+    <div class="unconfigured-desc">
+      Enter your TravelPanel app URL to start clipping travel inspiration.
+    </div>
+    <button id="go-settings-btn" class="btn-primary" style="width:auto; padding: 8px 20px; margin-top: 4px;">
+      Open Settings
+    </button>
+  </div>
+
+  <!-- Save form -->
+  <div id="save-form" class="hidden animate-in">
+    <!-- URL preview card -->
+    <div class="url-card">
+      <div class="url-title" id="page-title">Loading...</div>
+      <div class="url-host" id="page-host">-</div>
+      <div id="platform-badge" class="platform-badge"></div>
+    </div>
+
+    <!-- Board selector -->
+    <div class="form-section">
+      <label class="form-label" for="board-select">Save to board</label>
+      <select id="board-select" class="form-select">
+        <option value="">📥 Inbox</option>
+      </select>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-section">
+      <label class="form-label" for="notes-input">Quick note</label>
+      <textarea
+        id="notes-input"
+        class="form-textarea"
+        placeholder="Add a note about this place..."
+      ></textarea>
+    </div>
+
+    <!-- Status bar (errors / warnings) -->
+    <div id="status-bar" class="status-bar hidden"></div>
+
+    <!-- Save button -->
+    <div class="actions">
+      <button id="save-btn" class="btn-primary">
+        Save to TravelPanel
+      </button>
+    </div>
+  </div>
+
+  <!-- Success state -->
+  <div id="success-state" class="success-state hidden animate-in">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Saved!</div>
+
+    <div class="success-stats" id="success-stats">
+      <span class="stat-chip" id="stat-extracting">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/>
+        </svg>
+        Extracting...
+      </span>
+    </div>
+
+    <div class="success-sub" id="success-sub">
+      Claude is finding locations and travel wisdom from this page.
+    </div>
+
+    <div class="success-actions">
+      <button id="open-app-btn" class="btn-secondary">Open TravelPanel</button>
+      <button id="save-another-btn" class="btn-ghost">Clip another</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
