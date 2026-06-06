@@ -445,7 +445,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Do NOT implement real payment — just the UI scaffolding for when RevenueCat is integrated
 
 ### F7 — Widget Data Provider (iOS Home Screen Widget)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (web side complete; native Swift code documented in ios/App/TravelWidget/WIDGET_SETUP.md)  
 **Files**: `ios/App/TravelWidget/` (new Xcode target), `lib/widgetData.ts`  
 **What to do**:
 - Create a WidgetKit extension in Xcode (Timeline provider) that shows: next unvisited location from the most recent board, or "Add a clip" if inbox is empty

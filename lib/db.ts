@@ -79,6 +79,11 @@ export async function getItemById(id: string): Promise<SavedItem | undefined> {
 export async function saveItem(item: SavedItem): Promise<void> {
   const db = await getDB();
   await db.put('items', item);
+  // Push latest clips to App Group so WidgetKit extension can display them
+  if (item.enrichmentStatus === 'done') {
+    const allItems = await db.getAll('items');
+    import('@/lib/widgetData').then(({ pushWidgetData }) => pushWidgetData(allItems)).catch(() => {});
+  }
 }
 
 export async function deleteItem(id: string): Promise<void> {
