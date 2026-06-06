@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let image: string | undefined; // base64 JPEG from iOS Share Extension
   try {
-    ({ url } = await req.json());
+    ({ url, image } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -128,14 +129,52 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  // Vision prompt used when a screenshot is provided (Xiaohongshu / WeChat workaround)
+  const visionPrompt = `You are analyzing a screenshot of a travel social media post (likely Xiaohongshu or WeChat).
+The page content may be blocked by anti-scraping. Use what you can SEE in the image as your primary source.
+
+Platform: ${platform}
+URL: ${url}
+${page?.title ? `Page title (may be partial): ${page.title}` : ''}
+
+Extract BOTH layers from the screenshot content:
+
+## Layer 1 — Spots (geographic skeleton)
+Read place names, locations, and addresses visible in the image. Only include places you can see named.
+Use your geographic knowledge to provide GPS coordinates for identified places.
+
+## Layer 2 — Substance (tips, warnings, wisdom visible in the post)
+Read the actual post text visible in the screenshot. Extract every tip, warning, opinion, or piece of advice.
+This is the most important layer — read the text in the image carefully.`;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (image && typeof image === 'string' && image.length > 100) {
+      // Vision path — use the screenshot as primary input
+      const imageBytes = Buffer.from(image, 'base64');
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBytes, mimeType: 'image/jpeg' },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text-only path — standard URL fetch + prompt
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { highlight } from '@/lib/searchItems';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  query?: string;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +40,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  query = '',
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -50,7 +53,7 @@ export default function InboxCard({
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden animate-pulse">
           <div className="w-full h-32 bg-gray-200" />
           <div className="p-4 space-y-3">
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
@@ -66,7 +69,7 @@ export default function InboxCard({
 
     // Partial card — title is known, enrichment still running
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-4 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span
@@ -116,7 +119,7 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
@@ -189,7 +192,7 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -197,14 +200,32 @@ export default function InboxCard({
           alt={item.title}
           className="w-full h-32 object-cover"
           onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
+            const img = e.currentTarget as HTMLImageElement;
+            img.style.display = 'none';
+            const placeholder = img.nextElementSibling as HTMLElement | null;
+            if (placeholder) placeholder.style.display = 'flex';
           }}
         />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
-        </div>
-      )}
+      ) : null}
+      <div
+        className="w-full h-24 bg-gray-100 dark:bg-gray-700 items-center justify-center text-3xl"
+        style={{ display: item.thumbnail ? 'none' : 'flex' }}
+      >
+        {item.tags.includes('food') || item.tags.includes('restaurant') || item.tags.includes('cafe')
+          ? '🍜'
+          : item.tags.includes('nature') || item.tags.includes('hiking') || item.tags.includes('park')
+          ? '🌿'
+          : item.tags.includes('culture') || item.tags.includes('museum') || item.tags.includes('temple')
+          ? '🏛'
+          : item.tags.includes('beach') || item.tags.includes('ocean') || item.tags.includes('sea')
+          ? '🏖'
+          : item.tags.includes('city') || item.tags.includes('urban')
+          ? '🌆'
+          : item.tags.includes('adventure') || item.tags.includes('sports')
+          ? '🧗'
+          : <Globe size={32} className="text-gray-300 dark:text-gray-500" />
+        }
+      </div>
 
       <div className="p-4">
         {/* Platform badge */}
@@ -216,13 +237,13 @@ export default function InboxCard({
 
         {/* Title */}
         <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
-          {item.title}
+          {highlight(item.title, query)}
         </h3>
 
         {/* Description */}
         {item.description && (
           <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
-            {item.description}
+            {highlight(item.description, query)}
           </p>
         )}
 

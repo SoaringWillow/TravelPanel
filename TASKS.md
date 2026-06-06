@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,7 +174,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
@@ -192,6 +192,430 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ### C4 — Proactive Resurfacing
 **Status**: `[ ]` Not started
+
+---
+
+## PHASE D — Native iOS Polish (Current Sprint — beauty + feel)
+
+> Goal: make TravelPanel feel like a premium iOS travel app, not a web app wrapped in a shell.
+> Execution order: `D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10`
+
+### D1 — Beautiful Empty States 🔴 HIGH IMPACT
+**Status**: `[x]` Done  
+**Why**: Every new user hits the empty state. Right now it's a blank map. This is the first impression.  
+**Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- **Map empty state**: When `items.length === 0` and not loading, show a floating card above the NavBar:
+  - "Start exploring — save your first travel inspiration"
+  - A subtle animated ping on the FAB button to draw attention
+  - Show 3 example source icons (Instagram, YouTube, 小红书)
+- **Inbox empty state**: Large centered illustration (SVG globe + sparkles), headline "Your travel inspiration starts here", subline "Share any travel URL from Instagram, YouTube, or 小红书 to clip it", and a "Try a sample clip" button that pre-fills a demo URL
+- **Boards empty state**: "No collections yet — save a clip and organize it into a trip board"
+- All empty states should animate in with framer-motion (fade + slide up)
+
+### D2 — Swipe Actions on Clip Cards
+**Status**: `[x]` Done  
+**Why**: The standard mobile gesture for delete/move. Users expect it. Without it, the only way to delete is buried.  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Use `@use-gesture/react` (already compatible with framer-motion) or framer-motion `drag` for horizontal swipe detection
+- Swipe left (red destructive zone): shows "Delete" label with trash icon — on release past 40% width, confirm delete with a brief shake animation then remove
+- Swipe right (indigo zone): shows "Move" label with board icon — on release, open a bottom sheet board picker
+- Both directions: rubber-band spring-back if not released past threshold
+- Haptic feedback (via `@capacitor/haptics`) at the threshold crossing point
+- Install `@use-gesture/react` if framer-motion drag isn't sufficient: `npm install @use-gesture/react`
+
+### D3 — Pull-to-Refresh on Inbox and Boards
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Implement native-feel pull-to-refresh using CSS overscroll + touch events (no library needed)
+- On release: re-query IndexedDB + trigger retry for any `enrichmentStatus: 'failed'` items with `retryCount < 3`
+- Show a spinner (indigo, 20px) at the top of the list while refreshing
+- On Capacitor: also use `App.addListener('resume', ...)` to refresh when app returns to foreground
+
+### D4 — Clip Editing (Notes + Tags)
+**Status**: `[x]` Done  
+**Why**: Users save clips and often want to add personal notes or correct tags. Right now notes are write-once.  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an "Edit" button (pencil icon) to `LocationDetailCard`
+- In edit mode, show: editable notes textarea (multiline), tag chips that can be toggled on/off, and a "Save" button
+- On save, call a new `updateItemNotes(id, { notes, tags })` function in `lib/db.ts`
+- Animate edit mode in (slide up panel or in-place expansion)
+- Support markdown-lite in notes: `**bold**`, `- bullets` rendered on save
+
+### D5 — Board Cover Images from Clip Thumbnails
+**Status**: `[x]` Done  
+**Files**: `lib/db.ts`, `app/boards/page.tsx`, `components/BoardCard.tsx` (create if needed)  
+**What to do**:
+- When an item with a thumbnail is added to a board (via `addItemToBoard`), auto-set `board.coverThumbnail` if not already set
+- Board cards on the `/boards` page should show the cover image as a full-bleed card header (top 60% of card = image, bottom 40% = name/stats)
+- Add a subtle gradient overlay so white text is always readable
+- If no cover image, show a gradient background using the board's emoji as a large watermark
+- Implement `BoardCard` component if not already separated
+
+### D6 — "Quick Plan" Button on Board Cards
+**Status**: `[x]` Done  
+**Files**: `app/boards/page.tsx` or `components/BoardCard.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Add a "Plan trip →" button to each board card that has ≥2 clips with locations
+- On tap: navigate to `/plan/[boardId]` with pre-filled defaults: 3 days, preferences = "balanced itinerary with morning spots first"
+- Auto-start generation (skip the form step) — show agent progress immediately
+- If board has <2 location clips: show "Add more clips with locations to plan a trip" tooltip
+
+### D7 — Haptic Feedback via Capacitor Haptics
+**Status**: `[x]` Done  
+**Files**: `components/ImportSheet.tsx`, `app/share/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Install `@capacitor/haptics` (already in `@capacitor` org, same install pattern as other plugins)
+- Create `lib/haptics.ts` with: `lightImpact()`, `mediumImpact()`, `heavyImpact()`, `successNotification()`, `errorNotification()` — all no-op in browser
+- Fire `successNotification()` when a clip is saved
+- Fire `lightImpact()` at swipe gesture threshold crossing (D2)
+- Fire `heavyImpact()` when delete is confirmed
+- Fire `mediumImpact()` on plan generation start
+
+### D8 — Map Tag Filters (Filter Pins by Category)
+**Status**: `[x]` Done  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add a horizontally scrollable chip row floating above the NavBar (below the FAB)
+- Chips: All, Food, Nature, Culture, Adventure, Beach, City, History (match the tag constants)
+- When a chip is active, only show pins for items with that tag; inactive pins fade to 30% opacity
+- "All" chip resets the filter
+- Selected chip shows filled indigo bg; unselected shows white with border
+- Filter state is local to the session (not persisted)
+
+### D9 — Enrichment Progress on Inbox Cards (Live Status)
+**Status**: `[x]` Done  
+**Why**: After saving, users see a static "pending" card. There's no visual progress. This feels broken.  
+**Files**: `components/InboxCard.tsx`, `hooks/useSavedItems.ts`  
+**What to do**:
+- Show a shimmer/skeleton animation on cards with `enrichmentStatus: 'pending'` or `'processing'`
+- Once enrichment completes (status → `'done'`), animate the card content in with a subtle fade
+- Show location count pill (e.g. "📍 3 places") once enrichment completes
+- Show substance count pill (e.g. "💡 5 tips") if substance items > 0
+- Failed enrichment: show a red "Retry" button inline on the card
+
+### D10 — Beautiful Trip Plan Day Cards
+**Status**: `[x]` Done  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
+**What to do**:
+- Redesign DayStripCard with a timeline layout: vertical line on the left, activity dots on the timeline
+- Each activity shows: time (e.g. "9:00am"), name, duration, and sourced tips collapsed (tap to expand)
+- Sourced tips show "from your clip: [title]" attribution with an indigo left border
+- Day theme shown as a badge above the first activity
+- Smooth accordion expand/collapse for activity details using framer-motion
+- "View on Map" button per day that filters the RouteMapView to that day's locations
+
+---
+
+## PHASE E — App Store Readiness
+
+> Goal: everything needed to submit to the iOS App Store and acquire first 1000 users.
+
+### E1 — App Icon Set (All iOS Sizes)
+**Status**: `[x]` Done  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`  
+**What to do**:
+- Design a 1024×1024px master icon: indigo gradient background (#6366f1 → #8b5cf6), white globe with location pin
+- Export all required sizes using a script (`generate-app-icons.js` using sharp): 20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024px
+- Update `Contents.json` in the appiconset to reference all sizes
+- Also create a 1024×1024 App Store icon (no alpha channel, no rounded corners — Apple applies them)
+
+### E2 — Launch Screen Redesign
+**Status**: `[x]` Done  
+**Files**: `ios/App/App/Base.lproj/LaunchScreen.storyboard` or Capacitor splash config  
+**What to do**:
+- Replace the default white splash with: indigo gradient background, centered white TravelPanel globe logo, app name in SF Pro Display Bold
+- Use Capacitor SplashScreen plugin config in `capacitor.config.ts` (already partially configured)
+- Show for 800ms then fade out (already configured via `launchShowDuration: 800`)
+
+### E3 — Onboarding Flow (First Launch)
+**Status**: `[x]` Done  
+**Files**: new `app/onboarding/page.tsx`, `app/layout.tsx`  
+**What to do**:
+- 3-step swipeable onboarding carousel shown once (localStorage flag `hasSeenOnboarding2`)
+  - Step 1: "Your travel feed, organized" — show the map + pins animation
+  - Step 2: "Clip from anywhere" — show iOS Share Sheet + browser extension
+  - Step 3: "AI plans your trip" — show itinerary with sourced tips
+- Each step has a headline, sub-copy, and looping Lottie/SVG illustration
+- "Get Started" button on last step → navigates to home and loads seed data
+- Skip button on all steps
+- Check flag on app load in `app/layout.tsx`; if not set, redirect to `/onboarding`
+
+### E4 — App Store Screenshots
+**Status**: `[x]` Done (script created; run `npm run screenshots` with a local dev server)  
+**What to do**:
+- Automate screenshot generation for 6.7" (iPhone 15 Pro Max) and 12.9" (iPad Pro)
+- Use Playwright to navigate the app and take screenshots in a seeded state
+- 5 required screenshots per device size:
+  1. Map with colorful pins + "35 places saved" counter
+  2. Import sheet analyzing a Xiaohongshu URL
+  3. Clip detail with wisdom section expanded
+  4. Board view with cover images
+  5. Trip plan day card with sourced tips
+- Script: `scripts/screenshots.ts`
+
+### E5 — Privacy Policy + Terms Pages
+**Status**: `[x]` Done  
+**Files**: `app/privacy/page.tsx`, `app/terms/page.tsx`  
+**What to do**:
+- Required for App Store submission
+- Privacy policy: data stored on-device, AI processing via Anthropic (no training use), optional PostHog analytics (opt-in), no ads
+- Terms: user owns their content, no warranty, 18+ or parental consent
+- Link both from Settings page
+
+### E6 — App Store Rating Prompt
+**Status**: `[x]` Done  
+**Files**: `lib/ratingPrompt.ts`, `app/share/page.tsx`  
+**What to do**:
+- After a user's 3rd successful clip save, show an in-app rating prompt
+- On iOS: use `@capacitor-community/app-review` (or direct `SKStoreReviewController`)
+- Track in localStorage: `clipSaveCount`. When it hits 3, request review.
+- Only request once (set `hasRequestedReview` flag after first request)
+- On web (non-native): no-op
+
+---
+
+## PHASE F — Engagement, Retention & Monetization
+
+> Goal: drive weekly active usage, turn casual users into power users, and lay the foundation for a Pro tier.
+> Execution order: `F1 → F2 → F3 → F4 → F5 → F6 → F7`
+
+### F1 — Clip Streak & Home Widget (Engagement Hook)
+**Status**: `[x]` Done  
+**Why**: The North Star metric is weekly clips per active user. A streak is the single most proven habit-formation mechanic.  
+**Files**: new `lib/streaks.ts`, `app/settings/page.tsx`, `components/StreakBadge.tsx`  
+**What to do**:
+- Track `lastClipDate` and `currentStreak` in localStorage
+- `recordClipSave()` in `lib/ratingPrompt.ts` should also call `incrementStreak()`
+- Show a streak badge (🔥 N days) in the NavBar next to Settings when streak ≥ 2
+- On the Settings page, show "Your streak: 🔥 7 days — keep it up!" with a small calendar heatmap (last 30 days, 2-tone: clipped vs not)
+- When streak is broken, show a "You missed a day — start a new streak!" banner once
+
+### F2 — Share Your Board (Deep Link Generation)
+**Status**: `[x]` Done  
+**Why**: Virality is the cheapest user acquisition. Sharing a board brings new users in with context.  
+**Files**: `app/boards/[boardId]/page.tsx` (or create it), `app/api/share/route.ts`  
+**What to do**:
+- Add a "Share board" button on each board detail page
+- Generate a deep link: `https://travelpanel.app/board/<boardId>?preview=true`
+- The preview page (server-rendered) shows board name, emoji, item count, and top 3 location names — no auth required, read-only
+- On iOS, also trigger the native Share Sheet with the deep link URL via `@capacitor/share`
+- Store shared board metadata in a `sharedBoards` localStorage key (for now; Supabase when ready)
+
+### F3 — Offline Caching (PWA Service Worker)
+**Status**: `[x]` Done  
+**Why**: Travel app used abroad → users WILL be offline. Map tiles not loading = catastrophic UX failure.  
+**Files**: `next.config.js` (already has next-pwa), `public/sw.js` or next-pwa config  
+**What to do**:
+- Configure next-pwa to cache: all JS/CSS bundles, the map tile CDN (OpenFreeMap), and the app shell
+- Map tile cache strategy: `CacheFirst` with max 500 entries, 7 days TTL
+- API routes (`/api/import`, `/api/plan`) should use `NetworkOnly` (never cache AI responses)
+- Show a subtle "You're offline — map and saved clips still available" banner when navigator.onLine === false
+- Test: open app, turn off network, navigate between tabs — all existing clips and map tiles should still work
+
+### F4 — Dark Mode Support
+**Status**: `[x]` Done  
+**Files**: `app/globals.css`, `tailwind.config.js`, all major components  
+**What to do**:
+- Enable Tailwind's `darkMode: 'media'` (respects system preference)
+- Add `dark:` variants to all major components: NavBar, InboxCard, BoardCard, LocationDetailCard, ImportSheet
+- Map in dark mode: switch to a dark MapLibre style (use OpenFreeMap's dark variant)
+- Test: switch device to dark mode → all text readable, no white flash, map style switches
+
+### F5 — Clip Count Milestone Celebrations
+**Status**: `[x]` Done  
+**Files**: `lib/ratingPrompt.ts` → extend, new `components/MilestoneCelebration.tsx`  
+**What to do**:
+- At 10, 25, 50, 100 clips: show a confetti burst + "🎉 You've saved 50 places!" modal for 2 seconds
+- Use canvas-confetti or a pure CSS animation (no heavy library)
+- Track milestones in localStorage to show each only once
+- Also show a share prompt: "You've saved 50 travel spots! Share TravelPanel →"
+
+### F6 — Pro Tier Teaser + Paywall
+**Status**: `[x]` Done  
+**Files**: new `app/pro/page.tsx`, `components/ProGate.tsx`, `lib/pro.ts`  
+**What to do**:
+- Define Pro features: unlimited plan generations (vs 5/day), board sharing, priority enrichment
+- `lib/pro.ts`: `isPro()` checks localStorage `proUnlocked` — always false for now (placeholder for RevenueCat)
+- `ProGate` component: when a non-Pro user hits a limit, show a bottom sheet: "Upgrade to Pro — $4.99/month" with feature list and a "Learn More" CTA
+- `/pro` page: full Pro features breakdown, pricing, FAQ
+- Do NOT implement real payment — just the UI scaffolding for when RevenueCat is integrated
+
+### F7 — Widget Data Provider (iOS Home Screen Widget)
+**Status**: `[x]` Done (web side complete; native Swift code documented in ios/App/TravelWidget/WIDGET_SETUP.md)  
+**Files**: `ios/App/TravelWidget/` (new Xcode target), `lib/widgetData.ts`  
+**What to do**:
+- Create a WidgetKit extension in Xcode (Timeline provider) that shows: next unvisited location from the most recent board, or "Add a clip" if inbox is empty
+- The widget reads from the App Group UserDefaults the last 3 saved clip titles + locations (written by the main app on each save)
+- Update `lib/db.ts` saveItem to also write a `widgetData` key to App Group via @capacitor/preferences
+- Widget design: indigo gradient, globe emoji, location name, "Open TravelPanel →" deep link
+- Document the Xcode steps required in `ios/App/TravelWidget/WIDGET_SETUP.md`
+
+---
+
+## PHASE G — Performance, Polish & Power Features
+
+> Goal: make TravelPanel feel instant, delight power users, and close the remaining quality gaps before v1.0 App Store launch.
+> Execution order: `G1 → G2 → G3 → G4 → G5 → G6`
+
+### G1 — Infinite Scroll / Pagination on Inbox
+**Status**: `[x]` Done  
+**Why**: At 200+ clips, rendering all cards at once causes jank and high memory usage.  
+**Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts`  
+**What to do**:
+- Load first 30 items; show "Load more" button (or intersection observer infinite scroll)
+- When search is active, search all items client-side but paginate the display
+- Show total count in the header: "47 clips (showing 30)"
+- Smooth transition when new items load in (framer-motion stagger)
+
+### G2 — Animated Map Route Playback
+**Status**: `[x]` Done  
+**Files**: `components/RouteMapView.tsx`  
+**Why**: The plan view shows a static route. An animated "trace" of the route would be visually striking and show the day's journey at a glance.  
+**What to do**:
+- On day selection, animate the route line drawing in from the first pin to the last
+- Use MapLibre's `line-dasharray` animation via a `requestAnimationFrame` loop
+- Each activity pin pops in with a scale animation, staggered 200ms apart
+- "Replay" button to restart the animation
+- Only animate when the day changes; static otherwise
+
+### G3 — Clip Deduplication Warning
+**Status**: `[x]` Done  
+**Files**: `app/share/page.tsx`, `lib/db.ts`  
+**Why**: Users frequently clip the same URL twice. Silent duplicates waste enrichment quota and pollute the inbox.  
+**What to do**:
+- In `handleSave`, check if a clip with the same URL already exists in IndexedDB
+- If it does: show an inline warning in the share sheet "You've already saved this link ([clip title]) — save again anyway?"
+- Two actions: "Save Anyway" and "View Existing" (navigates to the existing clip)
+- Don't block the user, just inform
+
+### G4 — Substance Highlights on Board Detail Page
+**Status**: `[x]` Done  
+**Files**: `app/boards/[id]/page.tsx`  
+**Why**: The board detail page shows a grid of InboxCards but doesn't surface the wisdom extracted from clips. This is the payoff of substance extraction.  
+**What to do**:
+- Add a "Highlights" section between the map and the clips grid
+- Show the top 3 substance items across all clips in the board (prioritize `warning` and `tip` types)
+- Each highlight: icon (💡/⚠️/💬), content text, "from: [clip title]" attribution
+- "See all tips" expands to show all substance items from all board clips
+- Only show if board has at least 2 clips with substance items
+
+### G5 — Haptic Feedback Audit & Polish
+**Status**: `[x]` Done  
+**Files**: Multiple components  
+**Why**: Haptics are inconsistently applied. Key interactions like board creation, plan generation start, and milestone celebration are missing haptic feedback.  
+**What to do**:
+- Board created: `haptics.success()`
+- Plan generation starts: `haptics.medium()`
+- Milestone celebration fires: `haptics.success()` + brief delay + `haptics.light()`
+- Day selector pill tap in plan view: `haptics.light()`
+- Pull-to-refresh trigger point: `haptics.light()`
+- Error toast appears: `haptics.error()`
+- Audit all existing haptic calls to ensure they fire at the right moment
+
+### G6 — Clip Search Highlight (Match Highlighting)
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, `lib/searchItems.ts`  
+**Why**: When a search returns results, users can't see WHY a clip matched. Highlighting the matching text dramatically improves search UX.  
+**What to do**:
+- `searchItems.ts`: return match positions alongside results (or a `highlight(text, query)` helper)
+- `InboxCard`: if a search query is active, wrap matching substring in a `<mark>` with yellow/indigo bg
+- Highlight in: title, description, location names, substance content
+- Performance: only compute highlights when query is non-empty (no-op otherwise)
+- Use a simple regex split approach, not a full diff algorithm
+
+---
+
+## PHASE H — Intelligence, Depth & On-Trip Experience
+
+> Goal: elevate TravelPanel from "useful organizer" to "intelligent travel companion." Close the remaining strategic gaps: real-world context in plans, on-trip GPS mode, personal notes flowing into AI context, and the board sharing destination page.
+> Execution order: `H1 → H2 → H3 → H4 → H5 → H6 → H7`
+
+### H1 — Vibe-Based Trip Style Input
+**Status**: `[x]` Done  
+**Why**: The plan form currently has no way to express *how* you want to travel. "Slow mornings, street food focus, avoid tourist traps" dramatically changes what Claude generates. This is a free improvement — just a text field that feeds into the prompt.  
+**Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`  
+**What to do**:
+- Add a "Trip style" textarea to the plan generation form (below days/preferences)
+- Placeholder: "e.g. slow mornings, street food, budget-conscious, avoid big museums"
+- Pass it to the API as `travelStyle?: string` in the request body
+- In the planner Claude prompt, inject it as a top-priority constraint: "The traveller's style: [travelStyle]. Prioritize this over default assumptions."
+- Persist the last-used style in localStorage `planStyle` so it pre-fills next time
+- Keep it optional — empty value means current behavior (no regression)
+
+### H2 — Weather-Aware Planning (OpenMeteo)
+**Status**: `[x]` Done  
+**Why**: No real-world signal makes plans feel generic. OpenMeteo is free, no API key, and returns hourly forecast. A 2-sentence weather context in the Claude prompt ("Rain on day 2, 28°C on day 3") meaningfully improves itinerary quality.  
+**Files**: new `lib/weather.ts`, `app/api/plan/route.ts`  
+**What to do**:
+- Create `lib/weather.ts` with `fetchWeatherSummary(lat, lng, startDate, days): Promise<string>`. Call OpenMeteo's `/v1/forecast` endpoint (free, no key): `https://api.open-meteo.com/v1/forecast?latitude=LAT&longitude=LNG&daily=weathercode,temperature_2m_max,precipitation_sum&forecast_days=DAYS`
+- Convert WMO weather codes (0=clear, 61=rain, 71=snow, etc.) to human-readable strings
+- Compute board centroid from all clip locations (average lat/lng) to use as forecast location
+- Inject the weather summary into the planner's system prompt as a "Weather context:" block
+- Gracefully skip if centroid can't be computed or fetch fails (non-blocking)
+- In the plan UI, show a small weather pill next to each day header (☀️ 28°C / 🌧 18°C)
+
+### H3 — On-Trip Mode v1 (Today View)
+**Status**: `[x]` Done  
+**Why**: "I just landed, what's my day?" is the white space no competitor has touched. When a user has a saved plan and today falls within the trip dates, show a focused "Today" tab — just today's activities, a "I'm here" GPS dot, distance/time to the next stop.  
+**Files**: new `app/today/page.tsx`, `app/layout.tsx` (add Today tab to NavBar), `components/NavBar.tsx`  
+**What to do**:
+- Add a "Today" tab to NavBar (icon: `Navigation2` from lucide), only shows a notification dot when an active trip exists
+- `app/today/page.tsx`: reads all saved trips from IndexedDB; if one covers today's date, show "On-Trip Mode"
+- On-trip view: today's day plan activities in a timeline (reuse DayStripCard), current GPS location via browser Geolocation API shown on a small MapLibre map
+- "Next stop" card at the top: the next unvisited activity, with walking/transit time estimate (use OpenRouteService or just straight-line distance as a proxy)
+- If no active trip: show "No active trip — start planning one!" with a link to Boards
+- Persist "visited" checkmarks per activity in localStorage `visitedActivities:{tripId}:{dayIdx}:{actIdx}`
+
+### H4 — Trip Countdown Banner
+**Status**: `[x]` Done  
+**Why**: When a trip is 7 days away or less, users need a contextual reminder that creates anticipation and drives them back into the app.  
+**Files**: `app/boards/page.tsx` (or boards list), `lib/db.ts`  
+**What to do**:
+- On the Boards tab, check all saved trips for any with a `startDate` within the next 7 days
+- Show a dismissible gradient banner at the top: "✈️ [Tokyo Trip] starts in 3 days — review your plan!"
+- Tapping the banner navigates to the plan view for that board
+- Dismiss state stored in localStorage `dismissedCountdowns` (dismiss per trip, expires after trip starts)
+- If multiple trips within 7 days: show the nearest one
+- Show the banner on the main map page too (as a floating card above the NavBar)
+
+### H5 — Board Preview Page (Public Share Destination)
+**Status**: `[x]` Done  
+**Why**: F2 implemented board sharing (generates `travelpanel.app/board/[id]?preview=true` deep links) but the target page doesn't exist. Every shared link is a dead end.  
+**Files**: new `app/board/[id]/page.tsx` (server component), `app/api/board-preview/[id]/route.ts`  
+**What to do**:
+- Create `/board/[id]` as a server-rendered page (no auth required) that shows: board emoji, name, "N places saved", top 5 location names as pills, "Open in TravelPanel" CTA button
+- Since data is local-first, the preview requires the sharer to have stored board metadata somewhere accessible — use localStorage `sharedBoardMeta:{id}` (written when user taps Share in F2) as a simple solution for v1 (acknowledged limitation)
+- The CTA button deep-links to `travelpanel://board/[id]` (Capacitor URL scheme) or falls back to the web app root
+- Add OG meta tags (og:title, og:description, og:image) for rich link previews in iMessage/Twitter
+- Design: clean, minimal card — indigo gradient header with emoji, white body with location pills, prominent CTA
+
+### H6 — Personal Notes Flow Into Planner
+**Status**: `[x]` Done  
+**Why**: D4 implemented clip note editing, but `app/api/plan/route.ts` builds `contentSummary` from only title/activities/tags/substance — personal notes are dropped. This is dead data that could make plans significantly more personal.  
+**Files**: `app/api/plan/route.ts`  
+**What to do**:
+- In the plan API, extend the `contentSummary` builder to append each item's `notes` if present
+- Label it clearly in the prompt context: "Personal notes: [notes]" so Claude understands this is first-person preference data, not extracted content
+- Notes should carry higher weight than substance items — they are the user's own words
+- Only include non-empty notes (trim and check)
+- No new UI needed — the existing notes field in D4 now becomes a planning input
+
+### H7 — App Quality & Accessibility Sprint
+**Status**: `[x]` Done  
+**Why**: The app has accumulated UI debt across 7 phases. Before v1.0 submission, a focused quality pass catches the issues that cause App Store rejections or 1-star reviews.  
+**Files**: Multiple components  
+**What to do**:
+- **Accessibility**: Add `aria-label` to every icon-only button (delete, move, retry, close, replay, etc.) — required for App Store accessibility guidelines
+- **Keyboard navigation**: All modals (CreateBoard, PlanVersion, etc.) should close on Escape key
+- **Empty board detail**: `app/boards/[id]/page.tsx` — if board has 0 clips, show "Add clips to get started" empty state with a link to the share sheet
+- **Plan form validation**: If board has <2 location-tagged clips, show an inline warning before the Generate button instead of generating an empty plan
+- **Image fallback**: InboxCard thumbnail `onError` currently just hides the image — replace with a category-appropriate placeholder (food=🍜, nature=🌿, etc.) based on first tag
+- **Dark mode completions**: Check boards page, plan page, today page for any white-flash components not yet dark-mode adapted
+- **Long title truncation**: Clip titles >60 chars cause layout breaks in DayStripCard — add proper `truncate` class and `title` tooltip attribute
 
 ---
 

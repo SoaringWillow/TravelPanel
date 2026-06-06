@@ -230,11 +230,21 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  filterTag?: string; // when set, non-matching pins are shown at 30% opacity
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, filterTag }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
-  const { clusters, getExpansionZoom, setView } = useSupercluster(items);
+
+  // When a tag filter is active, cluster only matching items; others render faded
+  const activeItems = filterTag
+    ? items.filter((i) => i.tags.some((t) => t.toLowerCase() === filterTag))
+    : items;
+  const fadedItems = filterTag
+    ? items.filter((i) => !i.tags.some((t) => t.toLowerCase() === filterTag))
+    : [];
+
+  const { clusters, getExpansionZoom, setView } = useSupercluster(activeItems);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
   // Largest cluster size — used to scale bubble radius proportionally.
@@ -328,6 +338,24 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* Faded pins — items that don't match the active tag filter */}
+        {fadedItems.flatMap((item) =>
+          item.locations
+            .filter((loc) => Number.isFinite(loc.lat) && Number.isFinite(loc.lng))
+            .map((loc) => (
+              <Marker
+                key={`faded-${item.id}-${loc.lat},${loc.lng}`}
+                longitude={loc.lng}
+                latitude={loc.lat}
+                anchor="bottom"
+              >
+                <div style={{ opacity: 0.25, pointerEvents: 'none' }}>
+                  <Pin item={item} locName={loc.name} onClick={() => {}} />
+                </div>
+              </Marker>
+            ))
+        )}
 
         {popupInfo && (
           <Popup

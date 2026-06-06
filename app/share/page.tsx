@@ -4,9 +4,11 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
+import { recordClipSave, maybeRequestReview } from '@/lib/ratingPrompt';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -20,6 +22,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,12 +32,35 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicateClip, setDuplicateClip]     = useState<SavedItem | null>(null);
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards + check for duplicates + consume pending image on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Deduplication check
+    if (rawUrl) {
+      getAllItems()
+        .then((items) => {
+          const existing = items.find((i) => i.url === rawUrl);
+          if (existing) setDuplicateClip(existing);
+        })
+        .catch(() => {});
+    }
+
+    // Consume image written by CapacitorBridge into sessionStorage
+    if (hasImage) {
+      try {
+        const img = sessionStorage.getItem('pendingShareImage');
+        if (img) {
+          pendingImageRef.current = img;
+          sessionStorage.removeItem('pendingShareImage');
+        }
+      } catch { /* sessionStorage unavailable */ }
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -82,15 +108,18 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    haptics.success();
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    recordClipSave();
+    maybeRequestReview();
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if available (e.g. Xiaohongshu screenshot)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +193,24 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Duplicate warning */}
+          {duplicateClip && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800">
+              <span className="flex-shrink-0 mt-0.5">⚠️</span>
+              <div>
+                <p className="font-semibold">Already saved: "{duplicateClip.title || 'this link'}"</p>
+                <p className="text-amber-600 mt-0.5">You can save it again or skip.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Vision mode badge — shown when a screenshot was shared */}
+          {hasImage && (
+            <p className="text-xs text-violet-500 font-medium mt-1">
+              📸 Screenshot mode — Claude Vision will analyze the image
+            </p>
           )}
         </div>
 

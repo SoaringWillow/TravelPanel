@@ -1,22 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { Globe2, Inbox, LayoutGrid } from 'lucide-react';
+import { Globe2, Inbox, LayoutGrid, Settings, Navigation2 } from 'lucide-react';
+import { StreakBadge } from '@/components/StreakBadge';
+import { TodayDot } from '@/components/TodayDot';
 
 interface NavBarProps {
-  active: 'home' | 'inbox' | 'boards';
+  active: 'home' | 'inbox' | 'boards' | 'settings' | 'today';
 }
 
 const NAV_ITEMS = [
-  { key: 'home',   label: 'Map',         icon: Globe2,     href: '/'       },
-  { key: 'inbox',  label: 'Inspiration', icon: Inbox,      href: '/inbox'  },
-  { key: 'boards', label: 'Collections', icon: LayoutGrid, href: '/boards' },
+  { key: 'home',     label: 'Map',      icon: Globe2,       href: '/'         },
+  { key: 'inbox',    label: 'Clips',    icon: Inbox,        href: '/inbox'    },
+  { key: 'today',    label: 'Today',    icon: Navigation2,  href: '/today'    },
+  { key: 'boards',   label: 'Boards',   icon: LayoutGrid,   href: '/boards'   },
+  { key: 'settings', label: 'More',     icon: Settings,     href: '/settings' },
 ] as const;
 
 export default function NavBar({ active }: NavBarProps) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
+      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
       style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
     >
       <div className="flex items-stretch">
@@ -27,10 +31,22 @@ export default function NavBar({ active }: NavBarProps) {
               key={key}
               href={href}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
-                isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
+                isActive ? 'text-indigo-400 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+              <div className="relative">
+                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                {key === 'settings' && (
+                  <span className="absolute -top-1 -right-3">
+                    <StreakBadge />
+                  </span>
+                )}
+                {key === 'today' && (
+                  <span className="absolute -top-1 -right-1">
+                    <TodayDot />
+                  </span>
+                )}
+              </div>
               <span className="text-xs mt-0.5 font-medium">{label}</span>
               {/* Active indicator dot */}
               <span

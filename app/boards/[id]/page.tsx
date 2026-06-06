@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, ChevronDown } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { Board, SavedItem, Location } from '@/lib/types';
+import { Board, SavedItem, Location, SubstanceItem } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -24,10 +24,28 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
 
+  const [showAllSubstance, setShowAllSubstance] = useState(false);
+
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
     ? items.filter((item) => board.itemIds.includes(item.id))
     : [];
+
+  // Collect substance highlights from all board clips
+  const SUBSTANCE_ICONS: Record<string, string> = {
+    tip: '💡', warning: '⚠️', opinion: '💬', wisdom: '🧠',
+    context: '🌍', recommendation: '⭐',
+  };
+  type SubstanceWithSource = SubstanceItem & { sourceTitle: string };
+  const allSubstance: SubstanceWithSource[] = boardItems.flatMap((item) =>
+    (item.substance ?? []).map((s) => ({ ...s, sourceTitle: item.title ?? item.url }))
+  );
+  const prioritized = [
+    ...allSubstance.filter((s) => s.type === 'warning' || s.type === 'tip'),
+    ...allSubstance.filter((s) => s.type !== 'warning' && s.type !== 'tip'),
+  ];
+  const hasHighlights = boardItems.filter((i) => (i.substance ?? []).length > 0).length >= 2;
+  const shownSubstance = showAllSubstance ? prioritized : prioritized.slice(0, 3);
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
 
@@ -49,6 +67,45 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShareBoard() {
+    // Write lightweight metadata for the preview page to read
+    const locationNames = boardItems
+      .flatMap((i) => i.locations.map((l) => l.name))
+      .filter(Boolean)
+      .slice(0, 8);
+    try {
+      localStorage.setItem(
+        `sharedBoardMeta:${boardId}`,
+        JSON.stringify({
+          id: boardId,
+          name: board?.name ?? '',
+          emoji: board?.emoji ?? '🗺',
+          itemCount: boardItems.length,
+          locationNames,
+          sharedAt: Date.now(),
+        })
+      );
+    } catch {}
+
+    const shareUrl = `${window.location.origin}/board/${boardId}`;
+    const shareData = {
+      title: `${board?.emoji} ${board?.name} — TravelPanel`,
+      text: `Check out my travel board with ${boardItems.length} places!`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copied to clipboard!');
+      }
+    } catch {
+      // User dismissed share sheet — not an error
+    }
   }
 
   if (loading) {
@@ -107,9 +164,19 @@ export default function BoardDetailPage() {
             </h1>
           </div>
 
-          <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
-            {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
+            </span>
+            <button
+              type="button"
+              onClick={handleShareBoard}
+              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+              aria-label="Share board"
+            >
+              <Share2 size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -163,6 +230,35 @@ export default function BoardDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Substance Highlights */}
+          {hasHighlights && (
+            <div className="mb-4 bg-indigo-50 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">Highlights from your clips</p>
+              {shownSubstance.map((s, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="flex-shrink-0 text-base">{SUBSTANCE_ICONS[s.type] ?? '💡'}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs text-indigo-900 leading-snug">{s.content}</p>
+                    <p className="text-[10px] text-indigo-500 mt-0.5 truncate">from: {s.sourceTitle}</p>
+                  </div>
+                </div>
+              ))}
+              {prioritized.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSubstance((v) => !v)}
+                  className="flex items-center gap-1 text-xs text-indigo-600 font-semibold"
+                >
+                  {showAllSubstance ? 'Show less' : `See all ${prioritized.length} tips`}
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform ${showAllSubstance ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Items grid */}
           {boardItems.length === 0 ? (

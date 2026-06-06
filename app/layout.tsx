@@ -3,6 +3,10 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import { OnboardingGate } from '@/components/OnboardingGate';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { MilestoneProvider } from '@/components/MilestoneCelebration';
+import { DarkModeSync } from '@/components/DarkModeSync';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -27,6 +31,10 @@ export default function RootLayout({
         <CapacitorBridge />
         <AnalyticsProvider />
         <ResourceBanner />
+        <OnboardingGate />
+        <OfflineBanner />
+        <MilestoneProvider />
+        <DarkModeSync />
         <div className="min-h-screen">
           {children}
         </div>

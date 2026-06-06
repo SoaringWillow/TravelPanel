@@ -96,3 +96,43 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-06 14:25 | 30745c4 | feat(B2): browser extension — one-click URL clipper for TravelPanel
+2026-06-06 14:31 | 7c8a83f | feat(B3): Xiaohongshu fix — Claude Vision for screenshot shares
+2026-06-06 14:33 | 6356d8d | feat(B5): Settings page with full data export/import backup
+2026-06-06 14:34 | 88fe293 | docs: add Phase D (native iOS polish) and Phase E (App Store readiness) tasks
+2026-06-06 14:36 | 2879677 | feat(D1): beautiful animated empty states across all three main views
+2026-06-06 14:38 | 1f9c2de | feat(D2): swipe-to-delete and swipe-to-move on inbox clip cards
+2026-06-06 14:40 | f8f1fa3 | feat(D3): pull-to-refresh on Inbox and Boards pages
+2026-06-06 14:42 | 664c2e5 | feat(D7): haptic feedback via @capacitor/haptics
+2026-06-06 14:44 | a9307ef | feat(D8): map tag filters — filter pins by category with faded non-matches
+2026-06-06 14:45 | a9f4fe1 | feat(D4): clip editing — notes textarea + tag picker in LocationDetailCard
+2026-06-06 14:46 | 2481485 | feat(D5+D6): beautiful full-bleed board cards with cover images + Quick Plan button
+2026-06-06 14:53 | b5caa67 | feat(D10): redesign trip plan day cards with timeline layout
+2026-06-06 14:54 | ece82ec | feat(E1): generate all iOS app icon sizes from SVG master
+2026-06-06 14:56 | 6e0029f | feat(E2): redesign launch screen with indigo gradient + globe logo
+2026-06-06 14:58 | 9c0445f | feat(E3): add 3-step onboarding carousel for first-launch
+2026-06-06 15:00 | 9982b2a | feat(E5): add Privacy Policy and Terms of Use pages
+2026-06-06 15:01 | 543d119 | feat(E6): add App Store rating prompt after 3rd clip save
+2026-06-06 15:03 | fe592ec | feat(E4): add Playwright screenshot automation script
+2026-06-06 15:05 | e5b3b7c | chore: add Phase F tasks (engagement, retention, monetization)
+2026-06-06 15:06 | 86f2067 | feat(F1): clip streak tracking with heatmap and NavBar badge
+2026-06-06 15:07 | a2683fb | feat(F3): PWA offline caching + offline banner
+2026-06-06 15:08 | 5e171be | feat(F5): milestone celebrations at 10/25/50/100/250/500 clips
+2026-06-06 15:09 | b96c240 | feat(F6): Pro tier scaffolding with paywall bottom sheet and /pro page
+2026-06-06 15:12 | 691760d | feat(F4): dark mode support — system preference synced to dark class
+2026-06-06 15:13 | d29c176 | feat(F2): board sharing with native Share Sheet + clipboard fallback
+2026-06-06 15:14 | d705874 | feat(F7): widget data provider + WidgetKit setup guide
+2026-06-06 15:15 | 6e6025a | chore: add Phase G tasks (performance, polish, power features)
+2026-06-06 15:16 | 4dfa1d2 | feat(G3): duplicate clip warning in share sheet
+2026-06-06 15:17 | 2fba281 | feat(G4): substance highlights section on board detail page
+2026-06-06 15:21 | ae0f5cb | feat(G5): haptic feedback audit — board create, plan start, day select, pull refresh, milestones, import error
+2026-06-06 15:22 | e36cac7 | feat(G1): infinite scroll pagination on inbox — 30-item pages, intersection observer, stagger animation
+2026-06-06 15:24 | 037216b | feat(G2): animated map route playback — line draw animation, staggered pin pop-in, replay button
+2026-06-06 15:25 | 93c8589 | feat(G6): clip search highlight — regex split highlight() helper, title/description match highlighting
+2026-06-06 15:26 | 95840cb | chore: add Phase H tasks — intelligence, depth & on-trip experience (H1-H7)
+2026-06-06 15:28 | b6dc5f0 | feat(H1,H6): vibe-based trip style input + personal notes flow into planner
+2026-06-06 15:30 | 2ca4f85 | feat(H2): weather-aware planning via OpenMeteo — free forecast API, no key required
+2026-06-06 15:31 | 41a5df2 | feat(H4): trip countdown banner — shows ≤7 days ahead, dismissible, links to plan view
+2026-06-06 15:32 | cfba393 | feat(H5): board preview page at /board/[id] — OG meta, location pills, open-in-app CTA
+2026-06-06 15:34 | 9173bf3 | feat(H7): app quality & accessibility sprint — dark mode inputs, title truncation, tag-based image placeholders
+2026-06-06 15:36 | 15116dc | feat(H3): on-trip mode v1 — Today tab with GPS next-stop, activity checklist, mini map

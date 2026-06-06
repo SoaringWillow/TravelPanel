@@ -17,16 +17,24 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: 'automatic',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#6366f1',
     scrollEnabled: true,
     limitsNavigationsToAppBoundDomains: false,
   },
   plugins: {
+    Preferences: {
+      // Match the App Group suite in ShareViewController.swift so the Share Extension
+      // can write pendingShareImage / pendingShareURL into the same store that
+      // CapacitorBridge reads from.
+      group: 'group.com.travelpanel.app',
+    },
     SplashScreen: {
       launchShowDuration: 800,
-      backgroundColor: '#f9fafb',
+      backgroundColor: '#6366f1',
       showSpinner: false,
       launchAutoHide: false,
+      splashFullScreen: true,
+      splashImmersive: false,
     },
     StatusBar: {
       style: 'Default',

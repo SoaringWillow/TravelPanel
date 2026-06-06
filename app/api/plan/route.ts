@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { fetchWeatherSummary } from '@/lib/weather';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -49,9 +50,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, travelStyle: string | undefined, startDate: string | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, travelStyle, startDate } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -117,6 +118,17 @@ export async function POST(req: NextRequest) {
 
         step('routing', 'Building optimised route…');
 
+        // ── Step 2b: Fetch weather (non-blocking) ────────────────────────
+        let weatherPrompt = '';
+        if (startDate) {
+          const allLats = resolvedLocs.locations.map((l) => l.lat);
+          const allLngs = resolvedLocs.locations.map((l) => l.lng);
+          const centLat = allLats.reduce((a, b) => a + b, 0) / allLats.length;
+          const centLng = allLngs.reduce((a, b) => a + b, 0) / allLngs.length;
+          const weather = await fetchWeatherSummary(centLat, centLng, startDate, days);
+          if (weather) weatherPrompt = weather.prompt;
+        }
+
         // ── Step 3: Stream full itinerary ────────────────────────────────
         // Include substance (the wisdom layer) so the plan can cite the user's
         // own clips inline — this is the sourced-itinerary moat.
@@ -129,6 +141,7 @@ export async function POST(req: NextRequest) {
             content: s.content,
             applies_to: s.applies_to,
           })),
+          ...(i.notes?.trim() ? { personalNotes: i.notes.trim() } : {}),
         }));
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
@@ -136,12 +149,18 @@ export async function POST(req: NextRequest) {
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
-          prompt: `Create a detailed ${days}-day travel itinerary.
+          prompt: `Create a detailed ${days}-day travel itinerary.${travelStyle?.trim() ? `
+
+TRAVELLER STYLE (top priority — shape the entire plan around this):
+${travelStyle.trim()}` : ''}${weatherPrompt ? `
+
+${weatherPrompt}` : ''}
 
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
+Note: "personalNotes" in saved content are the traveller's own first-person observations — treat them as high-priority preference signals.
 
 Rules:
 - 2-4 activities per day with realistic timing

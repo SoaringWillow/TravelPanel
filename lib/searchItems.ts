@@ -1,4 +1,30 @@
+import type { ReactNode } from 'react';
+import { createElement, Fragment } from 'react';
 import { SavedItem } from './types';
+
+/**
+ * Splits `text` by all query terms and wraps each match in a <mark> element.
+ * Returns an array of strings and <mark> nodes — safe to render directly in JSX.
+ */
+export function highlight(text: string, query: string): ReactNode {
+  if (!query.trim() || !text) return text;
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  const pattern = new RegExp(`(${terms.map(escapeRegex).join('|')})`, 'gi');
+  const parts = text.split(pattern);
+  return createElement(
+    Fragment,
+    null,
+    ...parts.map((part, i) =>
+      pattern.test(part)
+        ? createElement('mark', { key: i, className: 'bg-yellow-200 text-yellow-900 rounded-sm px-0.5' }, part)
+        : part
+    )
+  );
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // Lightweight client-side full-text search across the fields that matter:
 // title, description, tags, location names, activities, and — crucially —

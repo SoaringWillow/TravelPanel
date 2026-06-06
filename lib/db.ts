@@ -79,6 +79,11 @@ export async function getItemById(id: string): Promise<SavedItem | undefined> {
 export async function saveItem(item: SavedItem): Promise<void> {
   const db = await getDB();
   await db.put('items', item);
+  // Push latest clips to App Group so WidgetKit extension can display them
+  if (item.enrichmentStatus === 'done') {
+    const allItems = await db.getAll('items');
+    import('@/lib/widgetData').then(({ pushWidgetData }) => pushWidgetData(allItems)).catch(() => {});
+  }
 }
 
 export async function deleteItem(id: string): Promise<void> {
@@ -107,6 +112,18 @@ export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedI
   } catch {
     return [];
   }
+}
+
+export async function updateItemNotes(
+  id: string,
+  fields: { notes?: string; tags?: string[] },
+): Promise<SavedItem | undefined> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return undefined;
+  const updated: SavedItem = { ...item, ...fields };
+  await db.put('items', updated);
+  return updated;
 }
 
 export async function updateItemEnrichment(
@@ -195,6 +212,15 @@ export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {
     const db = await getDB();
     return db.getAllFromIndex('trips', 'by-board', boardId);
+  } catch {
+    return [];
+  }
+}
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
   } catch {
     return [];
   }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { haptics } from '@/lib/haptics';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
@@ -30,14 +31,18 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
+  const [startDate, setStartDate] = useState('');
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
-  const [customNotes, setCustomNotes] = useState('');
+  const [travelStyle, setTravelStyle] = useState(() => {
+    try { return localStorage.getItem('planStyle') ?? ''; } catch { return ''; }
+  });
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -80,6 +85,7 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    haptics.medium();
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
@@ -89,10 +95,9 @@ export default function PlanPage() {
       body: JSON.stringify({
         items: boardItems,
         days,
-        preferences: [
-          ...Array.from(selectedChips),
-          ...(customNotes.trim() ? [customNotes.trim()] : []),
-        ].join('. '),
+        preferences: Array.from(selectedChips).join('. '),
+        travelStyle: travelStyle.trim() || undefined,
+        startDate: startDate || undefined,
       }),
     });
 
@@ -107,7 +112,7 @@ export default function PlanPage() {
     const collectedSteps: AgentStep[] = [];
     const prefs = [
       ...Array.from(selectedChips),
-      ...(customNotes.trim() ? [customNotes.trim()] : []),
+      ...(travelStyle.trim() ? [travelStyle.trim()] : []),
     ].join('. ');
 
     while (true) {
@@ -138,6 +143,7 @@ export default function PlanPage() {
                 agentSteps: collectedSteps,
                 plan: latestPlan as TripPlan,
                 createdAt: Date.now(),
+                ...(startDate ? { startDate } : {}),
               };
               await saveTrip(trip);
               setSavedTrips((prev) => [...prev, trip]);
@@ -153,7 +159,7 @@ export default function PlanPage() {
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, selectedChips, travelStyle, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -165,7 +171,6 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     setSelectedChips(new Set());
-    setCustomNotes('');
   }, []);
 
   // Export is only meaningful for a fully-formed plan (days + activities present).
@@ -216,6 +221,11 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setCurrentTripId(null);
   }, []);
+
+  function handleViewDayOnMap(dayIdx: number) {
+    setActiveDayIndex(dayIdx);
+    scrollAreaRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
@@ -276,7 +286,7 @@ export default function PlanPage() {
       </div>
 
       {/* Bottom scrollable panel */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
         <div className="px-4 pb-8 pt-4">
 
           {/* ── PRE-GENERATE STATE ── */}
@@ -286,13 +296,13 @@ export default function PlanPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.back()}
-                  className="flex items-center gap-1 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                  className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                 >
                   <ArrowLeft size={16} />
                   Back
                 </button>
                 <span className="text-2xl">{board.emoji}</span>
-                <h1 className="text-lg font-bold text-gray-800 flex-1 truncate">{board.name}</h1>
+                <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex-1 truncate">{board.name}</h1>
                 <span className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
                   {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 </span>
@@ -319,6 +329,21 @@ export default function PlanPage() {
                   <span>1 day</span>
                   <span>14 days</span>
                 </div>
+              </div>
+
+              {/* Start date (optional — enables weather forecast) */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Calendar size={15} className="text-indigo-500" />
+                  Start date <span className="text-gray-400 font-normal text-xs">(optional — adds weather context)</span>
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                />
               </div>
 
               {/* Preference chips */}
@@ -348,13 +373,19 @@ export default function PlanPage() {
                     </div>
                   </div>
                 ))}
-                <textarea
-                  value={customNotes}
-                  onChange={(e) => setCustomNotes(e.target.value)}
-                  placeholder="Anything else? e.g. avoid hills, travelling with kids…"
-                  rows={2}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-                />
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Trip vibe (saved for next time)</p>
+                  <textarea
+                    value={travelStyle}
+                    onChange={(e) => {
+                      setTravelStyle(e.target.value);
+                      try { localStorage.setItem('planStyle', e.target.value); } catch {}
+                    }}
+                    placeholder="e.g. slow mornings, street food focus, budget-conscious, avoid big museums…"
+                    rows={2}
+                    className="w-full rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-500 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               {/* Warning if no locations */}
@@ -488,79 +519,43 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
+              {/* Day selector pills */}
               {plan.days && plan.days.length > 0 && (
-                <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                  <div className="flex gap-3" style={{ width: 'max-content' }}>
-                    {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
-                    ))}
+                <div className="overflow-x-auto pb-1 -mx-4 px-4">
+                  <div className="flex gap-2" style={{ width: 'max-content' }}>
+                    {plan.days.map((day, idx) => {
+                      const isActive = activeDayIndex === idx;
+                      return (
+                        <button
+                          key={day.day}
+                          type="button"
+                          onClick={() => { setActiveDayIndex(idx); haptics.light(); }}
+                          className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-2xl border-2 transition-all active:scale-95 ${
+                            isActive
+                              ? 'border-indigo-500 bg-indigo-50 shadow-md'
+                              : 'border-transparent bg-white shadow-sm hover:border-indigo-200'
+                          }`}
+                        >
+                          <span className={`text-xs font-bold ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}>
+                            Day {idx + 1}
+                          </span>
+                          <span className="text-xs font-medium text-gray-700 max-w-[80px] truncate mt-0.5">
+                            {day.theme}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* Active day activities */}
+              {/* Active day timeline */}
               {activeDayPlan && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
-
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <DayStripCard
+                  day={activeDayPlan}
+                  index={activeDayIndex}
+                  onViewOnMap={() => handleViewDayOnMap(activeDayIndex)}
+                />
               )}
 
               {/* Trip tips */}
