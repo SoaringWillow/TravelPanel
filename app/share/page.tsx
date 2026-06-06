@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { getSharedImage, clearSharedImage } from '@/lib/imageStore';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,12 +30,22 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [capturedImage, setCapturedImage]     = useState<{ base64: string; mimeType: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Claim the image captured by the iOS Share Extension (if any)
+  useEffect(() => {
+    const img = getSharedImage();
+    if (img) {
+      setCapturedImage(img);
+      clearSharedImage();
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +99,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image when available (e.g. from Xiaohongshu share)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, capturedImage?.base64, capturedImage?.mimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -146,14 +157,19 @@ function SharePageInner() {
       <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
         {/* Top section */}
         <div className="space-y-2 pt-4">
-          {/* Platform chip */}
-          <div className="flex items-center gap-2">
+          {/* Platform chip + image capture indicator */}
+          <div className="flex items-center gap-2 flex-wrap">
             <span
               className="text-white text-xs font-semibold px-3 py-1 rounded-full"
               style={{ backgroundColor: platformColor }}
             >
               {platformLabel}
             </span>
+            {capturedImage && (
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                📷 Image captured
+              </span>
+            )}
           </div>
 
           {/* Title */}
