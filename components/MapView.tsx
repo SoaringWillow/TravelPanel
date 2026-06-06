@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, Source, Layer, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { SavedItem, Location } from '@/lib/types';
+import { SavedItem, Location, TripPlan } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
@@ -224,15 +224,21 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── Route overlay colours (matches RouteMapView) ────────────────────────────
+
+const DAY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#06b6d4'];
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  tripPlan?: Partial<TripPlan> | null;
+  showRoute?: boolean;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, tripPlan, showRoute }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -349,6 +355,50 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </div>
           </Popup>
         )}
+
+        {/* ── Trip route overlay ── */}
+        {showRoute && tripPlan?.days?.map((day, dayIdx) => {
+          const locs = (day.locations ?? []).filter(
+            (l) => Number.isFinite(l.lat) && Number.isFinite(l.lng)
+          );
+          if (locs.length < 2) return null;
+          const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+          const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: locs.map((l) => [l.lng, l.lat]) },
+            properties: {},
+          };
+          return (
+            <Source key={`route-src-${dayIdx}`} id={`route-src-${dayIdx}`} type="geojson" data={geojson}>
+              <Layer
+                id={`route-line-${dayIdx}`}
+                type="line"
+                paint={{ 'line-color': color, 'line-width': 4, 'line-opacity': 0.85 }}
+                layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              />
+            </Source>
+          );
+        })}
+
+        {showRoute && tripPlan?.days?.flatMap((day, dayIdx) => {
+          const locs = (day.locations ?? []).filter(
+            (l) => Number.isFinite(l.lat) && Number.isFinite(l.lng)
+          );
+          const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+          return locs.map((loc, locIdx) => (
+            <Marker key={`route-pin-${dayIdx}-${locIdx}`} longitude={loc.lng} latitude={loc.lat} anchor="center">
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%',
+                backgroundColor: color, border: '2.5px solid white',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontSize: 10, fontWeight: 700,
+              }}>
+                {locIdx + 1}
+              </div>
+            </Marker>
+          ));
+        })}
       </Map>
     </div>
   );

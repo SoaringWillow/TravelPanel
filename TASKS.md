@@ -227,7 +227,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep the existing streaming/version selector — just upgrade the activity renderer
 
 ### D5 — Map Trip Route Overlay
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: TravelPanel claims "map-centric UI" but the map shows only scattered pins. Showing the day-by-day route for a saved plan makes the map the star.  
 **Files**: `components/MapView.tsx`, `app/page.tsx`, `lib/db.ts`  
 **What to do**:

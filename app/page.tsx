@@ -4,10 +4,11 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Route } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { SavedItem, Location, Board } from '@/lib/types';
+import { SavedItem, Location, Board, TripPlan } from '@/lib/types';
+import { getTripsForBoard } from '@/lib/db';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import BoardPickerSheet from '@/components/BoardPickerSheet';
@@ -26,6 +27,8 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [tripPlan, setTripPlan]         = useState<Partial<TripPlan> | null>(null);
+  const [showRoute, setShowRoute]       = useState(false);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -58,6 +61,20 @@ function HomePageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length > 0 ? 'loaded' : 'empty', searchParams.toString()]);
 
+  // Handle ?boardId= — load that board's latest trip plan for the route overlay
+  useEffect(() => {
+    const boardId = searchParams.get('boardId');
+    if (!boardId) return;
+    getTripsForBoard(boardId).then((trips) => {
+      const latest = trips.sort((a, b) => b.createdAt - a.createdAt)[0];
+      if (latest?.plan) {
+        setTripPlan(latest.plan);
+        setShowRoute(true);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get('boardId')]);
+
   function handleItemSaved(item: SavedItem) {
     addItem(item);
     setShowImport(false);
@@ -75,7 +92,13 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        tripPlan={tripPlan}
+        showRoute={showRoute}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -112,6 +135,22 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Route toggle — visible when a board's plan is loaded */}
+      {tripPlan && !selectedItem && (
+        <button
+          onClick={() => setShowRoute((v) => !v)}
+          className={`absolute bottom-24 left-4 z-[1000] rounded-full px-4 py-2.5 shadow-xl text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 ${
+            showRoute
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white text-indigo-600 border border-indigo-200'
+          }`}
+          aria-label="Toggle trip route"
+        >
+          <Route size={16} />
+          {showRoute ? 'Hide route' : 'Show route'}
+        </button>
+      )}
 
       {/* Import FAB */}
       {!selectedItem && (
