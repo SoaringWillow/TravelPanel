@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
@@ -59,21 +60,28 @@ export default function BoardsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="flex flex-col items-center justify-center py-16 text-center px-6"
+          >
+            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-5">
+              <LayoutGrid size={36} className="text-indigo-400" strokeWidth={1.5} />
+            </div>
+            <h3 className="font-bold text-gray-800 text-base mb-2">No collections yet.</h3>
+            <p className="text-sm text-gray-500 max-w-xs mb-6 leading-relaxed">
+              Create a board for each trip — Tokyo Highlights, Bali Food Trail, etc. — then move clips into it and let AI plan your itinerary.
             </p>
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-6 py-3 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200"
             >
-              <Plus size={16} />
-              Create a Board
+              <Plus size={18} />
+              Create Your First Board
             </button>
-          </div>
+          </motion.div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {boards.map((board) => (

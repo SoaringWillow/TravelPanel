@@ -201,7 +201,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Execution order: `D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9 → D10`
 
 ### D1 — Beautiful Empty States 🔴 HIGH IMPACT
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Every new user hits the empty state. Right now it's a blank map. This is the first impression.  
 **Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:

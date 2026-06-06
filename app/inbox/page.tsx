@@ -145,19 +145,67 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="flex flex-col items-center justify-center py-16 text-center px-6"
+          >
+            {query.trim() ? (
+              <>
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="font-semibold text-gray-700 mb-2">No matches found.</h3>
+                <p className="text-sm text-gray-500 max-w-xs">
+                  No clips match &quot;{query.trim()}&quot;. Try a different search.
+                </p>
+              </>
+            ) : activePlatform !== 'all' ? (
+              <>
+                <div className="text-5xl mb-4">📭</div>
+                <h3 className="font-semibold text-gray-700 mb-2">No {PLATFORM_LABELS[activePlatform as Platform]} clips yet.</h3>
+                <p className="text-sm text-gray-500 max-w-xs">
+                  Share content from {PLATFORM_LABELS[activePlatform as Platform]} using the iOS Share Sheet.
+                </p>
+              </>
+            ) : (
+              <>
+                {/* Globe illustration */}
+                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-5">
+                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                  </svg>
+                </div>
+                <h3 className="font-bold text-gray-800 text-base mb-2">Your travel inspiration starts here</h3>
+                <p className="text-sm text-gray-500 max-w-xs mb-5 leading-relaxed">
+                  Share any travel URL from Instagram, YouTube, or 小红书 — Claude extracts locations and tips automatically.
+                </p>
+                {/* Platform chips */}
+                <div className="flex flex-wrap gap-2 justify-center mb-6">
+                  {[
+                    { label: '小红书', color: '#FF2442' },
+                    { label: 'YouTube', color: '#FF0000' },
+                    { label: 'Instagram', color: '#E1306C' },
+                    { label: 'WeChat', color: '#07C160' },
+                    { label: 'Douyin', color: '#161823' },
+                    { label: 'Any URL', color: '#6366f1' },
+                  ].map(({ label, color }) => (
+                    <span
+                      key={label}
+                      className="text-white text-xs font-semibold px-3 py-1 rounded-full"
+                      style={{ backgroundColor: color }}
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400">
+                  Use the + button on the Map tab or the iOS Share Sheet
+                </p>
+              </>
+            )}
+          </motion.div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>

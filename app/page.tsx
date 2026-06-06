@@ -3,8 +3,8 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, ArrowDown } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
@@ -94,15 +94,63 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
-      {/* Import FAB */}
+      {/* Empty state — shown above NavBar when no clips saved yet */}
+      <AnimatePresence>
+        {!loading && items.length === 0 && !selectedItem && !showImport && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="absolute bottom-24 left-4 right-4 z-[999]"
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-4 border border-indigo-100">
+              <p className="font-bold text-gray-900 text-sm leading-snug mb-1">
+                Start your travel inspiration board
+              </p>
+              <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                Share any travel URL from Instagram, YouTube, or 小红书 — Claude extracts locations and tips automatically.
+              </p>
+              {/* Platform source icons */}
+              <div className="flex items-center gap-2 mb-3">
+                {[
+                  { label: '小红书', color: '#FF2442' },
+                  { label: 'YouTube', color: '#FF0000' },
+                  { label: 'Instagram', color: '#E1306C' },
+                  { label: 'Any URL', color: '#6366f1' },
+                ].map(({ label, color }) => (
+                  <span
+                    key={label}
+                    className="text-white text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: color }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 text-indigo-600">
+                <span className="text-xs font-semibold">Tap the + button</span>
+                <ArrowDown size={13} className="animate-bounce" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Import FAB — pulse ring on empty state */}
       {!selectedItem && (
-        <button
-          onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          aria-label="Clip inspiration"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="absolute bottom-[76px] right-4 z-[1000]">
+          {!loading && items.length === 0 && (
+            <span className="absolute inset-0 rounded-full bg-indigo-400 animate-ping opacity-60 pointer-events-none" />
+          )}
+          <button
+            onClick={() => setShowImport(true)}
+            className="relative bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            aria-label="Clip inspiration"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       )}
 
       {/* Import Sheet */}
