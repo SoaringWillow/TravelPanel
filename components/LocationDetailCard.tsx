@@ -7,6 +7,7 @@ import { SavedItem, Board } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
 import { patchItem } from '@/lib/db';
+import { successTaptic } from '@/lib/haptics';
 
 const ALL_TAGS = [
   'food', 'nature', 'culture', 'adventure', 'relaxation',
@@ -51,6 +52,7 @@ export default function LocationDetailCard({ item, onClose, onItemUpdate, onMove
         locations: editLocs,
       });
       if (updated && onItemUpdate) onItemUpdate(updated);
+      successTaptic();
       setEditing(false);
     } finally {
       setSaving(false);

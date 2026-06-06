@@ -238,7 +238,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Uses `RouteMapView` pattern already in place
 
 ### D6 — Haptic Feedback (Capacitor)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app feels like a website, not a native app. Haptic feedback on key actions (pin tap, save, delete) is the #1 thing that makes Capacitor apps feel native.  
 **Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`  
 **What to do**:

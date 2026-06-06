@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { taptic, errorTaptic } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -270,7 +271,7 @@ export default function InboxCard({
             {/* View on Map */}
             <button
               type="button"
-              onClick={() => onViewOnMap(item.id)}
+              onClick={() => { taptic(); onViewOnMap(item.id); }}
               className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
             >
               Map
@@ -302,7 +303,7 @@ export default function InboxCard({
             {/* Delete */}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              onClick={() => { errorTaptic(); onDelete(item.id); }}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               aria-label="Delete"
             >
