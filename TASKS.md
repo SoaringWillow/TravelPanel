@@ -204,7 +204,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Also wire the same "Move" action inside `LocationDetailCard` detail view
 
 ### D3 — Import Backup (restore JSON)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: B5 added export but without import, backup is useless for device migration or accidental deletion recovery.  
 **Files**: `app/settings/page.tsx`, new `lib/importData.ts`  
 **What to do**:
