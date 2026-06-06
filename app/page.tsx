@@ -3,8 +3,8 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus, Settings, Navigation } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, Settings, Navigation, Sparkles } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
@@ -139,6 +139,37 @@ function HomePageInner() {
           )}
         </button>
       )}
+
+      {/* Welcome overlay — shown when no clips saved yet */}
+      <AnimatePresence>
+        {!loading && items.length === 0 && !showImport && (
+          <motion.div
+            key="welcome"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="absolute inset-0 flex items-center justify-center z-[999] pointer-events-none px-6"
+          >
+            <div className="bg-white/92 backdrop-blur-md rounded-3xl shadow-2xl px-6 py-8 max-w-xs w-full text-center pointer-events-auto">
+              <div className="text-5xl mb-4">🌍</div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                Clip your first destination
+              </h2>
+              <p className="text-sm text-gray-500 leading-relaxed mb-6">
+                Share a post from WeChat, Douyin, Instagram, or any travel site — AI will extract the spots and wisdom for you.
+              </p>
+              <button
+                onClick={() => setShowImport(true)}
+                className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Sparkles size={16} />
+                Clip something
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Import FAB */}
       {!selectedItem && (

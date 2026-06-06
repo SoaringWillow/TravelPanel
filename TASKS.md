@@ -330,6 +330,74 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE F — Delight & Discovery (iOS Polish Sprint 2)
+
+> Goal: Transform from functional to delightful. Every screen should feel purposeful and premium.
+> Priority order: `F1 → F2 → F3 → F4 → F5 → F6`
+
+### F1 — Map Welcome State
+**Status**: `[x]` Done
+**Files**: `app/page.tsx`
+**What to do**:
+- When `items.length === 0` and map is loaded, show a centered overlay card on the map:
+  - Big emoji 🌍, bold headline "Clip your first destination", subtitle "Share a post from WeChat, Douyin, or Instagram to get started"
+  - A "Clip something" button that opens `ImportSheet`
+  - Card should float above the map with blur backdrop: `bg-white/90 backdrop-blur-md rounded-3xl shadow-xl`
+- When items exist but none have coordinates (all enrichment pending), show a subtle pill: "Locations loading…" with a spinner at the top of the map
+
+### F2 — First-Launch Onboarding Tour
+**Status**: `[ ]` Not started
+**Files**: new `components/OnboardingTour.tsx`, `app/page.tsx`
+**What to do**:
+- Create a 3-step full-screen modal that shows on first launch (gate with `localStorage.tp_onboarded`)
+- Step 1: "📱 Clip from anywhere" — illustration of share sheet, text explaining iOS Share Extension
+- Step 2: "🗺 AI finds the spots" — show example InboxCard with locations + substance badge
+- Step 3: "✈️ Plan your trip" — show example plan itinerary snippet
+- Each step: image/illustration area (160px, indigo bg with emoji), title, subtitle, Next/Get Started button
+- Progress dots at bottom; "Skip" link top-right; final button navigates to main app
+
+### F3 — Substance Feed (Wisdom Across Clips)
+**Status**: `[ ]` Not started
+**Files**: new `app/wisdom/page.tsx`, `components/NavBar.tsx`
+**What to do**:
+- Add a "Wisdom" tab to NavBar (💡 icon, 5th tab — or replace an existing less-used tab)
+- `app/wisdom/page.tsx`: aggregates all `substance` items from all saved clips
+- Group by `type`: Tips (💡), Warnings (⚠️), Recommendations (⭐), Opinions (💬), Context (🌍)
+- Each item shows: icon + type label, `content`, source clip title (italic, gray), location if applicable
+- Filter chips at top to toggle types; search bar filters by content
+- Empty state: "Save some clips with substance to see wisdom here"
+
+### F4 — Plan View Guided Empty State + Progress Indicator
+**Status**: `[ ]` Not started
+**Files**: `app/plan/[boardId]/page.tsx`
+**What to do**:
+- When board has items but none have coordinates: show a "Not enough location data" empty state with a helpful tip to retry enrichment
+- When board has fewer than 2 locations: show a step-by-step guide card above the generate button:
+  - "You have N location(s). For best results, add 3+ spots." with a count indicator
+- Show a visual progress bar while streaming: "Crafting your day 1… 2… 3…" that advances as each day object arrives in the NDJSON stream
+- Replace the plain spinner with an animated indigo progress bar at the top of the streaming plan
+
+### F5 — Pending Enrichment Badge on Inbox Tab
+**Status**: `[ ]` Not started
+**Files**: `components/NavBar.tsx`, `app/page.tsx` or `app/layout.tsx`
+**What to do**:
+- When items have `enrichmentStatus: 'pending'` or `'processing'`, show a small pulsing indigo dot badge on the Inbox tab icon
+- Source the count from a `usePendingCount` hook that queries IndexedDB via `getItemsByStatus`
+- Badge should pulse (CSS animation) while pending, disappear when all done
+- Keep it subtle: 8px dot, no number, just the visual indicator
+
+### F6 — Board Detail Polish (Substance Highlights)
+**Status**: `[ ]` Not started
+**Files**: `app/boards/[boardId]/page.tsx` (or create it if missing)
+**What to do**:
+- Read the board detail page (check if it exists). If it does, add a "Highlights" row below the board header
+- Show the top 3 substance items (highest quality tips/recommendations) from all clips in the board
+- Use `SubstanceList` component; style as a horizontal scroll of mini-cards
+- Each card: icon + type + content truncated to 2 lines + source clip title
+- If no substance, show a "Add more clips for AI insights" prompt
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
