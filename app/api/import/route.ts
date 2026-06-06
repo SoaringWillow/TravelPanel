@@ -81,6 +81,18 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── CORS headers (allows browser extension to call the API) ─────────────────
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -88,11 +100,11 @@ export async function POST(req: NextRequest) {
   try {
     ({ url } = await req.json());
   } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400, headers: CORS_HEADERS });
   }
 
   if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+    return NextResponse.json({ error: 'URL required' }, { status: 400, headers: CORS_HEADERS });
   }
 
   const platform = detectPlatform(url);
@@ -151,5 +163,5 @@ Never return an empty substance array for a real travel post.`;
     substance: claudeResult?.substance ?? [],
   };
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: CORS_HEADERS });
 }
