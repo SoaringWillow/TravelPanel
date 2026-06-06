@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: #6366f1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-icon svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 2; }
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .logo-sub {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-left: 2px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .label-desc {
+      font-size: 12px;
+      color: #9ca3af;
+      font-weight: 400;
+      margin-left: 4px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #111827;
+      background: #fff;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    input:focus { border-color: #6366f1; }
+    input.error { border-color: #ef4444; }
+
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+    .hint a { color: #6366f1; text-decoration: none; }
+    .hint a:hover { text-decoration: underline; }
+
+    .error-msg {
+      font-size: 12px;
+      color: #ef4444;
+      margin-top: 4px;
+    }
+
+    .btn-save {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      background: #6366f1;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save:hover { background: #4f46e5; }
+    .btn-save:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .success-banner {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #065f46;
+      font-weight: 500;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #f3f4f6;
+      margin: 28px 0;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+    }
+
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .info-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .info-text { font-size: 13px; color: #6b7280; line-height: 1.5; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">TravelPanel</div>
+      <div class="logo-sub">Clipper Extension Settings</div>
+    </div>
+  </div>
+
+  <h2>Connect Your App</h2>
+  <p class="subtitle">Enter the URL where your TravelPanel is deployed. The clipper opens your Share page to save inspiration.</p>
+
+  <label for="app-url">
+    Your TravelPanel URL
+    <span class="label-desc">— required</span>
+  </label>
+  <input
+    type="url"
+    id="app-url"
+    placeholder="https://your-app.vercel.app"
+    autocomplete="url"
+    spellcheck="false"
+  />
+  <div class="hint">
+    Your Vercel deployment URL, e.g. <code>https://travel-panel-abc.vercel.app</code>
+  </div>
+  <div class="error-msg hidden" id="error-msg">Please enter a valid URL starting with https://</div>
+
+  <button class="btn-save" id="save-btn">Save Settings</button>
+  <div class="success-banner" id="success-banner">✅ Settings saved! The clipper is ready to use.</div>
+
+  <hr class="divider" />
+
+  <div class="section-title">How it works</div>
+  <div class="info-row">
+    <span class="info-icon">🌏</span>
+    <span class="info-text">Browse to any travel blog, Instagram, YouTube, TikTok, or Xiaohongshu page.</span>
+  </div>
+  <div class="info-row">
+    <span class="info-icon">📌</span>
+    <span class="info-text">Click the TravelPanel icon in your browser toolbar.</span>
+  </div>
+  <div class="info-row">
+    <span class="info-icon">✨</span>
+    <span class="info-text">Click <strong>Clip to TravelPanel</strong> — Claude extracts locations, tips, warnings, and wisdom from the page.</span>
+  </div>
+  <div class="info-row">
+    <span class="info-icon">🗺️</span>
+    <span class="info-text">Your inspiration is saved to a board and pinned on your travel map.</span>
+  </div>
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>
