@@ -96,3 +96,11 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-06 12:27 | 37e9917 | feat(B2): add Chrome browser extension for one-click URL clipping
+2026-06-06 12:33 | 8191266 | feat(B3): add Claude Vision support for Xiaohongshu/image-blocked posts
+2026-06-06 12:35 | 8512b1c | feat(B5): add Settings page with data export, import, and danger zone
+2026-06-06 12:38 | 3fff541 | feat(C1): add On-Trip GPS mode with nearby places panel and navigation
+2026-06-06 12:39 | 1170486 | feat(C2): add Post-Trip Timeline view per board
+2026-06-06 12:41 | 09ef881 | feat(C3): add Shared Boards v1 — file share + join URL import
+2026-06-06 12:43 | bdeb5e5 | feat(C4): add Proactive Resurfacing — smart insight banners on inbox
+2026-06-06 12:45 | 5e76419 | chore: new TASKS.md Phase D-G — iOS beauty and fully functional app roadmap
