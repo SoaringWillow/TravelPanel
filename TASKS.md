@@ -287,7 +287,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Filter state is local to the session (not persisted)
 
 ### D9 — Enrichment Progress on Inbox Cards (Live Status)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After saving, users see a static "pending" card. There's no visual progress. This feels broken.  
 **Files**: `components/InboxCard.tsx`, `hooks/useSavedItems.ts`  
 **What to do**:
@@ -298,7 +298,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Failed enrichment: show a red "Retry" button inline on the card
 
 ### D10 — Beautiful Trip Plan Day Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
 **What to do**:
 - Redesign DayStripCard with a timeline layout: vertical line on the left, activity dots on the timeline
@@ -315,7 +315,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: everything needed to submit to the iOS App Store and acquire first 1000 users.
 
 ### E1 — App Icon Set (All iOS Sizes)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`  
 **What to do**:
 - Design a 1024×1024px master icon: indigo gradient background (#6366f1 → #8b5cf6), white globe with location pin
