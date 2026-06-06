@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, X, Download, CalendarPlus, Share2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, X, Download, CalendarPlus, Share2, RefreshCw, Plane } from 'lucide-react';
 import { Board, SavedItem, AgentStep, AgentStepType, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 
 const STEP_ICON: Record<AgentStepType, string> = {
@@ -506,7 +506,30 @@ export default function PlanPage() {
 
               {/* Overview */}
               {plan.overview && (
-                <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
+                <p className="text-sm italic text-gray-600 dark:text-gray-400 leading-relaxed">{plan.overview}</p>
+              )}
+
+              {/* Departure date picker */}
+              {currentTripId && (
+                <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl px-3 py-2">
+                  <Plane size={14} className="text-indigo-500 flex-shrink-0" />
+                  <label className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex-shrink-0">
+                    Departure date
+                  </label>
+                  <input
+                    type="date"
+                    value={savedTrips.find((t) => t.id === currentTripId)?.departureDate ?? ''}
+                    min={new Date().toISOString().slice(0, 10)}
+                    onChange={async (e) => {
+                      const trip = savedTrips.find((t) => t.id === currentTripId);
+                      if (!trip) return;
+                      const updated = { ...trip, departureDate: e.target.value || undefined };
+                      await saveTrip(updated);
+                      setSavedTrips((prev) => prev.map((t) => (t.id === currentTripId ? updated : t)));
+                    }}
+                    className="flex-1 text-xs bg-transparent text-indigo-700 dark:text-indigo-300 focus:outline-none"
+                  />
+                </div>
               )}
 
               {/* Summary chips */}

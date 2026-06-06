@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import TripCountdownBanner from '@/components/TripCountdownBanner';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -81,12 +82,16 @@ function HomePageInner() {
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+      <div className="absolute top-0 left-0 right-0 z-[1000]">
+        <div className="bg-white/90 backdrop-blur-md shadow-lg overflow-hidden">
+          {/* Trip countdown banner — shown when a trip has a departure date */}
+          <TripCountdownBanner />
+          <div className="px-4 py-3 flex items-center gap-3">
+            <Globe2 className="text-indigo-600" size={22} />
+            <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
+            <div className="ml-auto text-sm text-gray-500">
+              {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+            </div>
           </div>
         </div>
       </div>

@@ -80,7 +80,7 @@ All tasks done. See completed tasks below.
 **Needs**: Supabase auth (B1)
 
 ### C4 — Proactive Resurfacing (Trip Countdown)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/page.tsx`, new `components/TripCountdownBanner.tsx`
 **What to do**:
 - When any saved item has a plan with a departure date set (add `departureDate?: string` to `Trip`), show a banner on the home screen: "✈️ Tokyo in 5 days — you have 47 clips ready"

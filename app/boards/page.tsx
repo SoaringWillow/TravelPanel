@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { getAllTrips } from '@/lib/db';
 import { Board } from '@/lib/types';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
@@ -14,12 +15,37 @@ import OnboardingSeed from '@/components/OnboardingSeed';
 import { SkeletonBoardCard } from '@/components/SkeletonCard';
 import NavBar from '@/components/NavBar';
 
+function daysUntil(dateStr: string): number {
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, editBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [boardCountdowns, setBoardCountdowns] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    getAllTrips().then((trips) => {
+      const map: Record<string, number> = {};
+      trips.forEach((trip) => {
+        if (!trip.departureDate) return;
+        const d = daysUntil(trip.departureDate);
+        if (d < 0) return;
+        // Keep the earliest upcoming date per board
+        if (map[trip.boardId] === undefined || d < map[trip.boardId]) {
+          map[trip.boardId] = d;
+        }
+      });
+      setBoardCountdowns(map);
+    });
+  }, []);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -93,6 +119,7 @@ export default function BoardsPage() {
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onEdit={() => setEditingBoard(board)}
+                daysUntil={boardCountdowns[board.id]}
               />
             ))}
           </div>

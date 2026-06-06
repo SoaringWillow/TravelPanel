@@ -124,6 +124,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  departureDate?: string; // ISO date string YYYY-MM-DD, for trip countdown
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

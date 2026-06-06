@@ -9,9 +9,10 @@ interface BoardCardProps {
   itemCount: number;
   onClick: () => void;
   onEdit?: () => void;
+  daysUntil?: number; // undefined = no departure date set
 }
 
-export default function BoardCard({ board, itemCount, onClick, onEdit }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, onClick, onEdit, daysUntil }: BoardCardProps) {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -45,6 +46,13 @@ export default function BoardCard({ board, itemCount, onClick, onEdit }: BoardCa
         <p className="text-sm text-gray-400">
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
+
+        {/* Countdown chip */}
+        {daysUntil !== undefined && daysUntil >= 0 && (
+          <div className="mt-2 self-start flex items-center gap-1 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            ✈️ {daysUntil === 0 ? 'Today!' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil}d`}
+          </div>
+        )}
 
         {/* Edit button */}
         {onEdit && (
