@@ -34,12 +34,14 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]           = useState(initialUrl);
+  const [notes, setNotes]       = useState('');
+  const [stage, setStage]       = useState<Stage>('idle');
+  const [preview, setPreview]   = useState<ImportResult | null>(null);
+  const [error, setError]       = useState('');
+  const [dupTitle, setDupTitle] = useState<string | null>(null);
+  const abortRef                = useRef<AbortController | null>(null);
+  const dupCheckRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -134,13 +136,30 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     resetState();
   }
 
+  function handleUrlChange(newUrl: string) {
+    setUrl(newUrl);
+    setDupTitle(null);
+    if (dupCheckRef.current) clearTimeout(dupCheckRef.current);
+    const trimmed = newUrl.trim();
+    if (!trimmed) return;
+    dupCheckRef.current = setTimeout(async () => {
+      try {
+        const { findItemByUrl } = await import('@/lib/db');
+        const found = await findItemByUrl(trimmed);
+        if (found) setDupTitle(found.title);
+      } catch {}
+    }, 400);
+  }
+
   function resetState() {
     abortRef.current?.abort();
+    if (dupCheckRef.current) clearTimeout(dupCheckRef.current);
     setUrl('');
     setNotes('');
     setPreview(null);
     setStage('idle');
     setError('');
+    setDupTitle(null);
   }
 
   function handleClose() {
@@ -191,7 +210,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               type="url"
               value={url}
               onChange={(e) => {
-                setUrl(e.target.value);
+                handleUrlChange(e.target.value);
                 if (stage === 'preview') {
                   setPreview(null);
                   setStage('idle');
@@ -206,6 +225,13 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
             />
           </div>
+
+          {/* ── Duplicate hint ──────────────────────────────────────────── */}
+          {dupTitle && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 -mt-1">
+              ⚠️ Already saved as: <span className="font-semibold">{dupTitle}</span>
+            </p>
+          )}
 
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (

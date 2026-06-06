@@ -248,7 +248,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a small "Edited" badge on the card if notes are non-empty
 
 ### D5 — Duplicate Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/db.ts`, `app/share/page.tsx`, `components/ImportSheet.tsx`  
 **What to do**:
 - Add `findItemByUrl(url: string): Promise<SavedItem | null>` to `lib/db.ts`

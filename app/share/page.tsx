@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -30,14 +30,22 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicate, setDuplicate]             = useState<{title: string; id: string} | null>(null);
+  const [dismissedDuplicate, setDismissedDuplicate] = useState(false);
   // Populated by CapacitorBridge when the iOS Share Extension includes a screenshot
   const [sharedImageBase64, setSharedImageBase64] = useState<string | undefined>();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards and claim any pending shared image on mount
+  // Load boards, claim any pending shared image, and check for duplicates on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    if (rawUrl) {
+      findItemByUrl(rawUrl).then((found) => {
+        if (found) setDuplicate({ title: found.title, id: found.id });
+      });
+    }
 
     // CapacitorBridge writes the image to sessionStorage before navigating here
     try {
@@ -181,6 +189,24 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Duplicate warning */}
+        {duplicate && !dismissedDuplicate && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <span className="text-amber-500 text-lg flex-shrink-0">⚠️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-800">Already saved</p>
+              <p className="text-xs text-amber-600 mt-0.5 line-clamp-1">{duplicate.title}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDismissedDuplicate(true)}
+              className="flex-shrink-0 text-xs text-amber-600 font-semibold underline"
+            >
+              Save again
+            </button>
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">

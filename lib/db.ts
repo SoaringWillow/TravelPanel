@@ -86,6 +86,19 @@ export async function deleteItem(id: string): Promise<void> {
   await db.delete('items', id);
 }
 
+export async function findItemByUrl(url: string): Promise<SavedItem | null> {
+  try {
+    const db = await getDB();
+    const all = await db.getAll('items');
+    const normalise = (u: string) =>
+      u.toLowerCase().replace(/\/+$/, '').replace(/^https?:\/\//, '');
+    const target = normalise(url);
+    return all.find(item => normalise(item.url) === target) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function updateItemNotes(id: string, title: string, notes: string): Promise<void> {
   const db = await getDB();
   const item = await db.get('items', id);

@@ -106,3 +106,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-06 13:41 | b7c7a9e | feat: D1 — loading skeletons replace all spinners
 2026-06-06 13:43 | e289101 | feat: D2 — pull-to-refresh on inbox and timeline
 2026-06-06 13:45 | 3bfcefc | feat: D3 — haptic feedback for key interactions
+2026-06-06 13:46 | 34d0a4e | feat: D4 — edit clip title and personal notes inline
