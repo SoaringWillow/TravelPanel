@@ -559,7 +559,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - In the plan UI, show a small weather pill next to each day header (☀️ 28°C / 🌧 18°C)
 
 ### H3 — On-Trip Mode v1 (Today View)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: "I just landed, what's my day?" is the white space no competitor has touched. When a user has a saved plan and today falls within the trip dates, show a focused "Today" tab — just today's activities, a "I'm here" GPS dot, distance/time to the next stop.  
 **Files**: new `app/today/page.tsx`, `app/layout.tsx` (add Today tab to NavBar), `components/NavBar.tsx`  
 **What to do**:

@@ -1,18 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { Globe2, Inbox, LayoutGrid, Settings } from 'lucide-react';
+import { Globe2, Inbox, LayoutGrid, Settings, Navigation2 } from 'lucide-react';
 import { StreakBadge } from '@/components/StreakBadge';
+import { TodayDot } from '@/components/TodayDot';
 
 interface NavBarProps {
-  active: 'home' | 'inbox' | 'boards' | 'settings';
+  active: 'home' | 'inbox' | 'boards' | 'settings' | 'today';
 }
 
 const NAV_ITEMS = [
-  { key: 'home',     label: 'Map',         icon: Globe2,     href: '/'         },
-  { key: 'inbox',    label: 'Inspiration', icon: Inbox,      href: '/inbox'    },
-  { key: 'boards',   label: 'Collections', icon: LayoutGrid, href: '/boards'   },
-  { key: 'settings', label: 'Settings',    icon: Settings,   href: '/settings' },
+  { key: 'home',     label: 'Map',      icon: Globe2,       href: '/'         },
+  { key: 'inbox',    label: 'Clips',    icon: Inbox,        href: '/inbox'    },
+  { key: 'today',    label: 'Today',    icon: Navigation2,  href: '/today'    },
+  { key: 'boards',   label: 'Boards',   icon: LayoutGrid,   href: '/boards'   },
+  { key: 'settings', label: 'More',     icon: Settings,     href: '/settings' },
 ] as const;
 
 export default function NavBar({ active }: NavBarProps) {
@@ -37,6 +39,11 @@ export default function NavBar({ active }: NavBarProps) {
                 {key === 'settings' && (
                   <span className="absolute -top-1 -right-3">
                     <StreakBadge />
+                  </span>
+                )}
+                {key === 'today' && (
+                  <span className="absolute -top-1 -right-1">
+                    <TodayDot />
                   </span>
                 )}
               </div>
