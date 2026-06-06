@@ -8,6 +8,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import SubstanceList from '@/components/SubstanceList';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -163,6 +164,27 @@ export default function BoardDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Substance Highlights — top 3 insights from all clips in board */}
+          {(() => {
+            const allSubstance = boardItems.flatMap((item) =>
+              (item.substance ?? []).map((s) => ({ ...s, _source: item.title || item.url }))
+            );
+            const priorityTypes = ['recommendation', 'tip', 'warning', 'wisdom', 'opinion', 'context'] as const;
+            const sorted = [...allSubstance].sort(
+              (a, b) => priorityTypes.indexOf(a.type as typeof priorityTypes[number]) - priorityTypes.indexOf(b.type as typeof priorityTypes[number])
+            );
+            const top3 = sorted.slice(0, 3);
+            if (top3.length === 0) return null;
+            return (
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  ✨ Highlights from your clips
+                </p>
+                <SubstanceList items={top3} showHeader={false} />
+              </div>
+            );
+          })()}
 
           {/* Items grid */}
           {boardItems.length === 0 ? (

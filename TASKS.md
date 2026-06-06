@@ -387,7 +387,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep it subtle: 8px dot, no number, just the visual indicator
 
 ### F6 — Board Detail Polish (Substance Highlights)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/boards/[boardId]/page.tsx` (or create it if missing)
 **What to do**:
 - Read the board detail page (check if it exists). If it does, add a "Highlights" row below the board header
