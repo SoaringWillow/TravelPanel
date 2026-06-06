@@ -40,21 +40,44 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
 
+  function toggleTag(tag: string) {
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag); else next.add(tag);
+      return next;
+    });
+  }
+
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
+
+  // Unique tags sorted by frequency
+  const allTags = (() => {
+    const freq: Record<string, number> = {};
+    for (const item of inboxItems) {
+      for (const t of item.tags ?? []) freq[t] = (freq[t] ?? 0) + 1;
+    }
+    return Object.entries(freq).sort((a, b) => b[1] - a[1]).map(([t]) => t);
+  })();
 
   const platformFiltered =
     activePlatform === 'all'
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const tagFiltered =
+    activeTags.size === 0
+      ? platformFiltered
+      : platformFiltered.filter((i) => (i.tags ?? []).some((t) => activeTags.has(t)));
+
+  const filtered = searchItems(tagFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -138,6 +161,38 @@ export default function InboxPage() {
             );
           })}
         </div>
+
+        {/* Tag filter pills */}
+        {allTags.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+            <button
+              onClick={() => setActiveTags(new Set())}
+              className={`flex-shrink-0 text-xs font-medium px-3 py-1 rounded-full transition-all ${
+                activeTags.size === 0
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+              }`}
+            >
+              All
+            </button>
+            {allTags.map((tag) => {
+              const active = activeTags.has(tag);
+              return (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={`flex-shrink-0 text-xs font-medium px-3 py-1 rounded-full transition-all ${
+                    active
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Content */}

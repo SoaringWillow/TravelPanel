@@ -11,11 +11,11 @@
 
 Goal: a beautiful, fully functional iOS app that achieves the product vision — capture → organize → plan, with substance as first-class data.
 
-**Immediate sprint** (no blockers): `D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8`
-
-These are pure iOS UX polish tasks. Each makes the app feel more native, more trustworthy, more delightful — no new infrastructure required.
+**Immediate sprint** (no blockers): `D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8` ✅ All done
 
 **After D-phase is done**: `C1 → C4 → C2 → E2 → E1` ✅ All done
+
+**App Store readiness sprint**: `F1 → F2 → F3 → F4 → F5 → F6`
 
 Blocked on Supabase keys: `B4 → E3 → E4`
 
@@ -248,7 +248,78 @@ All tasks done. See completed tasks below.
 
 ---
 
+## PHASE F — App Store Readiness 🎯 CURRENT SPRINT
+
+### F1 — First-Run Onboarding
+**Status**: `[x]` Done
+**Files**: new `components/OnboardingSheet.tsx`, `app/page.tsx`
+**What to do**:
+- Show a bottom sheet on first launch (check `localStorage.onboardingDone`). Three swipeable slides:
+  1. "Save anything ✈️" — screenshot of the share sheet, tagline "Share any travel post to TravelPanel"
+  2. "Extract the wisdom 🧠" — screenshot of a clip card with substance items highlighted, tagline "We pull out every tip, warning, and local secret"
+  3. "Plan your trip 🗺" — screenshot of the plan view with a day itinerary, tagline "Build AI itineraries sourced from your own clips"
+- Each slide: full-width illustration area (use emoji + gradient background as placeholder), large heading, subtitle
+- Bottom: dot indicators + "Next" button (last slide shows "Get started")
+- On completion: set `localStorage.onboardingDone = '1'`, dismiss sheet
+- Use Framer Motion `AnimatePresence` + `motion.div` with `x` variants for slide transition
+
+### F2 — Inbox Tab Badge (Pending Count)
+**Status**: `[x]` Done
+**Files**: `components/NavBar.tsx`, `hooks/useSavedItems.ts`
+**What to do**:
+- Count clips with `enrichmentStatus === 'processing' || enrichmentStatus === 'pending'` from the inbox
+- Show a small red badge number on the Inbox NavBar icon when count > 0
+- Badge: absolute-positioned, `w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold` at top-right of the icon
+- Use `useSavedItems()` in NavBar (already imported in pages; expose count via a lightweight hook or context)
+- The badge disappears when all clips finish processing
+
+### F3 — Pull-to-Refresh on Inbox
+**Status**: `[ ]` Not started
+**Files**: `app/inbox/page.tsx`
+**What to do**:
+- Add pull-to-refresh gesture: track `touchstart`/`touchmove`/`touchend` on the scrollable list container
+- When user pulls down ≥60px from the top of the scroll container, show a circular spinner + "Refreshing…" label
+- On release: re-trigger enrichment on any `pending`/`failed` items via the existing retry queue mechanism (`retryEnrichment(id)` from `lib/db.ts`)
+- Animate: spinner slides in from top, list content pushes down 60px, returns to 0 on completion
+- Only active when `scrollTop === 0` (prevent accidental trigger mid-scroll)
+
+### F4 — Offline Detection Banner
+**Status**: `[x]` Done
+**Files**: `app/layout.tsx` (or new `components/OfflineBanner.tsx`)
+**What to do**:
+- Listen to `window.addEventListener('online' | 'offline')` events
+- When offline: slide in a slim banner at the top of the screen (below safe-area inset): `"You're offline — clips will save and sync when reconnected"` with a wifi-off icon
+- Banner: `bg-amber-500 text-white text-xs font-medium px-4 py-2`, animated slide-down with Framer Motion
+- When back online: banner changes to `bg-emerald-500` with "Back online ✓" for 2s then slides out
+- This works with the local-first IndexedDB architecture — clips still save offline, enrichment queues
+
+### F5 — Better Clip Card Thumbnails (Aspect-Ratio Fix)
+**Status**: `[ ]` Not started
+**Files**: `components/InboxCard.tsx`, `components/SkeletonCard.tsx`
+**What to do**:
+- Current thumbnail area uses a fixed height; social media thumbnails come in all ratios (9:16 portrait from Reels/TikTok, 1:1 square from Xiaohongshu, 16:9 from YouTube)
+- Change thumbnail container to `aspect-[4/3]` with `object-cover` so all thumbnails look consistent without stretching
+- Add a gradient overlay at the bottom of the thumbnail: `bg-gradient-to-t from-black/60 to-transparent` — position the location name and platform badge on top of the thumbnail (remove them from below)
+- Platform badge: top-left corner of thumbnail, `bg-black/40 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full`
+- If no thumbnail: show the board emoji or a travel-themed gradient placeholder (`bg-gradient-to-br from-indigo-400 to-purple-500`)
+- Update SkeletonCard to match the new `aspect-[4/3]` thumbnail area
+
+### F6 — Tag Filtering on Inbox
+**Status**: `[x]` Done
+**Files**: `app/inbox/page.tsx`
+**What to do**:
+- Below the search bar, show a horizontally scrollable row of tag pills extracted from all inbox clips (deduplicated, sorted by frequency)
+- Tapping a tag pill filters the inbox to only show clips with that tag; active tag has indigo fill
+- Multiple tags can be selected (OR logic — show clips matching any selected tag)
+- Tapping an active tag deselects it; "All" pill always first and clears all filters when tapped
+- Tag pills: `text-xs font-medium px-3 py-1 rounded-full` — inactive: `bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300`, active: `bg-indigo-600 text-white`
+- If no tags exist across clips, don't show the row
+
+---
+
 ## Completed Tasks
+
+*(Claude marks tasks [x] and moves them here when done)*
 
 *(Claude marks tasks [x] and moves them here when done)*
 

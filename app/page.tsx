@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import TripCountdownBanner from '@/components/TripCountdownBanner';
+import OnboardingSheet from '@/components/OnboardingSheet';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -19,11 +20,17 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
-  const [showImport, setShowImport]     = useState(false);
-  const [prefilledUrl, setPrefilledUrl] = useState('');
-  const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
-  const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
-  const [isNative, setIsNative]         = useState(false);
+  const [showImport, setShowImport]       = useState(false);
+  const [prefilledUrl, setPrefilledUrl]   = useState('');
+  const [selectedItem, setSelectedItem]   = useState<SavedItem | null>(null);
+  const [flyTo, setFlyTo]                 = useState<Location | undefined>(undefined);
+  const [isNative, setIsNative]           = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!localStorage.getItem('onboardingDone')) setShowOnboarding(true);
+  }, []);
 
   useEffect(() => {
     import('@capacitor/core').then(({ Capacitor }) => {
@@ -78,6 +85,13 @@ function HomePageInner() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden">
+      {showOnboarding && (
+        <OnboardingSheet onDone={() => {
+          localStorage.setItem('onboardingDone', '1');
+          setShowOnboarding(false);
+        }} />
+      )}
+
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
 
