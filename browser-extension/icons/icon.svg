@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded rect background -->
+  <rect width="128" height="128" rx="28" ry="28" fill="url(#bg)"/>
+  <!-- Airplane silhouette -->
+  <g fill="white" opacity="0.95">
+    <!-- Body -->
+    <ellipse cx="64" cy="64" rx="36" ry="9" transform="rotate(-45 64 64)"/>
+    <!-- Left wing -->
+    <polygon points="64,64 38,44 48,68"/>
+    <!-- Right wing -->
+    <polygon points="64,64 90,84 80,60"/>
+    <!-- Tail -->
+    <polygon points="64,64 50,80 68,76"/>
+  </g>
+</svg>

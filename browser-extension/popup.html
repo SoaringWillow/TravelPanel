@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <span class="logo-icon">✈️</span>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="settings-btn" id="settings-btn" title="Settings">⚙</button>
+    </header>
+
+    <!-- State: setup (no appUrl configured) -->
+    <div id="state-setup" class="state hidden">
+      <div class="setup-card">
+        <div class="setup-icon">🗺</div>
+        <p class="setup-heading">Set up TravelPanel</p>
+        <p class="setup-body">Enter your TravelPanel app URL to start clipping travel posts.</p>
+        <button class="btn-primary" id="setup-open-options">Configure →</button>
+      </div>
+    </div>
+
+    <!-- State: idle -->
+    <div id="state-idle" class="state hidden">
+      <div class="url-card">
+        <div class="url-meta">
+          <span class="url-label">Clipping</span>
+          <span class="platform-badge" id="platform-badge"></span>
+        </div>
+        <div class="url-title" id="tab-title"></div>
+        <div class="url-text" id="url-display"></div>
+      </div>
+
+      <button class="btn-primary" id="save-btn">
+        ✈️ Save to TravelPanel
+      </button>
+    </div>
+
+    <!-- State: saving -->
+    <div id="state-saving" class="state hidden">
+      <div class="centered">
+        <div class="spinner"></div>
+        <p class="status-text">Opening TravelPanel…</p>
+      </div>
+    </div>
+
+    <!-- State: done -->
+    <div id="state-done" class="state hidden">
+      <div class="centered">
+        <div class="done-icon">✅</div>
+        <p class="done-heading">TravelPanel opened!</p>
+        <p class="done-sub">Pick a board in the tab that just opened.</p>
+      </div>
+    </div>
+
+    <!-- State: error -->
+    <div id="state-error" class="state hidden">
+      <div class="error-card">
+        <div class="error-icon">⚠️</div>
+        <p class="error-text" id="error-msg"></p>
+        <button class="btn-primary" id="retry-btn">Try Again</button>
+        <button class="btn-ghost" id="error-settings-btn">Check Settings</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <a href="#" id="open-app-link">Open App</a>
+      <a href="#" id="options-link">Settings</a>
+    </footer>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

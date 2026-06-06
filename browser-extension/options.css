@@ -1,0 +1,154 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  min-width: 380px;
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-icon { font-size: 32px; }
+
+h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.field-hint {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.text-input {
+  flex: 1;
+  background: #1e293b;
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.text-input::placeholder { color: #334155; }
+
+.text-input:focus {
+  border-color: #0ea5e9;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn-primary {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:active { transform: scale(0.97); }
+
+.feedback {
+  font-size: 13px;
+  color: #4ade80;
+  font-weight: 500;
+}
+.feedback.error { color: #f87171; }
+.feedback.hidden { display: none; }
+
+.info-section {
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #334155;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.steps {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.steps li {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.steps strong { color: #cbd5e1; }
+
+.info-text {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.info-text strong { color: #cbd5e1; }

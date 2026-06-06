@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <span class="logo-icon">✈️</span>
+      <div>
+        <h1>TravelPanel Clipper</h1>
+        <p class="subtitle">Settings</p>
+      </div>
+    </header>
+
+    <section class="section">
+      <label class="field-label" for="app-url">Your TravelPanel URL</label>
+      <p class="field-hint">The URL where your TravelPanel app is deployed (e.g. Vercel).</p>
+      <div class="input-row">
+        <input
+          type="url"
+          id="app-url"
+          class="text-input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn-primary" id="save-btn">Save</button>
+      <p class="feedback hidden" id="feedback"></p>
+    </div>
+
+    <section class="section info-section">
+      <h2 class="section-title">How to use</h2>
+      <ol class="steps">
+        <li>Navigate to any travel post (YouTube, Instagram, 小红书, etc.)</li>
+        <li>Click the TravelPanel extension icon in your toolbar</li>
+        <li>Click <strong>Save to TravelPanel</strong></li>
+        <li>Pick a board in TravelPanel — AI extracts spots &amp; wisdom</li>
+      </ol>
+    </section>
+
+    <section class="section info-section">
+      <h2 class="section-title">Right-click clipping</h2>
+      <p class="info-text">
+        You can also right-click any page and choose
+        <strong>"Save page to TravelPanel"</strong> from the context menu.
+      </p>
+    </section>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
