@@ -85,18 +85,23 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url ?? '';
+    imageBase64 = body.imageBase64;
+    imageMimeType = body.imageMimeType;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  if (!url && !imageBase64) {
+    return NextResponse.json({ error: 'URL or image required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const platform = url ? detectPlatform(url) : 'other';
+  const page = url ? await fetchPageData(url) : null;
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
@@ -128,14 +133,48 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  // When an image is provided (e.g. screenshot shared from Xiaohongshu/WeChat),
+  // use Claude Vision to extract content visible in the image alongside any URL text.
+  const visionNote = imageBase64
+    ? '\n\nAn image from the shared post is attached. Extract all travel information visible in the image — location names, text overlays, captions, prices, tips, or warnings shown — in addition to any URL metadata above.'
+    : '';
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      const safeType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(imageMimeType ?? '')
+        ? (imageMimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif')
+        : ('image/jpeg' as const);
+
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: Buffer.from(imageBase64, 'base64'),
+                mimeType: safeType,
+              },
+              {
+                type: 'text',
+                text: prompt + visionNote,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
