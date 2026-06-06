@@ -367,7 +367,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Link both from Settings page
 
 ### E6 — App Store Rating Prompt
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/ratingPrompt.ts`, `app/share/page.tsx`  
 **What to do**:
 - After a user's 3rd successful clip save, show an in-app rating prompt

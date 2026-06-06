@@ -8,6 +8,7 @@ import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
+import { recordClipSave, maybeRequestReview } from '@/lib/ratingPrompt';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -98,6 +99,8 @@ function SharePageInner() {
     await saveItem(item);
     haptics.success();
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    recordClipSave();
+    maybeRequestReview();
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
