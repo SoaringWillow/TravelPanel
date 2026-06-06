@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, Share2 } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, ChevronDown } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { Board, SavedItem, Location } from '@/lib/types';
+import { Board, SavedItem, Location, SubstanceItem } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -24,10 +24,28 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
 
+  const [showAllSubstance, setShowAllSubstance] = useState(false);
+
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
     ? items.filter((item) => board.itemIds.includes(item.id))
     : [];
+
+  // Collect substance highlights from all board clips
+  const SUBSTANCE_ICONS: Record<string, string> = {
+    tip: '💡', warning: '⚠️', opinion: '💬', wisdom: '🧠',
+    context: '🌍', recommendation: '⭐',
+  };
+  type SubstanceWithSource = SubstanceItem & { sourceTitle: string };
+  const allSubstance: SubstanceWithSource[] = boardItems.flatMap((item) =>
+    (item.substance ?? []).map((s) => ({ ...s, sourceTitle: item.title ?? item.url }))
+  );
+  const prioritized = [
+    ...allSubstance.filter((s) => s.type === 'warning' || s.type === 'tip'),
+    ...allSubstance.filter((s) => s.type !== 'warning' && s.type !== 'tip'),
+  ];
+  const hasHighlights = boardItems.filter((i) => (i.substance ?? []).length > 0).length >= 2;
+  const shownSubstance = showAllSubstance ? prioritized : prioritized.slice(0, 3);
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
 
@@ -195,6 +213,35 @@ export default function BoardDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Substance Highlights */}
+          {hasHighlights && (
+            <div className="mb-4 bg-indigo-50 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">Highlights from your clips</p>
+              {shownSubstance.map((s, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="flex-shrink-0 text-base">{SUBSTANCE_ICONS[s.type] ?? '💡'}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs text-indigo-900 leading-snug">{s.content}</p>
+                    <p className="text-[10px] text-indigo-500 mt-0.5 truncate">from: {s.sourceTitle}</p>
+                  </div>
+                </div>
+              ))}
+              {prioritized.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSubstance((v) => !v)}
+                  className="flex items-center gap-1 text-xs text-indigo-600 font-semibold"
+                >
+                  {showAllSubstance ? 'Show less' : `See all ${prioritized.length} tips`}
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform ${showAllSubstance ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Items grid */}
           {boardItems.length === 0 ? (

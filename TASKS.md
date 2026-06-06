@@ -493,7 +493,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Don't block the user, just inform
 
 ### G4 — Substance Highlights on Board Detail Page
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`  
 **Why**: The board detail page shows a grid of InboxCards but doesn't surface the wisdom extracted from clips. This is the payoff of substance extraction.  
 **What to do**:
