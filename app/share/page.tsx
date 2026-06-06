@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,12 +30,24 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards + consume pending image on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Consume image written by CapacitorBridge into sessionStorage
+    if (hasImage) {
+      try {
+        const img = sessionStorage.getItem('pendingShareImage');
+        if (img) {
+          pendingImageRef.current = img;
+          sessionStorage.removeItem('pendingShareImage');
+        }
+      } catch { /* sessionStorage unavailable */ }
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +101,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if available (e.g. Xiaohongshu screenshot)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +177,13 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Vision mode badge — shown when a screenshot was shared */}
+          {hasImage && (
+            <p className="text-xs text-violet-500 font-medium mt-1">
+              📸 Screenshot mode — Claude Vision will analyze the image
+            </p>
           )}
         </div>
 

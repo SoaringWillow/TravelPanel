@@ -22,6 +22,12 @@ const config: CapacitorConfig = {
     limitsNavigationsToAppBoundDomains: false,
   },
   plugins: {
+    Preferences: {
+      // Match the App Group suite in ShareViewController.swift so the Share Extension
+      // can write pendingShareImage / pendingShareURL into the same store that
+      // CapacitorBridge reads from.
+      group: 'group.com.travelpanel.app',
+    },
     SplashScreen: {
       launchShowDuration: 800,
       backgroundColor: '#f9fafb',
