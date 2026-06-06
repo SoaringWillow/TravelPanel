@@ -215,7 +215,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Handle malformed files gracefully (show parse error, don't corrupt DB)
 
 ### D4 — Trip Plan Timeline View 🔴 HIGH PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The current plan view is a text-heavy card list. A visual timeline with time markers, thumbnails, and distance estimates makes plans feel premium and actually usable for navigation.  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`, new `components/TimelineActivity.tsx`  
 **What to do**:
