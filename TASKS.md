@@ -309,7 +309,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a `manifest.json` to the Next.js public folder with proper PWA metadata
 
 ### E4 — Global Error Boundary
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ErrorBoundary.tsx` (new), `app/layout.tsx`  
 **What to do**:
 - Create a React class `ErrorBoundary` component with `componentDidCatch`
