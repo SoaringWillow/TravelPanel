@@ -1,0 +1,252 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --indigo: #6366f1;
+  --indigo-dark: #4f46e5;
+  --indigo-light: #eef2ff;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --text-subtle: #9ca3af;
+  --border: #e5e7eb;
+  --bg: #ffffff;
+  --bg-surface: #f9fafb;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+html, body {
+  width: 320px;
+  min-height: 180px;
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--indigo-dark);
+}
+
+.logo-icon {
+  flex-shrink: 0;
+  color: var(--indigo);
+}
+
+.logo-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--indigo-dark);
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-subtle);
+  transition: background 0.15s, color 0.15s;
+}
+
+.icon-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-muted);
+}
+
+/* ── Main ── */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+/* Page info card */
+.page-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-height: 52px;
+}
+
+.page-favicon-wrap {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+
+.page-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: contain;
+  display: none;
+}
+
+.page-favicon.loaded {
+  display: block;
+}
+
+.page-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.page-url {
+  font-size: 11px;
+  color: var(--text-subtle);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Unsupported state */
+.unsupported {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Clip button */
+.clip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--indigo);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+
+.clip-btn:hover {
+  background: var(--indigo-dark);
+}
+
+.clip-btn:active {
+  transform: scale(0.98);
+}
+
+.clip-btn:disabled {
+  background: var(--text-subtle);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Status messages */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status.success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.status.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ── Footer ── */
+footer {
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+
+.shortcut {
+  font-size: 11px;
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  padding: 1px 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}
