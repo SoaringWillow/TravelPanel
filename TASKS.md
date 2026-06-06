@@ -357,7 +357,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Progress dots at bottom; "Skip" link top-right; final button navigates to main app
 
 ### F3 — Substance Feed (Wisdom Across Clips)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: new `app/wisdom/page.tsx`, `components/NavBar.tsx`
 **What to do**:
 - Add a "Wisdom" tab to NavBar (💡 icon, 5th tab — or replace an existing less-used tab)

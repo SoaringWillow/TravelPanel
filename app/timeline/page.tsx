@@ -77,7 +77,6 @@ function TimelineEntry({ item, index }: { item: SavedItem; index: number }) {
           className="w-3 h-3 rounded-full border-2 border-white ring-2 flex-shrink-0 mt-3"
           style={{
             backgroundColor: platformColor,
-            ringColor: platformColor,
             boxShadow: `0 0 0 2px ${platformColor}40`,
           }}
         />

@@ -284,7 +284,6 @@ export default function MapView({ items, onPinClick, flyTo, onUserLocated }: Map
         <GeolocateControl
           position="top-right"
           trackUserLocation
-          showUserHeading
           onGeolocate={(e) => {
             if (onUserLocated) {
               onUserLocated(e.coords.latitude, e.coords.longitude);
