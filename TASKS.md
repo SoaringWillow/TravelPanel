@@ -276,7 +276,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fire `mediumImpact()` on plan generation start
 
 ### D8 — Map Tag Filters (Filter Pins by Category)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`, `app/page.tsx`  
 **What to do**:
 - Add a horizontally scrollable chip row floating above the NavBar (below the FAB)

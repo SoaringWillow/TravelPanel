@@ -22,6 +22,7 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [activeTag, setActiveTag]       = useState<string | undefined>(undefined);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,7 +72,7 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} filterTag={activeTag} />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -150,6 +151,44 @@ function HomePageInner() {
           >
             <Plus size={24} />
           </button>
+        </div>
+      )}
+
+      {/* Tag filter chips — shown above NavBar when clips exist */}
+      {!selectedItem && !showImport && items.length > 0 && (
+        <div className="absolute bottom-[56px] left-0 right-0 z-[999] px-3 py-2">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none">
+            {[
+              { tag: undefined, label: 'All',       emoji: '🗺' },
+              { tag: 'food',        label: 'Food',      emoji: '🍜' },
+              { tag: 'nature',      label: 'Nature',    emoji: '🌿' },
+              { tag: 'culture',     label: 'Culture',   emoji: '🏛' },
+              { tag: 'beach',       label: 'Beach',     emoji: '🏖' },
+              { tag: 'art',         label: 'Art',       emoji: '🎨' },
+              { tag: 'adventure',   label: 'Adventure', emoji: '🧗' },
+              { tag: 'city',        label: 'City',      emoji: '🏙' },
+              { tag: 'photography', label: 'Photo',     emoji: '📸' },
+              { tag: 'history',     label: 'History',   emoji: '🏰' },
+              { tag: 'shopping',    label: 'Shopping',  emoji: '🛍' },
+            ].map(({ tag, label, emoji }) => {
+              const isActive = activeTag === tag;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setActiveTag(tag)}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-indigo-200 shadow-md'
+                      : 'bg-white/90 backdrop-blur-sm text-gray-700 border border-white/60'
+                  }`}
+                >
+                  <span>{emoji}</span>
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
