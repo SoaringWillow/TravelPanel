@@ -535,7 +535,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Execution order: `H1 → H2 → H3 → H4 → H5 → H6 → H7`
 
 ### H1 — Vibe-Based Trip Style Input
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The plan form currently has no way to express *how* you want to travel. "Slow mornings, street food focus, avoid tourist traps" dramatically changes what Claude generates. This is a free improvement — just a text field that feeds into the prompt.  
 **Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`  
 **What to do**:
@@ -594,7 +594,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Design: clean, minimal card — indigo gradient header with emoji, white body with location pills, prominent CTA
 
 ### H6 — Personal Notes Flow Into Planner
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: D4 implemented clip note editing, but `app/api/plan/route.ts` builds `contentSummary` from only title/activities/tags/substance — personal notes are dropped. This is dead data that could make plans significantly more personal.  
 **Files**: `app/api/plan/route.ts`  
 **What to do**:

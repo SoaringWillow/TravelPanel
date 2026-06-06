@@ -32,7 +32,9 @@ export default function PlanPage() {
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
-  const [customNotes, setCustomNotes] = useState('');
+  const [travelStyle, setTravelStyle] = useState(() => {
+    try { return localStorage.getItem('planStyle') ?? ''; } catch { return ''; }
+  });
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
@@ -92,10 +94,8 @@ export default function PlanPage() {
       body: JSON.stringify({
         items: boardItems,
         days,
-        preferences: [
-          ...Array.from(selectedChips),
-          ...(customNotes.trim() ? [customNotes.trim()] : []),
-        ].join('. '),
+        preferences: Array.from(selectedChips).join('. '),
+        travelStyle: travelStyle.trim() || undefined,
       }),
     });
 
@@ -110,7 +110,7 @@ export default function PlanPage() {
     const collectedSteps: AgentStep[] = [];
     const prefs = [
       ...Array.from(selectedChips),
-      ...(customNotes.trim() ? [customNotes.trim()] : []),
+      ...(travelStyle.trim() ? [travelStyle.trim()] : []),
     ].join('. ');
 
     while (true) {
@@ -156,7 +156,7 @@ export default function PlanPage() {
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, selectedChips, travelStyle, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -168,7 +168,6 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     setSelectedChips(new Set());
-    setCustomNotes('');
   }, []);
 
   // Export is only meaningful for a fully-formed plan (days + activities present).
@@ -356,13 +355,19 @@ export default function PlanPage() {
                     </div>
                   </div>
                 ))}
-                <textarea
-                  value={customNotes}
-                  onChange={(e) => setCustomNotes(e.target.value)}
-                  placeholder="Anything else? e.g. avoid hills, travelling with kids…"
-                  rows={2}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-                />
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Trip vibe (saved for next time)</p>
+                  <textarea
+                    value={travelStyle}
+                    onChange={(e) => {
+                      setTravelStyle(e.target.value);
+                      try { localStorage.setItem('planStyle', e.target.value); } catch {}
+                    }}
+                    placeholder="e.g. slow mornings, street food focus, budget-conscious, avoid big museums…"
+                    rows={2}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               {/* Warning if no locations */}

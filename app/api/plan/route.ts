@@ -49,9 +49,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, travelStyle: string | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, travelStyle } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -129,6 +129,7 @@ export async function POST(req: NextRequest) {
             content: s.content,
             applies_to: s.applies_to,
           })),
+          ...(i.notes?.trim() ? { personalNotes: i.notes.trim() } : {}),
         }));
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
@@ -136,12 +137,16 @@ export async function POST(req: NextRequest) {
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
-          prompt: `Create a detailed ${days}-day travel itinerary.
+          prompt: `Create a detailed ${days}-day travel itinerary.${travelStyle?.trim() ? `
+
+TRAVELLER STYLE (top priority — shape the entire plan around this):
+${travelStyle.trim()}` : ''}
 
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
+Note: "personalNotes" in saved content are the traveller's own first-person observations — treat them as high-priority preference signals.
 
 Rules:
 - 2-4 activities per day with realistic timing
