@@ -171,7 +171,7 @@ All tasks done. See completed tasks below.
 - Replace all "Loading..." text spinners with skeleton variants
 
 ### D7 — Paste-URL Import (Clipboard)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/page.tsx`, `components/ImportSheet.tsx`
 **What to do**:
 - On the main map view, add a floating "Paste URL" button near the + FAB (only show on non-iOS, since iOS users use the Share Sheet)

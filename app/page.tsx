@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Clipboard } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
@@ -22,6 +22,13 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [isNative, setIsNative]         = useState(false);
+
+  useEffect(() => {
+    import('@capacitor/core').then(({ Capacitor }) => {
+      setIsNative(Capacitor.isNativePlatform());
+    }).catch(() => {});
+  }, []);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -97,13 +104,37 @@ function HomePageInner() {
 
       {/* Import FAB */}
       {!selectedItem && (
-        <button
-          onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          aria-label="Clip inspiration"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="absolute bottom-24 right-4 z-[1000] flex flex-col items-end gap-2">
+          {/* Paste URL shortcut — non-iOS only (iOS uses Share Sheet) */}
+          {!isNative && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const text = await navigator.clipboard.readText();
+                  if (text.trim().startsWith('http')) {
+                    setPrefilledUrl(text.trim());
+                  }
+                } catch {
+                  // Clipboard permission denied or unavailable — open sheet empty
+                }
+                setShowImport(true);
+              }}
+              className="flex items-center gap-1.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-indigo-600 dark:text-indigo-400 text-xs font-semibold px-3 py-2 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 active:scale-95 transition-all border border-indigo-100 dark:border-gray-700"
+              aria-label="Paste URL"
+            >
+              <Clipboard size={13} />
+              Paste URL
+            </button>
+          )}
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            aria-label="Clip inspiration"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       )}
 
       {/* Import Sheet */}
