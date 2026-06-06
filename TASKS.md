@@ -378,6 +378,84 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE F — Engagement, Retention & Monetization
+
+> Goal: drive weekly active usage, turn casual users into power users, and lay the foundation for a Pro tier.
+> Execution order: `F1 → F2 → F3 → F4 → F5 → F6 → F7`
+
+### F1 — Clip Streak & Home Widget (Engagement Hook)
+**Status**: `[ ]` Not started  
+**Why**: The North Star metric is weekly clips per active user. A streak is the single most proven habit-formation mechanic.  
+**Files**: new `lib/streaks.ts`, `app/settings/page.tsx`, `components/StreakBadge.tsx`  
+**What to do**:
+- Track `lastClipDate` and `currentStreak` in localStorage
+- `recordClipSave()` in `lib/ratingPrompt.ts` should also call `incrementStreak()`
+- Show a streak badge (🔥 N days) in the NavBar next to Settings when streak ≥ 2
+- On the Settings page, show "Your streak: 🔥 7 days — keep it up!" with a small calendar heatmap (last 30 days, 2-tone: clipped vs not)
+- When streak is broken, show a "You missed a day — start a new streak!" banner once
+
+### F2 — Share Your Board (Deep Link Generation)
+**Status**: `[ ]` Not started  
+**Why**: Virality is the cheapest user acquisition. Sharing a board brings new users in with context.  
+**Files**: `app/boards/[boardId]/page.tsx` (or create it), `app/api/share/route.ts`  
+**What to do**:
+- Add a "Share board" button on each board detail page
+- Generate a deep link: `https://travelpanel.app/board/<boardId>?preview=true`
+- The preview page (server-rendered) shows board name, emoji, item count, and top 3 location names — no auth required, read-only
+- On iOS, also trigger the native Share Sheet with the deep link URL via `@capacitor/share`
+- Store shared board metadata in a `sharedBoards` localStorage key (for now; Supabase when ready)
+
+### F3 — Offline Caching (PWA Service Worker)
+**Status**: `[ ]` Not started  
+**Why**: Travel app used abroad → users WILL be offline. Map tiles not loading = catastrophic UX failure.  
+**Files**: `next.config.js` (already has next-pwa), `public/sw.js` or next-pwa config  
+**What to do**:
+- Configure next-pwa to cache: all JS/CSS bundles, the map tile CDN (OpenFreeMap), and the app shell
+- Map tile cache strategy: `CacheFirst` with max 500 entries, 7 days TTL
+- API routes (`/api/import`, `/api/plan`) should use `NetworkOnly` (never cache AI responses)
+- Show a subtle "You're offline — map and saved clips still available" banner when navigator.onLine === false
+- Test: open app, turn off network, navigate between tabs — all existing clips and map tiles should still work
+
+### F4 — Dark Mode Support
+**Status**: `[ ]` Not started  
+**Files**: `app/globals.css`, `tailwind.config.js`, all major components  
+**What to do**:
+- Enable Tailwind's `darkMode: 'media'` (respects system preference)
+- Add `dark:` variants to all major components: NavBar, InboxCard, BoardCard, LocationDetailCard, ImportSheet
+- Map in dark mode: switch to a dark MapLibre style (use OpenFreeMap's dark variant)
+- Test: switch device to dark mode → all text readable, no white flash, map style switches
+
+### F5 — Clip Count Milestone Celebrations
+**Status**: `[ ]` Not started  
+**Files**: `lib/ratingPrompt.ts` → extend, new `components/MilestoneCelebration.tsx`  
+**What to do**:
+- At 10, 25, 50, 100 clips: show a confetti burst + "🎉 You've saved 50 places!" modal for 2 seconds
+- Use canvas-confetti or a pure CSS animation (no heavy library)
+- Track milestones in localStorage to show each only once
+- Also show a share prompt: "You've saved 50 travel spots! Share TravelPanel →"
+
+### F6 — Pro Tier Teaser + Paywall
+**Status**: `[ ]` Not started  
+**Files**: new `app/pro/page.tsx`, `components/ProGate.tsx`, `lib/pro.ts`  
+**What to do**:
+- Define Pro features: unlimited plan generations (vs 5/day), board sharing, priority enrichment
+- `lib/pro.ts`: `isPro()` checks localStorage `proUnlocked` — always false for now (placeholder for RevenueCat)
+- `ProGate` component: when a non-Pro user hits a limit, show a bottom sheet: "Upgrade to Pro — $4.99/month" with feature list and a "Learn More" CTA
+- `/pro` page: full Pro features breakdown, pricing, FAQ
+- Do NOT implement real payment — just the UI scaffolding for when RevenueCat is integrated
+
+### F7 — Widget Data Provider (iOS Home Screen Widget)
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/TravelWidget/` (new Xcode target), `lib/widgetData.ts`  
+**What to do**:
+- Create a WidgetKit extension in Xcode (Timeline provider) that shows: next unvisited location from the most recent board, or "Add a clip" if inbox is empty
+- The widget reads from the App Group UserDefaults the last 3 saved clip titles + locations (written by the main app on each save)
+- Update `lib/db.ts` saveItem to also write a `widgetData` key to App Group via @capacitor/preferences
+- Widget design: indigo gradient, globe emoji, location name, "Open TravelPanel →" deep link
+- Document the Xcode steps required in `ios/App/TravelWidget/WIDGET_SETUP.md`
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
