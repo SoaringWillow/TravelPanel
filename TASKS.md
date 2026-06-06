@@ -435,7 +435,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Also show a share prompt: "You've saved 50 travel spots! Share TravelPanel →"
 
 ### F6 — Pro Tier Teaser + Paywall
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/pro/page.tsx`, `components/ProGate.tsx`, `lib/pro.ts`  
 **What to do**:
 - Define Pro features: unlimited plan generations (vs 5/day), board sharing, priority enrichment

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, Upload, Trash2, Globe2, CheckCircle2, AlertCircle, Info, ChevronRight, Shield, FileText } from 'lucide-react';
+import { Download, Upload, Trash2, Globe2, CheckCircle2, AlertCircle, Info, ChevronRight, Shield, FileText, Sparkles } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, saveItem, saveBoard } from '@/lib/db';
 import { SavedItem, Board } from '@/lib/types';
@@ -117,6 +117,20 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+
+        {/* ── Pro upgrade CTA ── */}
+        <button
+          type="button"
+          onClick={() => router.push('/pro')}
+          className="w-full flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-4 rounded-2xl shadow-md shadow-indigo-200 hover:opacity-95 active:scale-[0.98] transition-all"
+        >
+          <Sparkles size={18} className="flex-shrink-0 text-yellow-300" />
+          <div className="flex-1 text-left">
+            <p className="font-bold text-sm">Upgrade to Pro</p>
+            <p className="text-white/75 text-xs">Unlimited plans · Cloud sync · $4.99/mo</p>
+          </div>
+          <ChevronRight size={16} className="text-white/60" />
+        </button>
 
         {/* ── Streak ── */}
         {streakInfo && streakInfo.current > 0 && (
