@@ -378,7 +378,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Replace the plain spinner with an animated indigo progress bar at the top of the streaming plan
 
 ### F5 — Pending Enrichment Badge on Inbox Tab
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/NavBar.tsx`, `app/page.tsx` or `app/layout.tsx`
 **What to do**:
 - When items have `enrichmentStatus: 'pending'` or `'processing'`, show a small pulsing indigo dot badge on the Inbox tab icon

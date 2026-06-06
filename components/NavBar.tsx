@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Globe2, Inbox, LayoutGrid, Lightbulb } from 'lucide-react';
+import { usePendingCount } from '@/hooks/usePendingCount';
 
 interface NavBarProps {
   active: 'home' | 'inbox' | 'boards' | 'timeline' | 'wisdom';
@@ -15,6 +16,8 @@ const NAV_ITEMS = [
 ] as const;
 
 export default function NavBar({ active }: NavBarProps) {
+  const pendingCount = usePendingCount();
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
@@ -23,6 +26,7 @@ export default function NavBar({ active }: NavBarProps) {
       <div className="flex items-stretch">
         {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {
           const isActive = active === key;
+          const showBadge = key === 'inbox' && pendingCount > 0;
           return (
             <Link
               key={key}
@@ -31,7 +35,12 @@ export default function NavBar({ active }: NavBarProps) {
                 isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+              <div className="relative">
+                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                {showBadge && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
+                )}
+              </div>
               <span className="text-xs mt-0.5 font-medium">{label}</span>
               {/* Active indicator dot */}
               <span
