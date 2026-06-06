@@ -248,15 +248,33 @@ const DAY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#06b
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
+// GeoJSON circle approximation (64-point polygon)
+function circleGeoJSON(
+  lat: number, lng: number, radiusKm: number
+): GeoJSON.Feature<GeoJSON.Polygon> {
+  const points = 64;
+  const coords: [number, number][] = [];
+  for (let i = 0; i <= points; i++) {
+    const angle = (i * 360) / points;
+    const rad   = (angle * Math.PI) / 180;
+    const dLat  = (radiusKm / 111.32) * Math.cos(rad);
+    const dLng  = (radiusKm / (111.32 * Math.cos((lat * Math.PI) / 180))) * Math.sin(rad);
+    coords.push([lng + dLng, lat + dLat]);
+  }
+  return { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] }, properties: {} };
+}
+
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
   tripPlan?: Partial<TripPlan> | null;
   showRoute?: boolean;
+  userPos?: { lat: number; lng: number };
+  nearMeRadius?: number; // km — if provided, draws the radius circle
 }
 
-export default function MapView({ items, onPinClick, flyTo, tripPlan, showRoute }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, tripPlan, showRoute, userPos, nearMeRadius }: MapViewProps) {
   const [popupInfo, setPopupInfo]     = useState<PopupInfo | null>(null);
   const [styleId, setStyleId]         = useState<MapStyleId>(loadStyleId);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
@@ -386,6 +404,31 @@ export default function MapView({ items, onPinClick, flyTo, tripPlan, showRoute 
               </p>
             </div>
           </Popup>
+        )}
+
+        {/* ── Near Me: radius circle + user dot ── */}
+        {userPos && nearMeRadius && (
+          <Source id="near-me-circle" type="geojson" data={circleGeoJSON(userPos.lat, userPos.lng, nearMeRadius)}>
+            <Layer
+              id="near-me-fill"
+              type="fill"
+              paint={{ 'fill-color': '#6366f1', 'fill-opacity': 0.08 }}
+            />
+            <Layer
+              id="near-me-border"
+              type="line"
+              paint={{ 'line-color': '#6366f1', 'line-width': 2, 'line-opacity': 0.5, 'line-dasharray': [4, 3] }}
+            />
+          </Source>
+        )}
+        {userPos && (
+          <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
+            <div style={{
+              width: 16, height: 16, borderRadius: '50%',
+              backgroundColor: '#6366f1', border: '3px solid white',
+              boxShadow: '0 0 0 3px rgba(99,102,241,0.3)',
+            }} />
+          </Marker>
         )}
 
         {/* ── Trip route overlay ── */}

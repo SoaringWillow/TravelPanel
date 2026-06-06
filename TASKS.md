@@ -259,7 +259,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The button shows a small icon indicating the NEXT style (not current)
 
 ### D8 — Near Me Filter
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On-trip use case: user is at a location and wants to see which saved clips are nearby. Currently no way to filter by current location.  
 **Files**: `app/page.tsx`, `components/MapView.tsx`  
 **What to do**:
