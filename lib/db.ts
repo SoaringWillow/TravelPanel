@@ -86,6 +86,13 @@ export async function deleteItem(id: string): Promise<void> {
   await db.delete('items', id);
 }
 
+export async function updateItemNotes(id: string, title: string, notes: string): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, title: title.trim() || item.title, notes: notes.trim() || undefined });
+}
+
 export async function getItemsByPlatform(platform: string): Promise<SavedItem[]> {
   const db = await getDB();
   return db.getAllFromIndex('items', 'by-platform', platform);

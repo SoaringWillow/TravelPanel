@@ -236,7 +236,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fire `haptic('light')` when Near Me panel clips are tapped
 
 ### D4 — Edit Clip (title + notes)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
 - Add an "Edit" button (pencil icon) to the `LocationDetailCard` header
