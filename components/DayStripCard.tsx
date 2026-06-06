@@ -70,10 +70,13 @@ export default function DayStripCard({ day, index, onViewOnMap }: DayStripCardPr
 
                       {/* Name + location */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 leading-snug">
+                        <p
+                          className="text-sm font-semibold text-gray-900 leading-snug truncate"
+                          title={activity.name}
+                        >
                           {activity.name}
                         </p>
-                        <p className="text-xs text-indigo-600 truncate mt-0.5">
+                        <p className="text-xs text-indigo-600 truncate mt-0.5" title={activity.location.name}>
                           {activity.location.name}
                         </p>
                       </div>

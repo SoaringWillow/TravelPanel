@@ -605,7 +605,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No new UI needed — the existing notes field in D4 now becomes a planning input
 
 ### H7 — App Quality & Accessibility Sprint
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app has accumulated UI debt across 7 phases. Before v1.0 submission, a focused quality pass catches the issues that cause App Store rejections or 1-star reviews.  
 **Files**: Multiple components  
 **What to do**:

@@ -200,14 +200,32 @@ export default function InboxCard({
           alt={item.title}
           className="w-full h-32 object-cover"
           onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
+            const img = e.currentTarget as HTMLImageElement;
+            img.style.display = 'none';
+            const placeholder = img.nextElementSibling as HTMLElement | null;
+            if (placeholder) placeholder.style.display = 'flex';
           }}
         />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
-        </div>
-      )}
+      ) : null}
+      <div
+        className="w-full h-24 bg-gray-100 dark:bg-gray-700 items-center justify-center text-3xl"
+        style={{ display: item.thumbnail ? 'none' : 'flex' }}
+      >
+        {item.tags.includes('food') || item.tags.includes('restaurant') || item.tags.includes('cafe')
+          ? '🍜'
+          : item.tags.includes('nature') || item.tags.includes('hiking') || item.tags.includes('park')
+          ? '🌿'
+          : item.tags.includes('culture') || item.tags.includes('museum') || item.tags.includes('temple')
+          ? '🏛'
+          : item.tags.includes('beach') || item.tags.includes('ocean') || item.tags.includes('sea')
+          ? '🏖'
+          : item.tags.includes('city') || item.tags.includes('urban')
+          ? '🌆'
+          : item.tags.includes('adventure') || item.tags.includes('sports')
+          ? '🧗'
+          : <Globe size={32} className="text-gray-300 dark:text-gray-500" />
+        }
+      </div>
 
       <div className="p-4">
         {/* Platform badge */}
