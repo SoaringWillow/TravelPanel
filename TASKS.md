@@ -235,7 +235,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On Capacitor: also use `App.addListener('resume', ...)` to refresh when app returns to foreground
 
 ### D4 — Clip Editing (Notes + Tags)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users save clips and often want to add personal notes or correct tags. Right now notes are write-once.  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:

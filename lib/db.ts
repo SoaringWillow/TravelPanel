@@ -109,6 +109,18 @@ export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedI
   }
 }
 
+export async function updateItemNotes(
+  id: string,
+  fields: { notes?: string; tags?: string[] },
+): Promise<SavedItem | undefined> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return undefined;
+  const updated: SavedItem = { ...item, ...fields };
+  await db.put('items', updated);
+  return updated;
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,

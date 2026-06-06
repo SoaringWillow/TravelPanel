@@ -104,3 +104,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-06 14:38 | 1f9c2de | feat(D2): swipe-to-delete and swipe-to-move on inbox clip cards
 2026-06-06 14:40 | f8f1fa3 | feat(D3): pull-to-refresh on Inbox and Boards pages
 2026-06-06 14:42 | 664c2e5 | feat(D7): haptic feedback via @capacitor/haptics
+2026-06-06 14:44 | a9307ef | feat(D8): map tag filters — filter pins by category with faded non-matches
