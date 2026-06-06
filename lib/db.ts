@@ -1,7 +1,7 @@
 'use client';
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { SavedItem, Board, Trip, EnrichmentStatus } from './types';
+import { SavedItem, Board, Trip, EnrichmentStatus, Checkin } from './types';
 
 interface TravelPanelDB extends DBSchema {
   items: {
@@ -24,6 +24,11 @@ interface TravelPanelDB extends DBSchema {
     value: Trip;
     indexes: { 'by-board': string };
   };
+  checkins: {
+    key: string;
+    value: Checkin;
+    indexes: { 'by-board': string; 'by-date': number };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<TravelPanelDB>> | null = null;
@@ -33,7 +38,7 @@ function getDB() {
     throw new Error('IndexedDB unavailable server-side');
   }
   if (!dbPromise) {
-    dbPromise = openDB<TravelPanelDB>('travel-panel', 2, {
+    dbPromise = openDB<TravelPanelDB>('travel-panel', 3, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const itemStore = db.createObjectStore('items', { keyPath: 'id' });
@@ -52,6 +57,11 @@ function getDB() {
           boardStore.createIndex('by-date', 'createdAt');
           const tripStore = db.createObjectStore('trips', { keyPath: 'id' });
           tripStore.createIndex('by-board', 'boardId');
+        }
+        if (oldVersion < 3) {
+          const checkinStore = db.createObjectStore('checkins', { keyPath: 'id' });
+          checkinStore.createIndex('by-board', 'boardId');
+          checkinStore.createIndex('by-date', 'checkedInAt');
         }
       },
     });
@@ -79,6 +89,13 @@ export async function getItemById(id: string): Promise<SavedItem | undefined> {
 export async function saveItem(item: SavedItem): Promise<void> {
   const db = await getDB();
   await db.put('items', item);
+}
+
+export async function updateItem(id: string, updates: Partial<SavedItem>): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...updates });
 }
 
 export async function deleteItem(id: string): Promise<void> {
@@ -147,6 +164,13 @@ export async function saveBoard(board: Board): Promise<void> {
   await db.put('boards', board);
 }
 
+export async function updateBoard(id: string, updates: Partial<Board>): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', id);
+  if (!board) return;
+  await db.put('boards', { ...board, ...updates, updatedAt: Date.now() });
+}
+
 export async function deleteBoard(id: string): Promise<void> {
   const db = await getDB();
   const items = await db.getAllFromIndex('items', 'by-board', id);
@@ -191,6 +215,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {
     const db = await getDB();
@@ -208,4 +241,26 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+// ─── Checkins ──────────────────────────────────────────────────────────────
+
+export async function saveCheckin(checkin: Checkin): Promise<void> {
+  const db = await getDB();
+  await db.put('checkins', checkin);
+}
+
+export async function getCheckinsForBoard(boardId: string): Promise<Checkin[]> {
+  try {
+    const db = await getDB();
+    const checkins = await db.getAllFromIndex('checkins', 'by-board', boardId);
+    return checkins.sort((a, b) => a.checkedInAt - b.checkedInAt);
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteCheckin(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('checkins', id);
 }

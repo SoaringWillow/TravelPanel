@@ -66,6 +66,34 @@
   display: none;
 }
 
+/* Confetti burst — plan completion celebration */
+@keyframes confetti-burst {
+  0%   { transform: translateY(0) rotate(0deg) scale(1);   opacity: 1; }
+  100% { transform: translateY(-80px) rotate(720deg) scale(0); opacity: 0; }
+}
+.confetti-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: confetti-burst 0.9s ease-out forwards;
+}
+
+/* Shimmer skeleton animation */
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position:  400px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.dark .skeleton-shimmer {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 800px 100%;
+}
+
 /* iOS safe area utilities */
 .safe-top    { padding-top:    env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

@@ -9,7 +9,8 @@ import UniformTypeIdentifiers
 // the main TravelPanel app with the travelpanel://share?url=...&title=...
 // URL scheme, which the CapacitorBridge component routes to /share.
 //
-// Supported source types: URLs, plain text containing a URL, web pages.
+// Supported source types: URLs, plain text containing a URL, web pages,
+// and images (screenshots from Xiaohongshu/WeChat — the vision fallback).
 
 class ShareViewController: UIViewController {
 
@@ -26,6 +27,25 @@ class ShareViewController: UIViewController {
 
         for item in items {
             guard let attachments = item.attachments else { continue }
+
+            // Opportunistically capture any image in the payload (e.g. Xiaohongshu
+            // share includes a preview image alongside the URL). We store it in the
+            // App Group so the main app can pass it to Claude Vision for extraction,
+            // bypassing anti-scraping that blocks the URL fetch.
+            for attachment in attachments {
+                if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { [weak self] data, _ in
+                        guard let self else { return }
+                        if let image = data as? UIImage {
+                            self.savePendingImageToAppGroup(image: image)
+                        } else if let url = data as? URL,
+                                  let data = try? Data(contentsOf: url),
+                                  let image = UIImage(data: data) {
+                            self.savePendingImageToAppGroup(image: image)
+                        }
+                    }
+                }
+            }
 
             // Priority 1: a direct URL attachment
             for attachment in attachments {
@@ -60,6 +80,26 @@ class ShareViewController: UIViewController {
         }
 
         finish()
+    }
+
+    // Compress and store screenshot in App Group for Claude Vision extraction.
+    // Keeps size under ~100KB so App Group storage and POST body stay small.
+    private func savePendingImageToAppGroup(image: UIImage) {
+        // Resize to max 1024px on longest side before JPEG compression
+        let maxDimension: CGFloat = 1024
+        let scale = min(maxDimension / image.size.width, maxDimension / image.size.height, 1)
+        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+
+        UIGraphicsBeginImageContextWithOptions(targetSize, false, 1.0)
+        image.draw(in: CGRect(origin: .zero, size: targetSize))
+        let resized = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        guard let jpeg = (resized ?? image).jpegData(compressionQuality: 0.4),
+              let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+
+        defaults.set(jpeg.base64EncodedString(), forKey: "pendingShareImageBase64")
+        defaults.synchronize()
     }
 
     private func extractURL(from text: String) -> String? {

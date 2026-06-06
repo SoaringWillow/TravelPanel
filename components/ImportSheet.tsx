@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, Clipboard } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -40,6 +40,17 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError]     = useState('');
   const abortRef              = useRef<AbortController | null>(null);
+
+  // Auto-paste clipboard URL when sheet opens (if field is empty)
+  useEffect(() => {
+    if (!open) return;
+    if (initialUrl) { setUrl(initialUrl); return; }
+    navigator.clipboard?.readText?.().then((text) => {
+      const trimmed = text.trim();
+      if (trimmed.startsWith('http') && !url) setUrl(trimmed);
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -203,8 +214,23 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               }}
               placeholder="Paste URL from WeChat, Red Book, Douyin, Bilibili…"
               disabled={stage === 'loading'}
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
+              className="w-full pl-10 pr-10 py-3 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
             />
+            {!url && (
+              <button
+                type="button"
+                title="Paste from clipboard"
+                onClick={() => {
+                  navigator.clipboard?.readText?.().then((text) => {
+                    const trimmed = text.trim();
+                    if (trimmed.startsWith('http')) { setUrl(trimmed); setError(''); }
+                  }).catch(() => {});
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-500 transition-colors"
+              >
+                <Clipboard size={15} />
+              </button>
+            )}
           </div>
 
           {/* ── Import button (hidden during preview) ───────────────────── */}

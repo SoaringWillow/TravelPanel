@@ -4,11 +4,13 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Clipboard } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import TripCountdownBanner from '@/components/TripCountdownBanner';
+import OnboardingSheet from '@/components/OnboardingSheet';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -18,10 +20,23 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
-  const [showImport, setShowImport]     = useState(false);
-  const [prefilledUrl, setPrefilledUrl] = useState('');
-  const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
-  const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [showImport, setShowImport]       = useState(false);
+  const [prefilledUrl, setPrefilledUrl]   = useState('');
+  const [selectedItem, setSelectedItem]   = useState<SavedItem | null>(null);
+  const [flyTo, setFlyTo]                 = useState<Location | undefined>(undefined);
+  const [isNative, setIsNative]           = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!localStorage.getItem('onboardingDone')) setShowOnboarding(true);
+  }, []);
+
+  useEffect(() => {
+    import('@capacitor/core').then(({ Capacitor }) => {
+      setIsNative(Capacitor.isNativePlatform());
+    }).catch(() => {});
+  }, []);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -70,16 +85,27 @@ function HomePageInner() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden">
+      {showOnboarding && (
+        <OnboardingSheet onDone={() => {
+          localStorage.setItem('onboardingDone', '1');
+          setShowOnboarding(false);
+        }} />
+      )}
+
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+      <div className="absolute top-0 left-0 right-0 z-[1000]">
+        <div className="bg-white/90 backdrop-blur-md shadow-lg overflow-hidden">
+          {/* Trip countdown banner — shown when a trip has a departure date */}
+          <TripCountdownBanner />
+          <div className="px-4 py-3 flex items-center gap-3">
+            <Globe2 className="text-indigo-600" size={22} />
+            <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
+            <div className="ml-auto text-sm text-gray-500">
+              {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+            </div>
           </div>
         </div>
       </div>
@@ -90,19 +116,44 @@ function HomePageInner() {
           <LocationDetailCard
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            onUpdate={(updated) => setSelectedItem(updated)}
           />
         )}
       </AnimatePresence>
 
       {/* Import FAB */}
       {!selectedItem && (
-        <button
-          onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          aria-label="Clip inspiration"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="absolute bottom-24 right-4 z-[1000] flex flex-col items-end gap-2">
+          {/* Paste URL shortcut — non-iOS only (iOS uses Share Sheet) */}
+          {!isNative && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const text = await navigator.clipboard.readText();
+                  if (text.trim().startsWith('http')) {
+                    setPrefilledUrl(text.trim());
+                  }
+                } catch {
+                  // Clipboard permission denied or unavailable — open sheet empty
+                }
+                setShowImport(true);
+              }}
+              className="flex items-center gap-1.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-indigo-600 dark:text-indigo-400 text-xs font-semibold px-3 py-2 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 active:scale-95 transition-all border border-indigo-100 dark:border-gray-700"
+              aria-label="Paste URL"
+            >
+              <Clipboard size={13} />
+              Paste URL
+            </button>
+          )}
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            aria-label="Clip inspiration"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       )}
 
       {/* Import Sheet */}

@@ -81,31 +81,21 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompt builder ──────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+function buildExtractionPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>, hasImage: boolean): string {
+  const sourceNote = hasImage
+    ? 'A screenshot of the post is included — read text visible in the image as your primary source.'
+    : `Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}`;
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${sourceNote}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -127,15 +117,63 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let image: string | undefined;
+  try {
+    ({ url, image } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  // Normalise base64 image: strip data URL prefix if present
+  let imageBuffer: Buffer | undefined;
+  if (image && typeof image === 'string') {
+    const base64 = image.replace(/^data:image\/[a-z]+;base64,/, '');
+    if (base64.length > 0) {
+      imageBuffer = Buffer.from(base64, 'base64');
+    }
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+  const prompt = buildExtractionPrompt(platform, url, page, !!imageBuffer);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBuffer) {
+      // Vision path: screenshot provided (e.g. Xiaohongshu anti-scrape workaround)
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image' as const, image: imageBuffer, mimeType: 'image/jpeg' },
+              { type: 'text' as const, text: prompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: use fetched page content
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

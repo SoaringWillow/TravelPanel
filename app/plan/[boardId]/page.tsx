@@ -1,18 +1,32 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
-import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, X, Download, CalendarPlus, Share2, RefreshCw, Plane } from 'lucide-react';
+import { Board, SavedItem, AgentStep, AgentStepType, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
+
+const STEP_ICON: Record<AgentStepType, string> = {
+  searching:  '🔍',
+  found:      '📍',
+  clustering: '🗺',
+  routing:    '📐',
+  validating: '✅',
+  done:       '🎉',
+  error:      '❌',
+};
+
+const CONFETTI_COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { haptic } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
-import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import type { EnrichSignal } from '@/lib/enrichSignals';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -38,6 +52,16 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const confettiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [enrichWarnings, setEnrichWarnings] = useState<EnrichSignal[]>([]);
+  const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const stored = localStorage.getItem('dismissedEnrichWarnings');
+      return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
 
   useEffect(() => {
     async function load() {
@@ -76,13 +100,16 @@ export default function PlanPage() {
       return;
     }
 
+    haptic('medium');
     setStage('generating');
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    setEnrichWarnings([]);
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
+    const currentTrip = savedTrips.find((t) => t.id === currentTripId);
     const res = await fetch('/api/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,6 +120,7 @@ export default function PlanPage() {
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
         ].join('. '),
+        departureDate: currentTrip?.departureDate,
       }),
     });
 
@@ -124,10 +152,15 @@ export default function PlanPage() {
             collectedSteps.push(msg.step);
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
+              if (msg.step.type === 'done') {
+                setShowConfetti(true);
+                confettiTimerRef.current = setTimeout(() => setShowConfetti(false), 1800);
+              }
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              haptic('success');
               const trip: Trip = {
                 id: crypto.randomUUID(),
                 boardId,
@@ -148,12 +181,24 @@ export default function PlanPage() {
             latestPlan = msg.plan as Partial<TripPlan>;
             setPlan(latestPlan);
           }
+          if (msg.t === 'warnings') {
+            setEnrichWarnings(msg.warnings);
+          }
         } catch {
           // skip bad lines
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips, currentTripId]);
+
+  function dismissWarning(id: string) {
+    setDismissedWarnings((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      try { localStorage.setItem('dismissedEnrichWarnings', JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -258,7 +303,28 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
+      {/* Confetti burst on plan completion */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center overflow-hidden">
+          {CONFETTI_COLORS.flatMap((color, ci) =>
+            Array.from({ length: 3 }, (_, i) => (
+              <span
+                key={`${ci}-${i}`}
+                className="confetti-dot"
+                style={{
+                  backgroundColor: color,
+                  left: `${15 + ci * 10 + i * 3}%`,
+                  top: `${40 + (i % 2 === 0 ? -10 : 10)}%`,
+                  animationDelay: `${(ci * 0.07 + i * 0.03).toFixed(2)}s`,
+                  animationDuration: `${0.8 + (ci % 3) * 0.15}s`,
+                }}
+              />
+            ))
+          )}
+        </div>
+      )}
+
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -397,17 +463,48 @@ export default function PlanPage() {
           {/* ── GENERATING STATE ── */}
           {stage === 'generating' && (
             <div className="space-y-4">
-              {/* Back / board name */}
+              {/* Board name */}
               <div className="flex items-center gap-2">
                 <span className="text-xl">{board.emoji}</span>
-                <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+                <span className="text-base font-bold text-gray-800 dark:text-gray-100 flex-1 truncate">{board.name}</span>
               </div>
 
-              <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
+              {/* Animated step cards */}
+              <div className="space-y-2 min-h-[200px]">
+                <AnimatePresence initial={false}>
+                  {steps.length === 0 ? (
+                    <motion.div
+                      key="waiting"
+                      initial={{ y: 16, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3"
+                    >
+                      <span className="text-2xl animate-pulse">🤔</span>
+                      <p className="text-sm text-gray-400 dark:text-gray-500">Starting your adventure…</p>
+                    </motion.div>
+                  ) : (
+                    steps.map((step, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3"
+                      >
+                        <span className="text-2xl flex-shrink-0">{STEP_ICON[step.type]}</span>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 leading-snug">{step.message}</p>
+                        {i === steps.length - 1 && step.type !== 'done' && step.type !== 'error' && (
+                          <span className="flex-shrink-0 w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                        )}
+                      </motion.div>
+                    ))
+                  )}
+                </AnimatePresence>
+              </div>
 
               <button
                 onClick={handleCancel}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                className="flex items-center justify-center gap-2 w-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
               >
                 <X size={15} />
                 Cancel
@@ -433,7 +530,62 @@ export default function PlanPage() {
 
               {/* Overview */}
               {plan.overview && (
-                <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
+                <p className="text-sm italic text-gray-600 dark:text-gray-400 leading-relaxed">{plan.overview}</p>
+              )}
+
+              {/* Departure date picker */}
+              {currentTripId && (
+                <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl px-3 py-2">
+                  <Plane size={14} className="text-indigo-500 flex-shrink-0" />
+                  <label className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex-shrink-0">
+                    Departure date
+                  </label>
+                  <input
+                    type="date"
+                    value={savedTrips.find((t) => t.id === currentTripId)?.departureDate ?? ''}
+                    min={new Date().toISOString().slice(0, 10)}
+                    onChange={async (e) => {
+                      const trip = savedTrips.find((t) => t.id === currentTripId);
+                      if (!trip) return;
+                      const updated = { ...trip, departureDate: e.target.value || undefined };
+                      await saveTrip(updated);
+                      setSavedTrips((prev) => prev.map((t) => (t.id === currentTripId ? updated : t)));
+                    }}
+                    className="flex-1 text-xs bg-transparent text-indigo-700 dark:text-indigo-300 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Enrichment warning cards */}
+              {enrichWarnings.filter((w) => !dismissedWarnings.has(w.id)).length > 0 && (
+                <div className="space-y-2">
+                  {enrichWarnings
+                    .filter((w) => !dismissedWarnings.has(w.id))
+                    .map((w) => (
+                      <div
+                        key={w.id}
+                        className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl px-3 py-2.5"
+                      >
+                        <span className="text-base flex-shrink-0 mt-0.5">⚠️</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 leading-snug">
+                            {w.event}
+                            {w.window ? ` · ${w.window}` : ''}
+                            {w.priceSurge ? ` · ~${Math.round((w.priceSurge - 1) * 100)}% price surge` : ''}
+                          </p>
+                          <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 leading-snug">{w.note}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => dismissWarning(w.id)}
+                          className="flex-shrink-0 p-1 text-amber-400 hover:text-amber-600 dark:hover:text-amber-200 rounded-lg transition-colors"
+                          aria-label="Dismiss"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
+                </div>
               )}
 
               {/* Summary chips */}
@@ -463,17 +615,24 @@ export default function PlanPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
                     Export PDF
                   </button>
                   <button
                     onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
                     Add to Calendar
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium py-2 px-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
+                    aria-label="Share plan"
+                  >
+                    <Share2 size={14} />
                   </button>
                 </div>
               )}
@@ -508,58 +667,67 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  {/* Sticky day header */}
+                  <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-gray-50 dark:bg-gray-950">
+                    <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                  </div>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const hasWisdom = (activity.sourcedTips?.length ?? 0) > 0;
+                    return (
+                      <div
+                        key={aIdx}
+                        className={`bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700 space-y-1 transition-shadow ${
+                          hasWisdom ? 'shadow-indigo-100 dark:shadow-none' : ''
+                        }`}
+                        style={hasWisdom ? { borderLeft: '3px solid #818cf8' } : undefined}
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="flex-shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.time}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
+                              {activity.location.name}
+                            </p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200">{activity.name}</p>
+                          </div>
+                          <span className="flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {activity.duration}
+                          </span>
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
+
+                        {activity.tips.length > 0 && (
+                          <ul className="space-y-0.5 pl-1">
+                            {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                              <li key={tIdx} className="text-xs text-gray-500 dark:text-gray-400 leading-snug">
+                                · {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {/* Sourced tips — wisdom cited from the user's own clips */}
+                        {hasWisdom && (
+                          <div className="space-y-1 pt-1">
+                            {activity.sourcedTips!.map((st, sIdx) => (
+                              <div
+                                key={sIdx}
+                                className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg px-2 py-1.5 border-l-2 border-indigo-300 dark:border-indigo-700"
+                              >
+                                <p className="text-xs text-indigo-900 dark:text-indigo-200 leading-snug">💡 {st.content}</p>
+                                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-0.5 truncate">
+                                  from your clip: {st.sourceTitle}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -580,19 +748,44 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Start Over */}
-              <button
-                onClick={handleStartOver}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                <RotateCcw size={15} />
-                Start Over
-              </button>
+              {/* Bottom padding so FAB doesn't overlap last card */}
+              <div className="h-20" />
             </div>
           )}
 
         </div>
       </div>
+
+      {/* Floating action buttons — always visible in complete state */}
+      {stage === 'complete' && (
+        <div className="absolute bottom-6 left-4 right-4 z-[1000] flex items-center justify-between">
+          {/* Start Trip — sets activeTripBoardId in localStorage */}
+          <button
+            onClick={() => {
+              localStorage.setItem('activeTripBoardId', boardId);
+              window.dispatchEvent(new Event('storage'));
+              router.push('/trip');
+            }}
+            className="flex items-center gap-2 bg-emerald-500 text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-xl hover:bg-emerald-600 active:scale-95 transition-all"
+          >
+            ✈️ Start Trip
+          </button>
+
+          {/* New version FAB */}
+          <button
+            onClick={handleNewVersion}
+            className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          >
+            <RefreshCw size={15} />
+            New version
+            {savedTrips.length > 0 && (
+              <span className="bg-white/20 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                v{savedTrips.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

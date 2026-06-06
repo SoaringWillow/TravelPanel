@@ -234,8 +234,17 @@ interface MapViewProps {
 
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [isDark, setIsDark] = useState(false);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains('dark'));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -271,7 +280,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={isDark ? "https://tiles.openfreemap.org/styles/dark" : "https://tiles.openfreemap.org/styles/liberty"}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps

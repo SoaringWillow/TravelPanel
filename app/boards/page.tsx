@@ -1,20 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence } from 'framer-motion';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { getAllTrips } from '@/lib/db';
+import { Board } from '@/lib/types';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
+import { EditBoardSheet } from '@/components/EditBoardSheet';
 import OnboardingSeed from '@/components/OnboardingSeed';
+import { SkeletonBoardCard } from '@/components/SkeletonCard';
 import NavBar from '@/components/NavBar';
 
+function daysUntil(dateStr: string): number {
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, editBoard, removeBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [boardCountdowns, setBoardCountdowns] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    getAllTrips().then((trips) => {
+      const map: Record<string, number> = {};
+      trips.forEach((trip) => {
+        if (!trip.departureDate) return;
+        const d = daysUntil(trip.departureDate);
+        if (d < 0) return;
+        // Keep the earliest upcoming date per board
+        if (map[trip.boardId] === undefined || d < map[trip.boardId]) {
+          map[trip.boardId] = d;
+        }
+      });
+      setBoardCountdowns(map);
+    });
+  }, []);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -25,18 +56,23 @@ export default function BoardsPage() {
     await createBoard(name, emoji);
   }
 
+  async function handleEdit(name: string, emoji: string) {
+    if (!editingBoard) return;
+    await editBoard(editingBoard.id, name, emoji);
+  }
+
   async function handleDelete(id: string) {
     await removeBoard(id);
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-12 pb-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LayoutGrid className="text-indigo-600" size={22} />
-            <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
+            <LayoutGrid className="text-indigo-600 dark:text-indigo-400" size={22} />
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">My Boards</h1>
           </div>
           <button
             type="button"
@@ -55,14 +91,14 @@ export default function BoardsPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonBoardCard key={i} />)}
           </div>
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">
             <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
+            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">No boards yet.</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
               Create your first board to organise your travel ideas.
             </p>
             <button
@@ -82,7 +118,8 @@ export default function BoardsPage() {
                 board={board}
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
+                onEdit={() => setEditingBoard(board)}
+                daysUntil={boardCountdowns[board.id]}
               />
             ))}
           </div>
@@ -95,6 +132,19 @@ export default function BoardsPage() {
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
       />
+
+      {/* Edit board sheet */}
+      <AnimatePresence>
+        {editingBoard && (
+          <EditBoardSheet
+            key={editingBoard.id}
+            board={editingBoard}
+            onSave={handleEdit}
+            onDelete={() => handleDelete(editingBoard.id)}
+            onClose={() => setEditingBoard(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <NavBar active="boards" />
     </div>

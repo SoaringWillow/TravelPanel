@@ -4,6 +4,7 @@ import { Board } from '@/lib/types';
 import {
   getAllBoards,
   saveBoard,
+  updateBoard as dbUpdateBoard,
   deleteBoard,
   addItemToBoard as dbAddItemToBoard,
   removeItemFromBoard as dbRemoveItemFromBoard,
@@ -37,6 +38,11 @@ export function useBoards() {
     return board;
   }, []);
 
+  const editBoard = useCallback(async (id: string, name: string, emoji: string): Promise<void> => {
+    await dbUpdateBoard(id, { name: name.trim(), emoji });
+    setBoards((prev) => prev.map((b) => b.id === id ? { ...b, name: name.trim(), emoji } : b));
+  }, []);
+
   const removeBoard = useCallback(async (id: string): Promise<void> => {
     await deleteBoard(id);
     setBoards((prev) => prev.filter((b) => b.id !== id));
@@ -50,5 +56,5 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  return { boards, loading, createBoard, editBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
 }

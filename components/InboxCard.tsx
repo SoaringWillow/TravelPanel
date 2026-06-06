@@ -50,8 +50,8 @@ export default function InboxCard({
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
-          <div className="w-full h-32 bg-gray-200" />
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden animate-pulse">
+          <div className="w-full h-32 bg-gray-200 dark:bg-gray-700" />
           <div className="p-4 space-y-3">
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
             <div className="h-3 bg-gray-200 rounded-full w-3/5" />
@@ -66,7 +66,7 @@ export default function InboxCard({
 
     // Partial card — title is known, enrichment still running
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-4 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span
@@ -76,7 +76,7 @@ export default function InboxCard({
             </span>
           </div>
 
-          <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2">
             {item.title}
           </h3>
 
@@ -116,7 +116,7 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
@@ -127,13 +127,13 @@ export default function InboxCard({
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-gray-400 truncate flex-1 min-w-0 hover:text-indigo-500 hover:underline transition-colors"
+            className="text-xs text-gray-400 dark:text-gray-500 truncate flex-1 min-w-0 hover:text-indigo-500 hover:underline transition-colors"
           >
             {truncateUrl(item.url)}
           </a>
         </div>
 
-        <p className="text-sm font-semibold text-gray-700 line-clamp-2 leading-snug">
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 line-clamp-2 leading-snug">
           {item.title || item.url}
         </p>
 
@@ -189,39 +189,45 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
-        </div>
-      )}
-
-      <div className="p-4">
-        {/* Platform badge */}
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      {/* Thumbnail — 4:3 aspect ratio, consistent across all post types */}
+      <div className="relative w-full aspect-[4/3] overflow-hidden">
+        {item.thumbnail ? (
+          <img
+            src={item.thumbnail}
+            alt={item.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              const el = e.currentTarget as HTMLImageElement;
+              el.style.display = 'none';
+              const parent = el.parentElement;
+              if (parent) parent.classList.add('fallback-thumb');
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center">
+            <Globe size={28} className="text-white/60" />
+          </div>
+        )}
+        {/* Gradient overlay + platform badge on thumbnail */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         <span
-          className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full inline-block mb-2`}
+          className={`absolute top-2 left-2 ${PLATFORM_BG[item.platform]} text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm`}
         >
           {PLATFORM_LABELS[item.platform]}
         </span>
+      </div>
+
+      <div className="p-3">
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -230,18 +236,18 @@ export default function InboxCard({
         {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0) && (
           <div className="flex items-center gap-3 mb-2">
             {item.locations.length > 0 && (
-              <span className="text-xs text-gray-500 flex items-center gap-0.5">
+              <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
                 <MapPin size={10} className="text-indigo-400" />
                 {item.locations.length}
               </span>
             )}
             {item.activities.length > 0 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 🎯 {item.activities.length}
               </span>
             )}
             {(item.substance?.length ?? 0) > 0 && (
-              <span className="text-xs text-amber-600 font-medium">
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                 💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
               </span>
             )}
@@ -254,7 +260,7 @@ export default function InboxCard({
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-2 py-0.5 rounded-full"
               >
                 #{tag}
               </span>
@@ -263,15 +269,15 @@ export default function InboxCard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-xs text-gray-400">{date}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-700">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
 
           <div className="flex items-center gap-1">
             {/* View on Map */}
             <button
               type="button"
               onClick={() => onViewOnMap(item.id)}
-              className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors px-1.5 py-1"
             >
               Map
             </button>
@@ -281,7 +287,7 @@ export default function InboxCard({
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
               aria-label={`Open in ${PLATFORM_LABELS[item.platform]}`}
             >
               <ExternalLink size={13} />
@@ -292,7 +298,7 @@ export default function InboxCard({
               <button
                 type="button"
                 onClick={() => onMoveToBoard(item.id)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 aria-label="Move to collection"
               >
                 <LayoutGrid size={13} />
@@ -303,7 +309,7 @@ export default function InboxCard({
             <button
               type="button"
               onClick={() => onDelete(item.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
               aria-label="Delete"
             >
               <Trash2 size={13} />

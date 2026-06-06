@@ -124,6 +124,19 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  departureDate?: string; // ISO date string YYYY-MM-DD, for trip countdown
+}
+
+// ─── Check-ins (post-trip timeline) ─────────────────────────────────────────
+
+export interface Checkin {
+  id: string;
+  boardId: string;
+  itemId?: string;        // the SavedItem it relates to (optional)
+  activityName: string;  // plan activity name
+  locationName: string;  // location name
+  checkedInAt: number;   // ms timestamp
+  notes?: string;
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────
@@ -142,4 +155,5 @@ export interface ImportResult {
 // NDJSON messages streamed from /api/plan
 export type PlanStreamMessage =
   | { t: 'step'; step: AgentStep }
-  | { t: 'plan'; plan: Partial<TripPlan> };
+  | { t: 'plan'; plan: Partial<TripPlan> }
+  | { t: 'warnings'; warnings: import('./enrichSignals').EnrichSignal[] };

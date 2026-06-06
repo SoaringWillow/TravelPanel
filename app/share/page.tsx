@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { haptic } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -29,6 +30,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +38,28 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // On iOS: read any screenshot the Share Extension stored in App Group.
+  // This is the Xiaohongshu fix — the URL fetch is blocked by anti-scraping,
+  // but the user's shared screenshot contains all the content we need.
+  useEffect(() => {
+    if (!rawUrl) return;
+    async function readPendingImage() {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value } = await Preferences.get({ key: 'pendingShareImageBase64' });
+        if (value) {
+          pendingImageRef.current = value;
+          await Preferences.remove({ key: 'pendingShareImageBase64' });
+        }
+      } catch {
+        // Not in native context or Capacitor not available
+      }
+    }
+    readPendingImage();
+  }, [rawUrl]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -61,6 +85,7 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    haptic('medium');
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -88,9 +113,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (Xiaohongshu vision path)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -114,6 +139,7 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    haptic('success');
   }
 
   // ── Create new board + save ───────────────────────────────────────────────
@@ -143,7 +169,7 @@ function SharePageInner() {
 
   if (stage === 'picking' || stage === 'saving') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-between p-6 safe-top safe-bottom">
         {/* Top section */}
         <div className="space-y-2 pt-4">
           {/* Platform chip */}
@@ -157,19 +183,19 @@ function SharePageInner() {
           </div>
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2">
             {sharedTitle}
           </h1>
 
           {/* URL */}
           {rawUrl && (
-            <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{rawUrl}</p>
           )}
         </div>
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
-          <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Save to:</p>
 
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -190,7 +216,7 @@ function SharePageInner() {
                 type="button"
                 disabled={stage === 'saving'}
                 onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}
               </button>
@@ -201,7 +227,7 @@ function SharePageInner() {
               type="button"
               disabled={stage === 'saving'}
               onClick={() => setShowNewBoardInput((v) => !v)}
-              className="flex-shrink-0 border-2 border-dashed border-gray-300 text-gray-500 text-sm font-medium px-4 py-2 rounded-full hover:border-gray-400 hover:text-gray-600 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+              className="flex-shrink-0 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 text-sm font-medium px-4 py-2 rounded-full hover:border-gray-400 hover:text-gray-600 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
             >
               + New
             </button>
@@ -228,7 +254,7 @@ function SharePageInner() {
                     }}
                     placeholder="Board name…"
                     autoFocus
-                    className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none transition-colors"
+                    className="flex-1 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none transition-colors"
                   />
                   <button
                     type="button"
@@ -248,7 +274,7 @@ function SharePageInner() {
         <button
           type="button"
           onClick={() => window.history.back()}
-          className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
+          className="w-full py-3 rounded-2xl border-2 border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-1.5"
         >
           Return to app
           <ChevronRight size={15} />
@@ -278,10 +304,10 @@ function SharePageInner() {
           transition={{ delay: 0.2 }}
           className="text-center space-y-1"
         >
-          <p className="text-xl font-bold text-gray-900">
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
             ✅ Saved to {savedToName}!
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {sharedTitle}
           </p>
         </motion.div>
@@ -294,23 +320,23 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl px-4 py-3 flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400 animate-pulse">🔍 Finding locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
-            <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
-              <p className="text-sm font-semibold text-indigo-700">
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl px-4 py-3 space-y-1.5">
+              <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
                 📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
               </p>
               {enrichedData.locations.map((loc, i) => (
-                <p key={i} className="text-sm text-indigo-600">
+                <p key={i} className="text-sm text-indigo-600 dark:text-indigo-400">
                   {loc.name}
                 </p>
               ))}
             </div>
           ) : enrichedData && enrichedData.locations.length === 0 ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3">
-              <p className="text-sm text-gray-500">No specific locations detected</p>
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl px-4 py-3">
+              <p className="text-sm text-gray-500 dark:text-gray-400">No specific locations detected</p>
             </div>
           ) : null}
         </motion.div>
@@ -319,7 +345,7 @@ function SharePageInner() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-xs text-gray-400"
+          className="text-xs text-gray-400 dark:text-gray-500"
         >
           Returning automatically in a few seconds…
         </motion.p>
@@ -346,7 +372,7 @@ export default function SharePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
           <div className="text-sm text-gray-400 animate-pulse">Loading…</div>
         </div>
       }
