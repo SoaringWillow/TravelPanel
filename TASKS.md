@@ -118,7 +118,7 @@ All tasks done. See completed tasks below.
 - Long-press context menu as alternative: "Delete", "Move to board", "Copy URL"
 
 ### D3 — Item Detail Editing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`
 **What to do**:
 - Add `updateItem(id: string, updates: Partial<SavedItem>)` to `lib/db.ts`
