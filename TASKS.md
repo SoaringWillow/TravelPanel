@@ -212,7 +212,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use `bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer` (add `shimmer` keyframe to `globals.css`)
 
 ### D2 — Pull-to-Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `hooks/usePullToRefresh.ts` (new), `app/inbox/page.tsx`, `app/timeline/page.tsx`  
 **What to do**:
 - Create `usePullToRefresh(onRefresh: () => Promise<void>)` hook using pointer events (works on both web and iOS WebView):

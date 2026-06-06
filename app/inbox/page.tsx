@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -14,7 +14,9 @@ import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import { SkeletonCard } from '@/components/SkeletonCard';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import SearchBar from '@/components/SearchBar';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import VibeSearchBar from '@/components/VibeSearchBar';
 import NavBar from '@/components/NavBar';
 import { VibeResult } from '@/lib/vibeSearch';
@@ -32,7 +34,13 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { progress: ptrProgress, refreshing: ptrRefreshing } = usePullToRefresh({
+    onRefresh: refresh,
+    containerRef: scrollRef,
+    disabled: loading,
+  });
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -107,7 +115,7 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 relative">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
@@ -170,8 +178,10 @@ export default function InboxPage() {
         </div>
       </div>
 
+      <PullToRefreshIndicator progress={ptrProgress} refreshing={ptrRefreshing} />
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}

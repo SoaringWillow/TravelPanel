@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Clock3, MapPin, Sparkles, Camera } from 'lucide-react';
@@ -8,6 +8,8 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 import { SkeletonTimelineEntry } from '@/components/SkeletonCard';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import NavBar from '@/components/NavBar';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -150,11 +152,17 @@ function TimelineEntry({ item, index }: { item: SavedItem; index: number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TimelinePage() {
-  const { items, loading } = useSavedItems();
+  const { items, loading, refresh } = useSavedItems();
   const groups = useMemo(() => groupByMonth(items), [items]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { progress: ptrProgress, refreshing: ptrRefreshing } = usePullToRefresh({
+    onRefresh: refresh,
+    containerRef: scrollRef,
+    disabled: loading,
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-24 relative">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md border-b border-gray-100 px-5 pt-safe-top">
         <div className="flex items-center gap-2.5 py-4">
@@ -169,6 +177,9 @@ export default function TimelinePage() {
       </div>
 
       {/* Content */}
+      <PullToRefreshIndicator progress={ptrProgress} refreshing={ptrRefreshing} />
+
+      <div ref={scrollRef} className="overflow-y-auto" style={{ minHeight: 'calc(100vh - 120px)' }}>
       {loading ? (
         <div className="px-4 pt-4">
           {Array.from({ length: 3 }).map((_, i) => <SkeletonTimelineEntry key={i} />)}
@@ -207,6 +218,8 @@ export default function TimelinePage() {
           ))}
         </div>
       )}
+
+      </div>
 
       <NavBar active="timeline" />
     </div>
