@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
@@ -32,13 +32,24 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicateClip, setDuplicateClip]     = useState<SavedItem | null>(null);
   const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards + consume pending image on mount
+  // Load boards + check for duplicates + consume pending image on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Deduplication check
+    if (rawUrl) {
+      getAllItems()
+        .then((items) => {
+          const existing = items.find((i) => i.url === rawUrl);
+          if (existing) setDuplicateClip(existing);
+        })
+        .catch(() => {});
+    }
 
     // Consume image written by CapacitorBridge into sessionStorage
     if (hasImage) {
@@ -182,6 +193,17 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Duplicate warning */}
+          {duplicateClip && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800">
+              <span className="flex-shrink-0 mt-0.5">⚠️</span>
+              <div>
+                <p className="font-semibold">Already saved: "{duplicateClip.title || 'this link'}"</p>
+                <p className="text-amber-600 mt-0.5">You can save it again or skip.</p>
+              </div>
+            </div>
           )}
 
           {/* Vision mode badge — shown when a screenshot was shared */}

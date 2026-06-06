@@ -483,7 +483,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only animate when the day changes; static otherwise
 
 ### G3 — Clip Deduplication Warning
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `lib/db.ts`  
 **Why**: Users frequently clip the same URL twice. Silent duplicates waste enrichment quota and pollute the inbox.  
 **What to do**:
