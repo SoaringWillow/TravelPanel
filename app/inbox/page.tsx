@@ -14,7 +14,9 @@ import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
+import VibeSearchBar from '@/components/VibeSearchBar';
 import NavBar from '@/components/NavBar';
+import { VibeResult } from '@/lib/vibeSearch';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -38,6 +40,8 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [vibeMode, setVibeMode] = useState(false);
+  const [vibeResults, setVibeResults] = useState<VibeResult[] | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -53,6 +57,11 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  // When vibe search has results, use those (from all items, not just inbox)
+  const displayItems = vibeResults !== null
+    ? vibeResults.map(r => r.item)
+    : filtered;
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -108,9 +117,31 @@ export default function InboxPage() {
           </span>
         </div>
 
-        {/* Search */}
-        <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+        {/* Search — toggle between text search and vibe (semantic) search */}
+        <div className="mb-3 space-y-2">
+          <div className="flex gap-2">
+            <div className={`flex-1 transition-opacity ${vibeMode ? 'opacity-40 pointer-events-none' : ''}`}>
+              <SearchBar onSearch={handleSearch} />
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setVibeMode(v => !v);
+                if (vibeMode) setVibeResults(null);
+              }}
+              className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all ${
+                vibeMode
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'
+              }`}
+              aria-label="Toggle vibe search"
+            >
+              ✨ Vibe
+            </button>
+          </div>
+          {vibeMode && (
+            <VibeSearchBar items={items} onResults={setVibeResults} />
+          )}
         </div>
 
         {/* Platform filter tabs */}
@@ -144,14 +175,16 @@ export default function InboxPage() {
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : displayItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
+            <div className="text-5xl mb-4">{vibeMode ? '✨' : query.trim() ? '🔍' : '📥'}</div>
             <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
+              {vibeMode ? 'No vibes matched.' : query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
             <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
+              {vibeMode
+                ? 'Try describing a mood, place type, or activity in the vibe search above.'
+                : query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
                 : activePlatform === 'all'
                 ? 'Share content from social apps to get started!'
@@ -160,8 +193,13 @@ export default function InboxPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
+            {vibeMode && vibeResults !== null && (
+              <div className="col-span-2 text-xs text-indigo-500 font-medium pb-1">
+                ✨ {vibeResults.length} clip{vibeResults.length !== 1 ? 's' : ''} matched your vibe
+              </div>
+            )}
             <AnimatePresence>
-              {filtered.map((item) => (
+              {displayItems.map((item) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
