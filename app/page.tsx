@@ -6,9 +6,11 @@ import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { SavedItem, Location } from '@/lib/types';
+import { useBoards } from '@/hooks/useBoards';
+import { SavedItem, Location, Board } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import BoardPickerSheet from '@/components/BoardPickerSheet';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -18,9 +20,11 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
+  const { boards } = useBoards();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
+  const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
 
   // Handle ?import= param — open sheet with pre-filled URL
@@ -91,6 +95,20 @@ function HomePageInner() {
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
             onItemUpdate={(updated) => setSelectedItem(updated)}
+            onMoveToBoard={(id) => { setMovingItemId(id); setSelectedItem(null); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Board picker — shown when moving a clip from the map detail card */}
+      <AnimatePresence>
+        {movingItemId && (
+          <BoardPickerSheet
+            itemId={movingItemId}
+            currentBoardId={items.find((i) => i.id === movingItemId)?.boardId}
+            boards={boards}
+            onDone={() => setMovingItemId(null)}
+            onClose={() => setMovingItemId(null)}
           />
         )}
       </AnimatePresence>

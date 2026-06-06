@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Pencil, Check, Trash2 } from 'lucide-react';
-import { SavedItem } from '@/lib/types';
+import { X, MapPin, Pencil, Check, Trash2, FolderInput } from 'lucide-react';
+import { SavedItem, Board } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
 import { patchItem } from '@/lib/db';
@@ -18,9 +18,10 @@ interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
   onItemUpdate?: (updated: SavedItem) => void;
+  onMoveToBoard?: (itemId: string) => void;
 }
 
-export default function LocationDetailCard({ item, onClose, onItemUpdate }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onItemUpdate, onMoveToBoard }: LocationDetailCardProps) {
   const [editing, setEditing]       = useState(false);
   const [saving, setSaving]         = useState(false);
   const [editTitle, setEditTitle]   = useState(item.title);
@@ -306,6 +307,18 @@ export default function LocationDetailCard({ item, onClose, onItemUpdate }: Loca
                   <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
                 </div>
               )
+            )}
+
+            {/* Move to collection — view mode only */}
+            {!editing && onMoveToBoard && (
+              <button
+                type="button"
+                onClick={() => onMoveToBoard(item.id)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+              >
+                <FolderInput size={15} />
+                Move to collection
+              </button>
             )}
 
             {/* Save / Cancel bar at bottom of edit mode */}

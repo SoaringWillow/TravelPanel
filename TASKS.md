@@ -194,7 +194,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No AI re-extraction on edit — just update the stored data
 
 ### D2 — Move Clip to Board 🔴 HIGH PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Clips saved to Inbox have no way to be assigned to a board after the fact. Inbox piles up and becomes unusable. This is a basic collection management feature.  
 **Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`, `app/inbox/page.tsx`  
 **What to do**:
