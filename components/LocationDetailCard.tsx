@@ -207,7 +207,17 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
             )}
 
             {/* Substance — the Wisdom view */}
-            {!editMode && <SubstanceList items={item.substance ?? []} />}
+            {!editMode && (
+              item.enrichmentStatus === 'processing' ? (
+                <div className="space-y-2">
+                  <div className="h-3 w-24 rounded-full skeleton-shimmer" />
+                  <div className="h-12 rounded-xl skeleton-shimmer" />
+                  <div className="h-12 rounded-xl skeleton-shimmer" />
+                </div>
+              ) : (
+                <SubstanceList items={item.substance ?? []} />
+              )
+            )}
 
             {/* Tags */}
             <div>

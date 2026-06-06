@@ -159,7 +159,7 @@ All tasks done. See completed tasks below.
 - Priority order: MapView.tsx, InboxCard.tsx, NavBar.tsx, LocationDetailCard.tsx, share/page.tsx
 
 ### D6 — Skeleton Loading States
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`
 **What to do**:
 - Create `components/SkeletonCard.tsx`: an animated shimmer placeholder matching the InboxCard dimensions
