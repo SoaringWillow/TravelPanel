@@ -529,6 +529,96 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE H — Intelligence, Depth & On-Trip Experience
+
+> Goal: elevate TravelPanel from "useful organizer" to "intelligent travel companion." Close the remaining strategic gaps: real-world context in plans, on-trip GPS mode, personal notes flowing into AI context, and the board sharing destination page.
+> Execution order: `H1 → H2 → H3 → H4 → H5 → H6 → H7`
+
+### H1 — Vibe-Based Trip Style Input
+**Status**: `[ ]` Not started  
+**Why**: The plan form currently has no way to express *how* you want to travel. "Slow mornings, street food focus, avoid tourist traps" dramatically changes what Claude generates. This is a free improvement — just a text field that feeds into the prompt.  
+**Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`  
+**What to do**:
+- Add a "Trip style" textarea to the plan generation form (below days/preferences)
+- Placeholder: "e.g. slow mornings, street food, budget-conscious, avoid big museums"
+- Pass it to the API as `travelStyle?: string` in the request body
+- In the planner Claude prompt, inject it as a top-priority constraint: "The traveller's style: [travelStyle]. Prioritize this over default assumptions."
+- Persist the last-used style in localStorage `planStyle` so it pre-fills next time
+- Keep it optional — empty value means current behavior (no regression)
+
+### H2 — Weather-Aware Planning (OpenMeteo)
+**Status**: `[ ]` Not started  
+**Why**: No real-world signal makes plans feel generic. OpenMeteo is free, no API key, and returns hourly forecast. A 2-sentence weather context in the Claude prompt ("Rain on day 2, 28°C on day 3") meaningfully improves itinerary quality.  
+**Files**: new `lib/weather.ts`, `app/api/plan/route.ts`  
+**What to do**:
+- Create `lib/weather.ts` with `fetchWeatherSummary(lat, lng, startDate, days): Promise<string>`. Call OpenMeteo's `/v1/forecast` endpoint (free, no key): `https://api.open-meteo.com/v1/forecast?latitude=LAT&longitude=LNG&daily=weathercode,temperature_2m_max,precipitation_sum&forecast_days=DAYS`
+- Convert WMO weather codes (0=clear, 61=rain, 71=snow, etc.) to human-readable strings
+- Compute board centroid from all clip locations (average lat/lng) to use as forecast location
+- Inject the weather summary into the planner's system prompt as a "Weather context:" block
+- Gracefully skip if centroid can't be computed or fetch fails (non-blocking)
+- In the plan UI, show a small weather pill next to each day header (☀️ 28°C / 🌧 18°C)
+
+### H3 — On-Trip Mode v1 (Today View)
+**Status**: `[ ]` Not started  
+**Why**: "I just landed, what's my day?" is the white space no competitor has touched. When a user has a saved plan and today falls within the trip dates, show a focused "Today" tab — just today's activities, a "I'm here" GPS dot, distance/time to the next stop.  
+**Files**: new `app/today/page.tsx`, `app/layout.tsx` (add Today tab to NavBar), `components/NavBar.tsx`  
+**What to do**:
+- Add a "Today" tab to NavBar (icon: `Navigation2` from lucide), only shows a notification dot when an active trip exists
+- `app/today/page.tsx`: reads all saved trips from IndexedDB; if one covers today's date, show "On-Trip Mode"
+- On-trip view: today's day plan activities in a timeline (reuse DayStripCard), current GPS location via browser Geolocation API shown on a small MapLibre map
+- "Next stop" card at the top: the next unvisited activity, with walking/transit time estimate (use OpenRouteService or just straight-line distance as a proxy)
+- If no active trip: show "No active trip — start planning one!" with a link to Boards
+- Persist "visited" checkmarks per activity in localStorage `visitedActivities:{tripId}:{dayIdx}:{actIdx}`
+
+### H4 — Trip Countdown Banner
+**Status**: `[ ]` Not started  
+**Why**: When a trip is 7 days away or less, users need a contextual reminder that creates anticipation and drives them back into the app.  
+**Files**: `app/boards/page.tsx` (or boards list), `lib/db.ts`  
+**What to do**:
+- On the Boards tab, check all saved trips for any with a `startDate` within the next 7 days
+- Show a dismissible gradient banner at the top: "✈️ [Tokyo Trip] starts in 3 days — review your plan!"
+- Tapping the banner navigates to the plan view for that board
+- Dismiss state stored in localStorage `dismissedCountdowns` (dismiss per trip, expires after trip starts)
+- If multiple trips within 7 days: show the nearest one
+- Show the banner on the main map page too (as a floating card above the NavBar)
+
+### H5 — Board Preview Page (Public Share Destination)
+**Status**: `[ ]` Not started  
+**Why**: F2 implemented board sharing (generates `travelpanel.app/board/[id]?preview=true` deep links) but the target page doesn't exist. Every shared link is a dead end.  
+**Files**: new `app/board/[id]/page.tsx` (server component), `app/api/board-preview/[id]/route.ts`  
+**What to do**:
+- Create `/board/[id]` as a server-rendered page (no auth required) that shows: board emoji, name, "N places saved", top 5 location names as pills, "Open in TravelPanel" CTA button
+- Since data is local-first, the preview requires the sharer to have stored board metadata somewhere accessible — use localStorage `sharedBoardMeta:{id}` (written when user taps Share in F2) as a simple solution for v1 (acknowledged limitation)
+- The CTA button deep-links to `travelpanel://board/[id]` (Capacitor URL scheme) or falls back to the web app root
+- Add OG meta tags (og:title, og:description, og:image) for rich link previews in iMessage/Twitter
+- Design: clean, minimal card — indigo gradient header with emoji, white body with location pills, prominent CTA
+
+### H6 — Personal Notes Flow Into Planner
+**Status**: `[ ]` Not started  
+**Why**: D4 implemented clip note editing, but `app/api/plan/route.ts` builds `contentSummary` from only title/activities/tags/substance — personal notes are dropped. This is dead data that could make plans significantly more personal.  
+**Files**: `app/api/plan/route.ts`  
+**What to do**:
+- In the plan API, extend the `contentSummary` builder to append each item's `notes` if present
+- Label it clearly in the prompt context: "Personal notes: [notes]" so Claude understands this is first-person preference data, not extracted content
+- Notes should carry higher weight than substance items — they are the user's own words
+- Only include non-empty notes (trim and check)
+- No new UI needed — the existing notes field in D4 now becomes a planning input
+
+### H7 — App Quality & Accessibility Sprint
+**Status**: `[ ]` Not started  
+**Why**: The app has accumulated UI debt across 7 phases. Before v1.0 submission, a focused quality pass catches the issues that cause App Store rejections or 1-star reviews.  
+**Files**: Multiple components  
+**What to do**:
+- **Accessibility**: Add `aria-label` to every icon-only button (delete, move, retry, close, replay, etc.) — required for App Store accessibility guidelines
+- **Keyboard navigation**: All modals (CreateBoard, PlanVersion, etc.) should close on Escape key
+- **Empty board detail**: `app/boards/[id]/page.tsx` — if board has 0 clips, show "Add clips to get started" empty state with a link to the share sheet
+- **Plan form validation**: If board has <2 location-tagged clips, show an inline warning before the Generate button instead of generating an empty plan
+- **Image fallback**: InboxCard thumbnail `onError` currently just hides the image — replace with a category-appropriate placeholder (food=🍜, nature=🌿, etc.) based on first tag
+- **Dark mode completions**: Check boards page, plan page, today page for any white-flash components not yet dark-mode adapted
+- **Long title truncation**: Clip titles >60 chars cause layout breaks in DayStripCard — add proper `truncate` class and `title` tooltip attribute
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
