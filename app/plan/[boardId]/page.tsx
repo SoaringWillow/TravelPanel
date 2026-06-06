@@ -26,6 +26,7 @@ import { haptic } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import type { EnrichSignal } from '@/lib/enrichSignals';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -53,6 +54,14 @@ export default function PlanPage() {
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const confettiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [enrichWarnings, setEnrichWarnings] = useState<EnrichSignal[]>([]);
+  const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const stored = localStorage.getItem('dismissedEnrichWarnings');
+      return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
 
   useEffect(() => {
     async function load() {
@@ -96,9 +105,11 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    setEnrichWarnings([]);
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
+    const currentTrip = savedTrips.find((t) => t.id === currentTripId);
     const res = await fetch('/api/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -109,6 +120,7 @@ export default function PlanPage() {
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
         ].join('. '),
+        departureDate: currentTrip?.departureDate,
       }),
     });
 
@@ -169,12 +181,24 @@ export default function PlanPage() {
             latestPlan = msg.plan as Partial<TripPlan>;
             setPlan(latestPlan);
           }
+          if (msg.t === 'warnings') {
+            setEnrichWarnings(msg.warnings);
+          }
         } catch {
           // skip bad lines
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips, currentTripId]);
+
+  function dismissWarning(id: string) {
+    setDismissedWarnings((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      try { localStorage.setItem('dismissedEnrichWarnings', JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -529,6 +553,38 @@ export default function PlanPage() {
                     }}
                     className="flex-1 text-xs bg-transparent text-indigo-700 dark:text-indigo-300 focus:outline-none"
                   />
+                </div>
+              )}
+
+              {/* Enrichment warning cards */}
+              {enrichWarnings.filter((w) => !dismissedWarnings.has(w.id)).length > 0 && (
+                <div className="space-y-2">
+                  {enrichWarnings
+                    .filter((w) => !dismissedWarnings.has(w.id))
+                    .map((w) => (
+                      <div
+                        key={w.id}
+                        className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl px-3 py-2.5"
+                      >
+                        <span className="text-base flex-shrink-0 mt-0.5">⚠️</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 leading-snug">
+                            {w.event}
+                            {w.window ? ` · ${w.window}` : ''}
+                            {w.priceSurge ? ` · ~${Math.round((w.priceSurge - 1) * 100)}% price surge` : ''}
+                          </p>
+                          <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 leading-snug">{w.note}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => dismissWarning(w.id)}
+                          className="flex-shrink-0 p-1 text-amber-400 hover:text-amber-600 dark:hover:text-amber-200 rounded-lg transition-colors"
+                          aria-label="Dismiss"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
                 </div>
               )}
 

@@ -155,4 +155,5 @@ export interface ImportResult {
 // NDJSON messages streamed from /api/plan
 export type PlanStreamMessage =
   | { t: 'step'; step: AgentStep }
-  | { t: 'plan'; plan: Partial<TripPlan> };
+  | { t: 'plan'; plan: Partial<TripPlan> }
+  | { t: 'warnings'; warnings: import('./enrichSignals').EnrichSignal[] };

@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { matchSignals } from '@/lib/enrichSignals';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -49,9 +50,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, departureDate: string | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, departureDate } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -73,6 +74,19 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        // ── Enrichment signals ───────────────────────────────────────────
+        const destinations = [
+          ...items.flatMap((i) => i.locations.map((l) => l.name)),
+          ...items.flatMap((i) => i.tags ?? []),
+        ];
+        const departureMonth = departureDate
+          ? new Date(departureDate).getMonth() + 1
+          : undefined;
+        const signals = matchSignals(destinations, departureMonth);
+        if (signals.length > 0) {
+          emit({ t: 'warnings', warnings: signals });
+        }
+
         // ── Step 1: Resolve locations ────────────────────────────────────
         step('searching', 'Collecting locations from your saved items…');
 
@@ -133,6 +147,12 @@ export async function POST(req: NextRequest) {
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
+        const enrichmentBlock = signals.length > 0
+          ? `\n\nReal-world enrichment warnings (incorporate relevant ones into tips and timings):\n${signals.map((s) =>
+              `- ${s.event} (${s.window}): ${s.note}${s.priceSurge ? ` Prices ~${Math.round((s.priceSurge - 1) * 100)}% above average.` : ''}`
+            ).join('\n')}`
+          : '';
+
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
@@ -141,7 +161,7 @@ export async function POST(req: NextRequest) {
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
-User preferences: ${preferences || 'None specified'}
+User preferences: ${preferences || 'None specified'}${enrichmentBlock}
 
 Rules:
 - 2-4 activities per day with realistic timing

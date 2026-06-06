@@ -15,7 +15,7 @@ Goal: a beautiful, fully functional iOS app that achieves the product vision —
 
 These are pure iOS UX polish tasks. Each makes the app feel more native, more trustworthy, more delightful — no new infrastructure required.
 
-**After D-phase is done**: `C1 → C4 → C2 → E2 → E1`
+**After D-phase is done**: `C1 → C4 → C2 → E2 → E1` (E2 done, E1 next)
 
 Blocked on Supabase keys: `B4 → E3 → E4`
 
@@ -211,7 +211,7 @@ All tasks done. See completed tasks below.
 - This is the "Wisdom tab" from the product strategy — the third primary surface alongside Map and Plan
 
 ### E2 — Real-World Enrichment Signals (Festival/Weather)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/api/plan/route.ts`, new `lib/enrichSignals.ts`
 **What to do**:
 - Create `lib/enrichSignals.ts` with a static dataset of major travel events:
