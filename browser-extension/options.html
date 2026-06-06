@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-sub {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      padding: 11px 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #6366f1; }
+    input::placeholder { color: #475569; }
+
+    .field-hint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .save-btn {
+      padding: 11px 28px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .save-btn:hover { opacity: 0.9; }
+
+    .save-feedback {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 8px;
+      font-size: 13px;
+      color: #86efac;
+    }
+    .save-feedback.visible { display: block; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 32px 0;
+    }
+
+    .info-section h2 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #e2e8f0;
+    }
+
+    .steps {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .steps li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      background: rgba(99,102,241,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #a5b4fc;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #c4b5fd;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <div class="logo-icon">🗺</div>
+      <div>
+        <div class="logo-text">TravelPanel</div>
+        <div class="logo-sub">Clipper Extension Settings</div>
+      </div>
+    </div>
+
+    <h1>Settings</h1>
+    <p class="subtitle">Configure where TravelPanel is hosted so the extension can connect to it.</p>
+
+    <div class="field">
+      <label for="appUrl">TravelPanel App URL</label>
+      <input
+        type="url"
+        id="appUrl"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <div class="field-hint">
+        Your deployed TravelPanel URL. Set to <code>http://localhost:3000</code> for local development.
+      </div>
+    </div>
+
+    <button class="save-btn" id="saveBtn">Save settings</button>
+    <div class="save-feedback" id="feedback">Settings saved ✓</div>
+
+    <hr class="divider">
+
+    <div class="info-section">
+      <h2>How to use</h2>
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <span>Browse to any travel content — a blog post, Instagram, YouTube video, or Xiaohongshu/TikTok post.</span>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <span>Click the TravelPanel extension icon in your browser toolbar.</span>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <span>Click <strong>Clip to TravelPanel</strong>. The extension opens TravelPanel with the URL pre-loaded and kicks off AI extraction.</span>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <span>TravelPanel extracts locations, tips, warnings, and wisdom from the post — then you can assign it to a board.</span>
+        </li>
+      </ol>
+    </div>
+
+    <hr class="divider">
+
+    <div class="info-section">
+      <h2>Right-click clipping</h2>
+      <ol class="steps">
+        <li>
+          <div class="step-num">💡</div>
+          <span>Right-click any link on a page and choose <strong>Clip link to TravelPanel</strong> to save that specific link without navigating to it first.</span>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
