@@ -1,0 +1,260 @@
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  background: #ffffff;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: white;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brand-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: white;
+}
+
+.brand-tag {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.65);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+  line-height: 1;
+}
+
+.settings-btn:hover {
+  color: white;
+  background: rgba(255,255,255,0.18);
+}
+
+.settings-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* ─── Page Card ───────────────────────────────────────────────────────────── */
+
+.page-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.page-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 9px;
+  flex-wrap: wrap;
+}
+
+.platform-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: white;
+  padding: 3px 9px;
+  border-radius: 99px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.travel-hint {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.page-favicon {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  object-fit: contain;
+}
+
+.page-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.page-url {
+  font-size: 11px;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Action Section ─────────────────────────────────────────────────────── */
+
+.action-section {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.clip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 18px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: -0.2px;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.clip-btn:hover:not(:disabled) {
+  background: #4338ca;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.clip-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.25);
+}
+
+.clip-btn:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.clip-btn .clip-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.clip-btn.is-travel {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.clip-btn.is-travel:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+}
+
+.clip-hint {
+  font-size: 11px;
+  color: #d1d5db;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ─── Footer ──────────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.keyboard-hint {
+  font-size: 11px;
+  color: #d1d5db;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.keyboard-hint kbd {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  border-bottom-width: 2px;
+}
+
+/* ─── Loading state ───────────────────────────────────────────────────────── */
+
+.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ─── Already on TravelPanel ─────────────────────────────────────────────── */
+
+.already-banner {
+  margin: 0 16px 16px;
+  padding: 11px 14px;
+  background: #eef2ff;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #4f46e5;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.45;
+}

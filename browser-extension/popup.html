@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=360" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="root">
+
+    <!-- ─── Header ──────────────────────────────────────────────────────── -->
+    <header class="header">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+          <rect width="128" height="128" rx="24" fill="rgba(255,255,255,0.2)"/>
+          <path d="M64 22C47.4 22 34 35.4 34 52C34 74.5 64 106 64 106C64 106 94 74.5 94 52C94 35.4 80.6 22 64 22ZM64 64C57.4 64 52 58.6 52 52C52 45.4 57.4 40 64 40C70.6 40 76 45.4 76 52C76 58.6 70.6 64 64 64Z" fill="white"/>
+          <circle cx="64" cy="52" r="9" fill="rgba(255,255,255,0.3)"/>
+        </svg>
+        <span class="brand-name">TravelPanel</span>
+        <span class="brand-tag">Clipper</span>
+      </div>
+      <button class="settings-btn" id="settingsBtn" title="Settings" aria-label="Open settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- ─── Page Card ────────────────────────────────────────────────────── -->
+    <div class="page-card" id="pageCard">
+      <div class="page-meta">
+        <span class="platform-badge" id="platformBadge">Web</span>
+        <span class="travel-hint" id="travelHint">✈ Travel content</span>
+      </div>
+      <p class="page-title" id="pageTitle">Loading…</p>
+      <p class="page-url" id="pageUrl"></p>
+    </div>
+
+    <!-- ─── Action ───────────────────────────────────────────────────────── -->
+    <div class="action-section" id="actionSection">
+      <button class="clip-btn" id="clipBtn">
+        <span class="clip-icon">📌</span>
+        <span id="clipBtnLabel">Clip to TravelPanel</span>
+      </button>
+      <p class="clip-hint" id="clipHint">Opens the save dialog in a new tab</p>
+    </div>
+
+    <!-- ─── Footer ───────────────────────────────────────────────────────── -->
+    <footer class="footer">
+      <span class="keyboard-hint" id="kbdHint">
+        Quick clip:&nbsp;<kbd id="kbdShortcut">⌘⇧T</kbd>
+      </span>
+    </footer>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
