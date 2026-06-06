@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #fff;
+      color: #111827;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ───────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 30px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+
+    .header-text { flex: 1; }
+    .header-title { font-weight: 700; font-size: 15px; color: #fff; line-height: 1.2; }
+    .header-subtitle { font-size: 11px; color: rgba(255, 255, 255, 0.65); margin-top: 1px; }
+
+    /* ── Content area ─────────────────────────────────── */
+    .content { padding: 16px 18px 18px; }
+
+    /* ── Setup state ──────────────────────────────────── */
+    .setup {
+      padding: 24px 18px 20px;
+      text-align: center;
+    }
+
+    .setup-emoji { font-size: 38px; margin-bottom: 12px; }
+
+    .setup-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+
+    .setup-desc {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    .input-label {
+      display: block;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+
+    .text-input {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: #111827;
+      margin-bottom: 12px;
+      transition: border-color 0.15s;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .text-input:focus { border-color: #6366f1; }
+
+    /* ── Buttons ──────────────────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 11px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: background 0.15s, transform 0.1s, opacity 0.15s;
+      font-family: inherit;
+    }
+
+    .btn-primary:hover { background: #4338ca; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Platform chip ────────────────────────────────── */
+    .platform-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: 0.02em;
+      margin-bottom: 11px;
+    }
+
+    /* ── Page preview card ────────────────────────────── */
+    .page-card {
+      background: #f9fafb;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+
+    .page-favicon {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      margin-bottom: 6px;
+    }
+
+    .page-title {
+      font-weight: 600;
+      font-size: 13px;
+      color: #111827;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.45;
+      margin-bottom: 5px;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Footer link ──────────────────────────────────── */
+    .settings-link {
+      display: block;
+      text-align: center;
+      margin-top: 11px;
+      font-size: 12px;
+      color: #9ca3af;
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 100%;
+      font-family: inherit;
+      padding: 4px;
+      transition: color 0.15s;
+    }
+
+    .settings-link:hover { color: #6b7280; }
+
+    /* ── Success state ────────────────────────────────── */
+    .success {
+      padding: 28px 18px 22px;
+      text-align: center;
+    }
+
+    .success-icon { font-size: 46px; margin-bottom: 12px; display: block; }
+
+    .success-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: #111827;
+      margin-bottom: 5px;
+    }
+
+    .success-desc {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    /* ── Error state ──────────────────────────────────── */
+    .error-banner {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #b91c1c;
+      margin-bottom: 12px;
+    }
+
+    /* ── Blocked URL state ────────────────────────────── */
+    .blocked {
+      padding: 20px 18px;
+      text-align: center;
+    }
+
+    .blocked-icon { font-size: 32px; margin-bottom: 10px; display: block; }
+    .blocked-title { font-weight: 600; font-size: 14px; color: #6b7280; }
+    .blocked-desc { font-size: 12px; color: #9ca3af; margin-top: 4px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🗺</div>
+    <div class="header-text">
+      <div class="header-title">TravelPanel</div>
+      <div class="header-subtitle">Travel Inspiration Clipper</div>
+    </div>
+  </div>
+
+  <div id="root"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
