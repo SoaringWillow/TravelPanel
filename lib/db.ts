@@ -209,6 +209,17 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   await tx.done;
 }
 
+export async function getCoverImage(boardId: string): Promise<string | null> {
+  try {
+    const db = await getDB();
+    const items = await db.getAllFromIndex('items', 'by-board', boardId);
+    const first = items.find((i) => i.thumbnail);
+    return first?.thumbnail ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
 export async function getAllTrips(): Promise<Trip[]> {

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { getCoverImage } from '@/lib/db';
 import BoardCard from '@/components/BoardCard';
 import { SkeletonBoardCard } from '@/components/SkeletonCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
@@ -16,6 +17,21 @@ export default function BoardsPage() {
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [coverImages, setCoverImages] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    if (!boards.length) return;
+    const boardsWithoutCover = boards.filter((b) => !b.coverThumbnail);
+    if (!boardsWithoutCover.length) return;
+    Promise.all(
+      boardsWithoutCover.map(async (b) => {
+        const img = await getCoverImage(b.id);
+        return [b.id, img] as [string, string | null];
+      })
+    ).then((entries) => {
+      setCoverImages(Object.fromEntries(entries));
+    });
+  }, [boards]);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -82,6 +98,7 @@ export default function BoardsPage() {
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
+                coverImage={coverImages[board.id]}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
               />

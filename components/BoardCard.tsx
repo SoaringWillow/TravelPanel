@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Board } from '@/lib/types';
@@ -7,45 +8,54 @@ import { Board } from '@/lib/types';
 interface BoardCardProps {
   board: Board;
   itemCount: number;
+  coverImage?: string | null;
   onClick: () => void;
   onDelete?: () => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, coverImage, onClick, onDelete }: BoardCardProps) {
+  const [imgError, setImgError] = useState(false);
+  const thumbnail = !imgError ? (coverImage ?? board.coverThumbnail ?? null) : null;
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
-      style={{ borderLeftWidth: undefined }}
+      className="relative rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col transition-all duration-150"
     >
-      {/* Cover thumbnail background */}
-      {board.coverThumbnail && (
+      {/* Background: cover image or indigo fallback */}
+      {thumbnail ? (
         <>
           <img
-            src={board.coverThumbnail}
+            src={thumbnail}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
+            onError={() => setImgError(true)}
           />
-          <div className="absolute inset-0 bg-white/80" />
+          {/* Gradient overlay so text is always readable */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </>
+      ) : (
+        <div className="absolute inset-0 bg-indigo-600" />
       )}
 
       {/* Content */}
-      <div className="relative flex flex-col flex-1 p-4">
+      <div className="relative flex flex-col flex-1 p-4 justify-between">
         {/* Emoji top-left */}
-        <div className="text-2xl leading-none mb-3">{board.emoji}</div>
+        <div className={`text-2xl leading-none ${thumbnail ? 'drop-shadow' : ''}`}>
+          {board.emoji}
+        </div>
 
-        {/* Name */}
-        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
-          {board.name}
-        </h3>
-
-        {/* Item count */}
-        <p className="text-sm text-gray-400">
-          {itemCount} place{itemCount !== 1 ? 's' : ''}
-        </p>
+        {/* Name + count at bottom */}
+        <div>
+          <h3 className={`font-bold text-sm leading-snug line-clamp-1 mb-0.5 ${thumbnail ? 'text-white' : 'text-white'}`}>
+            {board.name}
+          </h3>
+          <p className={`text-xs ${thumbnail ? 'text-white/70' : 'text-indigo-200'}`}>
+            {itemCount} place{itemCount !== 1 ? 's' : ''}
+          </p>
+        </div>
 
         {/* Delete button bottom-right */}
         {onDelete && (
@@ -55,7 +65,7 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
               e.stopPropagation();
               onDelete();
             }}
-            className="absolute bottom-3 right-3 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            className="absolute bottom-3 right-3 p-1.5 text-white/60 hover:text-red-300 hover:bg-white/20 rounded-lg transition-colors"
             aria-label="Delete board"
           >
             <Trash2 size={14} />

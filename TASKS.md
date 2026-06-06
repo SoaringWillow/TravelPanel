@@ -319,7 +319,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Log to PostHog if key is present: `track('app_error', { message, stack })`
 
 ### E5 — Board Cover Image
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx` or boards-related components  
 **What to do**:
 - Each board card should show a cover image auto-selected from the first item in the board that has a thumbnail
