@@ -99,3 +99,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-06 13:24 | dd20060 | feat: B2 — Chrome/Safari browser extension for one-click URL clipping
 2026-06-06 13:30 | 3074d52 | feat: B3 — Xiaohongshu fix via Claude Vision + iOS image capture
 2026-06-06 13:32 | ee2bdd2 | feat: B5 — data export (JSON backup of all clips, boards & trips)
+2026-06-06 13:35 | 38f6e56 | feat: C1 — On-Trip GPS Mode (Near Me)
