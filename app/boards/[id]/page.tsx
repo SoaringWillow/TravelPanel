@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -49,6 +49,28 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShareBoard() {
+    const shareUrl = `${window.location.origin}/boards/${boardId}?preview=true`;
+    const shareData = {
+      title: `${board?.emoji} ${board?.name} — TravelPanel`,
+      text: `Check out my travel board with ${boardItems.length} places!`,
+      url: shareUrl,
+    };
+
+    try {
+      // Try native share sheet (iOS/Android)
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copied to clipboard!');
+      }
+    } catch {
+      // User dismissed share sheet — not an error
+    }
   }
 
   if (loading) {
@@ -107,9 +129,19 @@ export default function BoardDetailPage() {
             </h1>
           </div>
 
-          <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
-            {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
+            </span>
+            <button
+              type="button"
+              onClick={handleShareBoard}
+              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+              aria-label="Share board"
+            >
+              <Share2 size={18} />
+            </button>
+          </div>
         </div>
       </div>
 

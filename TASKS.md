@@ -395,7 +395,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - When streak is broken, show a "You missed a day — start a new streak!" banner once
 
 ### F2 — Share Your Board (Deep Link Generation)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Virality is the cheapest user acquisition. Sharing a board brings new users in with context.  
 **Files**: `app/boards/[boardId]/page.tsx` (or create it), `app/api/share/route.ts`  
 **What to do**:
