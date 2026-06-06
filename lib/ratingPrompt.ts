@@ -1,3 +1,5 @@
+import { incrementStreak } from '@/lib/streaks';
+
 const CLIP_COUNT_KEY = 'clipSaveCount';
 const RATED_KEY = 'hasRequestedReview';
 const REVIEW_THRESHOLD = 3;
@@ -6,6 +8,7 @@ export function recordClipSave(): void {
   try {
     const current = parseInt(localStorage.getItem(CLIP_COUNT_KEY) ?? '0', 10);
     localStorage.setItem(CLIP_COUNT_KEY, String(current + 1));
+    incrementStreak();
   } catch {
     // localStorage unavailable (SSR / private mode)
   }

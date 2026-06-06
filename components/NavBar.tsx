@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Globe2, Inbox, LayoutGrid, Settings } from 'lucide-react';
+import { StreakBadge } from '@/components/StreakBadge';
 
 interface NavBarProps {
   active: 'home' | 'inbox' | 'boards' | 'settings';
@@ -31,7 +32,14 @@ export default function NavBar({ active }: NavBarProps) {
                 isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+              <div className="relative">
+                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                {key === 'settings' && (
+                  <span className="absolute -top-1 -right-3">
+                    <StreakBadge />
+                  </span>
+                )}
+              </div>
               <span className="text-xs mt-0.5 font-medium">{label}</span>
               {/* Active indicator dot */}
               <span

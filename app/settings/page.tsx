@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, Upload, Trash2, Globe2, CheckCircle2, AlertCircle, Info, ChevronRight, Shield, FileText } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, saveItem, saveBoard } from '@/lib/db';
 import { SavedItem, Board } from '@/lib/types';
+import { getStreakInfo, StreakInfo } from '@/lib/streaks';
 
 // ─── Backup format ────────────────────────────────────────────────────────────
 
@@ -64,11 +65,16 @@ type ActionState = 'idle' | 'busy' | 'success' | 'error';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
   const [exportState, setExportState]       = useState<ActionState>('idle');
   const [importState, setImportState]       = useState<ActionState>('idle');
   const [importMessage, setImportMessage]   = useState('');
   const [exportMessage, setExportMessage]   = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setStreakInfo(getStreakInfo());
+  }, []);
 
   async function handleExport() {
     setExportState('busy');
@@ -111,6 +117,40 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+
+        {/* ── Streak ── */}
+        {streakInfo && streakInfo.current > 0 && (
+          <Section title="Your Streak">
+            <div className="px-4 py-3 space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🔥</span>
+                <div>
+                  <p className="text-lg font-bold text-gray-900">{streakInfo.current} day{streakInfo.current !== 1 ? 's' : ''} in a row</p>
+                  <p className="text-xs text-gray-500">Longest streak: {streakInfo.longest} day{streakInfo.longest !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              {/* 30-day heatmap */}
+              <div>
+                <p className="text-xs text-gray-400 mb-2 font-medium">Last 30 days</p>
+                <div className="flex flex-wrap gap-1">
+                  {Array.from({ length: 30 }, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (29 - i));
+                    const key = d.toISOString().slice(0, 10);
+                    const active = streakInfo.history.includes(key);
+                    return (
+                      <div
+                        key={key}
+                        title={key}
+                        className={`w-4 h-4 rounded-sm ${active ? 'bg-indigo-500' : 'bg-gray-100'}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </Section>
+        )}
 
         {/* ── About ── */}
         <Section title="About">

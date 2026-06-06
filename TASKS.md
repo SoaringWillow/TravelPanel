@@ -384,7 +384,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Execution order: `F1 → F2 → F3 → F4 → F5 → F6 → F7`
 
 ### F1 — Clip Streak & Home Widget (Engagement Hook)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The North Star metric is weekly clips per active user. A streak is the single most proven habit-formation mechanic.  
 **Files**: new `lib/streaks.ts`, `app/settings/page.tsx`, `components/StreakBadge.tsx`  
 **What to do**:
