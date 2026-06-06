@@ -324,7 +324,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Also create a 1024×1024 App Store icon (no alpha channel, no rounded corners — Apple applies them)
 
 ### E2 — Launch Screen Redesign
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Base.lproj/LaunchScreen.storyboard` or Capacitor splash config  
 **What to do**:
 - Replace the default white splash with: indigo gradient background, centered white TravelPanel globe logo, app name in SF Pro Display Bold
