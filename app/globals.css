@@ -35,6 +35,12 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Dark mode overrides */
+  .dark body {
+    background-color: #0f172a;
+    color: #f1f5f9;
+  }
 }
 
 .maplibregl-map {

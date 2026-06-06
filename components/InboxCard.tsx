@@ -50,7 +50,7 @@ export default function InboxCard({
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden animate-pulse">
           <div className="w-full h-32 bg-gray-200" />
           <div className="p-4 space-y-3">
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
@@ -66,7 +66,7 @@ export default function InboxCard({
 
     // Partial card — title is known, enrichment still running
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-4 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span
@@ -116,7 +116,7 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
@@ -189,7 +189,7 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img

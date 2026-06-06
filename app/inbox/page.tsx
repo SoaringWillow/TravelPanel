@@ -99,12 +99,12 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-800 shadow-sm px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
@@ -218,11 +218,11 @@ export default function InboxPage() {
                   (item.enrichmentStatus === 'processing' && (!item.title || item.title === item.url));
                 return (
                   <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    key={`${item.id}-${item.enrichmentStatus}`}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.25 }}
                   >
                     <SwipeCard
                       onDelete={() => removeItem(item.id)}

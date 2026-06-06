@@ -75,7 +75,7 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[65vh] flex flex-col">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden max-h-[65vh] flex flex-col">
 
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">

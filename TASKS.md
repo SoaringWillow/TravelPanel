@@ -417,7 +417,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test: open app, turn off network, navigate between tabs — all existing clips and map tiles should still work
 
 ### F4 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/globals.css`, `tailwind.config.js`, all major components  
 **What to do**:
 - Enable Tailwind's `darkMode: 'media'` (respects system preference)
