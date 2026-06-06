@@ -179,6 +179,133 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & Feature Completion
+
+### D1 — Clip Edit Mode 🔴 HIGH PRIORITY
+**Status**: `[x]` Done  
+**Why**: Users can't fix wrong extractions (bad coordinates, wrong title, typos). Read-only clips are a retention killer once the novelty of extraction wears off.  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an edit pencil button to `LocationDetailCard`
+- When tapped, switch to edit mode: editable title, description, notes textarea
+- Allow editing location names and removing/adding individual location pins via a simple list
+- Allow editing tags (toggle chips from the full tag list)
+- "Save changes" → `updateItemEnrichment` patch, "Discard" → revert
+- No AI re-extraction on edit — just update the stored data
+
+### D2 — Move Clip to Board 🔴 HIGH PRIORITY
+**Status**: `[ ]` Not started  
+**Why**: Clips saved to Inbox have no way to be assigned to a board after the fact. Inbox piles up and becomes unusable. This is a basic collection management feature.  
+**Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Long-press or swipe left on `InboxCard` → reveal action row: "Move to board" + "Delete"
+- "Move to board" opens a bottom sheet showing all boards + "New board" option
+- Selecting a board calls `addItemToBoard` and removes from Inbox view
+- Also wire the same "Move" action inside `LocationDetailCard` detail view
+
+### D3 — Import Backup (restore JSON)
+**Status**: `[ ]` Not started  
+**Why**: B5 added export but without import, backup is useless for device migration or accidental deletion recovery.  
+**Files**: `app/settings/page.tsx`, new `lib/importData.ts`  
+**What to do**:
+- Add "Restore from backup" section below the export button in settings
+- File input accepting `.json` — parse and validate as `TravelPanelBackup` schema
+- Conflict resolution: skip items/boards/trips whose IDs already exist (idempotent)
+- Show restore progress and summary: "42 clips, 8 collections imported"
+- Handle malformed files gracefully (show parse error, don't corrupt DB)
+
+### D4 — Trip Plan Timeline View 🔴 HIGH PRIORITY
+**Status**: `[ ]` Not started  
+**Why**: The current plan view is a text-heavy card list. A visual timeline with time markers, thumbnails, and distance estimates makes plans feel premium and actually usable for navigation.  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`, new `components/TimelineActivity.tsx`  
+**What to do**:
+- Replace the current `DayStripCard` activity list with a vertical timeline layout
+- Each activity: left time column + connecting line + right content card (photo, name, duration, sourced tips)
+- Show activity thumbnail from the source clip (matched by location name)
+- Add a distance/travel time indicator between consecutive activities ("~12 min drive")
+- "View on map" button on each activity → navigate to `/` with `?flyTo=lat,lng`
+- Keep the existing streaming/version selector — just upgrade the activity renderer
+
+### D5 — Map Trip Route Overlay
+**Status**: `[ ]` Not started  
+**Why**: TravelPanel claims "map-centric UI" but the map shows only scattered pins. Showing the day-by-day route for a saved plan makes the map the star.  
+**Files**: `components/MapView.tsx`, `app/page.tsx`, `lib/db.ts`  
+**What to do**:
+- On the main map, if the currently-viewed board has a saved trip plan, add a toggle "Show trip route"
+- When active: draw day-coloured polylines connecting activity locations in order (Day 1 = blue, Day 2 = green, etc.)
+- Number badges on pins showing which day they appear on
+- Tap a route segment → show activity name + time
+- Uses `RouteMapView` pattern already in place
+
+### D6 — Haptic Feedback (Capacitor)
+**Status**: `[ ]` Not started  
+**Why**: The app feels like a website, not a native app. Haptic feedback on key actions (pin tap, save, delete) is the #1 thing that makes Capacitor apps feel native.  
+**Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` with wrappers: `taptic()` (light), `successTaptic()` (medium), `errorTaptic()` (heavy)
+- Import `@capacitor/haptics`; wrap in try/catch so it no-ops in browser
+- Add `taptic()` on: map pin tap, board/inbox item tap
+- Add `successTaptic()` on: clip save success (done stage in share page)
+- Add `errorTaptic()` on: enrichment failed, limit hit
+
+### D7 — Map Style Toggle (Satellite / Street)
+**Status**: `[ ]` Not started  
+**Why**: Travel planners want to see terrain and landmarks, not just street labels. Satellite mode is visually stunning and makes location review much richer.  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Add a small floating button (bottom-right, above the FAB) to cycle map style: Streets → Satellite → Terrain
+- Store preference in `localStorage` so it persists
+- MapLibre style URLs: OpenFreeMap streets (current), then satellite (use maptiler/esri free tier or OpenAerialMap), then OpenTopoMap
+- The button shows a small icon indicating the NEXT style (not current)
+
+### D8 — Near Me Filter
+**Status**: `[ ]` Not started  
+**Why**: On-trip use case: user is at a location and wants to see which saved clips are nearby. Currently no way to filter by current location.  
+**Files**: `app/page.tsx`, `components/MapView.tsx`  
+**What to do**:
+- Add a "Near me" toggle button in the map toolbar
+- Requests GPS permission via browser Geolocation API
+- When active: show a radius circle (3km default) and filter pins to only those inside
+- A slider to adjust radius (1km / 3km / 10km)
+- Show a "X clips nearby" count badge
+- Auto-pan map to user location when activated
+
+### D9 — Budget Signals in Plans
+**Status**: `[ ]` Not started  
+**Why**: Substance items often contain price signals ("人均 ¥80", "entry fee $15", "free on Tuesdays"). Surfacing these in the trip plan turns vague advice into actionable budget planning.  
+**Files**: `app/api/plan/route.ts`, `lib/types.ts`, `components/DayStripCard.tsx`  
+**What to do**:
+- During plan generation, scan substance items for price patterns (¥N, $N, €N, "free", "budget", "expensive")
+- Add `estimatedCost?: string` to `Activity` type ("~¥80/person" or "Free")
+- Render it as a subtle cost badge on each activity card
+- Add a daily cost summary to each `DayPlan` (sum of activities with known costs)
+- Keep it graceful: activities without price signals don't show anything
+
+### D10 — iOS App Icon + Splash Screen
+**Status**: `[ ]` Not started  
+**Why**: The current iOS app uses the default Capacitor/Ionic icon. This looks unprofessional and will be rejected by App Store review. A proper icon is required for TestFlight.  
+**Files**: `ios/App/App/Assets.xcassets/`, `public/icons/`, new `scripts/generate-icons.js`  
+**What to do**:
+- Design a map-pin icon in SVG: blue teardrop with white inner circle, gradient background
+- Create `scripts/generate-icons.js` using `sharp` (npm) to generate all required iOS icon sizes
+  (20×20, 29×29, 40×40, 60×60, 76×76, 83.5×83.5, 1024×1024 @1x/2x/3x)
+- Generate PWA icons for `public/icons/` (192×192, 512×512) + update `public/manifest.json`
+- Update `ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json` to reference generated files
+- Create a simple white-on-blue splash screen matching the icon
+
+### D11 — Share Plan as Beautiful Link
+**Status**: `[ ]` Not started  
+**Why**: Trip plans are created in isolation. Users want to share their Tokyo 5-day itinerary with travel companions. This is a viral growth mechanism.  
+**Files**: `app/plan/[boardId]/page.tsx`, new `app/plan/[boardId]/share/page.tsx`, new `app/api/share-plan/route.ts`  
+**What to do**:
+- "Share plan" button in plan view → generates a read-only shareable URL
+- Server-side: store plan JSON in a `shared_plans` table (Supabase when available, or temporary serverless KV)
+- For offline-first: encode the plan as a URL-safe compressed JSON in the hash (no server needed for small plans)
+- Read-only view at `/plan/shared/[token]`: beautiful HTML with day timeline, maps, sourced tips
+- Add Open Graph meta tags so WhatsApp/iMessage previews look rich
+
+---
+
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
