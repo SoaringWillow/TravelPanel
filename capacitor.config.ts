@@ -22,6 +22,11 @@ const config: CapacitorConfig = {
     limitsNavigationsToAppBoundDomains: false,
   },
   plugins: {
+    // Use the App Group suite so @capacitor/preferences reads the same UserDefaults
+    // that the Share Extension writes to (pendingShareURL, pendingShareImageBase64, etc.)
+    Preferences: {
+      group: 'group.com.travelpanel.app',
+    },
     SplashScreen: {
       launchShowDuration: 800,
       backgroundColor: '#f9fafb',
