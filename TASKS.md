@@ -406,7 +406,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Store shared board metadata in a `sharedBoards` localStorage key (for now; Supabase when ready)
 
 ### F3 — Offline Caching (PWA Service Worker)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Travel app used abroad → users WILL be offline. Map tiles not loading = catastrophic UX failure.  
 **Files**: `next.config.js` (already has next-pwa), `public/sw.js` or next-pwa config  
 **What to do**:
