@@ -85,8 +85,10 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -97,8 +99,9 @@ export async function POST(req: NextRequest) {
 
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
+  const hasImage = typeof imageBase64 === 'string' && imageBase64.length > 0;
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -106,6 +109,7 @@ Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
 ${page?.textContent ?? '(could not fetch page)'}
+${hasImage ? '\nA screenshot of the post is attached as an image — use it as the PRIMARY source of content when the page text is sparse or unavailable (common for Xiaohongshu/WeChat which block scraping).' : ''}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -133,7 +137,23 @@ Never return an empty substance array for a real travel post.`;
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      ...(hasImage
+        ? {
+            messages: [
+              {
+                role: 'user' as const,
+                content: [
+                  { type: 'text' as const, text: textPrompt },
+                  {
+                    type: 'image' as const,
+                    image: Buffer.from(imageBase64!, 'base64'),
+                    mimeType: (imageMimeType as 'image/jpeg' | 'image/png' | 'image/webp') ?? 'image/jpeg',
+                  },
+                ],
+              },
+            ],
+          }
+        : { prompt: textPrompt }),
     });
     claudeResult = object;
   } catch {

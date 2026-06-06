@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    .container { width: 100%; max-width: 480px; }
+
+    /* header */
+    .page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    .page-icon { font-size: 28px; }
+    .page-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    .page-sub { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+    /* card */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+      margin-bottom: 16px;
+    }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .card-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; line-height: 1.5; }
+
+    /* form */
+    label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px; letter-spacing: 0.03em; text-transform: uppercase; }
+
+    .input-row { display: flex; gap: 8px; }
+    input[type="url"], input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 9px;
+      font-size: 13px;
+      color: #1e293b;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input:focus { outline: none; border-color: #6366f1; }
+    input::placeholder { color: #cbd5e1; }
+
+    .save-btn {
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #6366f1, #3b82f6);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .save-btn:hover { opacity: 0.88; }
+    .save-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .test-btn {
+      margin-top: 10px;
+      padding: 9px 14px;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .test-btn:hover { background: #e2e8f0; }
+
+    /* status messages */
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      display: none;
+    }
+    .status.success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
+    .status.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
+    .status.info    { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; display: block; }
+
+    /* how-to */
+    .steps { list-style: none; counter-reset: steps; }
+    .steps li {
+      counter-increment: steps;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .steps li::before {
+      content: counter(steps);
+      min-width: 22px;
+      height: 22px;
+      background: #6366f1;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .steps li p { font-size: 13px; color: #475569; line-height: 1.5; }
+    .steps li code {
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #6366f1;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .divider { height: 1px; background: #f1f5f9; margin: 16px 0; }
+
+    .footer-note { font-size: 11px; color: #94a3b8; text-align: center; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <div class="page-icon">✈️</div>
+      <div>
+        <div class="page-title">TravelPanel Clipper</div>
+        <div class="page-sub">Extension settings</div>
+      </div>
+    </div>
+
+    <!-- URL config -->
+    <div class="card">
+      <div class="card-title">TravelPanel URL</div>
+      <div class="card-sub">
+        Enter the URL of your TravelPanel app. This is the Vercel deployment URL or your local dev server.
+      </div>
+
+      <label for="urlInput">Your TravelPanel URL</label>
+      <div class="input-row">
+        <input type="url" id="urlInput" placeholder="https://your-app.vercel.app" autocomplete="off" spellcheck="false">
+        <button class="save-btn" id="saveBtn">Save</button>
+      </div>
+
+      <button class="test-btn" id="testBtn">Test connection →</button>
+
+      <div class="status" id="statusMsg"></div>
+    </div>
+
+    <!-- How to find URL -->
+    <div class="card">
+      <div class="card-title">How to find your TravelPanel URL</div>
+      <div class="card-sub">New to TravelPanel? Follow these steps.</div>
+      <ul class="steps">
+        <li><p>Deploy TravelPanel to Vercel. Your URL will look like <code>https://travelpanel-xyz.vercel.app</code>.</p></li>
+        <li><p>Copy the URL from your browser's address bar when viewing TravelPanel.</p></li>
+        <li><p>Paste it above and click Save. The extension will open TravelPanel's share page when you clip.</p></li>
+        <li><p>For local development, enter <code>http://localhost:3000</code> (or your local IP).</p></li>
+      </ul>
+    </div>
+
+    <div class="footer-note">
+      TravelPanel Clipper v1.0 · <a href="#" id="clearLink" style="color:#94a3b8;">Reset settings</a>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,17 +1,20 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Navigation2 } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { GeoPosition } from '@/hooks/useGeolocation';
+import { haversineMetres, formatDistance } from '@/lib/haversine';
 import SubstanceList from './SubstanceList';
 
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
+  userPosition?: GeoPosition | null;
 }
 
-export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, userPosition }: LocationDetailCardProps) {
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -71,22 +74,45 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                   Locations
                 </p>
                 <div className="space-y-2">
-                  {item.locations.map((loc, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <MapPin size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-sm text-gray-700 font-medium block">
-                          {loc.name}
-                        </span>
-                        {loc.address && (
-                          <span className="text-xs text-gray-400 block">{loc.address}</span>
-                        )}
-                        <span className="text-xs text-gray-400">
-                          {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
-                        </span>
+                  {item.locations.map((loc, i) => {
+                    const distM = userPosition
+                      ? haversineMetres(userPosition.lat, userPosition.lng, loc.lat, loc.lng)
+                      : null;
+                    const mapsUrl = `https://maps.apple.com/?daddr=${loc.lat},${loc.lng}&dirflg=d`;
+                    return (
+                      <div key={i} className="flex items-start gap-2">
+                        <MapPin size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm text-gray-700 font-medium block">
+                            {loc.name}
+                          </span>
+                          {loc.address && (
+                            <span className="text-xs text-gray-400 block">{loc.address}</span>
+                          )}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-gray-400">
+                              {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
+                            </span>
+                            {distM !== null && (
+                              <span className="text-xs text-blue-500 font-medium">
+                                {formatDistance(distM)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
+                          aria-label={`Navigate to ${loc.name}`}
+                        >
+                          <Navigation2 size={11} />
+                          Go
+                        </a>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -21,6 +21,7 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const hasImage        = searchParams.get('hasImage') === '1';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -88,9 +89,11 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — attach screenshot if the Share Extension provided one
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const imageBase64 = hasImage ? (() => { try { return sessionStorage.getItem('tp_pending_image') ?? undefined; } catch { return undefined; } })() : undefined;
+    if (imageBase64) { try { sessionStorage.removeItem('tp_pending_image'); } catch { /* ignore */ } }
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

@@ -224,15 +224,120 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── GPS blue dot (pulsing user location) ────────────────────────────────────
+
+interface GpsDotProps {
+  accuracy: number;
+}
+
+function GpsDot({ accuracy }: GpsDotProps) {
+  return (
+    <>
+      <style>{`
+        @keyframes tp-gps-pulse {
+          0%   { transform: scale(1);   opacity: 0.55; }
+          70%  { transform: scale(2.8); opacity: 0; }
+          100% { transform: scale(2.8); opacity: 0; }
+        }
+      `}</style>
+      <div style={{ position: 'relative', width: 16, height: 16 }}>
+        {/* Accuracy ring */}
+        {accuracy < 500 && (
+          <div style={{
+            position: 'absolute',
+            inset: -2,
+            borderRadius: '50%',
+            background: 'rgba(59,130,246,0.18)',
+            animation: 'tp-gps-pulse 2s ease-out infinite',
+          }} />
+        )}
+        {/* Outer white border */}
+        <div style={{
+          position: 'absolute',
+          inset: -2,
+          borderRadius: '50%',
+          background: 'white',
+          boxShadow: '0 1px 5px rgba(0,0,0,0.25)',
+        }} />
+        {/* Blue dot */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '50%',
+          background: '#3b82f6',
+        }} />
+      </div>
+    </>
+  );
+}
+
+// ─── Locate-me button ─────────────────────────────────────────────────────────
+
+interface LocateButtonProps {
+  geoState: 'idle' | 'requesting' | 'active' | 'denied' | 'error';
+  onClick: () => void;
+}
+
+function LocateButton({ geoState, onClick }: LocateButtonProps) {
+  const label =
+    geoState === 'requesting' ? 'Getting location…'
+    : geoState === 'active'   ? 'Stop tracking'
+    : geoState === 'denied'   ? 'Location denied'
+    : 'Show my location';
+
+  const bg =
+    geoState === 'active'   ? '#3b82f6'
+    : geoState === 'denied'  ? '#ef4444'
+    : '#fff';
+
+  const color =
+    (geoState === 'active' || geoState === 'denied') ? '#fff' : '#374151';
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      title={label}
+      style={{
+        position: 'absolute',
+        bottom: 140,
+        right: 16,
+        zIndex: 1000,
+        width: 42,
+        height: 42,
+        borderRadius: '50%',
+        background: bg,
+        color,
+        border: 'none',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.22)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18,
+        transition: 'background 0.2s',
+      }}
+    >
+      {geoState === 'requesting' ? '⏳' : geoState === 'denied' ? '🚫' : '📍'}
+    </button>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
+
+import { GeoPosition, GeoState } from '@/hooks/useGeolocation';
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userPosition?: GeoPosition | null;
+  geoState?: GeoState;
+  onLocatePress?: () => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userPosition, geoState = 'idle', onLocatePress }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -267,8 +372,25 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     [syncView],
   );
 
+  // Fly to user location when GPS first becomes active
+  const prevGeoState = useRef<GeoState>('idle');
+  useEffect(() => {
+    if (prevGeoState.current !== 'active' && geoState === 'active' && userPosition && mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo({
+        center: [userPosition.lng, userPosition.lat],
+        zoom: 14,
+        duration: 1200,
+      });
+    }
+    prevGeoState.current = geoState;
+  }, [geoState, userPosition]);
+
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {onLocatePress && (
+        <LocateButton geoState={geoState} onClick={onLocatePress} />
+      )}
+
       <Map
         id="main-map"
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
@@ -328,6 +450,13 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* User GPS position */}
+        {userPosition && Number.isFinite(userPosition.lat) && Number.isFinite(userPosition.lng) && (
+          <Marker longitude={userPosition.lng} latitude={userPosition.lat} anchor="center">
+            <GpsDot accuracy={userPosition.accuracy} />
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
