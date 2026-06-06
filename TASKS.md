@@ -246,7 +246,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Support markdown-lite in notes: `**bold**`, `- bullets` rendered on save
 
 ### D5 — Board Cover Images from Clip Thumbnails
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/db.ts`, `app/boards/page.tsx`, `components/BoardCard.tsx` (create if needed)  
 **What to do**:
 - When an item with a thumbnail is added to a board (via `addItemToBoard`), auto-set `board.coverThumbnail` if not already set
@@ -256,7 +256,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Implement `BoardCard` component if not already separated
 
 ### D6 — "Quick Plan" Button on Board Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx` or `components/BoardCard.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Add a "Plan trip →" button to each board card that has ≥2 clips with locations

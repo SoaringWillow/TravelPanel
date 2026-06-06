@@ -23,6 +23,13 @@ export default function BoardsPage() {
     return board ? board.itemIds.length : 0;
   }
 
+  function getLocationItemCount(boardId: string): number {
+    const board = boards.find((b) => b.id === boardId);
+    if (!board) return 0;
+    const boardItemIds = new Set(board.itemIds);
+    return items.filter((i) => boardItemIds.has(i.id) && i.locations.length > 0).length;
+  }
+
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
   }
@@ -91,8 +98,10 @@ export default function BoardsPage() {
                 key={board.id}
                 board={board}
                 itemCount={getItemCount(board.id)}
+                locationItemCount={getLocationItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
+                onQuickPlan={() => router.push(`/plan/${board.id}`)}
               />
             ))}
           </div>
