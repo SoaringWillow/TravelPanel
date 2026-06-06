@@ -547,7 +547,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep it optional — empty value means current behavior (no regression)
 
 ### H2 — Weather-Aware Planning (OpenMeteo)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: No real-world signal makes plans feel generic. OpenMeteo is free, no API key, and returns hourly forecast. A 2-sentence weather context in the Claude prompt ("Rain on day 2, 28°C on day 3") meaningfully improves itinerary quality.  
 **Files**: new `lib/weather.ts`, `app/api/plan/route.ts`  
 **What to do**:

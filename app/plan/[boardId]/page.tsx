@@ -31,6 +31,7 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
+  const [startDate, setStartDate] = useState('');
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [travelStyle, setTravelStyle] = useState(() => {
     try { return localStorage.getItem('planStyle') ?? ''; } catch { return ''; }
@@ -96,6 +97,7 @@ export default function PlanPage() {
         days,
         preferences: Array.from(selectedChips).join('. '),
         travelStyle: travelStyle.trim() || undefined,
+        startDate: startDate || undefined,
       }),
     });
 
@@ -326,6 +328,21 @@ export default function PlanPage() {
                   <span>1 day</span>
                   <span>14 days</span>
                 </div>
+              </div>
+
+              {/* Start date (optional — enables weather forecast) */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Calendar size={15} className="text-indigo-500" />
+                  Start date <span className="text-gray-400 font-normal text-xs">(optional — adds weather context)</span>
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                />
               </div>
 
               {/* Preference chips */}
