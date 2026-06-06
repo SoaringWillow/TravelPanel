@@ -462,7 +462,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Execution order: `G1 → G2 → G3 → G4 → G5 → G6`
 
 ### G1 — Infinite Scroll / Pagination on Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: At 200+ clips, rendering all cards at once causes jank and high memory usage.  
 **Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts`  
 **What to do**:

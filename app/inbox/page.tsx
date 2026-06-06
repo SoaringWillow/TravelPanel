@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -17,6 +17,8 @@ import { SwipeCard } from '@/components/SwipeCard';
 import { PullToRefresh } from '@/components/PullToRefresh';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+
+const PAGE_SIZE = 30;
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -40,9 +42,12 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
+    setVisibleCount(PAGE_SIZE);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
 
@@ -55,6 +60,27 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+  const displayedItems = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  // Reset visible count when filters change
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [activePlatform]);
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setVisibleCount((c) => c + PAGE_SIZE);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore]);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -106,7 +132,12 @@ export default function InboxPage() {
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
+            {filtered.length < inboxItems.length
+              ? `${filtered.length} of ${inboxItems.length}`
+              : inboxItems.length > PAGE_SIZE && visibleCount < inboxItems.length
+              ? `${visibleCount} of ${inboxItems.length}`
+              : `${inboxItems.length}`}{' '}
+            clips
           </span>
         </div>
 
@@ -210,38 +241,47 @@ export default function InboxPage() {
             )}
           </motion.div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => {
-                const isLoading =
-                  item.enrichmentStatus === 'pending' ||
-                  (item.enrichmentStatus === 'processing' && (!item.title || item.title === item.url));
-                return (
-                  <motion.div
-                    key={`${item.id}-${item.enrichmentStatus}`}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.25 }}
-                  >
-                    <SwipeCard
-                      onDelete={() => removeItem(item.id)}
-                      onMoveToBoard={() => handleMoveToBoard(item.id)}
-                      disabled={isLoading}
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <AnimatePresence>
+                {displayedItems.map((item, idx) => {
+                  const isLoading =
+                    item.enrichmentStatus === 'pending' ||
+                    (item.enrichmentStatus === 'processing' && (!item.title || item.title === item.url));
+                  return (
+                    <motion.div
+                      key={`${item.id}-${item.enrichmentStatus}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.25, delay: idx >= visibleCount - PAGE_SIZE ? (idx % PAGE_SIZE) * 0.03 : 0 }}
                     >
-                      <InboxCard
-                        item={item}
-                        onDelete={removeItem}
-                        onViewOnMap={handleViewOnMap}
-                        onMoveToBoard={handleMoveToBoard}
-                        onRetry={retryItem}
-                      />
-                    </SwipeCard>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
+                      <SwipeCard
+                        onDelete={() => removeItem(item.id)}
+                        onMoveToBoard={() => handleMoveToBoard(item.id)}
+                        disabled={isLoading}
+                      >
+                        <InboxCard
+                          item={item}
+                          onDelete={removeItem}
+                          onViewOnMap={handleViewOnMap}
+                          onMoveToBoard={handleMoveToBoard}
+                          onRetry={retryItem}
+                        />
+                      </SwipeCard>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+            {/* Intersection sentinel for infinite scroll */}
+            <div ref={sentinelRef} className="h-4" />
+            {hasMore && (
+              <div className="flex justify-center py-4">
+                <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </>
         )}
       </div>
       </PullToRefresh>
