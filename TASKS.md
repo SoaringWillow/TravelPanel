@@ -107,7 +107,7 @@ All tasks done. See completed tasks below.
 - Install `@capacitor/haptics` — it's already a Capacitor ecosystem package, no App Store permission needed
 
 ### D2 — Swipe-to-Delete on Clip Cards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`
 **What to do**:
 - Add swipe-left gesture to inbox clip cards that reveals a red "Delete" action
