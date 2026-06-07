@@ -322,21 +322,53 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+            /* Shimmer preview card */
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden">
+              {/* Favicon + URL row */}
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                <img
+                  src={`https://www.google.com/s2/favicons?domain=${(() => { try { return new URL(rawUrl).hostname; } catch { return ''; } })()}&sz=32`}
+                  alt=""
+                  className="w-5 h-5 rounded-sm flex-shrink-0"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                />
+                <span className="text-xs text-gray-500 truncate flex-1">
+                  {(() => { try { return new URL(rawUrl).hostname.replace('www.', ''); } catch { return rawUrl; } })()}
+                </span>
+                <span className="text-[10px] text-indigo-500 font-medium animate-pulse">Analyzing…</span>
+              </div>
+              {/* Shimmer lines */}
+              <div className="px-4 py-3 space-y-2 animate-pulse">
+                <div className="h-3 bg-gray-200 rounded-full w-4/5" />
+                <div className="h-2.5 bg-gray-200 rounded-full w-3/5" />
+                <div className="flex gap-1.5 pt-1">
+                  <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                  <div className="h-5 w-20 bg-gray-200 rounded-full" />
+                </div>
+              </div>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
-            <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3 space-y-1.5"
+            >
               <p className="text-sm font-semibold text-indigo-700">
                 📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
               </p>
-              {enrichedData.locations.map((loc, i) => (
-                <p key={i} className="text-sm text-indigo-600">
-                  {loc.name}
+              {enrichedData.locations.slice(0, 3).map((loc, i) => (
+                <p key={i} className="text-xs text-indigo-600 truncate">
+                  · {loc.name}
                 </p>
               ))}
-            </div>
-          ) : enrichedData && enrichedData.locations.length === 0 ? (
+              {enrichedData.locations.length > 3 && (
+                <p className="text-xs text-indigo-400">
+                  +{enrichedData.locations.length - 3} more
+                </p>
+              )}
+            </motion.div>
+          ) : enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3">
               <p className="text-sm text-gray-500">No specific locations detected</p>
             </div>

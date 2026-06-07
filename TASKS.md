@@ -340,7 +340,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Day header sticks to top while its content is visible (position sticky)
 
 ### E3 — Clip Thumbnail Display
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done` (already implemented — og:image extraction in import API, stored via enrichItem, rendered in InboxCard)  
 **Files**: `components/InboxCard.tsx`, `lib/types.ts`, `app/api/import/route.ts`  
 **What to do**:
 - Add `thumbnailUrl?: string` field to `SavedItem` (db schema bump v3 → v4, additive)
@@ -350,7 +350,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
   present; fallback to the platform-color gradient header
 
 ### E4 — Map Pin Clustering
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done` (already implemented — useSupercluster hook with cluster bubbles and individual pin markers)  
 **Files**: `components/MapView.tsx`  
 **What to do**:
 - Enable MapLibre's built-in GeoJSON cluster source
@@ -371,7 +371,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a `retryCount` field to SavedItem (db v4, additive)
 
 ### E6 — Share Sheet URL Preview Card
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `app/share/page.tsx`, `components/UrlPreviewCard.tsx` (new)  
 **What to do**:
 - While enrichment is running, show a shimmer preview card with the URL's
