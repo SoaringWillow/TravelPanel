@@ -237,7 +237,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > The gap between a web app and a *great* iOS app is feel. Phase D closes it.
 
 ### D1 — Skeleton Loading States
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Blank screens and spinning indicators feel cheap. Skeletons match the content shape and feel instant.  
 **Files**: new `components/SkeletonCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
