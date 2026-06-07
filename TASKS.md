@@ -148,7 +148,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 ## PHASE F — Production Readiness
 
 ### F1 — iOS App Icon + Launch Screen
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The Xcode project uses a default Capacitor icon. App Store submission requires a full icon set (1024x1024 plus all size variants) and a proper launch screen.
 **Files to change**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `ios/App/App/LaunchScreen.storyboard`
 **What to do**:

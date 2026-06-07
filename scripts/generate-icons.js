@@ -195,14 +195,17 @@ function createSVG() {
 
 const publicDir = path.join(__dirname, '..', 'public');
 
-const sizes = [
-  { name: 'icon-192.png',        size: 192 },
-  { name: 'icon-512.png',        size: 512 },
+// ── PWA / Web icons ───────────────────────────────────────────────────────────
+
+const pwaSizes = [
+  { name: 'icon-192.png',         size: 192 },
+  { name: 'icon-512.png',         size: 512 },
   { name: 'apple-touch-icon.png', size: 180 },
-  { name: 'favicon-32.png',      size: 32  },
+  { name: 'favicon-32.png',       size: 32  },
 ];
 
-for (const { name, size } of sizes) {
+console.log('── PWA icons ──────────────────────────────────────────');
+for (const { name, size } of pwaSizes) {
   const buf  = createIcon(size);
   const dest = path.join(publicDir, name);
   fs.writeFileSync(dest, buf);
@@ -213,4 +216,49 @@ const svgPath = path.join(publicDir, 'icon.svg');
 fs.writeFileSync(svgPath, createSVG());
 console.log('✓ icon.svg');
 
-console.log('\nDone. Icons written to public/');
+// ── iOS Xcode AppIcon set ─────────────────────────────────────────────────────
+// App Store Connect requires a 1024×1024 icon; Xcode derives all other sizes.
+// We generate the full set anyway for universal compatibility.
+
+const xcassetsDir = path.join(
+  __dirname, '..', 'ios', 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset'
+);
+
+if (fs.existsSync(xcassetsDir)) {
+  console.log('\n── iOS App Icon set ───────────────────────────────────');
+
+  // All required iOS icon sizes (px). Xcode uses the 1024 for App Store submission.
+  const iosSizes = [20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024];
+
+  const contentsImages = [];
+
+  for (const px of iosSizes) {
+    const filename = `AppIcon-${px}.png`;
+    const buf = createIcon(px);
+    fs.writeFileSync(path.join(xcassetsDir, filename), buf);
+    console.log(`✓ ${filename} (${px}×${px}) — ${(buf.length / 1024).toFixed(1)} KB`);
+
+    // Map to Xcode idiom/scale/size entries
+    contentsImages.push({
+      filename,
+      idiom: 'universal',
+      platform: 'ios',
+      size: `${px}x${px}`,
+    });
+  }
+
+  // Write Contents.json so Xcode picks up all the icons
+  const contents = {
+    images: contentsImages,
+    info: { author: 'travelpanel-generate-icons', version: 1 },
+  };
+  fs.writeFileSync(
+    path.join(xcassetsDir, 'Contents.json'),
+    JSON.stringify(contents, null, 2)
+  );
+  console.log('✓ Contents.json updated');
+} else {
+  console.log('\n(Skipping iOS icons — ios/ directory not found)');
+}
+
+console.log('\nDone.');
