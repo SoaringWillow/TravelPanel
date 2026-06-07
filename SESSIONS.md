@@ -112,3 +112,9 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-07 15:35 | e42ed7f | feat(C9): add PWA icons and improve app branding metadata
 2026-06-07 15:35 | 603e914 | chore: update SESSIONS.md
 2026-06-07 15:37 | 4510618 | feat(C10): audit and fix safe-area insets for notch/home-indicator
+2026-06-07 15:37 | cf04af4 | chore: update SESSIONS.md
+2026-06-07 15:41 | 8f77e9d | feat(E1): add toast notification system
+2026-06-07 15:43 | 673eaa7 | feat(E2): replace day strip with animated accordion day cards
+2026-06-07 15:44 | 7650428 | feat(E5): auto-retry stale pending clips on app focus
+2026-06-07 15:44 | ffbb5a4 | feat(E9): add offline/back-online banner
+2026-06-07 15:46 | 4602e51 | feat(E8): add Share Itinerary to trip plan export
