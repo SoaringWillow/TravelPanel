@@ -179,19 +179,148 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
-## PHASE C — On-Trip Mode (Future)
+## PHASE C — On-Trip Mode
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: The app should be useful *during* travel, not just during planning. Show saved spots near the user's current position with a "Nearby" tab.  
+**Files**: new `app/nearby/page.tsx`, `components/NavBar.tsx`, `lib/geo.ts`  
+**What to do**:
+- Add a "Nearby" nav tab (🧭 icon) that renders a compact list of saved clips sorted by distance from the device's current GPS position
+- Use the browser `navigator.geolocation` API; handle denied/unavailable gracefully with a friendly placeholder
+- Show distance badge on each clip card (e.g. "0.3 km away")
+- Tap a clip → fly to it on the map + open detail card (use existing `?flyTo=&itemId=` URL params)
+- Add `lib/geo.ts` with `haversineDistance(lat1, lng1, lat2, lng2): number` utility
+- Only clips with at least one `location` are shown (filter out location-less clips)
+- Empty state: "No saved spots nearby — clip some places you want to visit!"
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: After visiting saved spots, users want to relive the trip as a chronological story. This drives retention and social sharing.  
+**Files**: `app/boards/[id]/page.tsx` or new `app/trips/[tripId]/timeline/page.tsx`  
+**What to do**:
+- On the trip plan view, add a "Timeline" tab alongside the day-by-day itinerary
+- The timeline is a vertically scrolling list of activities grouped by day, showing time, location, sourced tips, and the clip thumbnail
+- Each timeline item links back to the source clip (deep link to the clip detail card)
+- Add a "Mark as visited" toggle on each activity; mark visited items with a checkmark + muted styling
+- Persist visit status in the `Trip` object in IndexedDB (add `visitedActivityIds: string[]` to `Trip` type)
+- Show a progress bar at the top: "X of Y activities visited"
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: Social proof and virality. Users want to send a board to a friend ("here are my Tokyo recommendations").  
+**Files**: `app/boards/[id]/page.tsx`, new `app/shared/[token]/page.tsx`, `app/api/share/route.ts`  
+**What to do**:
+- Add a "Share board" button to the board detail page
+- `POST /api/share` accepts `boardId`, creates a short-lived read-only token (UUID, store in a `sharedBoards` map in memory or a simple KV), returns a shareable URL: `/shared/<token>`
+- `app/shared/[token]/page.tsx` renders the board as a read-only map+list view (no edit controls)
+- The shared page has a "Save to my TravelPanel" CTA that deep-links to the share flow for each clip
+- Token expiry: 7 days (simple timestamp check on the server)
+- NOTE: This is server-memory only (no DB), so shared links expire on redeploy — fine for v1
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: Users clip things months before a trip. When the trip approaches, relevant clips should surface automatically.  
+**Files**: `app/settings/page.tsx`, new `components/TripReminder.tsx`, `lib/resurfacing.ts`  
+**What to do**:
+- In settings, add a "Upcoming trip" date picker — user sets an optional destination + departure date
+- Store in localStorage: `{ destination: string, departureDate: string, boardId?: string }`
+- `lib/resurfacing.ts` — `getResurfacedClips()`: when departure is within 14 days, surface the 3–5 most substance-rich clips for that board (sort by `substance.length` descending)
+- Show a dismissible `TripReminder` banner on the home/map screen when departure is within 14 days
+- Banner shows "Your [destination] trip is in X days — review your saved spots": tap → navigates to board
+- Dismiss clears until departure date changes
+
+---
+
+## PHASE D — iOS Native Polish & UI Excellence
+
+> The gap between a web app and a *great* iOS app is feel. Phase D closes it.
+
+### D1 — Skeleton Loading States
+**Status**: `[ ]` Not started  
+**Why**: Blank screens and spinning indicators feel cheap. Skeletons match the content shape and feel instant.  
+**Files**: new `components/SkeletonCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create a `SkeletonCard` component: animated shimmer rectangles matching the `InboxCard` shape (thumbnail, title, tag row)
+- Show 6 skeleton cards while items are loading in the inbox view
+- Show 3 skeleton board cards while boards are loading in the boards view
+- Use a CSS `@keyframes shimmer` animation (gradient from `#f3f4f6` to `#e5e7eb`)
+- Remove all `loading && <Spinner />` patterns in favour of skeletons
+
+### D2 — Haptic Feedback on Key Actions
+**Status**: `[ ]` Not started  
+**Why**: Haptics make actions feel real and satisfying on a physical device. Critical for the "clip saved" moment.  
+**Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/NavBar.tsx`  
+**What to do**:
+- Create `lib/haptics.ts` with `impact(style?: 'light'|'medium'|'heavy')` and `notification(type: 'success'|'warning'|'error')` that call `@capacitor/haptics` when on a native platform (no-op on web)
+- Call `notification('success')` when a clip is saved in `app/share/page.tsx`
+- Call `impact('light')` on NavBar tab switches
+- Call `impact('medium')` when generating a trip plan
+- Call `notification('error')` when enrichment fails
+- Install: `npm install @capacitor/haptics`
+
+### D3 — Pull-to-Refresh
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect pull-to-refresh everywhere. Without it, the app feels static.  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Install `@capacitor/pull-to-refresh` (or implement natively with touch events if not available)
+- Add pull-to-refresh to the inbox list and boards list: on refresh, re-run the failed-item retry queue AND reload boards from IndexedDB
+- Show a native spinner at the top while refreshing (use `PTRPlugin.refresh()` callback pattern)
+- Alternatively: use CSS `overscroll-behavior: contain` + `useSwipeDown` hook detecting 80px+ downward swipe
+
+### D4 — Dark Mode
+**Status**: `[ ]` Not started  
+**Why**: Majority of iPhone users use dark mode. The current app is white-only and looks out of place at night.  
+**Files**: `app/globals.css`, `tailwind.config.js`, `app/layout.tsx`, across all components  
+**What to do**:
+- Enable Tailwind dark mode with `darkMode: 'class'` in `tailwind.config.js`
+- In `app/layout.tsx`, detect system dark mode via `prefers-color-scheme` media query and apply `dark` class to `<html>`
+- Audit all components: replace hard-coded `bg-white`, `text-gray-900`, etc. with dark variants (`dark:bg-gray-900`, `dark:text-gray-100`)
+- Ensure map tiles remain readable in dark mode (MapLibre supports dark style — switch to `dark-matter` style in dark mode)
+- Key surfaces: NavBar, InboxCard, BoardCard, LocationDetailCard, SharePage, SettingsPage
+
+### D5 — Swipe-to-Delete on Clip Cards
+**Status**: `[ ]` Not started  
+**Why**: Curation is core to the app. Removing a bad clip should be a one-thumb gesture, not buried in menus.  
+**Files**: `components/InboxCard.tsx`, new `components/SwipeableRow.tsx`  
+**What to do**:
+- Create `SwipeableRow` wrapper using `@use-gesture/react` (or raw touch events): track swipe-left delta, snap to 80px reveal for a delete button
+- Show a red "Delete" action revealed behind the card on left-swipe
+- Confirm with a quick haptic `impact('medium')` + slide-out animation before deletion
+- On delete: remove from IndexedDB, remove from board's `itemIds`, animate card out of the list
+- Also add swipe-right to "move to board" (shows a bottom sheet board picker) — secondary feature, implement only if swipe-left works cleanly
+
+### D6 — Map Terrain & Satellite Toggle
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Add a small control button (top-right of map) cycling through: Streets → Satellite → Terrain
+- Use OpenFreeMap's available styles: `liberty` (streets), add satellite layer via MapLibre raster source (Esri World Imagery URL)
+- Persist last-used style in localStorage
+- Smooth style transition (cross-fade the map layers)
+
+---
+
+## PHASE E — Performance & Scale
+
+### E1 — Virtual Scrolling for Large Clip Lists
+**Status**: `[ ]` Not started  
+**Why**: At 200+ clips, the inbox renders all cards in DOM, causing jank on scroll.  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Use `@tanstack/react-virtual` to virtualise the clip list: only render cards in the viewport ± 2 buffer items
+- Fixed row height of 96px (current InboxCard height); or dynamic with `estimateSize`
+- Measure: before/after FPS profiling in Chrome DevTools on a list of 300 items
+
+### E2 — Offline Queue for Enrichment
+**Status**: `[ ]` Not started  
+**Why**: Users often clip on weak connections. Enrichment should queue and retry when connectivity returns.  
+**Files**: `lib/enrichItem.ts`, `lib/retryQueue.ts` (extend existing)  
+**What to do**:
+- Listen to `navigator.onLine` / `online` event; when connection returns, trigger the retry queue immediately
+- Store "queued for enrichment" status separately from "failed" so the UI shows "Waiting for connection…" rather than a failure state
+- Add `enrichmentStatus: 'queued'` to the status state machine in `lib/db.ts`
 
 ---
 
