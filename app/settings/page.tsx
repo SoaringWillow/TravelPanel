@@ -60,12 +60,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage your data and preferences</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your data and preferences</p>
         </div>
       </div>
 
@@ -145,10 +145,10 @@ export default function SettingsPage() {
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
       <div className="flex items-center gap-2 mb-4">
         {icon}
-        <span className="text-sm font-semibold text-gray-700">{title}</span>
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{title}</span>
       </div>
       {children}
     </div>
@@ -157,9 +157,9 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 
 function StatPill({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-3 text-center">
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
+      <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</div>
+      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</div>
     </div>
   );
 }
@@ -176,7 +176,7 @@ function ActionButton({
   const base = 'w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all';
   const styles = {
     primary:   `${base} bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50`,
-    secondary: `${base} bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50`,
+    secondary: `${base} bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50`,
   };
   return (
     <button className={styles[variant]} onClick={onClick} disabled={loading}>
@@ -200,8 +200,8 @@ function StatusMessage({ status }: { status: Status }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
-      <span className="text-gray-400">{label}</span>
-      <span className="text-gray-600 font-medium">{value}</span>
+      <span className="text-gray-400 dark:text-gray-500">{label}</span>
+      <span className="text-gray-600 dark:text-gray-300 font-medium">{value}</span>
     </div>
   );
 }
