@@ -96,3 +96,14 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-07 00:24 | a347d3f | feat(B2): add Chrome browser extension for one-click URL clipping
+2026-06-07 00:29 | 2f86302 | feat(B3): Claude Vision extraction for Xiaohongshu / WeChat image shares
+2026-06-07 00:31 | d9a3be8 | feat(B5): settings page with JSON backup export + restore
+2026-06-07 00:36 | 024162f | feat(D1): system-aware dark mode across all views
+2026-06-07 00:37 | 944bf1f | feat(D3): clipboard URL detection with slide-in banner
+2026-06-07 00:38 | 1b5a54e | feat(D6): haptic feedback on key iOS interactions
+2026-06-07 00:39 | 54fbac6 | feat(D7): improved board detail page with hero image + sort + dark mode
+2026-06-07 00:41 | fc4cb47 | feat(D8): notch-safe header & home-indicator-safe scroll areas
+2026-06-07 00:42 | bd8d5ab | feat(D5): shimmer skeleton for boards loading + BoardCard dark mode
+2026-06-07 00:43 | 376bb6a | feat(D4): pull-to-refresh in the inbox list
+2026-06-07 00:44 | cb50a45 | feat(D2): swipe-left-to-delete on inbox clip cards
