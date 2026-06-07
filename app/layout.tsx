@@ -3,6 +3,7 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import { ToastProvider } from '@/components/Toast';
 
 export const metadata: Metadata = {
   title: 'TravelPanel — AI Travel Planner',
@@ -33,12 +34,14 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body>
-        <CapacitorBridge />
-        <AnalyticsProvider />
-        <ResourceBanner />
-        <div className="min-h-screen">
-          {children}
-        </div>
+        <ToastProvider>
+          <CapacitorBridge />
+          <AnalyticsProvider />
+          <ResourceBanner />
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );

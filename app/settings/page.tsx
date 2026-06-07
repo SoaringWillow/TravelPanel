@@ -16,6 +16,7 @@ import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getAllTrips } from '@/lib/db';
 import { getRateLimitStatus } from '@/lib/rateLimits';
 import { SavedItem, Board, Trip } from '@/lib/types';
+import { useToast } from '@/components/Toast';
 
 // ─── Export helpers ────────────────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ export default function SettingsPage() {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [clearState, setClearState]   = useState<'idle' | 'confirm' | 'clearing' | 'done'>('idle');
   const [rateLimits, setRateLimits]   = useState<ReturnType<typeof getRateLimitStatus> | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     Promise.all([getAllItems(), getAllBoards(), getAllTrips()]).then(([items, boards, trips]) => {
@@ -76,9 +78,11 @@ export default function SettingsPage() {
       const data = await buildExport();
       downloadJson(data);
       setExportState('done');
+      showToast('Backup downloaded', 'success');
       setTimeout(() => setExportState('idle'), 3000);
     } catch {
       setExportState('error');
+      showToast('Export failed — try again', 'error');
       setTimeout(() => setExportState('idle'), 3000);
     }
   }

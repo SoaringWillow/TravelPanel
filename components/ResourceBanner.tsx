@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { X, AlertCircle, ExternalLink } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 interface ResourceItem {
   key: string;
@@ -41,6 +42,7 @@ export function ResourceBanner() {
   const [missing, setMissing] = useState<ResourceItem[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [notifying, setNotifying] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     // Only run in dev or when explicitly enabled — don't distract production users
@@ -86,7 +88,7 @@ export function ResourceBanner() {
       if (data.method === 'mailto' && data.mailto) {
         window.open(data.mailto, '_blank');
       } else {
-        alert(`Email sent to jiangnan027@gmail.com requesting ${item.label} setup.`);
+        showToast(`Request sent for ${item.label} setup`, 'success');
       }
     } catch {
       // Silently fail

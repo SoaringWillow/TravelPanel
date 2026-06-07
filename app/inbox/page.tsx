@@ -18,6 +18,7 @@ import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import SwipeToDelete from '@/components/SwipeToDelete';
 import EmptyState from '@/components/EmptyState';
+import { useToast } from '@/components/Toast';
 
 // ─── Filter / sort config ─────────────────────────────────────────────────────
 
@@ -53,6 +54,7 @@ export default function InboxPage() {
   const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
+  const { showToast } = useToast();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
@@ -133,27 +135,26 @@ export default function InboxPage() {
       if (!movingItemId) return;
 
       if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
         const item = items.find((i) => i.id === movingItemId);
         if (item && item.boardId) {
           await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
           const allItems = await getAllItems();
           const updatedItem = allItems.find((i) => i.id === movingItemId);
           if (updatedItem) {
             await saveItem({ ...updatedItem, boardId: undefined });
           }
         }
+        showToast('Moved back to Inbox', 'info');
       } else {
+        const board = boards.find((b) => b.id === boardId);
         await addItemToBoard(boardId, movingItemId);
+        showToast(`Moved to ${board?.name ?? 'board'}`, 'success');
       }
 
       setMovingItemId(null);
-      // Trigger a soft reload by navigating to the same page
       router.refresh();
     },
-    [movingItemId, items, router]
+    [movingItemId, items, boards, router, showToast]
   );
 
   return (
@@ -279,7 +280,7 @@ export default function InboxPage() {
                   exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
                   transition={{ duration: 0.2 }}
                 >
-                  <SwipeToDelete onDelete={() => removeItem(item.id)}>
+                  <SwipeToDelete onDelete={() => { removeItem(item.id); showToast('Clip deleted', 'info'); }}>
                     <InboxCard
                       item={item}
                       onDelete={removeItem}

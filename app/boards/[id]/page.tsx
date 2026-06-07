@@ -11,6 +11,7 @@ import InboxCard from '@/components/InboxCard';
 import SwipeToDelete from '@/components/SwipeToDelete';
 import EmptyState from '@/components/EmptyState';
 import NavBar from '@/components/NavBar';
+import { useToast } from '@/components/Toast';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -23,6 +24,7 @@ export default function BoardDetailPage() {
 
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
+  const { showToast } = useToast();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
 
@@ -47,6 +49,7 @@ export default function BoardDetailPage() {
       await removeItemFromBoard(board.id, id);
     }
     await removeItem(id);
+    showToast('Clip deleted', 'info');
   }
 
   async function handleMoveToBoard(id: string) {
