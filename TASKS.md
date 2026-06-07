@@ -247,7 +247,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Cancel discards changes (show "Discard?" confirm if dirty)
 
 ### C7 — Inbox Sort & Filter
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `components/SearchBar.tsx`  
 **What to do**:
 - Add a filter bar below the search bar: "All", "Xiaohongshu", "YouTube", "Instagram", "WeChat", "Douyin"

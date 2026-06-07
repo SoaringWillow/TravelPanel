@@ -19,15 +19,33 @@ import NavBar from '@/components/NavBar';
 import SwipeToDelete from '@/components/SwipeToDelete';
 import EmptyState from '@/components/EmptyState';
 
-// ─── Platform filter config ───────────────────────────────────────────────────
+// ─── Filter / sort config ─────────────────────────────────────────────────────
 
 const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'wechat', label: 'WeChat' },
-  { key: 'xiaohongshu', label: 'Little Red Book' },
-  { key: 'douyin', label: 'Douyin' },
-  { key: 'bilibili', label: 'Bilibili' },
+  { key: 'all',          label: 'All'              },
+  { key: 'xiaohongshu',  label: 'Little Red Book'  },
+  { key: 'youtube',      label: 'YouTube'           },
+  { key: 'instagram',    label: 'Instagram'         },
+  { key: 'wechat',       label: 'WeChat'            },
+  { key: 'douyin',       label: 'Douyin'            },
+  { key: 'bilibili',     label: 'Bilibili'          },
+  { key: 'other',        label: 'Other'             },
 ];
+
+type SortKey = 'newest' | 'oldest' | 'most-locations';
+
+const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
+  { key: 'newest',         label: 'Newest'          },
+  { key: 'oldest',         label: 'Oldest'          },
+  { key: 'most-locations', label: 'Most locations'  },
+];
+
+function sortItems(items: import('@/lib/types').SavedItem[], sort: SortKey) {
+  const copy = [...items];
+  if (sort === 'oldest')         return copy.sort((a, b) => a.savedAt - b.savedAt);
+  if (sort === 'most-locations') return copy.sort((a, b) => b.locations.length - a.locations.length);
+  return copy.sort((a, b) => b.savedAt - a.savedAt); // newest
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -39,8 +57,9 @@ export default function InboxPage() {
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
-  const [movingItemId, setMovingItemId] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [activeSort, setActiveSort]         = useState<SortKey>('newest');
+  const [movingItemId, setMovingItemId]     = useState<string | null>(null);
+  const [query, setQuery]                   = useState('');
 
   // ── Pull-to-refresh ─────────────────────────────────────────────────────────
   const PULL_THRESHOLD = 64; // px to trigger refresh
@@ -92,7 +111,8 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const sorted   = sortItems(platformFiltered, activeSort);
+  const filtered = searchItems(sorted, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -154,27 +174,46 @@ export default function InboxPage() {
         </div>
 
         {/* Platform filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {PLATFORM_FILTERS.map((p) => {
             const count =
               p.key === 'all'
                 ? inboxItems.length
                 : inboxItems.filter((i) => i.platform === p.key).length;
+            if (p.key !== 'all' && count === 0) return null; // hide empty platforms
             const isActive = activePlatform === p.key;
             return (
               <button
                 key={p.key}
-                onClick={() => setActivePlatform(p.key)}
+                onClick={() => { setActivePlatform(p.key); selectionChanged(); }}
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
                     : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
                 }`}
               >
-                {p.label} ({count})
+                {p.label}{p.key !== 'all' ? ` (${count})` : ''}
               </button>
             );
           })}
+        </div>
+
+        {/* Sort toggle */}
+        <div className="flex items-center gap-1.5 pb-3 pt-1">
+          <span className="text-xs text-gray-400 mr-1">Sort:</span>
+          {SORT_OPTIONS.map((s) => (
+            <button
+              key={s.key}
+              onClick={() => { setActiveSort(s.key); selectionChanged(); }}
+              className={`text-xs px-2.5 py-1 rounded-full transition-all ${
+                activeSort === s.key
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
       </div>
 
