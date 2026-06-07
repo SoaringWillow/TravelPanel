@@ -81,24 +81,20 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompts ──────────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+const SUBSTANCE_EXAMPLES = `Examples of what to extract:
+- "Arrive before 8am to beat the queue" → tip
+- "The set lunch menu is half the price of dinner" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Skip the official viewpoint — the back alley has the better angle" → recommendation
+- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
+- "It was overrated for the price" → opinion
+- "If you're visiting in August, be aware it's typhoon season" → context
+- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning`;
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -114,19 +110,105 @@ Do NOT invent or guess coordinates.
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
-This is what competitors miss. Examples of what to capture:
-- "Arrive before 8am to beat the queue" → tip
-- "The set lunch menu is half the price of dinner" → tip
-- "Cash only, nearest ATM is 10 min walk" → warning
-- "Skip the official viewpoint — the back alley has the better angle" → recommendation
-- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
-- "It was overrated for the price" → opinion
-- "If you're visiting in August, be aware it's typhoon season" → context
-- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
+${SUBSTANCE_EXAMPLES}
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  return `You are a travel content analyzer. This is a screenshot of a travel post${platform !== 'other' ? ` from ${platform}` : ''}.
+
+URL: ${url}
+
+The user shared this to TravelPanel, a travel inspiration app. Analyze EVERYTHING visible in the image:
+captions, overlay text, comments, location tags, shop names, street signs, menu boards, any Chinese or
+foreign-language text — translate if needed.
+
+## Layer 1 — Spots (geographic skeleton)
+Identify specific locations, restaurants, hotels, attractions, or areas visible in text or imagery.
+Provide GPS coordinates you are confident about. Do NOT invent coordinates.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, or opinion visible in the image.
+${SUBSTANCE_EXAMPLES}
+
+Also derive a clear title and description from the visible content.
+Never return an empty substance array if there is meaningful travel content.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageData: string | undefined;
+  let imageMediaType: string | undefined;
+
+  try {
+    ({ url, imageData, imageMediaType } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // ── Vision path: image payload provided (Xiaohongshu anti-scrape bypass) ───
+  if (imageData && typeof imageData === 'string') {
+    let claudeResult: z.infer<typeof importSchema> | null = null;
+    try {
+      // Decode base64 to Uint8Array (avoids a Node.js Buffer dependency)
+      const binary   = atob(imageData);
+      const imageBytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) imageBytes[i] = binary.charCodeAt(i);
+
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageBytes,
+                mimeType: (imageMediaType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+              },
+              {
+                type: 'text',
+                text: buildVisionPrompt(platform, url),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Vision failed — fall through to text path below
+    }
+
+    if (claudeResult) {
+      const page = await fetchPageData(url);
+      return NextResponse.json({
+        platform,
+        title: claudeResult.title.slice(0, 200),
+        description: claudeResult.description.slice(0, 500),
+        thumbnail: page?.thumbnail || undefined,
+        locations: claudeResult.locations,
+        activities: claudeResult.activities,
+        tags: claudeResult.tags,
+        substance: claudeResult.substance,
+      } satisfies ImportResult);
+    }
+  }
+
+  // ── Text path: server-side scrape + Claude text extraction ───────────────
+  const page = await fetchPageData(url);
+  const prompt = buildTextPrompt(platform, url, page);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {

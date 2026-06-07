@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { PENDING_IMAGE_SESSION_KEY, PENDING_IMAGE_TYPE_KEY } from '@/components/CapacitorBridge';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -88,9 +89,17 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
+    // Read any pending image stashed by CapacitorBridge (Xiaohongshu vision path)
+    const imageData      = sessionStorage.getItem(PENDING_IMAGE_SESSION_KEY) ?? undefined;
+    const imageMediaType = sessionStorage.getItem(PENDING_IMAGE_TYPE_KEY) ?? undefined;
+    if (imageData) {
+      sessionStorage.removeItem(PENDING_IMAGE_SESSION_KEY);
+      sessionStorage.removeItem(PENDING_IMAGE_TYPE_KEY);
+    }
+
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, { imageData, imageMediaType })
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
