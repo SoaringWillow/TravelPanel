@@ -53,18 +53,16 @@ export default function InboxCard({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
           <div className="w-full h-32 bg-gray-200" />
           <div className="p-4 space-y-3">
+            <div className="h-5 bg-gray-200 rounded-full w-20" />
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
             <div className="h-3 bg-gray-200 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
-            </div>
+            <div className="h-3 bg-indigo-100 rounded-full w-2/5" />
           </div>
         </div>
       );
     }
 
-    // Partial card — title is known, enrichment still running
+    // Partial card — title known, description area is a shimmer skeleton
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 space-y-2">
@@ -80,11 +78,14 @@ export default function InboxCard({
             {item.title}
           </h3>
 
+          {/* Skeleton overlay for description — signals enrichment in progress */}
+          <div className="space-y-1.5 pt-0.5">
+            <div className="animate-pulse h-2.5 bg-gray-100 rounded-full w-full" />
+            <div className="animate-pulse h-2.5 bg-gray-100 rounded-full w-3/4" />
+          </div>
+
           <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-1.5">
-              <Loader2 size={12} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
-            </div>
+            <div className="animate-pulse h-3 bg-indigo-100 rounded-full w-24" />
             <div className="flex items-center gap-1">
               <a
                 href={item.url}

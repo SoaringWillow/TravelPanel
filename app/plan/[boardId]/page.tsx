@@ -13,6 +13,7 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import { SkeletonBox } from '@/components/Skeleton';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -237,8 +238,12 @@ export default function PlanPage() {
 
   if (loadingBoard) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div className="flex flex-col h-screen bg-gray-50 p-4 gap-4 pt-16">
+        <SkeletonBox className="h-8 w-48 rounded-xl" />
+        <SkeletonBox className="h-48 w-full rounded-2xl" />
+        {[1, 2, 3].map((i) => (
+          <SkeletonBox key={i} className="h-24 w-full rounded-2xl" />
+        ))}
       </div>
     );
   }

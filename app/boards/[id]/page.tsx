@@ -10,6 +10,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { SkeletonList } from '@/components/Skeleton';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -55,8 +56,8 @@ export default function BoardDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-col h-screen bg-gray-50">
-        <div className="flex items-center justify-center flex-1">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="flex-1 overflow-y-auto pb-24">
+          <SkeletonList count={6} />
         </div>
         <NavBar active="boards" />
       </div>

@@ -34,7 +34,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 - Add CSS vars: `--sat: env(safe-area-inset-top)` etc. in globals.css so bottom nav and top bars respect the notch/home bar on iPhone
 
 ### D2 — Loading Skeletons (replace spinners)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Spinners feel like waiting. Skeletons feel like loading. Every list view currently shows a spinner — replacing them with content-shaped shimmer placeholders makes the app feel instant and polished.
 **Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:

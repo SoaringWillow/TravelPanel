@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { SkeletonList } from '@/components/Skeleton';
 
 // ─── Resurface helpers ────────────────────────────────────────────────────────
 
@@ -241,9 +242,7 @@ export default function InboxPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-          </div>
+          <SkeletonList count={6} />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
