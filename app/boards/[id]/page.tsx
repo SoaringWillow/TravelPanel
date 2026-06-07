@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, Clock } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Clock, Share2 } from 'lucide-react';
+import { encodeBoardForShare, buildShareUrl } from '@/lib/shareBoard';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -119,6 +120,26 @@ export default function BoardDetailPage() {
               title="Trip timeline"
             >
               <Clock size={18} />
+            </button>
+          )}
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={async () => {
+                const encoded = encodeBoardForShare(board, boardItems);
+                const url = buildShareUrl(window.location.origin, encoded);
+                if (navigator.share) {
+                  await navigator.share({ title: `${board.emoji} ${board.name}`, url });
+                } else {
+                  await navigator.clipboard.writeText(url);
+                  alert('Share link copied to clipboard!');
+                }
+              }}
+              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0"
+              aria-label="Share this board"
+              title="Share board"
+            >
+              <Share2 size={18} />
             </button>
           )}
         </div>
