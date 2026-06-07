@@ -106,3 +106,7 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-07 14:59 | 1a26441 | feat(C3): polished empty states for all four main pages
 2026-06-07 15:01 | ad566d2 | feat(C4): pull-to-refresh on inbox list
 2026-06-07 15:02 | 4af8c4e | feat(C5): premium board card design with cover images and gradient fallbacks
+2026-06-07 15:02 | c9eaf86 | chore: update SESSIONS.md
+2026-06-07 15:29 | c8af19a | feat(C6): inline clip editing in LocationDetailCard
+2026-06-07 15:30 | 1c25f16 | feat(C7): inbox sort options + expanded platform filter
+2026-06-07 15:35 | e42ed7f | feat(C9): add PWA icons and improve app branding metadata
