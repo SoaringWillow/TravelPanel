@@ -197,7 +197,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `dark:` variants to all key components and pages
 
 ### D2 — Swipe-to-Delete on Clip Cards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/InboxCard.tsx`, possibly `hooks/useSwipeDelete.ts`
 **What to do**:
 - Add horizontal swipe gesture to inbox cards: swipe left reveals a red delete zone

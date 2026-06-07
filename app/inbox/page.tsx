@@ -17,6 +17,7 @@ import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
+import { SwipeDeleteWrapper } from '@/components/SwipeDeleteWrapper';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -186,13 +187,15 @@ export default function InboxPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
+                  <SwipeDeleteWrapper onDelete={() => removeItem(item.id)}>
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  </SwipeDeleteWrapper>
                 </motion.div>
               ))}
             </AnimatePresence>
