@@ -182,7 +182,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode
 
 ### C1 — On-Trip GPS Mode ("Near Me")
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When a user is physically traveling, the most useful thing is: "which of my saved clips are near me right now?" This turns TravelPanel from a planner into an on-trip companion.  
 **Files**: `app/page.tsx`, `components/MapView.tsx`, new `components/NearbyPanel.tsx`, `lib/geo.ts`  
 **What to do**:
