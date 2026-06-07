@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { SkeletonInboxCard } from '@/components/SkeletonCard';
 import { useSwipeDown } from '@/hooks/useSwipeDown';
@@ -59,6 +60,22 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  // Group items into 2-column rows for virtualisation
+  const rows = useMemo<SavedItem[][]>(() => {
+    const result: SavedItem[][] = [];
+    for (let i = 0; i < filtered.length; i += 2) {
+      result.push(filtered.slice(i, i + 2));
+    }
+    return result;
+  }, [filtered]);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 290,
+    overscan: 3,
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -178,17 +195,25 @@ export default function InboxPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <SwipeableRow onDelete={() => removeItem(item.id)}>
+          <div
+            style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: virtualRow.start,
+                  left: 0,
+                  right: 0,
+                  paddingBottom: 12,
+                }}
+                className="grid grid-cols-2 gap-3"
+              >
+                {rows[virtualRow.index].map((item) => (
+                  <SwipeableRow key={item.id} onDelete={() => removeItem(item.id)}>
                     <InboxCard
                       item={item}
                       onDelete={removeItem}
@@ -197,9 +222,9 @@ export default function InboxPage() {
                       onRetry={retryItem}
                     />
                   </SwipeableRow>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                ))}
+              </div>
+            ))}
           </div>
         )}
       </div>

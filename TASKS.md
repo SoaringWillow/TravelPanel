@@ -305,7 +305,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — Performance & Scale
 
 ### E1 — Virtual Scrolling for Large Clip Lists
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: At 200+ clips, the inbox renders all cards in DOM, causing jank on scroll.  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
