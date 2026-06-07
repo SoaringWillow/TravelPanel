@@ -341,7 +341,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test: plan view header, day cards, sourced tips, the timeline tab
 
 ### F2 — Dark Mode: Board Detail, Share & Location Detail
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Board detail page, shared board page, and LocationDetailCard are all white-only. Any user who taps these in dark mode gets a jarring white flash.  
 **Files**: `app/boards/[id]/page.tsx`, `app/shared/page.tsx`, `components/LocationDetailCard.tsx`  
 **What to do**:

@@ -12,13 +12,13 @@ function SharedBoardInner() {
 
   if (!board) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 text-center gap-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center px-6 text-center gap-4">
         <div className="text-5xl">🗺</div>
-        <h1 className="text-xl font-bold text-gray-800">Board not found</h1>
-        <p className="text-sm text-gray-500 max-w-xs">
+        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Board not found</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
           This share link may have expired or be invalid. Ask the sender for a new one.
         </p>
-        <a href="/" className="text-indigo-600 text-sm font-medium hover:underline">
+        <a href="/" className="text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:underline">
           Open TravelPanel →
         </a>
       </div>
@@ -26,14 +26,14 @@ function SharedBoardInner() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
           <span className="text-2xl">{board.emoji}</span>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-gray-900 truncate">{board.name}</h1>
-            <p className="text-xs text-gray-400">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">{board.name}</h1>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               {board.items.length} place{board.items.length !== 1 ? 's' : ''} · Shared via TravelPanel
             </p>
           </div>
@@ -43,7 +43,7 @@ function SharedBoardInner() {
       {/* Clips */}
       <div className="max-w-lg mx-auto px-4 py-5 space-y-4 pb-12">
         {board.items.length === 0 && (
-          <div className="text-center py-16 text-gray-400 text-sm">
+          <div className="text-center py-16 text-gray-400 dark:text-gray-500 text-sm">
             This board has no clips yet.
           </div>
         )}
@@ -61,7 +61,7 @@ function SharedBoardInner() {
             <BookOpen size={15} />
             Open TravelPanel — save your own trips
           </a>
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
             TravelPanel — clip travel inspiration, plan smarter trips
           </p>
         </div>
@@ -74,16 +74,16 @@ function SharedClipCard({ item }: { item: SharedBoard['items'][number] }) {
   const clipUrl = `/share?url=${encodeURIComponent(item.url)}&title=${encodeURIComponent(item.title)}`;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
       {item.thumbnail && (
         <img
           src={item.thumbnail}
           alt=""
-          className="w-full h-40 object-cover bg-gray-100"
+          className="w-full h-40 object-cover bg-gray-100 dark:bg-gray-700"
         />
       )}
       <div className="p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900 text-sm leading-snug">{item.title}</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-snug">{item.title}</h2>
 
         {/* Locations */}
         {item.locations.length > 0 && (
@@ -91,7 +91,7 @@ function SharedClipCard({ item }: { item: SharedBoard['items'][number] }) {
             {item.locations.slice(0, 4).map((loc, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-medium px-2 py-0.5 rounded-full"
+                className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium px-2 py-0.5 rounded-full"
               >
                 <MapPin size={9} />
                 {loc.name}
@@ -106,7 +106,7 @@ function SharedClipCard({ item }: { item: SharedBoard['items'][number] }) {
             {item.tags.map((tag, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-2 py-0.5 rounded-full"
               >
                 <Tag size={9} />
                 {tag}
@@ -117,9 +117,9 @@ function SharedClipCard({ item }: { item: SharedBoard['items'][number] }) {
 
         {/* Substance snippet */}
         {item.substance.length > 0 && (
-          <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 space-y-1">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl px-3 py-2 space-y-1">
             {item.substance.slice(0, 2).map((s, i) => (
-              <p key={i} className="text-xs text-amber-800 leading-relaxed">
+              <p key={i} className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
                 {s.type === 'tip' && '💡'}
                 {s.type === 'warning' && '⚠️'}
                 {s.type === 'recommendation' && '⭐'}
@@ -135,7 +135,7 @@ function SharedClipCard({ item }: { item: SharedBoard['items'][number] }) {
         {/* CTA */}
         <a
           href={clipUrl}
-          className="flex items-center justify-center gap-1.5 w-full border border-indigo-200 text-indigo-600 text-xs font-semibold py-2 rounded-xl hover:bg-indigo-50 transition-colors"
+          className="flex items-center justify-center gap-1.5 w-full border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-xs font-semibold py-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
         >
           <ExternalLink size={12} />
           Clip to my TravelPanel
@@ -149,7 +149,7 @@ export default function SharedPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
         </div>
       }
