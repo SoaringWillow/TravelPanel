@@ -219,7 +219,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - NOTE: This is server-memory only (no DB), so shared links expire on redeploy — fine for v1
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users clip things months before a trip. When the trip approaches, relevant clips should surface automatically.  
 **Files**: `app/settings/page.tsx`, new `components/TripReminder.tsx`, `lib/resurfacing.ts`  
 **What to do**:

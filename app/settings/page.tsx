@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Trash2, Database, Map, BookOpen, Route, ChevronRight } from 'lucide-react';
+import { Download, Database, Map, BookOpen, Route, Plane, X } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards, getAllTrips } from '@/lib/db';
 import { buildExport, downloadJSON } from '@/lib/exportData';
+import { getUpcomingTrip, setUpcomingTrip, UpcomingTrip } from '@/lib/resurfacing';
 
 interface Stats {
   items: number;
@@ -16,12 +17,36 @@ export default function SettingsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
+  const [tripDest, setTripDest] = useState('');
+  const [tripDate, setTripDate] = useState('');
+  const [tripSaved, setTripSaved] = useState(false);
+
+  useEffect(() => {
+    const t = getUpcomingTrip();
+    if (t) { setTripDest(t.destination); setTripDate(t.departureDate); }
+  }, []);
 
   useEffect(() => {
     Promise.all([getAllItems(), getAllBoards(), getAllTrips()]).then(([items, boards, trips]) => {
       setStats({ items: items.length, boards: boards.length, trips: trips.length });
     });
   }, []);
+
+  function handleSaveTrip() {
+    if (tripDest && tripDate) {
+      setUpcomingTrip({ destination: tripDest, departureDate: tripDate });
+    } else {
+      setUpcomingTrip(null);
+    }
+    setTripSaved(true);
+    setTimeout(() => setTripSaved(false), 2000);
+  }
+
+  function handleClearTrip() {
+    setUpcomingTrip(null);
+    setTripDest('');
+    setTripDate('');
+  }
 
   async function handleExport() {
     setExporting(true);
@@ -66,6 +91,51 @@ export default function SettingsPage() {
               label="Trip plans"
               value={stats?.trips ?? '—'}
             />
+          </div>
+        </section>
+
+        {/* Upcoming trip section */}
+        <section>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Upcoming Trip
+          </h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Plane size={15} className="text-indigo-500" />
+              <span className="text-sm text-gray-600">Get a reminder when your trip is within 14 days</span>
+            </div>
+            <input
+              type="text"
+              placeholder="Destination (e.g. Tokyo)"
+              value={tripDest}
+              onChange={(e) => setTripDest(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+            />
+            <input
+              type="date"
+              value={tripDate}
+              onChange={(e) => setTripDate(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveTrip}
+                className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  tripSaved ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {tripSaved ? '✓ Saved!' : 'Save trip'}
+              </button>
+              {(tripDest || tripDate) && (
+                <button
+                  onClick={handleClearTrip}
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center gap-1"
+                >
+                  <X size={13} />
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
         </section>
 
