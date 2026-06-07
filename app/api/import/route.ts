@@ -81,32 +81,9 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompts ─────────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
+const SUBSTANCE_INSTRUCTIONS = `
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
@@ -114,7 +91,7 @@ Do NOT invent or guess coordinates.
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
-This is what competitors miss. Examples of what to capture:
+Examples:
 - "Arrive before 8am to beat the queue" → tip
 - "The set lunch menu is half the price of dinner" → tip
 - "Cash only, nearest ATM is 10 min walk" → warning
@@ -124,18 +101,92 @@ This is what competitors miss. Examples of what to capture:
 - "If you're visiting in August, be aware it's typhoon season" → context
 - "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
 
-For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
+For list-format content ("35 mistakes to avoid", "10 things I wish I knew"), extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+${SUBSTANCE_INSTRUCTIONS}`;
+}
+
+const VISION_TEXT_PROMPT = `You are analyzing a screenshot of a travel social media post (likely Xiaohongshu / WeChat / similar).
+The screenshot shows the post content directly. Extract TWO layers:
+${SUBSTANCE_INSTRUCTIONS}
+
+The screenshot is the authoritative source — read all visible text, captions, location tags, and any overlaid text.
+For Chinese-language content: translate substance items into English.`;
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
+  try {
+    ({ url, imageBase64, imageMimeType } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // Vision path: image payload present (Xiaohongshu / WeChat anti-scraping workaround)
+  const hasImage = typeof imageBase64 === 'string' && imageBase64.length > 0;
+
+  // Always attempt URL scraping (provides structured metadata even alongside images)
+  const page = await fetchPageData(url);
+
+  // Decide whether to use vision.
+  // Use vision when: image provided AND (platform blocks scraping OR page returned no content)
+  const useVision =
+    hasImage &&
+    (platform === 'xiaohongshu' || platform === 'wechat' || !page?.textContent?.trim());
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision) {
+      const mime = imageMimeType || 'image/jpeg';
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: `data:${mime};base64,${imageBase64}`,
+              },
+              {
+                type: 'text',
+                text: VISION_TEXT_PROMPT,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const prompt = buildTextPrompt(platform, url, page);
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

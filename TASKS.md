@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,8 +174,88 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
+
+---
+
+## PHASE D — iOS Polish & Visual Quality (Current Sprint)
+
+> **Goal**: Make the app genuinely beautiful on iOS — dark mode, native interactions,
+> smooth animations, and zero rough edges. These are the touches that turn a functional
+> app into one users love and recommend.
+
+### D1 — System Dark Mode
+**Status**: `[x]` Done
+**Files**: `app/globals.css`, `app/layout.tsx`, `components/NavBar.tsx`,
+`components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/settings/page.tsx`
+**What to do**:
+- Add dark CSS variable block to `globals.css`
+- Inject an inline script in `layout.tsx` that reads `prefers-color-scheme` and applies
+  the `dark` class to `<html>` before first paint (prevents FOUC)
+- Add a `useDarkMode` hook that keeps the class in sync when system preference changes
+- Add `dark:` variants to all key components and pages
+
+### D2 — Swipe-to-Delete on Clip Cards
+**Status**: `[x]` Done
+**Files**: `components/InboxCard.tsx`, possibly `hooks/useSwipeDelete.ts`
+**What to do**:
+- Add horizontal swipe gesture to inbox cards: swipe left reveals a red delete zone
+- Use `@use-gesture/react` or a simple pointer event approach
+- Animate card with spring physics; snap back on incomplete swipe
+- Full swipe triggers delete with a confirmation toast ("Undo" within 3s)
+
+### D3 — Clipboard URL Detection
+**Status**: `[x]` Done
+**Files**: `app/page.tsx` or new `components/ClipboardBanner.tsx`
+**What to do**:
+- On app foreground (visibilitychange or focus), check clipboard for a travel URL
+- If a URL from a known travel platform is detected, show a slim toast: "Clip this? instagram.com/…"
+- Tapping the toast opens the share/import flow with the URL pre-filled
+- On iOS, `navigator.clipboard.readText()` requires a user gesture — listen on first tap
+
+### D4 — Pull-to-Refresh in List Views
+**Status**: `[x]` Done
+**Files**: `app/inbox/page.tsx`, `app/boards/[id]/page.tsx`
+**What to do**:
+- Overscroll-triggered refresh: pull down > 60px triggers a spinner + data reload
+- On iOS web, use `touch` events + `overscroll-behavior: contain`; animate a refresh icon
+- Reload `useSavedItems` / `useBoards` data on trigger
+
+### D5 — Skeleton Placeholder Improvements
+**Status**: `[x]` Done
+**Files**: `components/InboxCard.tsx`, `app/boards/page.tsx`
+**What to do**:
+- Replace the current spinner-only loading state in the boards list with card-shaped skeletons
+- Add `shimmer` animation class to globals.css
+- Ensure skeleton matches the exact shape of a fully-loaded card to prevent layout shift
+
+### D6 — Haptic Feedback
+**Status**: `[x]` Done
+**Files**: new `lib/haptics.ts`, key interaction points
+**What to do**:
+- Wrap `@capacitor/haptics` in a `lib/haptics.ts` module that no-ops in browser
+- Trigger `ImpactStyle.Light` on: board chip tap, FAB press, save success
+- Trigger `ImpactStyle.Medium` on: delete confirmation, plan generation start
+- Trigger `NotificationType.Success` on: clip enriched successfully
+
+### D7 — Improved Board Detail Page
+**Status**: `[x]` Done
+**Files**: `app/boards/[id]/page.tsx`
+**What to do**:
+- Add sort options: by date saved, by title, by location count
+- Add a plan-this-trip CTA at top right (link to `/plan/[boardId]`)
+- Show board cover image (first thumbnail) as a hero banner
+- Empty-board state with a "Start clipping" prompt that opens the share flow
+
+### D8 — iOS Status Bar & Notch Polish
+**Status**: `[x]` Done
+**Files**: `app/layout.tsx`, `app/globals.css`, `ios/App/App/Info.plist`
+**What to do**:
+- Set `apple-mobile-web-app-status-bar-style` to `black-translucent` in dark mode
+- Ensure all page headers use `safe-top` padding
+- Update status bar color via Capacitor StatusBar plugin based on current page (map = transparent, list = white/dark)
+- Add `env(safe-area-inset-*)` to the NavBar so it clears the home indicator
 
 ---
 

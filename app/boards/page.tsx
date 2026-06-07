@@ -30,13 +30,13 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:border-b dark:border-gray-800 px-4 pt-header pb-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LayoutGrid className="text-indigo-600" size={22} />
-            <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
+            <LayoutGrid className="text-indigo-600 dark:text-indigo-400" size={22} />
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">My Boards</h1>
           </div>
           <button
             type="button"
@@ -53,16 +53,24 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav-safe">
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden min-h-[160px] flex flex-col bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="skeleton-shimmer flex-1 p-4 flex flex-col gap-3 justify-end">
+                  <div className="w-8 h-8 rounded-xl skeleton-shimmer" />
+                  <div className="h-3.5 rounded-full skeleton-shimmer w-3/4" />
+                  <div className="h-3 rounded-full skeleton-shimmer w-1/2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">
             <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
+            <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">No boards yet.</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
               Create your first board to organise your travel ideas.
             </p>
             <button

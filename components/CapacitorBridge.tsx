@@ -3,17 +3,33 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share URL (+ optional image) stored by the iOS Share Extension
+// via App Groups. The App Group suite name must match ShareViewController.swift.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: title }     = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: imageData } = await Preferences.get({ key: 'pendingShareImageData' });
+    const { value: imageMime } = await Preferences.get({ key: 'pendingShareImageMimeType' });
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareImageData' });
+    await Preferences.remove({ key: 'pendingShareImageMimeType' });
+
+    // Stash image in sessionStorage so the /share page can pick it up without
+    // bloating the URL. sessionStorage is cleared when the tab/app is closed.
+    if (imageData) {
+      try {
+        sessionStorage.setItem('pendingShareImageData', imageData);
+        sessionStorage.setItem('pendingShareImageMimeType', imageMime || 'image/jpeg');
+      } catch {
+        // sessionStorage unavailable (privacy mode) — vision path won't fire, degrading gracefully
+      }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -44,19 +60,36 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>[&hasImage=1]
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
-            const shareUrl = parsed.searchParams.get('url');
+            const shareUrl   = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage   = parsed.searchParams.get('hasImage') === '1';
 
-            if (shareUrl) {
-              const qs = new URLSearchParams({ url: shareUrl });
-              if (shareTitle) qs.set('title', shareTitle);
-              router.push(`/share?${qs.toString()}`);
+            if (!shareUrl) return;
+
+            // When the Share Extension also captured an image (Xiaohongshu etc.),
+            // read it from App Group preferences and stash in sessionStorage.
+            if (hasImage) {
+              try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: imageData } = await Preferences.get({ key: 'pendingShareImageData' });
+                const { value: imageMime } = await Preferences.get({ key: 'pendingShareImageMimeType' });
+                await Preferences.remove({ key: 'pendingShareImageData' });
+                await Preferences.remove({ key: 'pendingShareImageMimeType' });
+                if (imageData) {
+                  sessionStorage.setItem('pendingShareImageData', imageData);
+                  sessionStorage.setItem('pendingShareImageMimeType', imageMime || 'image/jpeg');
+                }
+              } catch { /* sessionStorage or Preferences unavailable */ }
             }
+
+            const qs = new URLSearchParams({ url: shareUrl });
+            if (shareTitle) qs.set('title', shareTitle);
+            router.push(`/share?${qs.toString()}`);
           } catch {
             // Malformed URL — ignore
           }

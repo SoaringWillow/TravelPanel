@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- Pin shape -->
+  <path d="M64 18C45.2 18 30 33.2 30 52c0 25 34 60 34 60s34-35 34-60c0-18.8-15.2-34-34-34Z" fill="white" fill-opacity="0.92"/>
+  <!-- Inner circle -->
+  <circle cx="64" cy="52" r="13" fill="#6366f1"/>
+</svg>
