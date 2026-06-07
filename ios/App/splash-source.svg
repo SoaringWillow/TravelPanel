@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732" width="2732" height="2732">
+  <!-- White background -->
+  <rect width="2732" height="2732" fill="white"/>
+
+  <!-- Centered icon — teal rounded square with pin -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0D9488"/>
+      <stop offset="100%" style="stop-color:#0F766E"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-20%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="24" stdDeviation="40" flood-color="rgba(13,148,136,0.25)"/>
+    </filter>
+    <clipPath id="rounded">
+      <rect x="1116" y="1116" width="500" height="500" rx="110" ry="110"/>
+    </clipPath>
+  </defs>
+
+  <!-- Icon background rounded square -->
+  <g filter="url(#shadow)">
+    <rect x="1116" y="1116" width="500" height="500" rx="110" ry="110" fill="url(#bg)"/>
+  </g>
+
+  <!-- Pin inside icon (scaled to fit 500x500 box at 1116,1116) -->
+  <!-- Original pin was in 1024x1024 space; scale to ~280px height inside 500px box -->
+  <!-- Pin centered at 1366,1366, scaled ~0.27x from original 1024 coords -->
+  <g transform="translate(1366, 1366) scale(0.3) translate(-512, -490)">
+    <!-- Pin body -->
+    <path
+      d="M512 160
+         C410 160 328 242 328 344
+         C328 490 512 860 512 860
+         C512 860 696 490 696 344
+         C696 242 614 160 512 160 Z"
+      fill="white"
+    />
+    <!-- Inner circle cutout -->
+    <circle cx="512" cy="340" r="88" fill="#0D9488"/>
+    <!-- Small white dot -->
+    <circle cx="512" cy="340" r="28" fill="white"/>
+  </g>
+
+  <!-- App name below icon -->
+  <text
+    x="1366"
+    y="1720"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-size="72"
+    font-weight="600"
+    fill="#0D9488"
+    text-anchor="middle"
+    letter-spacing="2"
+  >TravelPanel</text>
+</svg>

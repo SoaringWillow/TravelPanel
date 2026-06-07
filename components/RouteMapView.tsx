@@ -5,6 +5,7 @@ import Map, { Marker, Source, Layer, NavigationControl, useMap } from 'react-map
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, TripPlan } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
+import type { LivePosition } from '@/hooks/useLiveLocation';
 
 const DAY_COLORS = [
   '#6366f1',
@@ -30,6 +31,7 @@ interface RouteMapViewProps {
   items: SavedItem[];
   plan: Partial<TripPlan> | null;
   activeDayIndex: number;
+  userPosition?: LivePosition | null;
 }
 
 interface BoundsControllerProps {
@@ -85,7 +87,7 @@ function BoundsController({ plan, items }: BoundsControllerProps) {
   return null;
 }
 
-export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapViewProps) {
+export default function RouteMapView({ items, plan, activeDayIndex, userPosition }: RouteMapViewProps) {
   const days = plan?.days ?? [];
 
   const allItemLocations = useMemo(
@@ -175,6 +177,35 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
             </Source>
           );
         })}
+
+      {/* Live user position — pulsing blue dot */}
+      {userPosition && (
+        <Marker longitude={userPosition.lng} latitude={userPosition.lat} anchor="center">
+          <div style={{ position: 'relative', width: 22, height: 22 }}>
+            {/* Pulse ring */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: -6,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(59,130,246,0.25)',
+                animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite',
+              }}
+            />
+            {/* Accuracy circle */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                backgroundColor: '#3b82f6',
+                border: '3px solid white',
+                boxShadow: '0 2px 8px rgba(59,130,246,0.6)',
+              }}
+            />
+          </div>
+        </Marker>
+      )}
 
       {/* Day location markers with numbers */}
       {days.length > 0 &&

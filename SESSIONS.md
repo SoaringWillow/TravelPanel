@@ -96,3 +96,19 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-07 12:26 | e506b92 | feat(B2): add browser extension for one-click travel post clipping
+2026-06-07 12:32 | a937a78 | feat(B3): Claude Vision fallback for Xiaohongshu/WeChat scraping blocks
+2026-06-07 12:34 | 0730741 | feat(B5): settings page with JSON data export and clear-all
+2026-06-07 12:38 | 8098c0b | feat(C1): on-trip GPS mode with live position and nearest-activity panel
+2026-06-07 12:40 | f8b2389 | feat(C2): post-trip timeline with visited activity tracking
+2026-06-07 12:42 | bb9539d | feat(D1,D2,D6): offline banner, haptic feedback, improved share UI
+2026-06-07 12:44 | 9fbb9d2 | feat(D3,D5): pull-to-refresh + windowed rendering for inbox
+2026-06-07 12:49 | bf9cbd3 | D4: App icon and launch screen assets with TravelPanel brand design
+2026-06-07 12:53 | c9e6335 | E1: Swipe-to-delete/move gesture on inbox cards
+2026-06-07 12:55 | 64a4e43 | E2: Inline clip editing in LocationDetailCard
+2026-06-07 12:57 | 0ebbdb0 | E3: Dark mode with system-aware theme detection
+2026-06-07 12:58 | 64aa7ae | E4: Clipboard URL quick-import banner
+2026-06-07 12:59 | daa12f9 | E6: Keyboard avoidance via Visual Viewport API
+2026-06-07 13:00 | 5686960 | E8: Smart inbox sorting (newest/oldest/platform/unprocessed)
+2026-06-07 13:01 | 729fe7f | E10: React.memo on InboxCard and BoardCard, useCallback on inbox handlers
+2026-06-07 13:03 | fa296b1 | E9: Drag-to-reorder activities in trip plan

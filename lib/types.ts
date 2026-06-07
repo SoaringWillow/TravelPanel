@@ -114,6 +114,16 @@ export interface TripPlan {
   tips: string[];
 }
 
+/** One activity the user marked as visited during Trip Mode. */
+export interface VisitedActivity {
+  dayIndex: number;
+  activityIndex: number;
+  activityName: string;
+  locationName: string;
+  visitedAt: number; // Unix timestamp ms
+  sourcedTips?: SourcedTip[];
+}
+
 export interface Trip {
   id: string;
   boardId: string;
@@ -124,6 +134,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  visitedActivities?: VisitedActivity[];
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

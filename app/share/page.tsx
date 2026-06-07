@@ -9,6 +9,8 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { triggerHaptic } from '@/lib/haptics';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,12 +31,42 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [ogImage, setOgImage]                 = useState<string | null>(null);
+  const imageBase64Ref = useRef<string | undefined>(undefined);
+  const keyboardHeight = useKeyboardHeight();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards on mount and consume any pending screenshot from the Share Extension
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // The CapacitorBridge writes a screenshot to sessionStorage when the platform
+    // blocks HTML scraping (Xiaohongshu, WeChat, Douyin). Consume it once here.
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        imageBase64Ref.current = img;
+        setOgImage(`data:image/jpeg;base64,${img}`);
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch { /* sessionStorage may be unavailable */ }
+
+    // Fetch OG image from the shared URL for thumbnail preview
+    if (rawUrl) {
+      fetch(`/api/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: rawUrl }),
+        signal: AbortSignal.timeout(5000),
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => {
+          if (data?.thumbnail) setOgImage(data.thumbnail);
+        })
+        .catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-dismiss when done
@@ -82,15 +114,16 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    triggerHaptic('success');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (bypasses platform scraping blocks)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64Ref.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -143,9 +176,32 @@ function SharePageInner() {
 
   if (stage === 'picking' || stage === 'saving') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      <div
+        className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-between p-6 safe-top"
+        style={{ paddingBottom: `max(24px, ${keyboardHeight + 16}px)` }}
+      >
         {/* Top section */}
-        <div className="space-y-2 pt-4">
+        <div className="space-y-3 pt-4">
+          {/* OG image thumbnail */}
+          {ogImage && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.25 }}
+              className="w-full rounded-2xl overflow-hidden"
+              style={{ maxHeight: 180 }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={ogImage}
+                alt="Preview"
+                className="w-full object-cover"
+                style={{ maxHeight: 180 }}
+                onError={() => setOgImage(null)}
+              />
+            </motion.div>
+          )}
+
           {/* Platform chip */}
           <div className="flex items-center gap-2">
             <span
@@ -294,8 +350,16 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+            <div className="bg-gray-50 rounded-2xl px-4 py-4 space-y-2.5">
+              {/* Shimmer skeleton */}
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-gray-200 animate-pulse" />
+                <div className="h-3 bg-gray-200 rounded-full w-32 animate-pulse" />
+              </div>
+              <div className="h-2.5 bg-gray-200 rounded-full w-full animate-pulse" />
+              <div className="h-2.5 bg-gray-200 rounded-full w-4/5 animate-pulse" />
+              <div className="h-2.5 bg-gray-200 rounded-full w-3/5 animate-pulse" />
+              <p className="text-xs text-gray-400 pt-1">Extracting locations & tips…</p>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
             <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">

@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +97,22 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // For platforms that block server-side scraping (Xiaohongshu, WeChat, Douyin),
+  // skip the HTML fetch if we have a screenshot — the image is more reliable anyway.
+  const scrapeBlocked = ['xiaohongshu', 'wechat', 'douyin'].includes(platform);
+  const page = (scrapeBlocked && imageBase64) ? null : await fetchPageData(url);
 
-Platform: ${platform}
+  const textBlock = `Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+Title: ${page?.title ?? '(unavailable — platform blocks scraping)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch — use the screenshot image above if provided)'}`;
+
+  const promptBody = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+${textBlock}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,11 +137,30 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
+    const { object } = imageBase64
+      ? await generateObject({
+          model: models.enrichment,
+          schema: importSchema,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  // AI SDK accepts raw base64 string as image data
+                  image: imageBase64 as string,
+                  mimeType: 'image/jpeg',
+                },
+                { type: 'text', text: promptBody },
+              ],
+            },
+          ],
+        })
+      : await generateObject({
+          model: models.enrichment,
+          schema: importSchema,
+          prompt: promptBody,
+        });
     claudeResult = object;
   } catch {
     // Fall through to defaults

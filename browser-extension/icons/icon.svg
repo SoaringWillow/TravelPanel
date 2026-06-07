@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Rounded background -->
+  <rect width="128" height="128" rx="22" fill="#0D9488"/>
+  <!-- White location pin -->
+  <path d="M64 22C47.4 22 34 35.4 34 52C34 72.8 64 106 64 106C64 106 94 72.8 94 52C94 35.4 80.6 22 64 22Z" fill="white"/>
+  <!-- Teal inner circle -->
+  <circle cx="64" cy="52" r="14" fill="#0D9488"/>
+</svg>
