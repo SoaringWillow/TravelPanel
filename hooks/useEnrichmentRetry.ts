@@ -8,6 +8,7 @@ const MAX_RETRIES = 3;
 
 // Runs on app load, finds items that failed enrichment, and retries them
 // with exponential backoff. Also resets items stuck in 'processing' (app crash).
+// Listens to the `online` event to flush 'queued' items when connectivity returns.
 export function useEnrichmentRetry(onItemUpdated: (id: string) => void) {
   const hasRun = useRef(false);
   // Store the latest callback in a ref so the effect closure doesn't go stale
@@ -20,11 +21,12 @@ export function useEnrichmentRetry(onItemUpdated: (id: string) => void) {
 
     async function runRetries() {
       // Recover items stuck in 'processing' — these were in-flight when the
-      // app was closed. Decrement their retryCount so they don't burn a retry slot.
+      // app was closed. Skip items that started very recently (< 45s) since
+      // they may still be running via a keepalive fetch from the share page.
       const stuckItems = await getItemsByStatus('processing');
+      const RECENT_MS = 45_000;
       for (const item of stuckItems) {
-        // Reset to failed; updateItemEnrichment will increment retryCount,
-        // but we clamp it to avoid penalising the user for a crash.
+        if (Date.now() - item.savedAt < RECENT_MS) continue;
         const db_item = { ...item, retryCount: Math.max(0, (item.retryCount ?? 0) - 1) };
         await updateItemEnrichment(db_item.id, 'failed');
         callbackRef.current(db_item.id);
@@ -42,12 +44,25 @@ export function useEnrichmentRetry(onItemUpdated: (id: string) => void) {
       }
     }
 
+    async function flushQueue() {
+      // Process items queued while offline
+      const queued = await getItemsByStatus('queued');
+      for (const item of queued) {
+        await enrichItem(item.id, item.url);
+        callbackRef.current(item.id);
+      }
+    }
+
     runRetries();
+
+    // When connectivity is restored, immediately flush the offline queue
+    const handleOnline = () => { flushQueue(); };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
   }, []); // intentionally empty — runs once on mount
 
   // Manual retry triggered by the user clicking "Retry" on a card
   const retryItem = useCallback(async (id: string, url: string) => {
-    // Temporarily mark as processing so the card shows a spinner
     await updateItemEnrichment(id, 'processing');
     callbackRef.current(id);
     await enrichItem(id, url);

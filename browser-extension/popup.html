@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">✈️</span>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="settings-btn" id="settingsBtn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Default state -->
+    <div class="state" id="stateDefault">
+      <div class="page-preview" id="pagePreview">
+        <div class="page-favicon" id="pageFavicon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+        <div class="page-info">
+          <div class="page-title" id="pageTitle">Loading...</div>
+          <div class="page-url" id="pageUrl">—</div>
+        </div>
+      </div>
+
+      <button class="clip-btn" id="clipBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+        Clip to TravelPanel
+      </button>
+
+      <p class="hint">Opens your TravelPanel board selector</p>
+    </div>
+
+    <!-- Success state -->
+    <div class="state hidden" id="stateSuccess">
+      <div class="success-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="success-title">Clipped!</div>
+      <div class="success-sub">Opening TravelPanel…</div>
+    </div>
+
+    <!-- Error state -->
+    <div class="state hidden" id="stateError">
+      <div class="error-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="error-title">Can't clip this page</div>
+      <div class="error-sub" id="errorMessage">This page type isn't supported.</div>
+      <button class="retry-btn" id="retryBtn">Try again</button>
+    </div>
+
+    <!-- Not configured state -->
+    <div class="state hidden" id="stateUnconfigured">
+      <div class="setup-icon">⚙️</div>
+      <div class="setup-title">Set your TravelPanel URL</div>
+      <div class="setup-sub">Open settings to connect to your TravelPanel app.</div>
+      <button class="clip-btn" id="openOptionsBtn">Open Settings</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

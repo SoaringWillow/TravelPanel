@@ -19,8 +19,8 @@ export default function DayStripCard({ day, index, isActive, onSelect }: DayStri
       onClick={onSelect}
       className={`cursor-pointer rounded-2xl p-3 flex-shrink-0 ${
         isActive
-          ? 'border-2 border-indigo-500 bg-indigo-50 shadow-md'
-          : 'border-2 border-transparent bg-white shadow-sm'
+          ? 'border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-md'
+          : 'border-2 border-transparent bg-white dark:bg-gray-800 shadow-sm'
       }`}
       style={{ minWidth: 160, maxWidth: 180 }}
     >
@@ -28,19 +28,19 @@ export default function DayStripCard({ day, index, isActive, onSelect }: DayStri
         <span
           className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
             isActive
-              ? 'bg-white text-indigo-600'
-              : 'bg-gray-100 text-gray-600'
+              ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
           }`}
         >
           Day {index + 1}
         </span>
       </div>
 
-      <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 mt-1">
+      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-snug line-clamp-2 mt-1">
         {day.theme}
       </p>
 
-      <p className="text-xs text-gray-400 mt-1">
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         {stopCount} stop{stopCount !== 1 ? 's' : ''}
       </p>
     </motion.div>

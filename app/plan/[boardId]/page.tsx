@@ -3,12 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, ListChecks, LayoutList } from 'lucide-react';
+import { impact, notification } from '@/lib/haptics';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import TripTimeline from '@/components/TripTimeline';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { diffPlans, PlanDiff } from '@/lib/diffPlan';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -30,6 +33,9 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
+  const [suggestedDays, setSuggestedDays] = useState<number | null>(null);
+  const [diffToast, setDiffToast] = useState<PlanDiff | null>(null);
+  const [diffBadges, setDiffBadges] = useState<Record<string, number>>({});
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
   const [steps, setSteps] = useState<AgentStep[]>([]);
@@ -38,6 +44,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'itinerary' | 'timeline'>('itinerary');
+  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -52,6 +60,10 @@ export default function PlanPage() {
           setBoard(b);
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
+          const locationCount = filtered.reduce((sum, i) => sum + (i.locations?.length ?? 0), 0);
+          const suggested = Math.min(Math.max(1, Math.ceil(locationCount / 4)), 7);
+          setSuggestedDays(suggested);
+          setDays(suggested);
         }
         setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
       } finally {
@@ -76,6 +88,7 @@ export default function PlanPage() {
       return;
     }
 
+    impact('medium');
     setStage('generating');
     setSteps([]);
     setPlan(null);
@@ -125,6 +138,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              notification(msg.step.type === 'done' ? 'success' : 'error');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -140,7 +154,19 @@ export default function PlanPage() {
                 createdAt: Date.now(),
               };
               await saveTrip(trip);
-              setSavedTrips((prev) => [...prev, trip]);
+              setSavedTrips((prev) => {
+                // Compute diff vs the most recent previous version
+                const prevTrip = prev[prev.length - 1];
+                if (prevTrip?.plan) {
+                  const diff = diffPlans(prevTrip.plan, latestPlan as TripPlan);
+                  if (diff.total > 0) {
+                    setDiffToast(diff);
+                    setDiffBadges((b) => ({ ...b, [trip.id]: diff.total }));
+                    setTimeout(() => setDiffToast(null), 4000);
+                  }
+                }
+                return [...prev, trip];
+              });
               setCurrentTripId(trip.id);
             }
           }
@@ -192,8 +218,31 @@ export default function PlanPage() {
     setDays(trip.days);
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
+    setVisitedIds(new Set(trip.visitedActivityIds ?? []));
+    setViewMode('itinerary');
     setStage('complete');
   }, []);
+
+  const toggleVisited = useCallback(async (actId: string) => {
+    setVisitedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(actId)) next.delete(actId); else next.add(actId);
+      return next;
+    });
+  }, []);
+
+  // Persist visited IDs whenever they change and we have a current trip
+  useEffect(() => {
+    if (!currentTripId) return;
+    setSavedTrips((trips) => {
+      const trip = trips.find((t) => t.id === currentTripId);
+      if (!trip) return trips;
+      const updated = { ...trip, visitedActivityIds: [...visitedIds] };
+      saveTrip(updated);
+      return trips.map((t) => (t.id === currentTripId ? updated : t));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visitedIds, currentTripId]);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
     const trip = savedTrips.find((t) => t.id === tripId);
@@ -237,7 +286,7 @@ export default function PlanPage() {
 
   if (loadingBoard) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-950">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
       </div>
     );
@@ -245,11 +294,11 @@ export default function PlanPage() {
 
   if (!board) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 gap-4">
-        <p className="text-gray-500 text-sm">Board not found.</p>
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-gray-950 gap-4">
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Board not found.</p>
         <button
           onClick={() => router.back()}
-          className="text-indigo-600 text-sm font-medium"
+          className="text-indigo-600 dark:text-indigo-400 text-sm font-medium"
         >
           Go back
         </button>
@@ -258,7 +307,17 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
+      {/* Diff toast — appears after plan regeneration */}
+      {diffToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg whitespace-nowrap animate-fade-in">
+          New plan: {diffToast.added > 0 && `${diffToast.added} added`}
+          {diffToast.added > 0 && diffToast.removed > 0 && ', '}
+          {diffToast.removed > 0 && `${diffToast.removed} removed`}
+          {' '}vs previous
+        </div>
+      )}
+
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -276,7 +335,7 @@ export default function PlanPage() {
       </div>
 
       {/* Bottom scrollable panel */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950" style={{ minHeight: 0 }}>
         <div className="px-4 pb-8 pt-4">
 
           {/* ── PRE-GENERATE STATE ── */}
@@ -286,14 +345,14 @@ export default function PlanPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.back()}
-                  className="flex items-center gap-1 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                  className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                 >
                   <ArrowLeft size={16} />
                   Back
                 </button>
                 <span className="text-2xl">{board.emoji}</span>
-                <h1 className="text-lg font-bold text-gray-800 flex-1 truncate">{board.name}</h1>
-                <span className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex-1 truncate">{board.name}</h1>
+                <span className="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
                   {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -301,11 +360,22 @@ export default function PlanPage() {
               {/* Days slider */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                     <Calendar size={15} className="text-indigo-500" />
                     Trip length
                   </label>
-                  <span className="text-sm font-bold text-indigo-600">{days} day{days !== 1 ? 's' : ''}</span>
+                  <div className="flex items-center gap-2">
+                    {suggestedDays !== null && days !== suggestedDays && (
+                      <button
+                        type="button"
+                        onClick={() => setDays(suggestedDays)}
+                        className="text-xs text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors"
+                      >
+                        Suggested: {suggestedDays}d
+                      </button>
+                    )}
+                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{days} day{days !== 1 ? 's' : ''}</span>
+                  </div>
                 </div>
                 <Slider
                   value={[days]}
@@ -323,10 +393,10 @@ export default function PlanPage() {
 
               {/* Preference chips */}
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-gray-700">Travel style</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Travel style</label>
                 {CHIP_GROUPS.map(({ label, chips }) => (
                   <div key={label} className="space-y-1.5">
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{label}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">{label}</p>
                     <div className="flex flex-wrap gap-2">
                       {chips.map((chip) => {
                         const active = selectedChips.has(chip);
@@ -337,8 +407,8 @@ export default function PlanPage() {
                             onClick={() => toggleChip(chip)}
                             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 ${
                               active
-                                ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-400'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-400'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                             }`}
                           >
                             {chip}
@@ -353,7 +423,7 @@ export default function PlanPage() {
                   onChange={(e) => setCustomNotes(e.target.value)}
                   placeholder="Anything else? e.g. avoid hills, travelling with kids…"
                   rows={2}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
                 />
               </div>
 
@@ -381,6 +451,7 @@ export default function PlanPage() {
                 onRename={renameTrip}
                 onDelete={removeTrip}
                 onNewVersion={handleNewVersion}
+                diffBadges={diffBadges}
               />
 
               {/* Generate button */}
@@ -407,7 +478,7 @@ export default function PlanPage() {
 
               <button
                 onClick={handleCancel}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                className="flex items-center justify-center gap-2 w-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
               >
                 <X size={15} />
                 Cancel
@@ -433,7 +504,7 @@ export default function PlanPage() {
 
               {/* Overview */}
               {plan.overview && (
-                <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
+                <p className="text-sm italic text-gray-600 dark:text-gray-400 leading-relaxed">{plan.overview}</p>
               )}
 
               {/* Summary chips */}
@@ -486,10 +557,49 @@ export default function PlanPage() {
                 onRename={renameTrip}
                 onDelete={removeTrip}
                 onNewVersion={handleNewVersion}
+                diffBadges={diffBadges}
               />
 
-              {/* Day strip */}
-              {plan.days && plan.days.length > 0 && (
+              {/* View mode tab switcher */}
+              {planIsComplete(plan) && (
+                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
+                  <button
+                    onClick={() => setViewMode('itinerary')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                      viewMode === 'itinerary' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    <LayoutList size={13} />
+                    Itinerary
+                  </button>
+                  <button
+                    onClick={() => setViewMode('timeline')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                      viewMode === 'timeline' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    <ListChecks size={13} />
+                    Timeline
+                    {visitedIds.size > 0 && (
+                      <span className="ml-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        {visitedIds.size}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Timeline view */}
+              {viewMode === 'timeline' && planIsComplete(plan) && (
+                <TripTimeline
+                  plan={plan}
+                  visitedIds={visitedIds}
+                  onToggle={toggleVisited}
+                />
+              )}
+
+              {/* Day strip — shown in itinerary mode only */}
+              {viewMode === 'itinerary' && plan.days && plan.days.length > 0 && (
                 <div className="overflow-x-auto pb-2 -mx-4 px-4">
                   <div className="flex gap-3" style={{ width: 'max-content' }}>
                     {plan.days.map((day, idx) => (
@@ -505,29 +615,29 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Active day activities */}
-              {activeDayPlan && (
+              {/* Active day activities — itinerary mode only */}
+              {viewMode === 'itinerary' && activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
+                  <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300">
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
 
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700 space-y-1"
                     >
                       <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        <span className="flex-shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.time}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
+                          <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
                             {activity.location.name}
                           </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200">{activity.name}</p>
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        <span className="flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.duration}
                         </span>
                       </div>
@@ -535,7 +645,7 @@ export default function PlanPage() {
                       {activity.tips.length > 0 && (
                         <ul className="space-y-0.5 pl-1">
                           {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
+                            <li key={tIdx} className="text-xs text-gray-500 dark:text-gray-400 leading-snug">
                               · {tip}
                             </li>
                           ))}
@@ -548,10 +658,10 @@ export default function PlanPage() {
                           {activity.sourcedTips.map((st, sIdx) => (
                             <div
                               key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                              className="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300 dark:border-emerald-700"
                             >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
+                              <p className="text-xs text-emerald-900 dark:text-emerald-300 leading-snug">💡 {st.content}</p>
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-500 mt-0.5 truncate">
                                 from your clip: {st.sourceTitle}
                               </p>
                             </div>
@@ -565,14 +675,14 @@ export default function PlanPage() {
 
               {/* Trip tips */}
               {plan.tips && plan.tips.length > 0 && (
-                <div className="bg-amber-50 rounded-2xl p-3 border border-amber-100">
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-3 border border-amber-100 dark:border-amber-800">
                   <div className="flex items-center gap-1.5 mb-2">
                     <Lightbulb size={14} className="text-amber-500" />
-                    <span className="text-xs font-semibold text-amber-700">Trip Tips</span>
+                    <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">Trip Tips</span>
                   </div>
                   <ul className="space-y-1">
                     {plan.tips.map((tip, tIdx) => (
-                      <li key={tIdx} className="text-xs text-amber-800 leading-snug">
+                      <li key={tIdx} className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
                         · {tip}
                       </li>
                     ))}
@@ -583,7 +693,7 @@ export default function PlanPage() {
               {/* Start Over */}
               <button
                 onClick={handleStartOver}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                className="flex items-center justify-center gap-2 w-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
               >
                 <RotateCcw size={15} />
                 Start Over

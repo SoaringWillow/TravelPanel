@@ -71,3 +71,9 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Dark mode shimmer for skeleton cards */
+.dark .dark\:shimmer-dark {
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%) !important;
+  background-size: 800px 100% !important;
+}

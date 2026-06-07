@@ -154,9 +154,10 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
             id:   `route-line-${dayIdx}`,
             type: 'line' as const,
             paint: {
-              'line-color':   isActive ? color : hexToRgba(color, 0.4),
-              'line-width':   isActive ? 4 : 2,
-              'line-opacity': 1,
+              'line-color':      isActive ? color : hexToRgba(color, 0.4),
+              'line-width':      isActive ? 4 : 2,
+              'line-opacity':    1,
+              'line-dasharray':  isActive ? [1, 0] : [4, 3],
             },
             layout: {
               'line-cap':  'round' as const,

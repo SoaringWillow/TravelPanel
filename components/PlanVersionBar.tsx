@@ -11,6 +11,7 @@ interface PlanVersionBarProps {
   onRename: (tripId: string, name: string) => void;
   onDelete: (tripId: string) => void;
   onNewVersion: () => void;
+  diffBadges?: Record<string, number>;
 }
 
 export default function PlanVersionBar({
@@ -20,6 +21,7 @@ export default function PlanVersionBar({
   onRename,
   onDelete,
   onNewVersion,
+  diffBadges = {},
 }: PlanVersionBarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -75,6 +77,11 @@ export default function PlanVersionBar({
               <button onClick={() => onSelect(trip)} className="flex items-center gap-1 whitespace-nowrap">
                 {isActive && <Check size={12} />}
                 {trip.name || 'Untitled plan'}
+                {diffBadges[trip.id] != null && (
+                  <span className={`text-[10px] font-semibold px-1 rounded ${isActive ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-600'}`}>
+                    △{diffBadges[trip.id]}
+                  </span>
+                )}
               </button>
               {isActive && (
                 <>

@@ -1,0 +1,236 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  background: #0f172a;
+  color: #f1f5f9;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 180px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.logo-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.logo-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+  letter-spacing: -0.01em;
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.settings-btn:hover {
+  color: #94a3b8;
+  background: #1e293b;
+}
+
+/* Page preview */
+.page-preview {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.page-favicon {
+  color: #6366f1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.page-favicon img {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+.page-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.page-title {
+  font-weight: 500;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.page-url {
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+/* Clip button */
+.clip-btn {
+  width: 100%;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: -0.01em;
+}
+
+.clip-btn:hover {
+  background: #4f46e5;
+}
+
+.clip-btn:active {
+  transform: scale(0.98);
+}
+
+.hint {
+  text-align: center;
+  color: #475569;
+  font-size: 11px;
+}
+
+/* Success state */
+.success-icon {
+  display: flex;
+  justify-content: center;
+  color: #22c55e;
+  margin: 8px 0 4px;
+}
+
+.success-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.success-sub {
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* Error state */
+.error-icon {
+  display: flex;
+  justify-content: center;
+  color: #f87171;
+  margin: 8px 0 4px;
+}
+
+.error-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.error-sub {
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.retry-btn {
+  width: 100%;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.retry-btn:hover {
+  background: #334155;
+}
+
+/* Setup / unconfigured state */
+.setup-icon {
+  font-size: 28px;
+  text-align: center;
+  margin: 4px 0;
+}
+
+.setup-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.setup-sub {
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+/* Shared state layout */
+.state {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.state.hidden {
+  display: none;
+}

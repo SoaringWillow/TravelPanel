@@ -26,13 +26,14 @@ export interface Location {
   address?: string;
 }
 
-export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'other';
+export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'youtube' | 'instagram' | 'other';
 
-// pending  → just captured, SW hasn't processed yet
-// processing → SW currently calling /api/import
-// done     → Claude extracted locations/activities
-// failed   → failed after retries
-export type EnrichmentStatus = 'pending' | 'processing' | 'done' | 'failed';
+// pending    → just captured, not yet started
+// queued     → offline when captured, waiting for connectivity
+// processing → currently calling /api/import
+// done       → Claude extracted locations/activities
+// failed     → failed after retries
+export type EnrichmentStatus = 'pending' | 'queued' | 'processing' | 'done' | 'failed';
 
 export interface SavedItem {
   id: string;
@@ -124,6 +125,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  visitedActivityIds?: string[]; // 'd{dayIdx}-a{actIdx}' format
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

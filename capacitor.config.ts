@@ -22,6 +22,11 @@ const config: CapacitorConfig = {
     limitsNavigationsToAppBoundDomains: false,
   },
   plugins: {
+    // Use the App Group suite so @capacitor/preferences can read data written
+    // by the iOS Share Extension (which also writes to this suite).
+    Preferences: {
+      group: 'group.com.travelpanel.app',
+    },
     SplashScreen: {
       launchShowDuration: 800,
       backgroundColor: '#f9fafb',
