@@ -96,3 +96,32 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-07 21:24 | b9251dd | feat: add Chrome browser extension (B2)
+2026-06-07 21:32 | 24b45b4 | feat: Claude Vision extraction for Xiaohongshu (B3)
+2026-06-07 21:34 | 8c95a54 | feat: data backup export + settings page (B5)
+2026-06-07 21:36 | da741cf | chore: expand TASKS.md with detailed Phase C, D, E tasks
+2026-06-07 21:37 | 846f913 | feat: Nearby GPS tab — on-trip mode (C1)
+2026-06-07 21:39 | 2ba6b59 | feat: post-trip timeline with visited tracking (C2)
+2026-06-07 21:41 | 5e1cce9 | feat: shareable boards via URL-encoded links (C3)
+2026-06-07 21:43 | 0f25453 | feat: proactive trip resurfacing — upcoming trip reminder (C4)
+2026-06-07 21:44 | df583eb | feat: skeleton loading states — replace all spinners (D1)
+2026-06-07 21:45 | a5697da | feat: haptic feedback on key actions (D2)
+2026-06-07 21:47 | 604e4a0 | feat: pull-to-refresh on inbox and boards (D3)
+2026-06-07 21:55 | 94e5309 | feat(D4): add dark mode support across all major UI surfaces
+2026-06-07 21:57 | 20425bc | feat(D5): swipe-to-delete on inbox clip cards
+2026-06-07 21:58 | 8a77c33 | feat(D6): map style toggle — streets, satellite, terrain
+2026-06-07 22:00 | 5f9ef77 | feat(E1): virtual scrolling for large clip lists in inbox
+2026-06-07 22:01 | 78442ad | feat(E2): offline queue for enrichment
+2026-06-07 22:03 | e742590 | chore: add Phase F-H tasks to TASKS.md
+2026-06-07 22:06 | 1b92959 | feat(F1): dark mode for plan view, trip timeline, and day strip cards
+2026-06-07 22:08 | c047434 | feat(F2): dark mode for board detail, shared board, and location detail
+2026-06-07 22:09 | e372d02 | feat(F3): auto-switch map to dark-matter tiles in dark mode
+2026-06-07 22:13 | 7314433 | F4: share page dark mode — preview card, done stage, Suspense fallback
+2026-06-07 22:14 | 6b90ab7 | F5: inline substance expansion on InboxCard
+2026-06-07 22:17 | ee406b8 | G1: instant inbox appearance after clip save
+2026-06-07 22:19 | 41e7b18 | G2: YouTube and Instagram URL support
+2026-06-07 22:19 | c78fe20 | G3: clip deduplication on share page
+2026-06-07 22:20 | 65ff6ea | G4: source quote display polish in SubstanceList
+2026-06-07 22:21 | fba6c80 | H1: per-day driving time estimates in plan view and route map
+2026-06-07 22:22 | 6534345 | H2: smart default trip duration based on location count
+2026-06-07 22:24 | 509bc88 | H3: plan regeneration diff view
