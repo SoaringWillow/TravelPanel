@@ -11,6 +11,7 @@ import TripTimeline from '@/components/TripTimeline';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { diffPlans, PlanDiff } from '@/lib/diffPlan';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -33,6 +34,8 @@ export default function PlanPage() {
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
   const [suggestedDays, setSuggestedDays] = useState<number | null>(null);
+  const [diffToast, setDiffToast] = useState<PlanDiff | null>(null);
+  const [diffBadges, setDiffBadges] = useState<Record<string, number>>({});
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
   const [steps, setSteps] = useState<AgentStep[]>([]);
@@ -151,7 +154,19 @@ export default function PlanPage() {
                 createdAt: Date.now(),
               };
               await saveTrip(trip);
-              setSavedTrips((prev) => [...prev, trip]);
+              setSavedTrips((prev) => {
+                // Compute diff vs the most recent previous version
+                const prevTrip = prev[prev.length - 1];
+                if (prevTrip?.plan) {
+                  const diff = diffPlans(prevTrip.plan, latestPlan as TripPlan);
+                  if (diff.total > 0) {
+                    setDiffToast(diff);
+                    setDiffBadges((b) => ({ ...b, [trip.id]: diff.total }));
+                    setTimeout(() => setDiffToast(null), 4000);
+                  }
+                }
+                return [...prev, trip];
+              });
               setCurrentTripId(trip.id);
             }
           }
@@ -293,6 +308,16 @@ export default function PlanPage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
+      {/* Diff toast — appears after plan regeneration */}
+      {diffToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg whitespace-nowrap animate-fade-in">
+          New plan: {diffToast.added > 0 && `${diffToast.added} added`}
+          {diffToast.added > 0 && diffToast.removed > 0 && ', '}
+          {diffToast.removed > 0 && `${diffToast.removed} removed`}
+          {' '}vs previous
+        </div>
+      )}
+
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -426,6 +451,7 @@ export default function PlanPage() {
                 onRename={renameTrip}
                 onDelete={removeTrip}
                 onNewVersion={handleNewVersion}
+                diffBadges={diffBadges}
               />
 
               {/* Generate button */}
@@ -531,6 +557,7 @@ export default function PlanPage() {
                 onRename={renameTrip}
                 onDelete={removeTrip}
                 onNewVersion={handleNewVersion}
+                diffBadges={diffBadges}
               />
 
               {/* View mode tab switcher */}

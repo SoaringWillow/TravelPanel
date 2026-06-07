@@ -458,7 +458,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a duration picker to the plan UI (1–14 days, default = suggested) above the Generate button
 
 ### H3 — Plan Regeneration Diff View
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When a user regenerates a plan (creating a new version per A10), they currently have no way to see what changed. A simple before/after diff shows the value of regeneration.  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
