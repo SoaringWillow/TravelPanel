@@ -278,7 +278,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Update the "last refreshed" timestamp in the UI
 
 ### D6 — iPad Split-View Layout  
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, `app/inbox/page.tsx`  
 **What to do**:
 - At `lg:` breakpoint (768px+), show sidebar + content layout

@@ -105,7 +105,7 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 lg:pl-20">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-safe-header pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">

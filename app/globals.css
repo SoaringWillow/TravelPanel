@@ -92,3 +92,10 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
+
+/* iPad left sidebar offset — applied to all pages so content clears the 80px sidebar */
+@media (min-width: 1024px) {
+  .pb-nav {
+    padding-bottom: 1.5rem;
+  }
+}

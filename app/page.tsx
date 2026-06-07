@@ -137,7 +137,7 @@ function HomePageInner() {
   }, []);
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden">
+    <main className="relative h-screen w-screen overflow-hidden lg:pl-20">
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} userLocation={userLocation ?? undefined} />
 

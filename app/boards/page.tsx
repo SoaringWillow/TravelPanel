@@ -35,7 +35,7 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 lg:pl-20">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-safe-header pb-4 z-10">
         <div className="flex items-center justify-between">
