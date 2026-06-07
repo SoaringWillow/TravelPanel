@@ -248,7 +248,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Remove all `loading && <Spinner />` patterns in favour of skeletons
 
 ### D2 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Haptics make actions feel real and satisfying on a physical device. Critical for the "clip saved" moment.  
 **Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/NavBar.tsx`  
 **What to do**:

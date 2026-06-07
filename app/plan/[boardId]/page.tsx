@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, ListChecks, LayoutList } from 'lucide-react';
+import { impact, notification } from '@/lib/haptics';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import TripTimeline from '@/components/TripTimeline';
@@ -79,6 +80,7 @@ export default function PlanPage() {
       return;
     }
 
+    impact('medium');
     setStage('generating');
     setSteps([]);
     setPlan(null);
@@ -128,6 +130,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              notification(msg.step.type === 'done' ? 'success' : 'error');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
