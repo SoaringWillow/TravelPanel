@@ -328,7 +328,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Replace any existing `window.alert()` or silent ops with toasts
 
 ### E2 — Trip Day Cards Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Redesign the rendered itinerary: accordion day cards with a day number badge,
