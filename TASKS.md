@@ -260,7 +260,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Install: `npm install @capacitor/haptics`
 
 ### D3 — Pull-to-Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect pull-to-refresh everywhere. Without it, the app feels static.  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:

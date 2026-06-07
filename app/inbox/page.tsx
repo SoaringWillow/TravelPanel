@@ -9,6 +9,8 @@ import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { SkeletonInboxCard } from '@/components/SkeletonCard';
+import { useSwipeDown } from '@/hooks/useSwipeDown';
+import { RotateCw } from 'lucide-react';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
@@ -30,7 +32,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -44,6 +46,8 @@ export default function InboxPage() {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
+
+  const { containerRef, pulling, pullPct, refreshing } = useSwipeDown(refresh);
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
@@ -140,7 +144,20 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Pull-to-refresh indicator */}
+        {(pulling || refreshing) && (
+          <div
+            className="flex justify-center items-center mb-2 transition-all"
+            style={{ opacity: refreshing ? 1 : pullPct, transform: `scale(${0.6 + 0.4 * pullPct})` }}
+          >
+            <RotateCw
+              size={18}
+              className={`text-indigo-500 ${refreshing ? 'animate-spin' : ''}`}
+              style={{ transform: refreshing ? undefined : `rotate(${pullPct * 360}deg)` }}
+            />
+          </div>
+        )}
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 6 }, (_, i) => <SkeletonInboxCard key={i} />)}
