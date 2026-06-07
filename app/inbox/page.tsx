@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { AnimatePresence, motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { X, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -12,6 +12,7 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/li
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { selectionChanged } from '@/lib/haptics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -31,7 +32,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -40,6 +41,43 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // ── Pull-to-refresh ─────────────────────────────────────────────────────────
+  const PULL_THRESHOLD = 64; // px to trigger refresh
+  const pullY       = useMotionValue(0);
+  const spinnerOpacity = useTransform(pullY, [0, PULL_THRESHOLD * 0.4, PULL_THRESHOLD], [0, 0.6, 1]);
+  const spinnerScale   = useTransform(pullY, [0, PULL_THRESHOLD], [0.5, 1]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const hapticFiredRef = useRef(false);
+
+  async function triggerRefresh() {
+    setIsRefreshing(true);
+    await Promise.all([refresh(), new Promise((r) => setTimeout(r, 400))]);
+    setIsRefreshing(false);
+    animate(pullY, 0, { type: 'spring', stiffness: 400, damping: 35 });
+    hapticFiredRef.current = false;
+  }
+
+  function handleScrollerDrag(_: unknown, info: { offset: { y: number } }) {
+    const el = scrollRef.current;
+    if (!el || el.scrollTop > 0 || isRefreshing) return;
+    const y = Math.max(0, info.offset.y);
+    pullY.set(y * 0.45); // resistance factor
+    if (y * 0.45 >= PULL_THRESHOLD && !hapticFiredRef.current) {
+      hapticFiredRef.current = true;
+      selectionChanged();
+    }
+  }
+
+  function handleScrollerDragEnd() {
+    if (pullY.get() >= PULL_THRESHOLD) {
+      triggerRefresh();
+    } else {
+      animate(pullY, 0, { type: 'spring', stiffness: 400, damping: 35 });
+      hapticFiredRef.current = false;
+    }
+  }
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -140,8 +178,27 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      {/* Content — drag downward on the list to pull-to-refresh */}
+      <motion.div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 pb-24 relative"
+        drag="y"
+        dragDirectionLock
+        dragConstraints={{ top: 0, bottom: PULL_THRESHOLD }}
+        dragElastic={{ top: 0, bottom: 0.3 }}
+        onDrag={handleScrollerDrag}
+        onDragEnd={handleScrollerDragEnd}
+        style={{ touchAction: 'pan-y' }}
+      >
+        {/* Pull indicator */}
+        <motion.div
+          className="flex items-center justify-center pt-2 pb-1 pointer-events-none"
+          style={{ opacity: spinnerOpacity, scale: spinnerScale }}
+        >
+          <motion.div animate={isRefreshing ? { rotate: 360 } : {}} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
+            <RefreshCw size={18} className="text-indigo-400" />
+          </motion.div>
+        </motion.div>
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -197,7 +254,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>

@@ -218,7 +218,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Each empty state uses the indigo/violet gradient palette and is visually distinct
 
 ### C4 — Pull-to-Refresh on Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts` or similar  
 **What to do**:
 - On mobile, dragging down from the top of the list triggers a refresh of all items from IndexedDB
