@@ -47,9 +47,9 @@ export default function SubstanceList({ items, showHeader = true }: SubstanceLis
                     )}
                   </div>
                   <p className=”text-sm text-gray-700 dark:text-gray-300 leading-snug mt-0.5”>{s.content}</p>
-                  {s.source_quote && (
-                    <p className=”text-xs text-gray-400 dark:text-gray-500 italic leading-snug mt-1 border-l-2 border-gray-200 dark:border-gray-700 pl-2”>
-                      “{s.source_quote}”
+                  {s.source_quote && s.source_quote !== s.content && (
+                    <p className=”text-xs text-gray-400 dark:text-gray-500 italic leading-snug mt-1 border-l-2 border-indigo-200 dark:border-indigo-800 pl-2”>
+                      &ldquo;{s.source_quote.length > 120 ? s.source_quote.slice(0, 120) + '…' : s.source_quote}&rdquo;
                     </p>
                   )}
                 </div>

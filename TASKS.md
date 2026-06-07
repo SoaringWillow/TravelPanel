@@ -424,7 +424,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Toast component: a small non-blocking banner that auto-dismisses after 3s
 
 ### G4 — Substance Quality: Source Quote Display
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The `source_quote` field on SubstanceItem is extracted by Claude but never shown. Showing the exact words from the post (in italics, as a pull-quote) dramatically increases trust in the wisdom layer.  
 **Files**: `components/LocationDetailCard.tsx` (SubstanceList section)  
 **What to do**:
