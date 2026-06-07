@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import SwipeToDelete from '@/components/SwipeToDelete';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -166,16 +167,18 @@ export default function InboxPage() {
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
                   transition={{ duration: 0.2 }}
                 >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
+                  <SwipeToDelete onDelete={() => removeItem(item.id)}>
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  </SwipeToDelete>
                 </motion.div>
               ))}
             </AnimatePresence>

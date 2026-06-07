@@ -179,19 +179,134 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
-## PHASE C — On-Trip Mode (Future)
+## PHASE C — iOS Polish & Native Feel (Current Sprint)
 
-### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+> Goal: make the app feel like a premium iOS product — smooth gestures, haptics,
+> beautiful empty states, and complete core flows. All tasks are web/Next.js
+> implementable without Xcode unless noted.
 
-### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+### C1 — Swipe-to-Delete on Cards
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, possibly `app/boards/[id]/page.tsx`  
+**What to do**:
+- Wrap each card in a Framer Motion drag container (horizontal axis only)
+- Swipe left > 80px reveals a red delete zone; release > 120px triggers delete with confirmation
+- Show a trash icon in the revealed zone
+- On delete: remove from IndexedDB, animate card out with height collapse
+- Works for both Inbox items and Board detail items
 
-### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+### C2 — Haptic Feedback on Key Actions
+**Status**: `[x]` Done  
+**Files**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create `lib/haptics.ts`: thin wrapper around `@capacitor/haptics` that no-ops outside native context
+- `impact('light')` — card taps, chip selections
+- `impact('medium')` — save success, board creation
+- `impact('heavy')` — delete confirmation
+- `notification('success')` — clip saved (share done screen)
+- `notification('warning')` — rate limit hit
+- Wire into: share done state, board chip tap, delete confirm, retry button
 
-### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+### C3 — Empty States for All Pages
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `app/page.tsx`  
+**What to do**:
+- Inbox empty: illustration with "Save your first inspiration" + share instructions + "Try the demo" button
+- Boards empty: "Create your first collection" with a + button prominently centred
+- Board detail empty: "No clips yet — add from your inbox" with a clear CTA
+- Map empty: animated pulsing pin with "Save a post with locations to see it here"
+- Each empty state uses the indigo/violet gradient palette and is visually distinct
+
+### C4 — Pull-to-Refresh on Inbox
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts` or similar  
+**What to do**:
+- On mobile, dragging down from the top of the list triggers a refresh of all items from IndexedDB
+- Show a spinner during refresh (300ms minimum so it feels intentional)
+- After refresh, re-run the retry queue for any failed enrichments
+- Use Framer Motion drag + a threshold (pull > 60px = trigger)
+- Trigger haptic `impact('light')` on threshold hit
+
+### C5 — Board Cover Images
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx`, `lib/db.ts`  
+**What to do**:
+- When a clip with a thumbnail is added to a board, automatically set that thumbnail as `coverThumbnail` on the board (if not already set)
+- In the board grid, show the cover thumbnail as a blurred background behind the emoji + board name
+- If no cover: show a gradient based on the first letter of the board name
+- Add a "Change cover" option in board settings (just pick from existing clip thumbnails in that board)
+
+### C6 — Inline Clip Editing
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- In `LocationDetailCard`, add an Edit button (pencil icon) that switches to edit mode
+- Editable fields: title (text input), custom notes (textarea), tags (chip toggles)
+- Save on blur or explicit "Save" button — writes to IndexedDB via `updateItemFields()`
+- Add `updateItemFields(id, fields)` to `lib/db.ts`
+- Cancel discards changes (show "Discard?" confirm if dirty)
+
+### C7 — Inbox Sort & Filter
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `components/SearchBar.tsx`  
+**What to do**:
+- Add a filter bar below the search bar: "All", "Xiaohongshu", "YouTube", "Instagram", "WeChat", "Douyin"
+- Platform chips are horizontally scrollable; active chip is indigo-filled
+- Add sort toggle: "Newest" / "Oldest" / "Most locations"
+- Persist the selected filter in component state (not URL — no page reload)
+- Combine with existing full-text search (search + filter stack)
+
+### C8 — Plan Export UI (wire existing lib)
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `lib/exportPlan.ts`  
+**What to do**:
+- `lib/exportPlan.ts` already exists but the buttons are not wired up in the plan view
+- Add an Export menu (sheet or dropdown) in the plan header with two options:
+  - "Export PDF" → calls `exportToPDF(plan)` from `lib/exportPlan.ts`
+  - "Add to Calendar (.ics)" → calls `exportToCalendar(plan)` from `lib/exportPlan.ts`
+- Show a loading state while generating (PDF can take 1-2s)
+- After download starts, show a "Downloaded!" toast for 2s
+
+### C9 — App Icon & Capacitor Branding
+**Status**: `[ ]` Not started  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `capacitor.config.ts`, `public/`  
+**What to do**:
+- Generate a set of app icon PNGs (1024x1024 base) using the existing `generate-icons.js` logic
+  but with the full ✈️ on indigo gradient design
+- Place correctly named files in `ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json`
+- Update `public/` with a 512x512 web app icon for the PWA manifest
+- Update `app/layout.tsx` metadata with proper title, description, theme-color (#6366f1)
+- Update `public/manifest.json` (or create it) with PWA metadata
+
+### C10 — Safe Area & Notch Audit
+**Status**: `[ ]` Not started  
+**Files**: `app/globals.css`, `app/layout.tsx`, all page files  
+**What to do**:
+- Audit every page for proper `safe-area-inset-*` handling using `env()` CSS variables
+- The share page, inbox, boards, plan, and settings pages all need safe top/bottom padding
+- Create Tailwind utility classes: `safe-top` → `pt-[env(safe-area-inset-top)]`, `safe-bottom` → `pb-[env(safe-area-inset-bottom)]`
+- The NavBar fixed bottom bar must sit above the home indicator on notchless iPhones
+- Verify the plan page header doesn't overlap the status bar
+
+---
+
+## PHASE D — On-Trip & Discovery (Future)
+
+### D1 — On-Trip GPS Mode
+**Status**: `[ ]` Not started  
+**What to do**: Show user's live location on the map; highlight nearby saved spots; turn-by-turn hint to next spot
+
+### D2 — Post-Trip Timeline
+**Status**: `[ ]` Not started  
+**What to do**: After a trip, allow marking spots as "visited", add photos/notes per spot
+
+### D3 — Shared Boards v1
+**Status**: `[ ]` Not started  
+**What to do**: Generate a read-only share link for a board (Supabase required); recipient sees map + clips
+
+### D4 — Proactive Resurfacing
+**Status**: `[ ]` Not started  
+**What to do**: Weekly push notification: "You saved 3 Tokyo clips 2 months ago — ready to plan?"
 
 ---
 
