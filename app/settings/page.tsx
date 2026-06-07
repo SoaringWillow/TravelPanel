@@ -10,7 +10,9 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronRight,
+  CalendarDays,
 } from 'lucide-react';
+import Link from 'next/link';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards } from '@/lib/db';
 import { buildExportPayload, downloadJSON } from '@/lib/exportData';
@@ -182,6 +184,26 @@ export default function SettingsPage() {
             Your data is stored locally on this device. Exporting regularly protects against
             accidental loss. Cloud backup is coming in a future update.
           </p>
+        </section>
+
+        {/* Journey Timeline link */}
+        <section className="space-y-2">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+            Views
+          </h2>
+          <Link
+            href="/timeline"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
+          >
+            <div className="p-2 bg-violet-50 rounded-xl">
+              <CalendarDays size={16} className="text-violet-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-900 text-sm">Journey Timeline</p>
+              <p className="text-xs text-gray-500">Your clips and collections grouped over time</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-400" />
+          </Link>
         </section>
 
         {/* Coming soon */}
