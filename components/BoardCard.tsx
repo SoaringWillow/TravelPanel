@@ -1,6 +1,6 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Board } from '@/lib/types';
 
@@ -8,17 +8,40 @@ interface BoardCardProps {
   board: Board;
   itemCount: number;
   onClick: () => void;
-  onDelete?: () => void;
+  onLongPress?: () => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, onClick, onLongPress }: BoardCardProps) {
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  function handlePointerDown() {
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      onLongPress?.();
+    }, 500);
+  }
+
+  function handlePointerUp() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function handleClick() {
+    if (!didLongPress.current) onClick();
+  }
+
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
-      style={{ borderLeftWidth: undefined }}
+      whileTap={{ scale: 0.97 }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onClick={handleClick}
+      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col select-none"
     >
       {/* Cover thumbnail background */}
       {board.coverThumbnail && (
@@ -47,19 +70,13 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
-        {/* Delete button bottom-right */}
-        {onDelete && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="absolute bottom-3 right-3 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            aria-label="Delete board"
-          >
-            <Trash2 size={14} />
-          </button>
+        {/* Long-press hint dot */}
+        {onLongPress && (
+          <div className="absolute bottom-3 right-3 flex gap-0.5">
+            {[0,1,2].map((i) => (
+              <div key={i} className="w-1 h-1 bg-gray-200 rounded-full" />
+            ))}
+          </div>
         )}
       </div>
     </motion.div>

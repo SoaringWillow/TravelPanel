@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -13,6 +14,8 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import { SkeletonBox } from '@/components/Skeleton';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -35,6 +38,7 @@ export default function PlanPage() {
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([0]));
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
@@ -125,6 +129,8 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') hapticSuccess();
+              else hapticWarning();
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -237,8 +243,12 @@ export default function PlanPage() {
 
   if (loadingBoard) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div className="flex flex-col h-screen bg-gray-50 p-4 gap-4 pt-[calc(4rem+env(safe-area-inset-top,0px))]">
+        <SkeletonBox className="h-8 w-48 rounded-xl" />
+        <SkeletonBox className="h-48 w-full rounded-2xl" />
+        {[1, 2, 3].map((i) => (
+          <SkeletonBox key={i} className="h-24 w-full rounded-2xl" />
+        ))}
       </div>
     );
   }
@@ -396,23 +406,39 @@ export default function PlanPage() {
 
           {/* ── GENERATING STATE ── */}
           {stage === 'generating' && (
-            <div className="space-y-4">
-              {/* Back / board name */}
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{board.emoji}</span>
-                <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+            <ErrorBoundary>
+              <div className="space-y-4">
+                {/* Back / board name */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{board.emoji}</span>
+                  <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+                </div>
+
+                <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
+
+                {/* Pulsing skeleton day cards during streaming */}
+                <div className="space-y-3 pt-2">
+                  {Array.from({ length: days }, (_, i) => (
+                    <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <SkeletonBox className="h-5 w-14 rounded-full" />
+                        <SkeletonBox className="h-4 flex-1 rounded-full" />
+                      </div>
+                      <SkeletonBox className="h-3 w-3/4 rounded-full" />
+                      <SkeletonBox className="h-3 w-1/2 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleCancel}
+                  className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  <X size={15} />
+                  Cancel
+                </button>
               </div>
-
-              <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
-
-              <button
-                onClick={handleCancel}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                <X size={15} />
-                Cancel
-              </button>
-            </div>
+            </ErrorBoundary>
           )}
 
           {/* ── COMPLETE STATE ── */}
@@ -488,78 +514,137 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
-              {plan.days && plan.days.length > 0 && (
-                <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                  <div className="flex gap-3" style={{ width: 'max-content' }}>
+              {/* Regenerate button */}
+              <button
+                onClick={handleNewVersion}
+                className="flex items-center justify-center gap-2 w-full bg-indigo-50 text-indigo-700 text-sm font-semibold py-2.5 rounded-2xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+              >
+                <RefreshCw size={15} />
+                Regenerate plan
+              </button>
+
+              {/* Sticky day navigation strip */}
+              {plan.days && plan.days.length > 1 && (
+                <div className="sticky top-0 z-10 bg-gray-50 -mx-4 px-4 py-2">
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                     {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setActiveDayIndex(idx);
+                          setExpandedDays((prev) => new Set([...prev, idx]));
+                        }}
+                        className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                          activeDayIndex === idx
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-white text-gray-500 border border-gray-200'
+                        }`}
+                      >
+                        Day {idx + 1}
+                      </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Active day activities */}
-              {activeDayPlan && (
+              {/* Day accordion */}
+              {plan.days && plan.days.length > 0 && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  {plan.days.map((day, idx) => {
+                    const isOpen = expandedDays.has(idx);
+                    return (
+                      <div key={idx} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* Day header — always visible, tap to expand */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveDayIndex(idx);
+                            setExpandedDays((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(idx)) next.delete(idx);
+                              else next.add(idx);
+                              return next;
+                            });
+                          }}
+                          className="w-full flex items-center gap-3 p-4 text-left"
+                        >
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0 ${
+                            isOpen ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'
+                          }`}>
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-800 leading-snug line-clamp-1">
+                              {day.theme}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {day.activities.length} stop{day.activities.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          {isOpen ? (
+                            <ChevronUp size={16} className="text-gray-400 flex-shrink-0" />
+                          ) : (
+                            <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />
+                          )}
+                        </button>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
+                        {/* Activities — shown when expanded */}
+                        {isOpen && (
+                          <div className="px-4 pb-4 space-y-3 border-t border-gray-50">
+                            {day.activities.map((activity, aIdx) => (
+                              <div
+                                key={aIdx}
+                                className="bg-gray-50 rounded-xl p-3 space-y-1.5 mt-3"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <span className="flex-shrink-0 bg-white text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full border border-gray-200">
+                                    {activity.time}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-indigo-600 truncate">
+                                      {activity.location.name}
+                                    </p>
+                                    <p className="text-sm font-semibold text-gray-800">{activity.name}</p>
+                                  </div>
+                                  <span className="flex-shrink-0 bg-indigo-100 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                                    {activity.duration}
+                                  </span>
+                                </div>
+
+                                {activity.tips.length > 0 && (
+                                  <ul className="space-y-0.5 pl-1">
+                                    {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                                      <li key={tIdx} className="text-xs text-gray-500 leading-snug">
+                                        · {tip}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+
+                                {/* Sourced tips — wisdom cited from the user's own clips */}
+                                {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                                  <div className="space-y-1">
+                                    {activity.sourcedTips.map((st, sIdx) => (
+                                      <div
+                                        key={sIdx}
+                                        className="bg-emerald-50 rounded-lg px-3 py-2 border-l-2 border-emerald-400"
+                                      >
+                                        <p className="text-xs text-emerald-900 leading-snug font-medium">💡 {st.content}</p>
+                                        <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
+                                          from your clip: {st.sourceTitle}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

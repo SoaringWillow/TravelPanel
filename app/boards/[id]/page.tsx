@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Clock, Share2 } from 'lucide-react';
+import { encodeBoardForShare, buildShareUrl } from '@/lib/shareBoard';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { SkeletonList } from '@/components/Skeleton';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -54,8 +56,8 @@ export default function BoardDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-col h-screen bg-gray-50">
-        <div className="flex items-center justify-center flex-1">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="flex-1 overflow-y-auto pb-24">
+          <SkeletonList count={6} />
         </div>
         <NavBar active="boards" />
       </div>
@@ -88,7 +90,7 @@ export default function BoardDetailPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-4 z-10">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -110,6 +112,37 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={() => router.push(`/timeline/${boardId}`)}
+              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0"
+              aria-label="View trip timeline"
+              title="Trip timeline"
+            >
+              <Clock size={18} />
+            </button>
+          )}
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={async () => {
+                const encoded = encodeBoardForShare(board, boardItems);
+                const url = buildShareUrl(window.location.origin, encoded);
+                if (navigator.share) {
+                  await navigator.share({ title: `${board.emoji} ${board.name}`, url });
+                } else {
+                  await navigator.clipboard.writeText(url);
+                  alert('Share link copied to clipboard!');
+                }
+              }}
+              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0"
+              aria-label="Share this board"
+              title="Share board"
+            >
+              <Share2 size={18} />
+            </button>
+          )}
         </div>
       </div>
 

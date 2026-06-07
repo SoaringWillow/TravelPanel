@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: #0A0A0C;
+      color: #F0F0F2;
+      padding: 40px 32px;
+      max-width: 520px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .logo-text p {
+      font-size: 12px;
+      color: #5A5A66;
+      margin-top: 1px;
+    }
+
+    .field { margin-bottom: 22px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #C0C0CC;
+      margin-bottom: 7px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 13px;
+      background: #111114;
+      border: 1px solid #22222A;
+      border-radius: 8px;
+      color: #F0F0F2;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #6366F1; }
+    input::placeholder { color: #3A3A44; }
+
+    .hint {
+      font-size: 11px;
+      color: #44444E;
+      margin-top: 5px;
+      line-height: 1.6;
+    }
+    .hint code {
+      color: #5A5A70;
+      background: #111114;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .save-btn {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: -0.01em;
+      transition: opacity 0.15s;
+    }
+    .save-btn:hover { opacity: 0.88; }
+
+    .status {
+      display: inline-block;
+      margin-left: 12px;
+      font-size: 12px;
+      min-height: 18px;
+      vertical-align: middle;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #18181E;
+      margin: 28px 0;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: #3A3A48;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .info-card {
+      background: #0D0D14;
+      border: 1px solid #18182A;
+      border-radius: 9px;
+      padding: 13px 14px;
+      font-size: 12px;
+      color: #5A5A78;
+      line-height: 1.7;
+    }
+    .info-card strong { color: #8080A0; }
+  </style>
+</head>
+<body>
+  <div class="logo-row">
+    <div class="logo">✈</div>
+    <div class="logo-text">
+      <h1>TravelPanel Clipper</h1>
+      <p>Extension Settings</p>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="serverUrl">TravelPanel Server URL</label>
+    <input type="url" id="serverUrl" placeholder="https://your-app.vercel.app" autocomplete="off" spellcheck="false">
+    <div class="hint">
+      Your deployed TravelPanel URL — e.g. <code>https://your-app.vercel.app</code><br>
+      For local development: <code>http://localhost:3000</code>
+    </div>
+  </div>
+
+  <button class="save-btn" id="saveBtn">Save Settings</button>
+  <span class="status" id="status"></span>
+
+  <hr class="divider">
+
+  <div class="section-label">How it works</div>
+  <div class="info-card">
+    <strong>Popup</strong> — Click the extension icon on any travel page to extract spots and insights via AI.<br>
+    <strong>Right-click</strong> — Right-click any page or link and choose "Save to TravelPanel" to open the save flow directly.<br>
+    <strong>iOS Share Sheet</strong> — The core flow for mobile: share any URL from Safari/social apps to TravelPanel.
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

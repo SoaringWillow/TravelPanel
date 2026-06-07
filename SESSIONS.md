@@ -96,3 +96,24 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-07 19:26 | f22a833 | feat(B2): add browser extension for one-click URL clipping
+2026-06-07 19:33 | 9e709e7 | feat(B3): Xiaohongshu fix — Claude Vision + share caption extraction
+2026-06-07 19:34 | d78faf4 | feat(B5): settings page with full data export (backup as JSON)
+2026-06-07 19:37 | 82a5aaf | feat(C1): On-Trip GPS mode — live location dot + nearby spot alerts
+2026-06-07 19:39 | 4e61470 | feat(C2): post-trip timeline view per board
+2026-06-07 19:40 | 14335d8 | feat(C3): shared boards v1 — URL-encoded share + public read-only view
+2026-06-07 19:41 | 8693fe7 | feat(C4): proactive resurfacing — "Rediscover" strip in Inbox
+2026-06-07 19:43 | 25e4fde | chore: new TASKS.md phases D-F — iOS polish + production readiness
+2026-06-07 19:48 | 67a813f | feat(D1): PWA manifest + iOS meta tags + icon generation script
+2026-06-07 19:51 | 3668cd6 | feat(D2): replace spinners with shimmer skeleton loaders
+2026-06-07 19:51 | bd2434c | feat(D3): add error boundary component
+2026-06-07 19:52 | 07c9e82 | feat(D4): bottom nav safe area + notch handling for all page headers
+2026-06-07 19:54 | 5eba8a1 | feat(D5): board management — rename, change emoji, delete via long-press
+2026-06-07 19:56 | 4161b28 | feat(E1): 3-step onboarding walkthrough on first launch
+2026-06-07 19:57 | b35abdd | feat(E2): location detail card polish + substance expand/collapse
+2026-06-07 19:59 | 7a1cf4b | feat(E3): plan view UX overhaul — accordion days, sticky nav, regenerate
+2026-06-07 20:00 | 0add58c | feat(E4): dark mode via OS preference
+2026-06-07 20:02 | 1616edc | feat(E5): haptic feedback on iOS via Capacitor
+2026-06-07 20:03 | feaf642 | feat(F1): iOS app icon set + launch screen
+2026-06-07 20:04 | c839cab | feat(F2): App Store submission checklist
+2026-06-07 20:05 | 298285f | feat(F3): performance audit — standalone output + bundle optimisations

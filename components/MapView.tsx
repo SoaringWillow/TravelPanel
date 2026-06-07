@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import type { GeoPosition } from '@/hooks/useGeolocation';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -230,9 +231,10 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: GeoPosition | null;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -267,18 +269,35 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     [syncView],
   );
 
+  const [prefersDark, setPrefersDark] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    setPrefersDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const mapStyle = prefersDark
+    ? 'https://tiles.openfreemap.org/styles/dark'
+    : 'https://tiles.openfreemap.org/styles/liberty';
+
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={mapStyle}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
         onLoad={handleLoad}
         onMoveEnd={handleMove}
       >
-        <NavigationControl position="top-right" />
+        <NavigationControl
+          position="top-right"
+          style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
+        />
 
         <MapController flyTo={flyTo} />
 
@@ -328,6 +347,24 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* ── User location dot (On-Trip mode) ── */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <div className="relative flex items-center justify-center">
+              {/* Pulsing accuracy ring */}
+              <span
+                className="absolute rounded-full bg-blue-400 animate-ping opacity-50"
+                style={{ width: 28, height: 28 }}
+              />
+              {/* Blue GPS dot */}
+              <div
+                className="w-4 h-4 rounded-full bg-blue-500 border-[3px] border-white"
+                style={{ boxShadow: '0 2px 8px rgba(59,130,246,0.6)' }}
+              />
+            </div>
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
