@@ -257,7 +257,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Combine with existing full-text search (search + filter stack)
 
 ### C8 — Plan Export UI (wire existing lib)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (already implemented in plan page — PDF + ICS buttons wired)  
 **Files**: `app/plan/[boardId]/page.tsx`, `lib/exportPlan.ts`  
 **What to do**:
 - `lib/exportPlan.ts` already exists but the buttons are not wired up in the plan view
@@ -268,7 +268,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - After download starts, show a "Downloaded!" toast for 2s
 
 ### C9 — App Icon & Capacitor Branding
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `capacitor.config.ts`, `public/`  
 **What to do**:
 - Generate a set of app icon PNGs (1024x1024 base) using the existing `generate-icons.js` logic
