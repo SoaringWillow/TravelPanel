@@ -17,11 +17,25 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* PWA manifest */}
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#6366f1" />
+
+        {/* iOS PWA / standalone mode */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="TravelPanel" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+        {/* Favicons */}
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+        {/* Theme + viewport */}
+        <meta name="theme-color" content="#6366f1" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+        {/* Preconnect to map tile server for faster first paint */}
+        <link rel="preconnect" href="https://tiles.openfreemap.org" />
       </head>
       <body>
         <CapacitorBridge />

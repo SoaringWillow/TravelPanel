@@ -19,7 +19,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 ## PHASE D — iOS Polish & Native Feel
 
 ### D1 — PWA Manifest + iOS Meta Tags
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Without proper PWA config, the iOS "Add to Home Screen" flow uses a tiny default icon and shows the browser bar. This is the difference between looking like a real app and looking like a website.
 **Files to change**: `app/layout.tsx`, new `public/manifest.json`, new `public/browserconfig.xml`
 **What to do**:
