@@ -81,24 +81,10 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompt builders ─────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -127,15 +113,89 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  return `You are a travel content analyzer. The attached image is a screenshot of a ${platform} post shared by a user.
+
+URL: ${url}
+
+Extract TWO layers from everything visible in the screenshot — including text overlays, captions, comments, location tags, and any on-screen content.
+
+## Layer 1 — Spots (geographic skeleton)
+Identify real, named locations visible in the image (location tags, captions, text overlays).
+Only include places with GPS coordinates you are confident about.
+Do NOT invent or guess coordinates.
+
+## Layer 2 — Substance (the wisdom layer — MOST IMPORTANT)
+Extract every piece of actionable travel insight visible in the screenshot:
+- Tips, warnings, price notes, queue advice, seasonal advice
+- Opinions and recommendations ("worth it", "skip the X", "go early")
+- Context clues: time of day, season, crowd levels visible in the image
+- Any text overlay tips the creator included
+
+Even if the image has no location tags, extract substance from visible text.
+Never return an empty substance array for a real travel post screenshot.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  try {
+    ({ url, imageBase64 } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: use screenshot for platforms that block URL scraping.
+      // Decode base64 to Uint8Array without requiring Buffer (avoids @types/node dependency).
+      const binaryString = atob(imageBase64);
+      const imageBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        imageBytes[i] = binaryString.charCodeAt(i);
+      }
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image' as const,
+                image: imageBytes,
+                mediaType: 'image/jpeg' as const,
+              },
+              {
+                type: 'text' as const,
+                text: buildVisionPrompt(platform, url),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: standard URL metadata extraction
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(platform, url, page),
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

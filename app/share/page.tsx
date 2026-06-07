@@ -29,12 +29,26 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImage, setPendingImage]       = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Pick up any image the iOS Share Extension stored via App Group
+  useEffect(() => {
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        setPendingImage(img);
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private mode edge cases)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +102,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot image when available (Xiaohongshu/WeChat anti-scrape bypass)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImage)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
