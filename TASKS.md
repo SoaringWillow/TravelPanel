@@ -231,7 +231,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Ensure skeleton matches the exact shape of a fully-loaded card to prevent layout shift
 
 ### D6 — Haptic Feedback
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: new `lib/haptics.ts`, key interaction points
 **What to do**:
 - Wrap `@capacitor/haptics` in a `lib/haptics.ts` module that no-ops in browser

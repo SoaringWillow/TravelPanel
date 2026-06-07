@@ -10,6 +10,7 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { impactLight, impactMedium } from '@/lib/haptics';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
@@ -65,6 +66,7 @@ export default function InboxPage() {
   }
 
   function handleMoveToBoard(id: string) {
+    impactLight();
     setMovingItemId(id);
   }
 
@@ -72,6 +74,7 @@ export default function InboxPage() {
     async (boardId: string | null) => {
       if (!movingItemId) return;
 
+      impactMedium();
       if (boardId === null) {
         // Unassign from any board: find item's current board and remove
         const item = items.find((i) => i.id === movingItemId);
