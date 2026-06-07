@@ -29,12 +29,23 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const imageBase64Ref = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards on mount and consume any pending screenshot from the Share Extension
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // The CapacitorBridge writes a screenshot to sessionStorage when the platform
+    // blocks HTML scraping (Xiaohongshu, WeChat, Douyin). Consume it once here.
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        imageBase64Ref.current = img;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch { /* sessionStorage may be unavailable */ }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +99,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (bypasses platform scraping blocks)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64Ref.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
