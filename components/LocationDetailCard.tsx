@@ -80,7 +80,7 @@ export default function LocationDetailCard({ item, onClose, onSave }: LocationDe
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[65vh] flex flex-col">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden max-h-[65vh] flex flex-col">
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">
             <div className="flex-1 min-w-0 pr-3">
@@ -94,11 +94,11 @@ export default function LocationDetailCard({ item, onClose, onSave }: LocationDe
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   rows={2}
-                  className="w-full text-base font-bold text-gray-800 leading-snug border border-indigo-300 rounded-xl px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                  className="w-full text-base font-bold text-gray-800 dark:text-gray-100 leading-snug border border-indigo-300 rounded-xl px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none bg-white dark:bg-gray-800"
                   autoFocus
                 />
               ) : (
-                <h3 className="font-bold text-gray-800 text-base leading-snug line-clamp-2">
+                <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base leading-snug line-clamp-2">
                   {item.title}
                 </h3>
               )}

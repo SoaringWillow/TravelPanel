@@ -301,7 +301,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep edit mode within the existing bottom sheet — no separate page needed
 
 ### E3 — Dark Mode (System-Aware)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect dark mode. The entire UI is light-only, making night use uncomfortable.  
 **Files**: `app/layout.tsx`, `tailwind.config.ts`, all major components  
 **What to do**:

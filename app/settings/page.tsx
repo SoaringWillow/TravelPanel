@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Trash2, ChevronRight, Database, Shield, Info } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { Download, Trash2, ChevronRight, Database, Shield, Info, Palette, Sun, Moon, Monitor } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { exportAllData, downloadJSON } from '@/lib/exportData';
 
@@ -134,6 +135,40 @@ function ClearDataButton() {
   );
 }
 
+// ─── Appearance toggle ────────────────────────────────────────────────────────
+
+function AppearanceToggle() {
+  const { theme, setTheme } = useTheme();
+  const options = [
+    { value: 'light', label: 'Light', Icon: Sun },
+    { value: 'system', label: 'System', Icon: Monitor },
+    { value: 'dark', label: 'Dark', Icon: Moon },
+  ];
+  return (
+    <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+      <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Appearance</span>
+      <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+        {options.map(({ value, label, Icon }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTheme(value)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              theme === value
+                ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+            aria-label={`${label} mode`}
+          >
+            <Icon size={12} />
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Settings row helper ──────────────────────────────────────────────────────
 
 function Section({ icon, title, children }: {
@@ -144,8 +179,8 @@ function Section({ icon, title, children }: {
   return (
     <section className="mb-6">
       <div className="flex items-center gap-2 mb-2 px-1">
-        <span className="text-gray-500">{icon}</span>
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500">{title}</h2>
+        <span className="text-gray-500 dark:text-gray-400">{icon}</span>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">{title}</h2>
       </div>
       <div className="space-y-2">
         {children}
@@ -158,15 +193,20 @@ function Section({ icon, title, children }: {
 
 export default function SettingsPage() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 pt-safe-top">
+      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-safe-top">
         <div className="max-w-lg mx-auto py-4">
-          <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-4 pt-6">
+
+        {/* Appearance section */}
+        <Section icon={<Palette size={14} />} title="Appearance">
+          <AppearanceToggle />
+        </Section>
 
         {/* Data section */}
         <Section icon={<Database size={14} />} title="Data">
