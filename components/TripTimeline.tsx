@@ -17,20 +17,20 @@ export default function TripTimeline({ plan, visitedIds, onToggle }: TripTimelin
   return (
     <div className="space-y-4">
       {/* Progress bar */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-700">Trip progress</span>
-          <span className="text-sm font-bold text-indigo-600 tabular-nums">
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Trip progress</span>
+          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
             {visitedCount}/{totalActivities}
           </span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-indigo-500 rounded-full transition-all duration-500"
             style={{ width: `${pct}%` }}
           />
         </div>
-        <p className="text-xs text-gray-400 mt-1.5">
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
           {pct === 100
             ? '🎉 All activities visited!'
             : pct === 0
@@ -43,10 +43,10 @@ export default function TripTimeline({ plan, visitedIds, onToggle }: TripTimelin
       {plan.days.map((day, dayIdx) => (
         <div key={dayIdx}>
           <div className="flex items-center gap-2 mb-2 px-1">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               Day {day.day}
             </span>
-            <span className="text-xs text-gray-500 font-medium">— {day.theme}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">— {day.theme}</span>
           </div>
 
           <div className="space-y-2">
@@ -58,8 +58,10 @@ export default function TripTimeline({ plan, visitedIds, onToggle }: TripTimelin
                 <button
                   key={actId}
                   onClick={() => onToggle(actId)}
-                  className={`w-full text-left bg-white rounded-2xl border shadow-sm overflow-hidden active:scale-[0.99] transition-all ${
-                    visited ? 'border-indigo-100 bg-indigo-50/30' : 'border-gray-100'
+                  className={`w-full text-left rounded-2xl border shadow-sm overflow-hidden active:scale-[0.99] transition-all ${
+                    visited
+                      ? 'border-indigo-100 dark:border-indigo-800 bg-indigo-50/30 dark:bg-indigo-900/20'
+                      : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
                   }`}
                 >
                   <div className="flex items-start gap-3 p-3">
@@ -78,13 +80,13 @@ export default function TripTimeline({ plan, visitedIds, onToggle }: TripTimelin
                         <span
                           className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                             visited
-                              ? 'bg-indigo-100 text-indigo-600'
-                              : 'bg-gray-100 text-gray-500'
+                              ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                           }`}
                         >
                           {activity.time}
                         </span>
-                        <span className="text-xs text-gray-400 flex items-center gap-0.5">
+                        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-0.5">
                           <Clock size={10} />
                           {activity.duration}
                         </span>
@@ -105,7 +107,7 @@ export default function TripTimeline({ plan, visitedIds, onToggle }: TripTimelin
                       {/* Activity name */}
                       <p
                         className={`text-sm font-medium leading-snug ${
-                          visited ? 'text-gray-400 line-through' : 'text-gray-800'
+                          visited ? 'text-gray-400 dark:text-gray-600 line-through' : 'text-gray-800 dark:text-gray-100'
                         }`}
                       >
                         {activity.name}

@@ -331,7 +331,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > and polishes the visual layer that users see most.
 
 ### F1 — Dark Mode: Plan & Trip Timeline Views
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users generate trip plans at night. The plan view is all white and painful in dark mode.  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/TripTimeline.tsx`, `components/DayStripCard.tsx` (if exists)  
 **What to do**:
