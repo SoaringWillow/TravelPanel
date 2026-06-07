@@ -273,6 +273,120 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE E — iOS Beauty & UX Excellence (New Sprint)
+
+> Goal: ship an App Store-quality experience. Every task here is self-contained and unblocked.
+
+### E1 — Swipe-to-Delete / Swipe-to-Move on Inbox Cards
+**Status**: `[x]` Done  
+**Why**: iOS users expect swipe gestures on list items. The current always-visible button row wastes card real estate and feels un-native.  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Add horizontal swipe gesture to InboxCard using touch events (touchstart/touchmove/touchend)
+- Swipe left >60px: reveal a red Delete button and an indigo Move button on the right edge
+- Swipe right >60px: reveal a teal "View on Map" shortcut on the left edge
+- Spring-snap back if released below threshold; commit reveal if past threshold
+- Tap revealed button to execute action; tap anywhere else to dismiss
+- Remove or collapse the bottom action row (save space) — keep the actions accessible but behind gesture
+
+### E2 — Inline Clip Editing
+**Status**: `[ ]` Not started  
+**Why**: There is currently no way to edit a saved clip's title, description, or tags. A simple typo in the extracted title is stuck forever.  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add an "Edit" button (pencil icon) to LocationDetailCard header
+- In edit mode: title and description become `<textarea>` inputs; tags show a remove (×) chip per tag plus a small text input to add new tags
+- "Save" persists via `saveItem()` to IndexedDB and refreshes the parent item list
+- "Cancel" discards changes
+- Keep edit mode within the existing bottom sheet — no separate page needed
+
+### E3 — Dark Mode (System-Aware)
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect dark mode. The entire UI is light-only, making night use uncomfortable.  
+**Files**: `app/layout.tsx`, `tailwind.config.ts`, all major components  
+**What to do**:
+- Enable Tailwind `darkMode: 'class'` and install `next-themes`
+- Add `ThemeProvider` in `app/layout.tsx` with `attribute="class" defaultTheme="system"`
+- Add `dark:` variants to all major components: NavBar, InboxCard, LocationDetailCard, BoardCard, MapView overlay, plan page, settings page
+- Dark palette: bg-gray-950 body, bg-gray-900 cards, bg-gray-800 inputs, white text
+- Keep the teal/indigo accent colors — they work on both light and dark
+- The map itself already works dark (MapLibre tiles are unchanged)
+
+### E4 — Clipboard URL Quick-Import
+**Status**: `[ ]` Not started  
+**Why**: Power users often copy a link in another app, then switch to TravelPanel. Detecting and offering the clipboard URL turns a 5-tap flow into 1 tap.  
+**Files**: `app/page.tsx`, `components/ClipboardBanner.tsx` (new), `lib/haptics.ts`  
+**What to do**:
+- On app focus (Capacitor App `appStateChange` with isActive=true), read clipboard via `navigator.clipboard.readText()`
+- If clipboard contains a recognisable travel URL (instagram, youtube, tiktok, xiaohongshu, maps, etc.), show a dismissible amber banner at the top: "Clip from clipboard? [platform] link detected → Import"
+- Tapping "Import" opens ImportSheet with the URL pre-filled
+- Dismiss stores the URL in sessionStorage so the same URL doesn't prompt twice
+- Falls back gracefully if clipboard permission is denied (no banner shown)
+
+### E5 — Board Cover Art from Clip Thumbnails
+**Status**: `[ ]` Not started  
+**Why**: Board cards are currently identified only by emoji + name. A visual cover image (from a saved clip) makes the boards page scannable at a glance.  
+**Files**: `components/BoardCard.tsx`, `app/boards/page.tsx`, `lib/db.ts`, `lib/types.ts`  
+**What to do**:
+- Add `coverThumbnail?: string` to the `Board` type and store it in IndexedDB
+- Auto-set on board creation: use the thumbnail of the first clipped item that has one
+- When items are added to a board: if coverThumbnail is unset and the new item has a thumbnail, set it
+- BoardCard: show the thumbnail as a full-bleed background image behind the emoji+name; use a dark-to-transparent gradient overlay so the text remains legible
+- If no thumbnail: keep the current solid-colored gradient card
+
+### E6 — Keyboard Avoidance on iOS
+**Status**: `[ ]` Not started  
+**Why**: On iOS, the virtual keyboard overlaps bottom-anchored input fields. Plan notes, new-board input, and search bars become inaccessible when the keyboard opens.  
+**Files**: `hooks/useKeyboardHeight.ts` (new), `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Create `hooks/useKeyboardHeight.ts`: uses `window.visualViewport` resize event to detect keyboard height, returns `keyboardHeight` number
+- In `app/share/page.tsx`: apply `paddingBottom: keyboardHeight` to the bottom-pinned button when keyboard is open
+- In plan page notes textarea: scroll the textarea into view on focus using `element.scrollIntoView({ behavior: 'smooth' })`
+- On the board chip bottom sheet in inbox/share: shift it up by `keyboardHeight` when the new-board name input is focused
+
+### E7 — App Review Prompt (Post-Save)
+**Status**: `[ ]` Not started  
+**Why**: App Store rating drives organic downloads. Prompt users after they've proven value — 5+ successful clip saves is the right moment.  
+**Files**: `app/share/page.tsx`, `lib/analytics.ts`  
+**What to do**:
+- After a successful clip save, check `localStorage.getItem('clipSaveCount')` and increment
+- When count hits 5 (and once only — set `reviewPrompted: true` in localStorage), try `window.plugins?.StoreReview?.requestReview()` (Capacitor community plugin)
+- If the plugin is unavailable (browser), skip silently
+- Track `review_prompt_shown` event via analytics
+
+### E8 — Smart Inbox Sorting
+**Status**: `[ ]` Not started  
+**Why**: The inbox currently shows clips in save-order with no ability to sort or group. At 50+ clips this is overwhelming.  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Add a sort control below the search bar (icon button that opens a popover): "Newest first" (default), "Oldest first", "By platform", "Unprocessed first"
+- Add a "Group by platform" toggle that inserts sticky section headers
+- Persist the user's sort preference to `localStorage`
+- The sort/group applies client-side on top of the existing filter+search pipeline
+
+### E9 — Plan Day Drag-to-Reorder Activities
+**Status**: `[ ]` Not started  
+**Why**: The AI-generated day order is often imperfect. Users want to move activities between days or reorder within a day without regenerating the whole plan.  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
+**What to do**:
+- Add drag handles (⠿ gripper icon) to each activity row in DayStripCard
+- Use `@dnd-kit/sortable` for drag-and-drop within a day
+- Support cross-day drag: dragging an activity off the bottom of a day inserts it at the top of the next
+- After reorder, update the in-memory plan state and the saved Trip in IndexedDB
+- Show a subtle "Plan edited" badge to indicate the plan has diverged from the AI version
+
+### E10 — Performance: Memoize Card Components
+**Status**: `[ ]` Not started  
+**Why**: InboxCard and BoardCard re-render on every parent state change (e.g., search query updates). With 100+ clips, this causes noticeable scroll jank.  
+**Files**: `components/InboxCard.tsx`, `components/BoardCard.tsx`, `components/DayStripCard.tsx`  
+**What to do**:
+- Wrap InboxCard, BoardCard, and DayStripCard in `React.memo` with a proper equality comparison
+- `useCallback` all handler closures passed as props in `app/inbox/page.tsx` and `app/boards/page.tsx`
+- Verify with React DevTools Profiler that re-renders are eliminated (add a comment with the finding)
+- No visual changes — this is a silent perf win
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
