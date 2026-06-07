@@ -123,3 +123,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-07 15:48 | f8eb97e | feat(E7): add global search page with grouped results
 2026-06-07 15:48 | 86db71b | chore: update SESSIONS.md
 2026-06-07 15:49 | a5c05b0 | feat(E10): add full-screen map overlay on board detail
+2026-06-07 15:50 | b1aca06 | chore: update SESSIONS.md
