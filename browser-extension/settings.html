@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <span class="brand-icon">✈️</span>
+      <h1 class="title">TravelPanel Clipper</h1>
+      <p class="subtitle">Settings</p>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label class="label" for="app-url">
+          TravelPanel URL
+          <span class="label-hint">The URL where your TravelPanel app is deployed</span>
+        </label>
+        <input
+          type="url"
+          id="app-url"
+          class="input"
+          placeholder="https://travelpanel.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="field-hint">
+          Default: <code>https://travelpanel.vercel.app</code>. Change this if you're running a self-hosted version.
+        </p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="save-btn" class="btn-primary">Save settings</button>
+      <button id="reset-btn" class="btn-ghost">Reset to default</button>
+    </div>
+
+    <div class="status hidden" id="status"></div>
+
+    <div class="info-card">
+      <h3 class="info-title">Keyboard shortcut</h3>
+      <p class="info-text">
+        Press <kbd>Alt+Shift+S</kbd> (Mac: <kbd>Option+Shift+S</kbd>) to save the current page without opening the popup.
+        You can customise this at <code>chrome://extensions/shortcuts</code>.
+      </p>
+    </div>
+
+    <div class="info-card">
+      <h3 class="info-title">Right-click to clip</h3>
+      <p class="info-text">
+        Right-click any page or link and choose <strong>Save to TravelPanel</strong> to clip it.
+      </p>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>
