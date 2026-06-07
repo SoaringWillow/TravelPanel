@@ -55,7 +55,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 - Also wrap the plan streaming view specifically (most likely to error during AI streaming)
 
 ### D4 — Bottom Nav Safe Area + Notch Handling
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The bottom NavBar overlaps the iOS home indicator on iPhone X+ (the bar at the bottom). The top header overlaps the status bar. This looks broken on real devices.
 **Files to change**: `components/NavBar.tsx`, `app/globals.css`, all page headers
 **What to do**:

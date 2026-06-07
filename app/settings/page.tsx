@@ -37,7 +37,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
+      <div className="bg-white border-b border-gray-100 px-4 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-4">
         <h1 className="text-xl font-bold text-gray-900">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">App preferences and data management</p>
       </div>

@@ -280,7 +280,10 @@ export default function MapView({ items, onPinClick, flyTo, userLocation }: MapV
         onLoad={handleLoad}
         onMoveEnd={handleMove}
       >
-        <NavigationControl position="top-right" />
+        <NavigationControl
+          position="top-right"
+          style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
+        />
 
         <MapController flyTo={flyTo} />
 

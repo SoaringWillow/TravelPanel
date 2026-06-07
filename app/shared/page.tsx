@@ -116,7 +116,7 @@ function SharedBoardInner() {
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-5">
+      <div className="bg-white border-b border-gray-100 px-4 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-5">
         <div className="flex items-start gap-3">
           <span className="text-4xl leading-none">{payload.board.emoji}</span>
           <div className="flex-1 min-w-0">

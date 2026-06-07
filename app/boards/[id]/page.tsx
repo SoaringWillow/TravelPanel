@@ -90,7 +90,7 @@ export default function BoardDetailPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-4 z-10">
         <div className="flex items-center gap-3">
           <button
             type="button"

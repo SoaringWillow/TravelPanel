@@ -239,7 +239,7 @@ export default function PlanPage() {
 
   if (loadingBoard) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50 p-4 gap-4 pt-16">
+      <div className="flex flex-col h-screen bg-gray-50 p-4 gap-4 pt-[calc(4rem+env(safe-area-inset-top,0px))]">
         <SkeletonBox className="h-8 w-48 rounded-xl" />
         <SkeletonBox className="h-48 w-full rounded-2xl" />
         {[1, 2, 3].map((i) => (
