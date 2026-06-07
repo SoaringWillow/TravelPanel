@@ -4,6 +4,7 @@ import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
 import { DarkModeSync } from '@/components/DarkModeSync';
+import { ClipboardBanner } from '@/components/ClipboardBanner';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -40,6 +41,7 @@ export default function RootLayout({
       </head>
       <body>
         <DarkModeSync />
+        <ClipboardBanner />
         <CapacitorBridge />
         <AnalyticsProvider />
         <ResourceBanner />

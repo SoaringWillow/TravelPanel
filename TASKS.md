@@ -206,7 +206,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Full swipe triggers delete with a confirmation toast ("Undo" within 3s)
 
 ### D3 — Clipboard URL Detection
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/page.tsx` or new `components/ClipboardBanner.tsx`
 **What to do**:
 - On app foreground (visibilitychange or focus), check clipboard for a travel URL
