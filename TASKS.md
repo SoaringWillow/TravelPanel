@@ -216,6 +216,63 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & App-Store Readiness
+
+### D1 — Offline Banner
+**Status**: `[x]` Done  
+**Why**: The app is local-first but gives no feedback when offline. Users who lose signal mid-plan think the app is broken.  
+**Files**: `components/OfflineBanner.tsx` (new), `app/layout.tsx`  
+**What to do**:
+- Hook into `navigator.onLine` + `online`/`offline` events
+- Show a subtle banner at the top when offline: "No internet — your clips are still available"
+- Animate in/out smoothly; dismiss automatically when reconnected
+
+### D2 — Haptic Feedback (iOS)
+**Status**: `[x]` Done  
+**Why**: Native iOS apps feel distinctly different due to haptics on key taps. This single feature makes the app feel "real" on device.  
+**Files**: `lib/haptics.ts` (new), then call on save, mark-visited, board-create, delete  
+**What to do**:
+- Create `lib/haptics.ts` with `triggerHaptic(style: 'light' | 'medium' | 'heavy' | 'success' | 'error')` using `@capacitor/haptics` if available, no-op in browser
+- Add haptic feedback on: clip saved (success), mark visited (success), delete (heavy), button taps on primary actions (light)
+
+### D3 — Pull-to-Refresh on Inbox
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect pull-to-refresh to trigger data reload. Without it, stale enrichment status isn't visible.  
+**Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts`  
+**What to do**:
+- Add `@capacitor/push-notifications`-independent pull-to-refresh gesture using touch events
+- On pull: trigger retry of all `failed`/`pending` enrichments, update item list
+
+### D4 — App Icon & Launch Screen Assets
+**Status**: `[ ]` Not started  
+**Why**: Required for App Store submission. The current icon is a generic Capacitor placeholder.  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `ios/App/App/Assets.xcassets/LaunchScreen.storyboard`  
+**What to do**:
+- Generate a full set of iOS app icons (20px–1024px) from the TravelPanel teal/pin design
+- All sizes: 20x20@2x, 20x20@3x, 29x29@2x, 29x29@3x, 40x40@2x, 40x40@3x, 60x60@2x, 60x60@3x, 1024x1024@1x
+- Use the same green-teal (#0D9488) + white pin design as the browser extension icon
+- Create a simple launch screen with centered logo on white background
+
+### D5 — Virtualized Inbox for Large Collections
+**Status**: `[ ]` Not started  
+**Why**: At 100+ clips the inbox scrolls slowly on older iPhones because all cards render at once.  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Replace flat list with windowed rendering: render only visible + 2-page buffer
+- Use `IntersectionObserver` to load more clips as user scrolls
+- Show a "Loading more…" skeleton at bottom while batch loads
+
+### D6 — Share Extension: Improved UI
+**Status**: `[x]` Done  
+**Why**: The current share page is functional but not beautiful. It should look premium to convert first-time share actions.  
+**Files**: `app/share/page.tsx`  
+**What to do**:
+- Add a hero thumbnail (OG image) preview above the board picker
+- Show a subtle skeleton/shimmer while enrichment runs instead of the plain spinner text
+- Add subtle spring animations on board chip selection
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
