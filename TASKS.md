@@ -290,7 +290,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Remove or collapse the bottom action row (save space) — keep the actions accessible but behind gesture
 
 ### E2 — Inline Clip Editing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: There is currently no way to edit a saved clip's title, description, or tags. A simple typo in the extracted title is stuck forever.  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
