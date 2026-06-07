@@ -345,7 +345,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On the board chip bottom sheet in inbox/share: shift it up by `keyboardHeight` when the new-board name input is focused
 
 ### E7 — App Review Prompt (Post-Save)
-**Status**: `[ ]` Not started  
+**Status**: `[ ]` Deferred — needs @capacitor-community/app-review plugin setup  
 **Why**: App Store rating drives organic downloads. Prompt users after they've proven value — 5+ successful clip saves is the right moment.  
 **Files**: `app/share/page.tsx`, `lib/analytics.ts`  
 **What to do**:
@@ -355,7 +355,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Track `review_prompt_shown` event via analytics
 
 ### E8 — Smart Inbox Sorting
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The inbox currently shows clips in save-order with no ability to sort or group. At 50+ clips this is overwhelming.  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:

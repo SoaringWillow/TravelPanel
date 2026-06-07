@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
@@ -19,6 +19,35 @@ import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
 const PAGE_SIZE = 20;
+
+// ─── Sort config ─────────────────────────────────────────────────────────────
+
+type SortKey = 'newest' | 'oldest' | 'platform' | 'unprocessed';
+
+const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
+  { key: 'newest', label: 'Newest first' },
+  { key: 'oldest', label: 'Oldest first' },
+  { key: 'platform', label: 'By platform' },
+  { key: 'unprocessed', label: 'Unprocessed first' },
+];
+
+function sortItems(items: ReturnType<typeof Array.prototype.slice>, sortKey: SortKey) {
+  const arr = [...items];
+  switch (sortKey) {
+    case 'oldest':
+      return arr.sort((a, b) => a.savedAt - b.savedAt);
+    case 'platform':
+      return arr.sort((a, b) => a.platform.localeCompare(b.platform));
+    case 'unprocessed':
+      return arr.sort((a, b) => {
+        const rank = (s: string) => s === 'pending' || s === 'processing' ? 0 : s === 'failed' ? 1 : 2;
+        return rank(a.enrichmentStatus) - rank(b.enrichmentStatus) || b.savedAt - a.savedAt;
+      });
+    case 'newest':
+    default:
+      return arr.sort((a, b) => b.savedAt - a.savedAt);
+  }
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -44,9 +73,22 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    if (typeof localStorage !== 'undefined') {
+      return (localStorage.getItem('inboxSort') as SortKey) ?? 'newest';
+    }
+    return 'newest';
+  });
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // Reset visible count when filter/search changes
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [activePlatform, query]);
+  function handleSortChange(key: SortKey) {
+    setSortKey(key);
+    localStorage.setItem('inboxSort', key);
+    setShowSortMenu(false);
+  }
+
+  // Reset visible count when filter/search/sort changes
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [activePlatform, query, sortKey]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -83,7 +125,8 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const sorted = sortItems(platformFiltered, sortKey);
+  const filtered = searchItems(sorted, query);
   const visibleItems = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
@@ -141,9 +184,54 @@ export default function InboxPage() {
           </span>
         </div>
 
-        {/* Search */}
-        <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+        {/* Search + sort */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1">
+            <SearchBar onSearch={handleSearch} />
+          </div>
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowSortMenu((v) => !v)}
+              className={`p-2 rounded-xl border transition-colors ${
+                sortKey !== 'newest'
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                  : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700'
+              }`}
+              aria-label="Sort options"
+            >
+              <SlidersHorizontal size={17} />
+            </button>
+
+            {/* Sort dropdown */}
+            <AnimatePresence>
+              {showSortMenu && (
+                <motion.div
+                  key="sort-menu"
+                  initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => handleSortChange(opt.key)}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                        sortKey === opt.key
+                          ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Platform filter tabs */}
