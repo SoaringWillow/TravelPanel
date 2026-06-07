@@ -160,7 +160,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 - Add canvas to devDependencies, add `npm run generate-icons` script to package.json
 
 ### F2 — App Store Submission Checklist
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: First-time App Store submissions fail on easily-avoidable issues. A documented checklist prevents this.
 **Files**: new `ios/App/APPSTORE_CHECKLIST.md`
 **What to do**:
