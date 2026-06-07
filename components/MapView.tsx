@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -8,6 +8,21 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import NearbyPanel, { NearbyEntry } from './NearbyPanel';
+
+// ─── Haversine distance (km) ────────────────────────────────────────────────
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R    = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -224,6 +239,102 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── GPS location button ─────────────────────────────────────────────────────
+
+interface LocationButtonProps {
+  active: boolean;
+  error: boolean;
+  onClick: () => void;
+}
+
+function LocationButton({ active, error, onClick }: LocationButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={active ? 'Stop location tracking' : 'Show my location'}
+      title={error ? 'Location unavailable' : active ? 'Stop tracking' : 'Show nearby clips'}
+      style={{
+        position:        'absolute',
+        bottom:          88,
+        left:            16,
+        zIndex:          1000,
+        width:           44,
+        height:          44,
+        borderRadius:    '50%',
+        backgroundColor: active ? '#6366f1' : error ? '#ef4444' : 'white',
+        border:          'none',
+        boxShadow:       '0 2px 12px rgba(0,0,0,0.2)',
+        cursor:          'pointer',
+        display:         'flex',
+        alignItems:      'center',
+        justifyContent:  'center',
+        transition:      'background 0.2s',
+      }}
+    >
+      {/* GPS icon */}
+      <svg
+        width="20" height="20" viewBox="0 0 24 24"
+        fill="none" stroke={active || error ? 'white' : '#6366f1'} strokeWidth="2"
+      >
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 1v4M12 19v4M1 12h4M19 12h4" strokeLinecap="round" />
+      </svg>
+      {active && (
+        <span
+          style={{
+            position:        'absolute',
+            top:             2,
+            right:           2,
+            width:           10,
+            height:          10,
+            borderRadius:    '50%',
+            backgroundColor: '#22c55e',
+            border:          '2px solid white',
+          }}
+        />
+      )}
+    </button>
+  );
+}
+
+// ─── User location pulsing dot ────────────────────────────────────────────────
+
+function UserLocationMarker() {
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Pulse ring */}
+      <div style={{
+        position:        'absolute',
+        width:           32,
+        height:          32,
+        borderRadius:    '50%',
+        backgroundColor: 'rgba(59,130,246,0.2)',
+        animation:       'tp-pulse 2s ease-out infinite',
+      }} />
+      {/* Accuracy ring */}
+      <div style={{
+        position:        'absolute',
+        width:           20,
+        height:          20,
+        borderRadius:    '50%',
+        backgroundColor: 'rgba(59,130,246,0.12)',
+        border:          '1.5px solid rgba(59,130,246,0.4)',
+      }} />
+      {/* Inner dot */}
+      <div style={{
+        width:           12,
+        height:          12,
+        borderRadius:    '50%',
+        backgroundColor: '#3b82f6',
+        border:          '2.5px solid white',
+        boxShadow:       '0 1px 6px rgba(0,0,0,0.3)',
+        zIndex:          1,
+      }} />
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
@@ -236,6 +347,81 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  // ── GPS / trip mode state ──
+  const [userLocation,   setUserLocation]   = useState<{ lat: number; lng: number } | null>(null);
+  const [locationActive, setLocationActive] = useState(false);
+  const [locationError,  setLocationError]  = useState(false);
+  const [showNearby,     setShowNearby]     = useState(false);
+  const watchIdRef = useRef<number | null>(null);
+
+  // ── GPS tracking ──────────────────────────────────────────────────────────
+
+  const startLocation = useCallback(() => {
+    if (!('geolocation' in navigator)) {
+      setLocationError(true);
+      return;
+    }
+    setLocationError(false);
+    setLocationActive(true);
+    setShowNearby(true);
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setUserLocation({ lat, lng });
+        setLocationError(false);
+        // Center map on first fix
+        mapInstanceRef.current?.easeTo({ center: [lng, lat], zoom: 13, duration: 1000 });
+      },
+      () => {
+        setLocationError(true);
+        setLocationActive(false);
+        setShowNearby(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
+    );
+  }, []);
+
+  const stopLocation = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setLocationActive(false);
+    setUserLocation(null);
+    setShowNearby(false);
+  }, []);
+
+  const toggleLocation = useCallback(() => {
+    if (locationActive) stopLocation();
+    else startLocation();
+  }, [locationActive, startLocation, stopLocation]);
+
+  // Cleanup on unmount
+  useEffect(() => () => {
+    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+  }, []);
+
+  // ── Nearby items sorted by distance ──────────────────────────────────────
+
+  const nearbyEntries = useMemo((): NearbyEntry[] => {
+    if (!userLocation) return [];
+    return items
+      .filter((item) => item.locations.length > 0 && !item.isDemo)
+      .map((item) => {
+        let minDist = Infinity;
+        let nearest = item.locations[0];
+        for (const loc of item.locations) {
+          const d = haversineKm(userLocation.lat, userLocation.lng, loc.lat, loc.lng);
+          if (d < minDist) { minDist = d; nearest = loc; }
+        }
+        return { item, distanceKm: minDist, nearestLocationName: nearest.name };
+      })
+      .filter(({ distanceKm }) => distanceKm < 50)
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, 15);
+  }, [userLocation, items]);
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -269,6 +455,14 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {/* Pulse animation keyframes — injected once */}
+      <style>{`
+        @keyframes tp-pulse {
+          0%   { transform: scale(1);   opacity: 0.7; }
+          100% { transform: scale(2.5); opacity: 0;   }
+        }
+      `}</style>
+
       <Map
         id="main-map"
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
@@ -281,6 +475,13 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         <NavigationControl position="top-right" />
 
         <MapController flyTo={flyTo} />
+
+        {/* User location dot */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <UserLocationMarker />
+          </Marker>
+        )}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;
@@ -350,6 +551,27 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
           </Popup>
         )}
       </Map>
+
+      {/* GPS location button — outside <Map> to avoid maplibre event capture */}
+      <LocationButton
+        active={locationActive}
+        error={locationError}
+        onClick={toggleLocation}
+      />
+
+      {/* Nearby clips panel */}
+      <NearbyPanel
+        entries={nearbyEntries}
+        visible={showNearby && locationActive}
+        onClose={stopLocation}
+        onItemClick={(item) => {
+          onPinClick(item);
+          if (item.locations.length > 0) {
+            const loc = item.locations[0];
+            mapInstanceRef.current?.flyTo({ center: [loc.lng, loc.lat], zoom: 14, duration: 800 });
+          }
+        }}
+      />
     </div>
   );
 }
