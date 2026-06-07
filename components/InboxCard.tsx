@@ -42,13 +42,11 @@ export default function InboxCard({
   const { enrichmentStatus } = item;
 
   // ── Pending / processing state ───────────────────────────────────────────
-  // 'processing' on a card that has no content = initial enrichment in flight
-  // 'processing' on a card that already has a title = retry in flight
   const isRetrying = enrichmentStatus === 'processing' && !!item.title && item.title !== item.url;
+  const isStale = enrichmentStatus === 'pending' && Date.now() - item.savedAt > 30_000;
 
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
-      // Full skeleton — no content yet
       return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
           <div className="w-full h-32 bg-gray-200" />
@@ -56,8 +54,14 @@ export default function InboxCard({
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
             <div className="h-3 bg-gray-200 rounded-full w-3/5" />
             <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+              {isStale ? (
+                <span className="text-xs text-amber-500 font-medium animate-pulse">⏳ Taking a while…</span>
+              ) : (
+                <>
+                  <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
+                  <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+                </>
+              )}
             </div>
           </div>
         </div>

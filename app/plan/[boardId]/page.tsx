@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -12,12 +12,36 @@ import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
+import DayAccordionCard from '@/components/DayAccordionCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import { useToast } from '@/components/Toast';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
+
+function formatPlanAsText(plan: TripPlan, boardName: string): string {
+  const lines: string[] = [`🗺 ${boardName} — ${plan.days.length}-Day Itinerary`, ''];
+  if (plan.overview) lines.push(plan.overview, '');
+  for (const day of plan.days) {
+    lines.push(`── Day ${day.day}: ${day.theme} ──`);
+    for (const a of day.activities) {
+      lines.push(`  ${a.time} · ${a.location.name}`);
+      lines.push(`    ${a.name} (${a.duration})`);
+      for (const tip of a.tips.slice(0, 1)) lines.push(`    · ${tip}`);
+      for (const st of (a.sourcedTips ?? []).slice(0, 1)) {
+        lines.push(`    💡 ${st.content} [${st.sourceTitle}]`);
+      }
+    }
+    lines.push('');
+  }
+  if (plan.tips?.length) {
+    lines.push('── Tips ──');
+    for (const tip of plan.tips) lines.push(`· ${tip}`);
+  }
+  return lines.join('\n');
+}
 
 export default function PlanPage() {
   const params = useParams();
@@ -38,6 +62,7 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     async function load() {
@@ -184,6 +209,27 @@ export default function PlanPage() {
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 
+  const handleShareItinerary = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const text = formatPlanAsText(plan, `${board.emoji} ${board.name}`);
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: `${board.name} Itinerary`, text });
+        track('plan_exported', { format: 'share', boardId });
+        return;
+      } catch {
+        // User cancelled or not supported — fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Itinerary copied to clipboard', 'success');
+      track('plan_exported', { format: 'clipboard', boardId });
+    } catch {
+      showToast('Could not copy itinerary', 'error');
+    }
+  }, [plan, board, boardId, showToast]);
+
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
     if (!trip.plan) return;
@@ -232,8 +278,6 @@ export default function PlanPage() {
     { label: 'Food',      chips: ['🍜 Street food', '🍽 Sit-down', '☕ Café culture', '🌱 Plant-based'] },
     { label: 'Interests', chips: ['📸 Photography', '🏛 Culture', '🌿 Nature', '🛍 Shopping', '🎨 Art', '🌃 Nightlife', '🏖 Beach'] },
   ];
-
-  const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
 
   if (loadingBoard) {
     return (
@@ -460,20 +504,27 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex flex-col items-center justify-center gap-1 border border-gray-200 text-gray-700 text-[11px] font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Download size={15} />
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex flex-col items-center justify-center gap-1 border border-gray-200 text-gray-700 text-[11px] font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
+                    <CalendarPlus size={15} />
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleShareItinerary}
+                    className="flex flex-col items-center justify-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px] font-medium py-2.5 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                  >
+                    <Share2 size={15} />
+                    Share
                   </button>
                 </div>
               )}
@@ -488,77 +539,11 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
+              {/* Day accordion cards — all days expandable */}
               {plan.days && plan.days.length > 0 && (
-                <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                  <div className="flex gap-3" style={{ width: 'max-content' }}>
-                    {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Active day activities */}
-              {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
-
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  {plan.days.map((day, idx) => (
+                    <DayAccordionCard key={day.day} day={day} defaultOpen={idx === 0} />
                   ))}
                 </div>
               )}

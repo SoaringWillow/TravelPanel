@@ -85,14 +85,20 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
   if (!url || typeof url !== 'string') {
     return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  // Validate image payload if present
+  if (imageBase64 !== undefined && typeof imageBase64 !== 'string') {
+    imageBase64 = undefined;
   }
 
   const platform = detectPlatform(url);
@@ -130,12 +136,35 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: Xiaohongshu / WeChat share image payload bypasses anti-scraping.
+      // The image is a JPEG captured by the iOS Share Extension.
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'image' as const,
+                image: imageBase64,
+                mimeType: 'image/jpeg' as const,
+              },
+              { type: 'text' as const, text: prompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

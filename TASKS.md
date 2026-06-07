@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,24 +174,249 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
 
 ---
 
-## PHASE C — On-Trip Mode (Future)
+## PHASE C — iOS Polish & Native Feel (Current Sprint)
 
-### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+> Goal: make the app feel like a premium iOS product — smooth gestures, haptics,
+> beautiful empty states, and complete core flows. All tasks are web/Next.js
+> implementable without Xcode unless noted.
 
-### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+### C1 — Swipe-to-Delete on Cards
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, possibly `app/boards/[id]/page.tsx`  
+**What to do**:
+- Wrap each card in a Framer Motion drag container (horizontal axis only)
+- Swipe left > 80px reveals a red delete zone; release > 120px triggers delete with confirmation
+- Show a trash icon in the revealed zone
+- On delete: remove from IndexedDB, animate card out with height collapse
+- Works for both Inbox items and Board detail items
 
-### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+### C2 — Haptic Feedback on Key Actions
+**Status**: `[x]` Done  
+**Files**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create `lib/haptics.ts`: thin wrapper around `@capacitor/haptics` that no-ops outside native context
+- `impact('light')` — card taps, chip selections
+- `impact('medium')` — save success, board creation
+- `impact('heavy')` — delete confirmation
+- `notification('success')` — clip saved (share done screen)
+- `notification('warning')` — rate limit hit
+- Wire into: share done state, board chip tap, delete confirm, retry button
 
-### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+### C3 — Empty States for All Pages
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `app/page.tsx`  
+**What to do**:
+- Inbox empty: illustration with "Save your first inspiration" + share instructions + "Try the demo" button
+- Boards empty: "Create your first collection" with a + button prominently centred
+- Board detail empty: "No clips yet — add from your inbox" with a clear CTA
+- Map empty: animated pulsing pin with "Save a post with locations to see it here"
+- Each empty state uses the indigo/violet gradient palette and is visually distinct
+
+### C4 — Pull-to-Refresh on Inbox
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts` or similar  
+**What to do**:
+- On mobile, dragging down from the top of the list triggers a refresh of all items from IndexedDB
+- Show a spinner during refresh (300ms minimum so it feels intentional)
+- After refresh, re-run the retry queue for any failed enrichments
+- Use Framer Motion drag + a threshold (pull > 60px = trigger)
+- Trigger haptic `impact('light')` on threshold hit
+
+### C5 — Board Cover Images
+**Status**: `[x]` Done  
+**Files**: `app/boards/page.tsx`, `lib/db.ts`  
+**What to do**:
+- When a clip with a thumbnail is added to a board, automatically set that thumbnail as `coverThumbnail` on the board (if not already set)
+- In the board grid, show the cover thumbnail as a blurred background behind the emoji + board name
+- If no cover: show a gradient based on the first letter of the board name
+- Add a "Change cover" option in board settings (just pick from existing clip thumbnails in that board)
+
+### C6 — Inline Clip Editing
+**Status**: `[x]` Done  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- In `LocationDetailCard`, add an Edit button (pencil icon) that switches to edit mode
+- Editable fields: title (text input), custom notes (textarea), tags (chip toggles)
+- Save on blur or explicit "Save" button — writes to IndexedDB via `updateItemFields()`
+- Add `updateItemFields(id, fields)` to `lib/db.ts`
+- Cancel discards changes (show "Discard?" confirm if dirty)
+
+### C7 — Inbox Sort & Filter
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`, `components/SearchBar.tsx`  
+**What to do**:
+- Add a filter bar below the search bar: "All", "Xiaohongshu", "YouTube", "Instagram", "WeChat", "Douyin"
+- Platform chips are horizontally scrollable; active chip is indigo-filled
+- Add sort toggle: "Newest" / "Oldest" / "Most locations"
+- Persist the selected filter in component state (not URL — no page reload)
+- Combine with existing full-text search (search + filter stack)
+
+### C8 — Plan Export UI (wire existing lib)
+**Status**: `[x]` Done (already implemented in plan page — PDF + ICS buttons wired)  
+**Files**: `app/plan/[boardId]/page.tsx`, `lib/exportPlan.ts`  
+**What to do**:
+- `lib/exportPlan.ts` already exists but the buttons are not wired up in the plan view
+- Add an Export menu (sheet or dropdown) in the plan header with two options:
+  - "Export PDF" → calls `exportToPDF(plan)` from `lib/exportPlan.ts`
+  - "Add to Calendar (.ics)" → calls `exportToCalendar(plan)` from `lib/exportPlan.ts`
+- Show a loading state while generating (PDF can take 1-2s)
+- After download starts, show a "Downloaded!" toast for 2s
+
+### C9 — App Icon & Capacitor Branding
+**Status**: `[x] Done`  
+**Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `capacitor.config.ts`, `public/`  
+**What to do**:
+- Generate a set of app icon PNGs (1024x1024 base) using the existing `generate-icons.js` logic
+  but with the full ✈️ on indigo gradient design
+- Place correctly named files in `ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json`
+- Update `public/` with a 512x512 web app icon for the PWA manifest
+- Update `app/layout.tsx` metadata with proper title, description, theme-color (#6366f1)
+- Update `public/manifest.json` (or create it) with PWA metadata
+
+### C10 — Safe Area & Notch Audit
+**Status**: `[x] Done`  
+**Files**: `app/globals.css`, `app/layout.tsx`, all page files  
+**What to do**:
+- Audit every page for proper `safe-area-inset-*` handling using `env()` CSS variables
+- The share page, inbox, boards, plan, and settings pages all need safe top/bottom padding
+- Create Tailwind utility classes: `safe-top` → `pt-[env(safe-area-inset-top)]`, `safe-bottom` → `pb-[env(safe-area-inset-bottom)]`
+- The NavBar fixed bottom bar must sit above the home indicator on notchless iPhones
+- Verify the plan page header doesn't overlap the status bar
+
+---
+
+## PHASE D — On-Trip & Discovery (Future)
+
+### D1 — On-Trip GPS Mode
+**Status**: `[ ]` Not started  
+**What to do**: Show user's live location on the map; highlight nearby saved spots; turn-by-turn hint to next spot
+
+### D2 — Post-Trip Timeline
+**Status**: `[ ]` Not started  
+**What to do**: After a trip, allow marking spots as "visited", add photos/notes per spot
+
+### D3 — Shared Boards v1
+**Status**: `[ ]` Not started  
+**What to do**: Generate a read-only share link for a board (Supabase required); recipient sees map + clips
+
+### D4 — Proactive Resurfacing
+**Status**: `[ ]` Not started  
+**What to do**: Weekly push notification: "You saved 3 Tokyo clips 2 months ago — ready to plan?"
+
+---
+
+## PHASE E — Quality, Delight & Retention (Current Sprint)
+
+> Goal: close the gap between "works" and "feels premium." Focus on feedback,
+> visual richness, reliability, and the full trip-planning loop — all achievable
+> without Supabase or native Xcode changes.
+
+### E1 — Toast Notification System
+**Status**: `[x] Done`  
+**Files**: `components/Toast.tsx` (new), `app/layout.tsx`, any page that does a silent action  
+**What to do**:
+- Build a lightweight `<ToastProvider>` + `useToast()` hook (no external lib)
+- Position: top of screen, slides down from under the status bar
+- Variants: `success` (green), `error` (red), `info` (indigo) with icon + message
+- Auto-dismiss after 3 s with a swipe-up-to-dismiss gesture
+- Wire into: save clip, delete clip, move to board, copy link, export JSON
+- Replace any existing `window.alert()` or silent ops with toasts
+
+### E2 — Trip Day Cards Polish
+**Status**: `[x] Done`  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Redesign the rendered itinerary: accordion day cards with a day number badge,
+  date, and total activity count in the header
+- Each activity inside has an icon (🍜 food, 🏛 culture, 🌿 nature, etc.),
+  name, time-of-day chip (morning/afternoon/evening), and the source clip citation
+  shown as a small indigo chip you can tap to view the original card
+- Smooth open/close animation with Framer Motion `AnimatePresence`
+- Day header sticks to top while its content is visible (position sticky)
+
+### E3 — Clip Thumbnail Display
+**Status**: `[x] Done` (already implemented — og:image extraction in import API, stored via enrichItem, rendered in InboxCard)  
+**Files**: `components/InboxCard.tsx`, `lib/types.ts`, `app/api/import/route.ts`  
+**What to do**:
+- Add `thumbnailUrl?: string` field to `SavedItem` (db schema bump v3 → v4, additive)
+- In the import API, attempt to extract an og:image or first image from the page
+  and store it on the item
+- In `InboxCard`, show the thumbnail as a full-width image at top of card when
+  present; fallback to the platform-color gradient header
+
+### E4 — Map Pin Clustering
+**Status**: `[x] Done` (already implemented — useSupercluster hook with cluster bubbles and individual pin markers)  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Enable MapLibre's built-in GeoJSON cluster source
+  (`cluster: true, clusterMaxZoom: 14, clusterRadius: 50`)
+- Render cluster circles with a count badge (indigo fill, white text)
+- Individual pins below clusterMaxZoom use the existing marker style
+- Clicking a cluster zooms to its bounding box; clicking a pin opens the detail card
+
+### E5 — Enrichment Status Inline Retry
+**Status**: `[x] Done`  
+**Files**: `components/InboxCard.tsx`, `hooks/useEnrichmentRetry.ts`  
+**What to do**:
+- Items with `enrichmentStatus === 'failed'` show a red ⚡ badge + "Retry" tap target
+  (already have `onRetry` prop — ensure it's visually prominent)
+- Items with `enrichmentStatus === 'pending'` > 30s old show a pulsing amber badge
+- On app focus (`visibilitychange` → document.hasFocus), auto-retry all `pending`
+  items that have been pending for > 60 s (debounced, max 3 retries per session)
+- Add a `retryCount` field to SavedItem (db v4, additive)
+
+### E6 — Share Sheet URL Preview Card
+**Status**: `[x] Done`  
+**Files**: `app/share/page.tsx`, `components/UrlPreviewCard.tsx` (new)  
+**What to do**:
+- While enrichment is running, show a shimmer preview card with the URL's
+  hostname, favicon, and truncated URL — not just a plain spinner
+- When enrichment finishes (poll `enrichmentStatus` every 1.5 s), animate the
+  shimmer away and show the real card with title + location count
+- On error, show a friendly error state inside the card with a "Retry" button
+
+### E7 — Global Search Page
+**Status**: `[x] Done`  
+**Files**: `app/search/page.tsx` (new), `components/NavBar.tsx`, `lib/searchItems.ts`  
+**What to do**:
+- Add a Search tab to NavBar (replaces one of the existing tabs or adds a 5th icon)
+  using the `Search` lucide icon, href `/search`
+- Full-screen search page: large input auto-focused, searches across title,
+  description, substance text, tags, notes, location names
+- Results grouped by: Inbox, then each board by name
+- Tap result → navigate to the item's context (inbox or board detail)
+
+### E8 — Trip Export to Notes / Share Sheet
+**Status**: `[x] Done`  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- "Share itinerary" button that formats the plan as plain text (Day 1\n• Activity…)
+  and calls the native Web Share API (`navigator.share`) or copies to clipboard
+- Show a toast "Copied to clipboard" if Web Share is unavailable
+- Add a "Download .txt" option as a fallback link
+
+### E9 — Offline Banner
+**Status**: `[x] Done`  
+**Files**: `components/OfflineBanner.tsx` (new), `app/layout.tsx`  
+**What to do**:
+- Listen to `online`/`offline` window events
+- When offline: slide a slim red banner from the top: "No internet — changes saved
+  locally" — sits below the status bar safe area
+- When back online: briefly show a green "Back online" banner for 2 s then slide away
+
+### E10 — Board Map View
+**Status**: `[x] Done`  
+**Files**: `app/boards/[id]/page.tsx`, `components/MapView.tsx`  
+**What to do**:
+- In the board detail page, the small map at the top is currently a mini MapView
+  that shows board item pins — make it tappable to open a full-screen map
+- Full-screen map shows only pins for that board; back button returns to board detail
+- Fly-to animation when opening, centering on the bounding box of all pins
 
 ---
 

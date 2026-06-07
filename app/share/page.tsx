@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { notification } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,8 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const isExtension     = searchParams.get('source') === 'extension';
+  const autoTarget      = searchParams.get('auto'); // 'inbox' → skip board picker
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -30,24 +33,47 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
+  // Shared image from iOS Share Extension (written to sessionStorage by CapacitorBridge).
+  // Consumed once — removed from sessionStorage after reading so it doesn't persist.
+  const pendingImageRef = useRef<string | undefined>(undefined);
+
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
-    getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    // Consume any image stashed by the CapacitorBridge (iOS Share Extension vision path).
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        pendingImageRef.current = img;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. SSR or private mode)
+    }
+
+    getAllBoards().then((b) => {
+      setBoards(b);
+      // Auto-save to inbox when ?auto=inbox (browser extension quick-save)
+      if (autoTarget === 'inbox' && rawUrl) {
+        handleSave(undefined, 'Inbox');
+      }
+    }).catch(() => setBoards([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (isExtension) window.close();
+        else window.history.back();
       }, 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [stage]);
+  }, [stage, isExtension]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
@@ -88,9 +114,11 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass the iOS Share image if present (vision path)
+    const imageBase64 = pendingImageRef.current;
+    pendingImageRef.current = undefined; // consume once
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -113,6 +141,7 @@ function SharePageInner() {
       });
 
     setSavedToName(boardDisplayName ?? 'Inbox');
+    notification('success');
     setStage('done');
   }
 
@@ -247,11 +276,10 @@ function SharePageInner() {
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={() => isExtension ? window.close() : window.history.back()}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
-          Return to app
-          <ChevronRight size={15} />
+          {isExtension ? 'Close tab ✕' : (<>Return to app <ChevronRight size={15} /></>)}
         </button>
       </div>
     );
@@ -294,21 +322,53 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+            /* Shimmer preview card */
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden">
+              {/* Favicon + URL row */}
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                <img
+                  src={`https://www.google.com/s2/favicons?domain=${(() => { try { return new URL(rawUrl).hostname; } catch { return ''; } })()}&sz=32`}
+                  alt=""
+                  className="w-5 h-5 rounded-sm flex-shrink-0"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                />
+                <span className="text-xs text-gray-500 truncate flex-1">
+                  {(() => { try { return new URL(rawUrl).hostname.replace('www.', ''); } catch { return rawUrl; } })()}
+                </span>
+                <span className="text-[10px] text-indigo-500 font-medium animate-pulse">Analyzing…</span>
+              </div>
+              {/* Shimmer lines */}
+              <div className="px-4 py-3 space-y-2 animate-pulse">
+                <div className="h-3 bg-gray-200 rounded-full w-4/5" />
+                <div className="h-2.5 bg-gray-200 rounded-full w-3/5" />
+                <div className="flex gap-1.5 pt-1">
+                  <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                  <div className="h-5 w-20 bg-gray-200 rounded-full" />
+                </div>
+              </div>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
-            <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3 space-y-1.5"
+            >
               <p className="text-sm font-semibold text-indigo-700">
                 📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
               </p>
-              {enrichedData.locations.map((loc, i) => (
-                <p key={i} className="text-sm text-indigo-600">
-                  {loc.name}
+              {enrichedData.locations.slice(0, 3).map((loc, i) => (
+                <p key={i} className="text-xs text-indigo-600 truncate">
+                  · {loc.name}
                 </p>
               ))}
-            </div>
-          ) : enrichedData && enrichedData.locations.length === 0 ? (
+              {enrichedData.locations.length > 3 && (
+                <p className="text-xs text-indigo-400">
+                  +{enrichedData.locations.length - 3} more
+                </p>
+              )}
+            </motion.div>
+          ) : enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3">
               <p className="text-sm text-gray-500">No specific locations detected</p>
             </div>
@@ -330,11 +390,12 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (isExtension) window.close();
+          else window.history.back();
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        {isExtension ? 'Close tab ✕' : 'Return to app →'}
       </button>
     </div>
   );

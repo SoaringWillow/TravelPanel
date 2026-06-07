@@ -71,3 +71,9 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Page header: respects status bar on notch/dynamic-island iPhones */
+.pt-safe-header { padding-top: max(3rem, env(safe-area-inset-top)); }
+
+/* Content area: clears the NavBar + home indicator */
+.pb-navbar { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }

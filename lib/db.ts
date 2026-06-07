@@ -191,6 +191,27 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
+export async function updateItemFields(
+  id: string,
+  fields: Partial<Pick<SavedItem, 'title' | 'notes' | 'tags'>>,
+): Promise<SavedItem | undefined> {
+  const db   = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return undefined;
+  const updated = { ...item, ...fields };
+  await db.put('items', updated);
+  return updated;
+}
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {
     const db = await getDB();
@@ -208,4 +229,16 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+// ─── Nuclear option — wipes the entire database ──────────────────────────────
+
+export async function deleteDatabase(): Promise<void> {
+  const { deleteDB } = await import('idb');
+  // Close any open connection first
+  if (dbPromise) {
+    try { (await dbPromise).close(); } catch {}
+    dbPromise = null;
+  }
+  await deleteDB('travel-panel');
 }

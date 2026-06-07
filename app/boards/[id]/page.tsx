@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Maximize2, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import SwipeToDelete from '@/components/SwipeToDelete';
+import EmptyState from '@/components/EmptyState';
 import NavBar from '@/components/NavBar';
+import { useToast } from '@/components/Toast';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -21,8 +24,10 @@ export default function BoardDetailPage() {
 
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
+  const { showToast } = useToast();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [fullScreenMap, setFullScreenMap] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -45,6 +50,7 @@ export default function BoardDetailPage() {
       await removeItemFromBoard(board.id, id);
     }
     await removeItem(id);
+    showToast('Clip deleted', 'info');
   }
 
   async function handleMoveToBoard(id: string) {
@@ -88,7 +94,7 @@ export default function BoardDetailPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pt-safe-header pb-4 z-10">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -114,7 +120,7 @@ export default function BoardDetailPage() {
       </div>
 
       {/* Scrollable content below header */}
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto pb-navbar">
         {/* Map section */}
         {boardItems.length > 0 && (
           <div
@@ -128,6 +134,45 @@ export default function BoardDetailPage() {
               }}
               flyTo={flyTo}
             />
+            {/* Expand to full screen */}
+            <button
+              type="button"
+              onClick={() => setFullScreenMap(true)}
+              className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl p-2 shadow-md hover:bg-white transition-colors"
+              aria-label="Expand map"
+            >
+              <Maximize2 size={16} className="text-gray-700" />
+            </button>
+          </div>
+        )}
+
+        {/* Full-screen map overlay */}
+        {fullScreenMap && (
+          <div className="fixed inset-0 z-[2000] bg-black">
+            <MapView
+              items={boardItems}
+              onPinClick={() => {}}
+              flyTo={flyTo}
+            />
+            <button
+              type="button"
+              onClick={() => setFullScreenMap(false)}
+              className="absolute z-[2001] bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-md hover:bg-white transition-colors"
+              style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))', left: '1rem' }}
+              aria-label="Close full screen map"
+            >
+              <X size={18} className="text-gray-700" />
+            </button>
+            {/* Board label */}
+            <div
+              className="absolute z-[2001] left-14 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2.5 shadow-md"
+              style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
+            >
+              <p className="text-sm font-semibold text-gray-800">
+                {board.emoji} {board.name}
+              </p>
+              <p className="text-xs text-gray-500">{boardItems.length} place{boardItems.length !== 1 ? 's' : ''}</p>
+            </div>
           </div>
         )}
 
@@ -166,24 +211,23 @@ export default function BoardDetailPage() {
 
           {/* Items grid */}
           {boardItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                No places saved to this board yet.
-              </p>
-              <p className="text-sm text-gray-400">
-                Go to Inbox to add items.
-              </p>
-            </div>
+            <EmptyState
+              icon="📌"
+              title="No clips in this board yet"
+              body="Move clips here from your Inbox — swipe a card and tap the grid icon, or use the board picker."
+              gradient="violet"
+              cta={{ label: 'Go to Inbox', onClick: () => router.push('/inbox') }}
+            />
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
-                />
+                <SwipeToDelete key={item.id} onDelete={() => handleDelete(item.id)}>
+                  <InboxCard
+                    item={item}
+                    onDelete={handleDelete}
+                    onViewOnMap={handleViewOnMap}
+                  />
+                </SwipeToDelete>
               ))}
             </div>
           )}

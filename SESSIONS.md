@@ -96,3 +96,31 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-07 13:25 | f853c4b | feat(B2): add Chrome browser extension for one-click URL clipping
+2026-06-07 13:32 | 2eaa647 | feat(B3): Claude Vision fallback for Xiaohongshu / WeChat anti-scraping
+2026-06-07 13:32 | 24fe5bb | chore: update SESSIONS.md
+2026-06-07 13:59 | b337f90 | feat(B5): Settings page with JSON backup export and data stats
+2026-06-07 14:00 | e851f73 | chore: update SESSIONS.md
+2026-06-07 14:31 | 508e1bb | feat(C1+C2): swipe-to-delete gesture + haptic feedback
+2026-06-07 14:31 | 5824ad1 | chore: update SESSIONS.md
+2026-06-07 14:59 | 1a26441 | feat(C3): polished empty states for all four main pages
+2026-06-07 15:01 | ad566d2 | feat(C4): pull-to-refresh on inbox list
+2026-06-07 15:02 | 4af8c4e | feat(C5): premium board card design with cover images and gradient fallbacks
+2026-06-07 15:02 | c9eaf86 | chore: update SESSIONS.md
+2026-06-07 15:29 | c8af19a | feat(C6): inline clip editing in LocationDetailCard
+2026-06-07 15:30 | 1c25f16 | feat(C7): inbox sort options + expanded platform filter
+2026-06-07 15:35 | e42ed7f | feat(C9): add PWA icons and improve app branding metadata
+2026-06-07 15:35 | 603e914 | chore: update SESSIONS.md
+2026-06-07 15:37 | 4510618 | feat(C10): audit and fix safe-area insets for notch/home-indicator
+2026-06-07 15:37 | cf04af4 | chore: update SESSIONS.md
+2026-06-07 15:41 | 8f77e9d | feat(E1): add toast notification system
+2026-06-07 15:43 | 673eaa7 | feat(E2): replace day strip with animated accordion day cards
+2026-06-07 15:44 | 7650428 | feat(E5): auto-retry stale pending clips on app focus
+2026-06-07 15:44 | ffbb5a4 | feat(E9): add offline/back-online banner
+2026-06-07 15:46 | 4602e51 | feat(E8): add Share Itinerary to trip plan export
+2026-06-07 15:46 | 6e6e2aa | chore: update SESSIONS.md
+2026-06-07 15:47 | 81ee588 | feat(E6): enrich share page done state with shimmer URL preview card
+2026-06-07 15:48 | f8eb97e | feat(E7): add global search page with grouped results
+2026-06-07 15:48 | 86db71b | chore: update SESSIONS.md
+2026-06-07 15:49 | a5c05b0 | feat(E10): add full-screen map overlay on board detail
+2026-06-07 15:50 | b1aca06 | chore: update SESSIONS.md
