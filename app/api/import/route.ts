@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,14 +99,14 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — use the screenshot if provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -126,14 +127,28 @@ This is what competitors miss. Examples of what to capture:
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
-Never return an empty substance array for a real travel post.`;
+Never return an empty substance array for a real travel post.${imageBase64 ? '\n\nA screenshot of the post is attached. Read ALL visible text in the image — this is the primary content source when the page could not be scraped.' : ''}`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
+    let imageBytes: Uint8Array | undefined;
+    if (imageBase64) {
+      const binary = atob(imageBase64);
+      imageBytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) imageBytes[i] = binary.charCodeAt(i);
+    }
+
+    const messageContent = imageBytes
+      ? [
+          { type: 'text' as const, text: textPrompt },
+          { type: 'image' as const, image: imageBytes, mimeType: 'image/jpeg' as const },
+        ]
+      : [{ type: 'text' as const, text: textPrompt }];
+
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      messages: [{ role: 'user', content: messageContent }],
     });
     claudeResult = object;
   } catch {
