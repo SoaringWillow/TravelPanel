@@ -5,11 +5,19 @@ import UniformTypeIdentifiers
 
 // TravelPanel Share Extension
 //
-// Receives a URL (and optional title) from the iOS Share Sheet and opens
-// the main TravelPanel app with the travelpanel://share?url=...&title=...
-// URL scheme, which the CapacitorBridge component routes to /share.
+// Receives a URL + optional screenshot image from the iOS Share Sheet and
+// routes them into the main TravelPanel app.
 //
-// Supported source types: URLs, plain text containing a URL, web pages.
+// URL is delivered via travelpanel://share?url=...&title=... (deep link).
+// Image data is always stored in App Group (too large for URL scheme) under
+// the key "pendingShareImage" as a base64-encoded JPEG. CapacitorBridge reads
+// it on app resume and hands it to the share flow via sessionStorage.
+//
+// The image capture enables Claude Vision extraction for platforms like
+// Xiaohongshu and WeChat that block standard URL scraping.
+//
+// Supported source types: URLs, plain text containing a URL, web pages,
+// and image attachments (screenshot of post).
 
 class ShareViewController: UIViewController {
 
@@ -24,42 +32,74 @@ class ShareViewController: UIViewController {
             return
         }
 
+        var foundURL: String?
+        var foundTitle: String?
+        var foundImageBase64: String?
+
+        let group = DispatchGroup()
+
         for item in items {
             guard let attachments = item.attachments else { continue }
 
-            // Priority 1: a direct URL attachment
             for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+                // ── URL attachment ────────────────────────────────────────────
+                if foundURL == nil, attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+                    group.enter()
                     attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { [weak self] data, _ in
+                        defer { group.leave() }
                         guard let self else { return }
                         if let url = data as? URL {
-                            let title = item.attributedContentText?.string ?? url.host ?? ""
-                            self.openApp(url: url.absoluteString, title: title)
-                        } else {
-                            self.finish()
+                            foundURL = url.absoluteString
+                            foundTitle = item.attributedContentText?.string ?? url.host ?? ""
+                        } else if let text = data as? String, let url = self.extractURL(from: text) {
+                            foundURL = url
+                            foundTitle = text
                         }
                     }
-                    return
                 }
-            }
 
-            // Priority 2: plain text that may contain a URL
-            for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
-                    attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
-                        guard let self else { return }
-                        if let text = data as? String, let url = self.extractURL(from: text) {
-                            self.openApp(url: url, title: text)
+                // ── Image attachment (screenshot/post image) ─────────────────
+                // Captured for Vision-based extraction on platforms that block scraping.
+                if foundImageBase64 == nil, attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    group.enter()
+                    attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                        defer { group.leave() }
+                        let image: UIImage?
+                        if let img = data as? UIImage {
+                            image = img
+                        } else if let url = data as? URL, let img = UIImage(contentsOfFile: url.path) {
+                            image = img
                         } else {
-                            self.finish()
+                            image = nil
+                        }
+                        // Compress to JPEG (0.65 quality ≈ 100–300 KB for a typical screenshot)
+                        if let img = image, let jpeg = img.jpegData(compressionQuality: 0.65) {
+                            foundImageBase64 = jpeg.base64EncodedString()
                         }
                     }
-                    return
+                }
+
+                // ── Plain-text fallback for URL ───────────────────────────────
+                if foundURL == nil, attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+                    group.enter()
+                    attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
+                        defer { group.leave() }
+                        if let text = data as? String, let url = self?.extractURL(from: text) {
+                            if foundURL == nil { foundURL = url; foundTitle = text }
+                        }
+                    }
                 }
             }
         }
 
-        finish()
+        group.notify(queue: .main) { [weak self] in
+            guard let self else { return }
+            if let url = foundURL {
+                self.openApp(url: url, title: foundTitle ?? "", imageBase64: foundImageBase64)
+            } else {
+                self.finish()
+            }
+        }
     }
 
     private func extractURL(from text: String) -> String? {
@@ -68,7 +108,12 @@ class ShareViewController: UIViewController {
         return matches?.first.flatMap { $0.url?.absoluteString }
     }
 
-    private func openApp(url: String, title: String) {
+    private func openApp(url: String, title: String, imageBase64: String?) {
+        // Always write to App Group first so the image is available regardless of
+        // which opening method the app uses (URL scheme or App Group fallback).
+        savePendingShare(url: url, title: title, imageBase64: imageBase64)
+
+        // Build the URL scheme deep link (URL + title only; image travels via App Group).
         var components = URLComponents()
         components.scheme = "travelpanel"
         components.host = "share"
@@ -82,8 +127,7 @@ class ShareViewController: UIViewController {
             return
         }
 
-        // Open the main app with the deep link.
-        // On iOS 13+, Share Extensions can open URLs via the responder chain.
+        // Try opening the main app via the responder chain (iOS 13+).
         var responder: UIResponder? = self
         while let r = responder {
             if let application = r as? UIApplication {
@@ -95,18 +139,24 @@ class ShareViewController: UIViewController {
             responder = r.next
         }
 
-        // Fallback: write to App Group and let the main app pick it up on next launch
-        savePendingShareToAppGroup(url: url, title: title)
+        // Responder chain unavailable — App Group fallback already written above.
         finish()
     }
 
-    private func savePendingShareToAppGroup(url: String, title: String) {
+    private func savePendingShare(url: String, title: String, imageBase64: String?) {
         // App Group identifier must match the one configured in Xcode capabilities.
-        // See ios-setup.md for configuration instructions.
+        // See ios/App/ShareExtension/XCODE_SETUP.md for setup instructions.
         guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
         defaults.set(url, forKey: "pendingShareURL")
         defaults.set(title, forKey: "pendingShareTitle")
         defaults.set(Date(), forKey: "pendingShareDate")
+
+        if let image = imageBase64 {
+            defaults.set(image, forKey: "pendingShareImage")
+        } else {
+            defaults.removeObject(forKey: "pendingShareImage")
+        }
+
         defaults.synchronize()
     }
 

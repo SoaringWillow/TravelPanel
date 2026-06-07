@@ -83,10 +83,19 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+// Platforms where URL scraping reliably fails — prefer Vision when image available.
+const VISION_PREFERRED_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
+
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = body.imageBase64 || undefined;
+    imageMimeType = body.imageMimeType || 'image/jpeg';
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,7 +105,16 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const useVision = !!imageBase64;
+
+  // Only fetch page HTML when not relying on Vision as the primary source.
+  const page = VISION_PREFERRED_PLATFORMS.has(platform) && useVision
+    ? null
+    : await fetchPageData(url);
+
+  const imageNote = useVision
+    ? '\n\nAn image of the post is included above. Treat it as the primary content source — read all visible text, captions, tags, and on-image annotations.'
+    : '';
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
@@ -105,7 +123,8 @@ URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — use the image as primary source if provided)'}
+${imageNote}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -133,7 +152,19 @@ Never return an empty substance array for a real travel post.`;
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      ...(useVision
+        ? {
+            messages: [
+              {
+                role: 'user' as const,
+                content: [
+                  { type: 'image' as const, image: imageBase64!, mimeType: imageMimeType },
+                  { type: 'text' as const, text: prompt },
+                ],
+              },
+            ],
+          }
+        : { prompt }),
     });
     claudeResult = object;
   } catch {
