@@ -401,7 +401,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a "Download .txt" option as a fallback link
 
 ### E9 — Offline Banner
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `components/OfflineBanner.tsx` (new), `app/layout.tsx`  
 **What to do**:
 - Listen to `online`/`offline` window events

@@ -4,6 +4,7 @@ import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
 import { ToastProvider } from '@/components/Toast';
+import OfflineBanner from '@/components/OfflineBanner';
 
 export const metadata: Metadata = {
   title: 'TravelPanel — AI Travel Planner',
@@ -37,6 +38,7 @@ export default function RootLayout({
         <ToastProvider>
           <CapacitorBridge />
           <AnalyticsProvider />
+          <OfflineBanner />
           <ResourceBanner />
           <div className="min-h-screen">
             {children}
