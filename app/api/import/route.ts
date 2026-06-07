@@ -95,8 +95,11 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let shareText: string | undefined;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, shareText, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -108,14 +111,23 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // shareText is the raw caption/title from the iOS Share Extension —
+  // it's the post text the sharing app provides, invaluable when the page
+  // fetch is blocked (common for Xiaohongshu and WeChat).
+  const effectiveTitle = page?.title || shareText || url;
+  const effectiveContent = [
+    page?.textContent && page.textContent.length > 50 ? page.textContent : null,
+    shareText && shareText !== effectiveTitle ? `\nShare caption: ${shareText}` : null,
+  ].filter(Boolean).join('\n') || shareText || '(could not fetch page)';
+
+  const promptText = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+Title: ${effectiveTitle}
 Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+Content:
+${effectiveContent}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -136,24 +148,44 @@ This is what competitors miss. Examples of what to capture:
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
-Never return an empty substance array for a real travel post.`;
+Never return an empty substance array for a real travel post.${imageBase64 ? '\nAn image of the post is also provided — use it to extract additional locations, names, and context visible in the photo.' : ''}`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Claude Vision: include the screenshot alongside the text prompt
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: imageBase64,
+              mimeType: (imageMimeType || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+            },
+            { type: 'text', text: promptText },
+          ],
+        }],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: promptText,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
+    title: (claudeResult?.title || effectiveTitle).slice(0, 200),
+    description: (claudeResult?.description || page?.description || shareText || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],
     activities: claudeResult?.activities ?? [],

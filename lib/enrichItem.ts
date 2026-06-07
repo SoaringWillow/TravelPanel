@@ -5,7 +5,13 @@ import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
-export async function enrichItem(id: string, url: string): Promise<boolean> {
+interface EnrichOptions {
+  shareText?: string;
+  imageBase64?: string;
+  imageMimeType?: string;
+}
+
+export async function enrichItem(id: string, url: string, opts?: EnrichOptions): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
     // Don't mark as failed — leave as pending so retry queue picks it up later
@@ -21,7 +27,12 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
     const res = await fetch('/api/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({
+        url,
+        shareText: opts?.shareText,
+        imageBase64: opts?.imageBase64,
+        imageMimeType: opts?.imageMimeType,
+      }),
       keepalive: true,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
