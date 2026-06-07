@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, Pencil } from 'lucide-react';
+import { DndContext, closestCenter, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { SortableActivityCard } from '@/components/SortableActivityCard';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -41,7 +44,31 @@ export default function PlanPage() {
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [tripModeActive, setTripModeActive] = useState(false);
+  const [planEdited, setPlanEdited] = useState(false);
   const { position, error: gpsError, isTracking, start: startGPS, stop: stopGPS } = useLiveLocation();
+
+  // DnD sensors — pointer for desktop, touch for iOS
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
+
+  function handleActivityDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !plan?.days) return;
+
+    const dayActivities = plan.days[activeDayIndex].activities;
+    const oldIdx = dayActivities.findIndex((_, i) => `act-${activeDayIndex}-${i}` === active.id);
+    const newIdx = dayActivities.findIndex((_, i) => `act-${activeDayIndex}-${i}` === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+
+    const reordered = arrayMove(dayActivities, oldIdx, newIdx);
+    const updatedDays = plan.days.map((d, idx) =>
+      idx === activeDayIndex ? { ...d, activities: reordered } : d
+    );
+    setPlan({ ...plan, days: updatedDays });
+    setPlanEdited(true);
+  }
 
   useEffect(() => {
     async function load() {
@@ -525,61 +552,41 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Active day activities */}
+              {/* Active day activities — draggable to reorder */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
+                    {planEdited && (
+                      <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Pencil size={9} />
+                        Edited
+                      </span>
+                    )}
+                  </div>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleActivityDragEnd}
+                  >
+                    <SortableContext
+                      items={activeDayPlan.activities.map((_, i) => `act-${activeDayIndex}-${i}`)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
+                      <div className="space-y-2">
+                        {activeDayPlan.activities.map((activity, aIdx) => (
+                          <SortableActivityCard
+                            key={`act-${activeDayIndex}-${aIdx}`}
+                            id={`act-${activeDayIndex}-${aIdx}`}
+                            activity={activity}
+                          />
+                        ))}
                       </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    </SortableContext>
+                  </DndContext>
                 </div>
               )}
 

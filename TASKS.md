@@ -365,7 +365,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The sort/group applies client-side on top of the existing filter+search pipeline
 
 ### E9 — Plan Day Drag-to-Reorder Activities
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The AI-generated day order is often imperfect. Users want to move activities between days or reorder within a day without regenerating the whole plan.  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`  
 **What to do**:
