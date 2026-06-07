@@ -448,7 +448,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On the route map, show the day's path as a dashed polyline between the stops (use MapLibre's `addLayer` with `type: 'line'`)
 
 ### H2 — Smart Default Trip Duration
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The trip planner prompt always generates 3 days regardless of how many clips are in the board. A board with 2 clips should get a 1-day plan; a board with 30 clips should get 7 days.  
 **Files**: `app/api/plan/route.ts`, `app/plan/[boardId]/page.tsx`  
 **What to do**:

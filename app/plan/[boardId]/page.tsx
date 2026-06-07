@@ -32,6 +32,7 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
+  const [suggestedDays, setSuggestedDays] = useState<number | null>(null);
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
   const [steps, setSteps] = useState<AgentStep[]>([]);
@@ -56,6 +57,10 @@ export default function PlanPage() {
           setBoard(b);
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
+          const locationCount = filtered.reduce((sum, i) => sum + (i.locations?.length ?? 0), 0);
+          const suggested = Math.min(Math.max(1, Math.ceil(locationCount / 4)), 7);
+          setSuggestedDays(suggested);
+          setDays(suggested);
         }
         setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
       } finally {
@@ -334,7 +339,18 @@ export default function PlanPage() {
                     <Calendar size={15} className="text-indigo-500" />
                     Trip length
                   </label>
-                  <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{days} day{days !== 1 ? 's' : ''}</span>
+                  <div className="flex items-center gap-2">
+                    {suggestedDays !== null && days !== suggestedDays && (
+                      <button
+                        type="button"
+                        onClick={() => setDays(suggestedDays)}
+                        className="text-xs text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors"
+                      >
+                        Suggested: {suggestedDays}d
+                      </button>
+                    )}
+                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{days} day{days !== 1 ? 's' : ''}</span>
+                  </div>
                 </div>
                 <Slider
                   value={[days]}
