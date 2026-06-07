@@ -244,7 +244,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On pull: trigger retry of all `failed`/`pending` enrichments, update item list
 
 ### D4 — App Icon & Launch Screen Assets
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Required for App Store submission. The current icon is a generic Capacitor placeholder.  
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `ios/App/App/Assets.xcassets/LaunchScreen.storyboard`  
 **What to do**:
