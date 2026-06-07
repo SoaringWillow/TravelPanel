@@ -269,7 +269,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use this wrapper everywhere a thumbnail is displayed
 
 ### D5 — Pull to Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Implement pull-to-refresh using Capacitor's Motion plugin or a CSS overscroll trick

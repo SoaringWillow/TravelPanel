@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
@@ -9,12 +9,17 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  const handlePullRefresh = useCallback(async () => {
+    await refreshBoards();
+  }, [refreshBoards]);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -53,7 +58,8 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto scroll-touch px-4 py-4 pb-nav">
+      <PullToRefresh onRefresh={handlePullRefresh} className="scroll-touch">
+      <div className="px-4 py-4 pb-nav">
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -88,6 +94,7 @@ export default function BoardsPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Create board modal */}
       <CreateBoardModal
