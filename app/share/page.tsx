@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { notification } from '@/lib/haptics';
@@ -31,6 +31,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [duplicateTitle, setDuplicateTitle]   = useState<string | null>(null);
   const capturedImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,6 +73,16 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    // De-duplicate: if this URL was already saved, show a toast and redirect
+    if (rawUrl) {
+      const existing = await getItemByUrl(rawUrl);
+      if (existing) {
+        setDuplicateTitle(existing.title || existing.url);
+        setTimeout(() => router.push('/inbox'), 2500);
+        return;
+      }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -165,6 +176,21 @@ function SharePageInner() {
   if (stage === 'picking' || stage === 'saving') {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-between p-6 safe-top safe-bottom">
+        {/* Duplicate toast */}
+        <AnimatePresence>
+          {duplicateTitle && (
+            <motion.div
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              className="fixed top-4 left-4 right-4 z-50 bg-amber-50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-2xl px-4 py-3 shadow-lg"
+            >
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Already saved ✓</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 line-clamp-1">{duplicateTitle}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* URL preview card */}
         <div className="pt-4">
           <div className="border-2 border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl p-4 space-y-2">

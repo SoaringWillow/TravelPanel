@@ -414,7 +414,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add to the `PLATFORM_FILTERS` array in `app/inbox/page.tsx`
 
 ### G3 — Clip Deduplication
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: If the user clips the same URL twice (e.g. shares it again from the app), they get a duplicate. Silent de-dup prevents clutter.  
 **Files**: `lib/db.ts`, `app/share/page.tsx`  
 **What to do**:
