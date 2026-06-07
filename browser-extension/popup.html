@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="10" r="3" fill="currentColor"/>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor" opacity="0.85"/>
+        </svg>
+        <span>TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="optionsBtn" title="Settings" aria-label="Open settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Main content -->
+    <main class="main">
+
+      <!-- URL card -->
+      <div class="url-card" id="urlCard">
+        <div class="platform-badge" id="platformBadge">
+          <span id="platformDot" class="platform-dot"></span>
+          <span id="platformLabel">Web</span>
+        </div>
+        <p class="url-text" id="urlText">Loading…</p>
+        <p class="page-title" id="pageTitle"></p>
+      </div>
+
+      <!-- No URL configured state -->
+      <div class="setup-notice" id="setupNotice" style="display:none">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="10" r="3"/>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        </svg>
+        <p>Set your TravelPanel URL in settings first.</p>
+        <button class="btn btn-primary" id="setupBtn">Open Settings</button>
+      </div>
+
+      <!-- Action buttons (idle state) -->
+      <div class="actions" id="actions">
+        <button class="btn btn-primary" id="quickClipBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="m13 2-2 2.5h3L12 7"/>
+            <path d="M10 14 4.6 4.6c-.4-.7 0-1.6.8-1.6H19c.8 0 1.2.9.8 1.6L15 9.5"/>
+            <path d="m15 14-4 8"/>
+            <circle cx="15" cy="14" r="1"/>
+          </svg>
+          Quick Clip
+        </button>
+        <button class="btn btn-secondary" id="previewBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          Preview
+        </button>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading" id="loading" style="display:none">
+        <div class="spinner"></div>
+        <p>Extracting locations & insights…</p>
+      </div>
+
+      <!-- Preview results -->
+      <div class="preview-results" id="previewResults" style="display:none">
+        <div class="results-grid" id="resultsGrid"></div>
+        <button class="btn btn-primary btn-full" id="saveBtn">
+          Save to TravelPanel
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Success state -->
+      <div class="success" id="success" style="display:none">
+        <div class="success-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </div>
+        <p class="success-title">Clipped!</p>
+        <p class="success-sub">Opening TravelPanel…</p>
+      </div>
+
+      <!-- Error state -->
+      <div class="error-banner" id="errorBanner" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4M12 16h.01"/>
+        </svg>
+        <span id="errorText"></span>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

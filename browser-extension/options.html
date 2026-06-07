@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="10" r="3" fill="currentColor"/>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor" opacity="0.85"/>
+        </svg>
+        TravelPanel Clipper
+      </div>
+      <p class="subtitle">Settings</p>
+    </header>
+
+    <section class="card">
+      <h2>App URL</h2>
+      <p class="hint">
+        Enter the URL where your TravelPanel app is deployed (e.g. <code>https://my-app.vercel.app</code>).
+        Leave blank to use localhost during development.
+      </p>
+
+      <div class="field">
+        <label for="appUrl">TravelPanel URL</label>
+        <input
+          type="url"
+          id="appUrl"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+
+      <div class="field-row">
+        <div class="field" style="flex:1">
+          <label for="devUrl">Dev URL (localhost)</label>
+          <input
+            type="url"
+            id="devUrl"
+            placeholder="http://localhost:3000"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <button class="btn btn-sm btn-outline" id="useDevBtn">Use dev</button>
+      </div>
+
+      <div class="save-row">
+        <button class="btn btn-primary" id="saveBtn">Save settings</button>
+        <span class="save-status" id="saveStatus"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Tips</h2>
+      <ul class="tips-list">
+        <li>
+          <span class="tip-icon">⚡</span>
+          <span><strong>Quick Clip</strong> — opens the save page immediately, no preview.</span>
+        </li>
+        <li>
+          <span class="tip-icon">🔍</span>
+          <span><strong>Preview</strong> — calls the AI to extract locations & insights before saving.</span>
+        </li>
+        <li>
+          <span class="tip-icon">🖱️</span>
+          <span>Right-click any link to clip it directly via the context menu.</span>
+        </li>
+        <li>
+          <span class="tip-icon">📱</span>
+          <span>On iOS, use the Share Sheet extension to clip while browsing.</span>
+        </li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>TravelPanel Clipper v1.0 · <a href="https://github.com/soaringwillow/travelpanel" target="_blank" rel="noopener">GitHub</a></p>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

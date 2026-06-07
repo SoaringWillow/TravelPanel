@@ -96,3 +96,11 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-07 11:28 | 8f9e92f | feat: add B2 browser extension (Chrome/Safari Manifest V3 clipper)
+2026-06-07 11:34 | e334aff | feat: B3 — Xiaohongshu vision path (Claude Vision from iOS Share Sheet)
+2026-06-07 11:35 | 7dc43b5 | feat: B5 — cloud backup export + settings page
+2026-06-07 11:38 | 63ab1d6 | feat: C1 — on-trip GPS mode with nearby clips panel
+2026-06-07 11:40 | b3a663b | feat: C2 — journey timeline page (post-trip discovery history)
+2026-06-07 11:42 | 3541290 | feat: C3 — shared boards v1 (URL-encoded board sharing + import)
+2026-06-07 11:44 | 490c93e | feat: C4 — proactive resurfacing (daily pick, plan-ready, dormant clips)
+2026-06-07 11:46 | bb9bc8a | chore: new TASKS.md sprint D-F (iOS polish, monetization, scale)
