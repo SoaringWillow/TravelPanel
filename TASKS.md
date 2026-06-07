@@ -240,7 +240,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Trigger `NotificationType.Success` on: clip enriched successfully
 
 ### D7 — Improved Board Detail Page
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/boards/[id]/page.tsx`
 **What to do**:
 - Add sort options: by date saved, by title, by location count
