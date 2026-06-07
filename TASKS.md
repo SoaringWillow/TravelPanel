@@ -373,7 +373,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This replaces the "Share URL" text input for the pre-filled URL flow, keeping the input only for manual entry
 
 ### F5 — Clip Detail: Inline Substance Expansion
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The "💡 3 tips" badge on InboxCard is a teaser. Users tap it expecting something to happen — currently nothing does. The substance should be expandable directly on the card without navigating to the detail view.  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:

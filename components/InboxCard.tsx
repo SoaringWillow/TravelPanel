@@ -1,8 +1,10 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import SubstanceList from './SubstanceList';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -39,6 +41,7 @@ export default function InboxCard({
   onMoveToBoard,
   onRetry,
 }: InboxCardProps) {
+  const [substanceExpanded, setSubstanceExpanded] = useState(false);
   const { enrichmentStatus } = item;
 
   // ── Queued (offline) state ───────────────────────────────────────────────
@@ -266,10 +269,25 @@ export default function InboxCard({
               </span>
             )}
             {(item.substance?.length ?? 0) > 0 && (
-              <span className="text-xs text-amber-600 dark:text-amber-500 font-medium">
+              <button
+                type="button"
+                onClick={() => setSubstanceExpanded((v) => !v)}
+                className="text-xs text-amber-600 dark:text-amber-500 font-medium flex items-center gap-0.5 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+                aria-expanded={substanceExpanded}
+              >
                 💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
-              </span>
+                {substanceExpanded
+                  ? <ChevronUp size={11} className="ml-0.5" />
+                  : <ChevronDown size={11} className="ml-0.5" />}
+              </button>
             )}
+          </div>
+        )}
+
+        {/* Inline substance expansion */}
+        {substanceExpanded && (item.substance?.length ?? 0) > 0 && (
+          <div className="mb-2">
+            <SubstanceList items={item.substance!} showHeader={false} />
           </div>
         )}
 
