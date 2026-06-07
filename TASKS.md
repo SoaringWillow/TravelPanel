@@ -228,7 +228,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Trigger haptic `impact('light')` on threshold hit
 
 ### C5 — Board Cover Images
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx`, `lib/db.ts`  
 **What to do**:
 - When a clip with a thumbnail is added to a board, automatically set that thumbnail as `coverThumbnail` on the board (if not already set)

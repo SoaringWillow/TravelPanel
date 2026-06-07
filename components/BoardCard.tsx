@@ -11,43 +11,69 @@ interface BoardCardProps {
   onDelete?: () => void;
 }
 
+// Deterministic gradient fallback based on board name
+function gradientForName(name: string): string {
+  const palettes = [
+    'from-indigo-400 to-violet-600',
+    'from-rose-400 to-pink-600',
+    'from-amber-400 to-orange-500',
+    'from-emerald-400 to-teal-600',
+    'from-sky-400 to-blue-600',
+    'from-fuchsia-400 to-purple-600',
+  ];
+  const idx = (name.charCodeAt(0) || 0) % palettes.length;
+  return palettes[idx];
+}
+
 export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+  const hasCover = !!board.coverThumbnail;
+  const gradient = gradientForName(board.name);
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
-      style={{ borderLeftWidth: undefined }}
+      className="relative rounded-2xl shadow-sm overflow-hidden cursor-pointer min-h-[160px] flex flex-col"
     >
-      {/* Cover thumbnail background */}
-      {board.coverThumbnail && (
+      {/* ── Background ── */}
+      {hasCover ? (
         <>
           <img
             src={board.coverThumbnail}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
-          <div className="absolute inset-0 bg-white/80" />
+          {/* Dark gradient overlay — text sits on the bottom half */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
         </>
+      ) : (
+        <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} />
       )}
 
-      {/* Content */}
+      {/* ── Content ── */}
       <div className="relative flex flex-col flex-1 p-4">
-        {/* Emoji top-left */}
-        <div className="text-2xl leading-none mb-3">{board.emoji}</div>
+        {/* Emoji */}
+        <div
+          className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-auto ${
+            hasCover ? 'bg-white/25 backdrop-blur-sm' : 'bg-white/20'
+          }`}
+        >
+          {board.emoji}
+        </div>
 
-        {/* Name */}
-        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
-          {board.name}
-        </h3>
+        {/* Name + count at bottom */}
+        <div className="mt-10">
+          <h3 className="font-bold text-white text-sm leading-snug line-clamp-2 drop-shadow">
+            {board.name}
+          </h3>
+          <p className="text-xs text-white/75 mt-0.5">
+            {itemCount} place{itemCount !== 1 ? 's' : ''}
+          </p>
+        </div>
 
-        {/* Item count */}
-        <p className="text-sm text-gray-400">
-          {itemCount} place{itemCount !== 1 ? 's' : ''}
-        </p>
-
-        {/* Delete button bottom-right */}
+        {/* Delete button */}
         {onDelete && (
           <button
             type="button"
@@ -55,10 +81,10 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
               e.stopPropagation();
               onDelete();
             }}
-            className="absolute bottom-3 right-3 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            className="absolute top-3 right-3 p-1.5 bg-black/25 hover:bg-red-500 rounded-lg transition-colors"
             aria-label="Delete board"
           >
-            <Trash2 size={14} />
+            <Trash2 size={13} className="text-white" />
           </button>
         )}
       </div>
