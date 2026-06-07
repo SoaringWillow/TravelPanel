@@ -194,7 +194,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Plan page: wire `useLiveLocation` to `TripModePanel`, pass position to `RouteMapView`, auto-advance `activeDayIndex` to the day containing the nearest activity
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After a trip, users want to see what they actually did vs. what they planned. Creates reflection + habit reinforcement.  
 **Files**: new `app/trips/[id]/timeline/page.tsx`, `lib/db.ts` (add `visitedAt` to Activity)  
 **What to do**:

@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Navigation, X, MapPin, Footprints, Lightbulb } from 'lucide-react';
-import { TripPlan, SubstanceItem, SavedItem } from '@/lib/types';
+import { Navigation, X, MapPin, Footprints, Lightbulb, CheckCircle2 } from 'lucide-react';
+import { TripPlan, SubstanceItem, SavedItem, VisitedActivity } from '@/lib/types';
 import { LivePosition } from '@/hooks/useLiveLocation';
 import { haversineKm, formatDistance, walkingMinutes } from '@/lib/geo';
 
@@ -22,6 +22,8 @@ interface TripModePanelProps {
   position: LivePosition | null;
   error: string | null;
   isTracking: boolean;
+  visitedActivities: VisitedActivity[];
+  onMarkVisited: (activity: Omit<VisitedActivity, 'visitedAt'>) => void;
   onStop: () => void;
 }
 
@@ -72,7 +74,7 @@ const SUBSTANCE_ICON: Record<string, string> = {
 };
 
 export default function TripModePanel({
-  plan, items, position, error, isTracking, onStop,
+  plan, items, position, error, isTracking, visitedActivities, onMarkVisited, onStop,
 }: TripModePanelProps) {
   const nearest = useMemo(
     () => (position ? findNearest(plan, position) : null),
@@ -137,7 +139,11 @@ export default function TripModePanel({
         )}
 
         {/* Nearest activity */}
-        {nearest && (
+        {nearest && (() => {
+          const isVisited = visitedActivities.some(
+            (v) => v.dayIndex === nearest.dayIndex && v.activityIndex === nearest.activityIndex
+          );
+          return (
           <div className="bg-indigo-50 rounded-xl p-3 space-y-1.5">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -179,8 +185,28 @@ export default function TripModePanel({
                   <span>{tip}</span>
                 </div>
               ))}
+
+            {/* Mark visited button */}
+            <button
+              onClick={() => !isVisited && onMarkVisited({
+                dayIndex: nearest.dayIndex,
+                activityIndex: nearest.activityIndex,
+                activityName: nearest.name,
+                locationName: nearest.locationName,
+                sourcedTips: nearest.sourcedTips,
+              })}
+              className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                isVisited
+                  ? 'bg-green-100 text-green-700 cursor-default'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]'
+              }`}
+            >
+              <CheckCircle2 size={13} />
+              {isVisited ? 'Visited ✓' : 'Mark as visited'}
+            </button>
           </div>
-        )}
+          );
+        })()}
 
         {/* Nearby substance tips from saved clips */}
         {nearby.length > 0 && (

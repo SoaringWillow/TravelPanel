@@ -600,6 +600,17 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* View Timeline — visible once any activity is marked visited */}
+              {currentTripId &&
+                (savedTrips.find((t) => t.id === currentTripId)?.visitedActivities ?? []).length > 0 && (
+                  <button
+                    onClick={() => router.push(`/trips/${currentTripId}/timeline`)}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 text-sm font-semibold py-2.5 rounded-xl border border-emerald-200 hover:bg-emerald-100 active:scale-[0.98] transition-all"
+                  >
+                    🗺 View Trip Timeline
+                  </button>
+                )}
+
               {/* Start Over */}
               <button
                 onClick={handleStartOver}
@@ -622,6 +633,23 @@ export default function PlanPage() {
           position={position}
           error={gpsError}
           isTracking={isTracking}
+          visitedActivities={
+            savedTrips.find((t) => t.id === currentTripId)?.visitedActivities ?? []
+          }
+          onMarkVisited={async (activity) => {
+            const trip = savedTrips.find((t) => t.id === currentTripId);
+            if (!trip) return;
+            const updated = {
+              ...trip,
+              visitedActivities: [
+                ...(trip.visitedActivities ?? []),
+                { ...activity, visitedAt: Date.now() },
+              ],
+            };
+            await saveTrip(updated);
+            setSavedTrips((prev) => prev.map((t) => (t.id === trip.id ? updated : t)));
+            track('activity_visited', { boardId, activityName: activity.activityName });
+          }}
           onStop={() => {
             stopGPS();
             setTripModeActive(false);
