@@ -291,7 +291,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — AI Quality
 
 ### E1 — Streaming Enrichment Status
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Enrichment takes 3–8s with no progress. Users think it's broken.  
 **Files**: `app/api/import/route.ts`, `lib/enrichItem.ts`, `components/InboxCard.tsx`  
 **What to do**:
@@ -301,7 +301,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - `InboxCard.tsx` shows the current stage text during enrichment: "Fetching page…" → "Extracting locations…" → "Done"
 
 ### E2 — Smart Duplicate Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users accidentally clip the same URL twice. Silent duplicates pollute boards.  
 **Files**: `lib/db.ts`, `app/page.tsx` (ImportSheet flow), `app/share/page.tsx`  
 **What to do**:
@@ -310,7 +310,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - User can still save if they want (sometimes re-clips are intentional with different board)
 
 ### E3 — Coordinate Verification Pass
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Claude sometimes hallucinated GPS coordinates. A verification step catches gross errors (e.g. a "Tokyo restaurant" at 0,0 or in the wrong country).  
 **Files**: `app/api/import/route.ts`  
 **What to do**:

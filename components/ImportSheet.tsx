@@ -15,6 +15,7 @@ import {
   PLATFORM_BG,
   PLATFORM_COLORS,
 } from '@/lib/parse-url';
+import { findItemByUrl } from '@/lib/db';
 
 // ─── Props / types ───────────────────────────────────────────────────────────
 
@@ -34,12 +35,15 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]           = useState(initialUrl);
+  const [notes, setNotes]       = useState('');
+  const [stage, setStage]       = useState<Stage>('idle');
+  const [preview, setPreview]   = useState<ImportResult | null>(null);
+  const [error, setError]       = useState('');
+  const [importStage, setImportStage] = useState('');
+  const [dupItem, setDupItem]   = useState<SavedItem | null>(null);
+  const skipDupeRef             = useRef(false);
+  const abortRef                = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -50,10 +54,15 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
+  const STAGE_LABELS: Record<string, string> = {
+    fetching:   'Fetching page…',
+    extracting: 'Extracting locations…',
+    done:       'Wrapping up…',
+  };
+
   async function handleImport() {
     if (!trimmedUrl) return;
 
-    // Cancel any in-flight request
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -62,6 +71,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
     setStage('loading');
     setError('');
+    setImportStage('');
 
     try {
       const res = await fetch('/api/import', {
@@ -72,8 +82,33 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       });
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: ImportResult = await res.json();
-      setPreview(data);
+      if (!res.body) throw new Error('No response body');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let result: ImportResult | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            if (msg.type === 'progress') setImportStage(STAGE_LABELS[msg.stage] ?? msg.stage);
+            if (msg.type === 'result') result = msg.data as ImportResult;
+            if (msg.type === 'error') throw new Error(msg.message);
+          } catch { /* skip */ }
+        }
+      }
+
+      if (!result) throw new Error('No result received');
+      setPreview(result);
+      setImportStage('');
       setStage('preview');
     } catch (err) {
       clearTimeout(timeoutId);
@@ -83,12 +118,19 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           ? 'Taking too long — the page may be private or unsupported. You can save the URL for later.'
           : 'Could not clip this URL. You can save it for later.'
       );
+      setImportStage('');
       setStage('idle');
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!preview) return;
+    // E2 — Duplicate detection
+    if (!skipDupeRef.current) {
+      const existing = await findItemByUrl(trimmedUrl);
+      if (existing) { setDupItem(existing); return; }
+    }
+    setDupItem(null);
     const item: SavedItem = {
       id: crypto.randomUUID(),
       url: trimmedUrl,
@@ -141,6 +183,9 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setDupItem(null);
+    setImportStage('');
+    skipDupeRef.current = false;
   }
 
   function handleClose() {
@@ -218,7 +263,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               {stage === 'loading' ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Analyzing with AI…
+                  {importStage || 'Analyzing with AI…'}
                 </>
               ) : (
                 'Clip & discover places'
@@ -349,6 +394,23 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:border-indigo-400 focus:outline-none transition-colors"
                 />
               </div>
+
+              {/* Duplicate warning */}
+              {dupItem && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-2">
+                  <p className="text-sm font-semibold text-amber-800">⚠ Already saved</p>
+                  <p className="text-xs text-amber-700 leading-snug">
+                    You already clipped &ldquo;{dupItem.title}&rdquo;. Save again?
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { skipDupeRef.current = true; setDupItem(null); handleSave(); }}
+                    className="w-full text-xs font-medium py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+                  >
+                    Save anyway
+                  </button>
+                </div>
+              )}
 
               {/* Action buttons */}
               <div className="flex gap-2 pt-1">
