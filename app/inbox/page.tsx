@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
@@ -15,6 +16,8 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+
+const PAGE_SIZE = 20;
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,7 +32,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -38,6 +41,32 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reset visible count when filter/search changes
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [activePlatform, query]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const { isRefreshing, pullProgress } = usePullToRefresh({
+    onRefresh: async () => { await refresh(); },
+    scrollRef,
+  });
+
+  // Load more when sentinel enters viewport
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setVisibleCount((n) => n + PAGE_SIZE);
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -53,6 +82,8 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+  const visibleItems = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -139,7 +170,21 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Pull-to-refresh indicator */}
+        {(pullProgress > 0 || isRefreshing) && (
+          <div
+            className="flex items-center justify-center py-2 mb-2"
+            style={{ opacity: Math.max(pullProgress, isRefreshing ? 1 : 0) }}
+          >
+            <RefreshCw
+              size={18}
+              className={`text-indigo-500 ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{ transform: `rotate(${pullProgress * 180}deg)` }}
+            />
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -159,27 +204,39 @@ export default function InboxPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <AnimatePresence>
+                {visibleItems.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <InboxCard
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* Sentinel — triggers loading the next page */}
+            <div ref={sentinelRef} className="h-1" />
+
+            {hasMore && (
+              <div className="flex items-center justify-center py-4 gap-2 text-xs text-gray-400">
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b border-gray-400" />
+                Loading more…
+              </div>
+            )}
+          </>
         )}
       </div>
 

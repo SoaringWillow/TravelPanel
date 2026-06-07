@@ -236,7 +236,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add haptic feedback on: clip saved (success), mark visited (success), delete (heavy), button taps on primary actions (light)
 
 ### D3 — Pull-to-Refresh on Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect pull-to-refresh to trigger data reload. Without it, stale enrichment status isn't visible.  
 **Files**: `app/inbox/page.tsx`, `hooks/useSavedItems.ts`  
 **What to do**:
@@ -254,7 +254,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Create a simple launch screen with centered logo on white background
 
 ### D5 — Virtualized Inbox for Large Collections
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: At 100+ clips the inbox scrolls slowly on older iPhones because all cards render at once.  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
