@@ -105,7 +105,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 - Add a "Share" button at the bottom using Web Share API to share the item title + URL
 
 ### E3 — Plan View UX Overhaul
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The plan view is functional but reads like a wall of text. Day-by-day trip plans should feel exciting, not like a document.
 **Files to change**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx` (if it exists)
 **What to do**:
