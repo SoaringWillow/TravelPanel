@@ -44,7 +44,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 - Keep spinner only for one-shot actions (save button, export button) — NOT for page-level loads
 
 ### D3 — Error Boundaries
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Unhandled JS errors currently crash the entire app with a blank white screen. This is especially bad on iOS where users can't open dev tools.
 **Files**: new `components/ErrorBoundary.tsx`, `app/layout.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:

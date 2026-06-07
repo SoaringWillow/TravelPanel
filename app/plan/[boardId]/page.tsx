@@ -14,6 +14,7 @@ import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
 import { SkeletonBox } from '@/components/Skeleton';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -401,23 +402,25 @@ export default function PlanPage() {
 
           {/* ── GENERATING STATE ── */}
           {stage === 'generating' && (
-            <div className="space-y-4">
-              {/* Back / board name */}
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{board.emoji}</span>
-                <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+            <ErrorBoundary>
+              <div className="space-y-4">
+                {/* Back / board name */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{board.emoji}</span>
+                  <span className="text-base font-bold text-gray-800 flex-1 truncate">{board.name}</span>
+                </div>
+
+                <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
+
+                <button
+                  onClick={handleCancel}
+                  className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  <X size={15} />
+                  Cancel
+                </button>
               </div>
-
-              <PlannerAgent steps={steps} isRunning={stage === 'generating'} />
-
-              <button
-                onClick={handleCancel}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                <X size={15} />
-                Cancel
-              </button>
-            </div>
+            </ErrorBoundary>
           )}
 
           {/* ── COMPLETE STATE ── */}
