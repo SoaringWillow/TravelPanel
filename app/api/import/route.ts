@@ -147,7 +147,8 @@ Never return an empty substance array for a real travel post.`;
               content: [
                 {
                   type: 'image',
-                  image: Buffer.from(imageBase64, 'base64'),
+                  // AI SDK accepts raw base64 string as image data
+                  image: imageBase64 as string,
                   mimeType: 'image/jpeg',
                 },
                 { type: 'text', text: promptBody },
