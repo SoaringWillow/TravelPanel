@@ -1,17 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { Globe2, Inbox, LayoutGrid, Settings } from 'lucide-react';
+import { Globe2, Inbox, LayoutGrid, Settings, Search } from 'lucide-react';
 
 interface NavBarProps {
-  active: 'home' | 'inbox' | 'boards' | 'settings';
+  active: 'home' | 'inbox' | 'boards' | 'search' | 'settings';
 }
 
 const NAV_ITEMS = [
-  { key: 'home',     label: 'Map',         icon: Globe2,     href: '/'          },
-  { key: 'inbox',    label: 'Inspiration', icon: Inbox,      href: '/inbox'     },
-  { key: 'boards',   label: 'Collections', icon: LayoutGrid, href: '/boards'    },
-  { key: 'settings', label: 'Settings',    icon: Settings,   href: '/settings'  },
+  { key: 'home',     label: 'Map',      icon: Globe2,     href: '/'          },
+  { key: 'inbox',    label: 'Clips',    icon: Inbox,      href: '/inbox'     },
+  { key: 'search',   label: 'Search',   icon: Search,     href: '/search'    },
+  { key: 'boards',   label: 'Boards',   icon: LayoutGrid, href: '/boards'    },
+  { key: 'settings', label: 'Settings', icon: Settings,   href: '/settings'  },
 ] as const;
 
 export default function NavBar({ active }: NavBarProps) {

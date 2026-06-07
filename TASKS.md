@@ -381,7 +381,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On error, show a friendly error state inside the card with a "Retry" button
 
 ### E7 — Global Search Page
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `app/search/page.tsx` (new), `components/NavBar.tsx`, `lib/searchItems.ts`  
 **What to do**:
 - Add a Search tab to NavBar (replaces one of the existing tabs or adds a 5th icon)
