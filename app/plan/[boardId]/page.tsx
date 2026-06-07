@@ -3,16 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import TripModePanel from '@/components/TripModePanel';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -38,6 +40,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [tripModeActive, setTripModeActive] = useState(false);
+  const { position, error: gpsError, isTracking, start: startGPS, stop: stopGPS } = useLiveLocation();
 
   useEffect(() => {
     async function load() {
@@ -271,6 +275,7 @@ export default function PlanPage() {
             items={boardItems}
             plan={plan}
             activeDayIndex={activeDayIndex}
+            userPosition={position}
           />
         )}
       </div>
@@ -458,23 +463,38 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Export actions */}
+              {/* Export + Trip Mode actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="space-y-2">
+                  {/* Start Trip button */}
                   <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    onClick={() => {
+                      setTripModeActive(true);
+                      startGPS();
+                      track('trip_mode_started', { boardId });
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white text-sm font-semibold py-3 rounded-xl shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Navigation size={16} />
+                    Start Trip →
                   </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -593,6 +613,22 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {/* Trip Mode GPS panel — overlays the bottom of the screen */}
+      {tripModeActive && planIsComplete(plan) && (
+        <TripModePanel
+          plan={plan}
+          items={boardItems}
+          position={position}
+          error={gpsError}
+          isTracking={isTracking}
+          onStop={() => {
+            stopGPS();
+            setTripModeActive(false);
+            track('trip_mode_stopped', { boardId });
+          }}
+        />
+      )}
     </div>
   );
 }

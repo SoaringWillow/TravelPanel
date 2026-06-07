@@ -182,16 +182,37 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Why**: "Own the on-trip execution moment" — no competitor has touched this. When the user is actually traveling, the app should activate and guide them.  
+**Files**: `hooks/useLiveLocation.ts` (new), `lib/geo.ts` (new), `components/TripModePanel.tsx` (new), `components/RouteMapView.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Add a "Start Trip" button to the completed plan view
+- `useLiveLocation`: React hook wrapping `navigator.geolocation.watchPosition`; returns `{ position, error, isTracking, start, stop }`
+- `lib/geo.ts`: Haversine distance, `formatDistance`, `walkingMinutes(km)` helpers
+- `TripModePanel`: bottom panel showing live GPS dot, nearest activity (with walk distance), and relevant substance tips from nearby clips. Stop button dismisses.
+- `RouteMapView`: accept optional `userPosition` prop and render a pulsing blue "you are here" marker
+- Plan page: wire `useLiveLocation` to `TripModePanel`, pass position to `RouteMapView`, auto-advance `activeDayIndex` to the day containing the nearest activity
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: After a trip, users want to see what they actually did vs. what they planned. Creates reflection + habit reinforcement.  
+**Files**: new `app/trips/[id]/timeline/page.tsx`, `lib/db.ts` (add `visitedAt` to Activity)  
+**What to do**:
+- "Mark as visited" button on each activity during Trip Mode (C1)
+- Post-trip Timeline page shows a vertical timeline of visited activities with timestamps
+- Show the substance tips that were cited for each activity
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: Collaborative trip planning and social proof. Blocked by cloud auth (B1).  
+**Needs**: Supabase auth from B1  
+**What to do**: Generate a read-only share link for a board; recipient sees a read-only map + clip list
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: "You're near a saved spot" push notifications when the user is physically near a clipped location  
+**Needs**: iOS push notification entitlement, Supabase for user targeting  
+**What to do**: Background location check on app foreground; if within 500m of a saved location, show a banner with the clip's substance tips
 
 ---
 
