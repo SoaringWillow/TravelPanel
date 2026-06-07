@@ -16,6 +16,7 @@ import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import SwipeToDelete from '@/components/SwipeToDelete';
+import EmptyState from '@/components/EmptyState';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -146,19 +147,31 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          query.trim() ? (
+            <EmptyState
+              icon="🔍"
+              title="No matches found"
+              body={`No clips match "${query.trim()}".`}
+              body2="Try different keywords or clear the search."
+              gradient="violet"
+            />
+          ) : activePlatform !== 'all' ? (
+            <EmptyState
+              icon="📭"
+              title={`No ${PLATFORM_LABELS[activePlatform as Platform]} clips`}
+              body="You haven't saved anything from this platform yet."
+              gradient="amber"
+            />
+          ) : (
+            <EmptyState
+              icon="✈️"
+              title="Your inbox is empty"
+              body="Share any post from Xiaohongshu, YouTube, Instagram or WeChat using the iOS Share button."
+              body2="TravelPanel extracts locations and travel wisdom automatically."
+              gradient="indigo"
+              cta={{ label: 'How to clip content →', onClick: () => window.open('https://github.com/soaringwillow/travelpanel#usage', '_blank') }}
+            />
+          )
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>

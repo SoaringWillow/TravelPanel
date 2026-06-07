@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { motion, AnimatePresence as AP } from 'framer-motion';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -18,6 +19,8 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
+  const hasLocations = items.some((i) => i.locations.length > 0);
+  const showMapHint  = !loading && !hasLocations && !showImport;
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
@@ -93,6 +96,38 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Empty map hint — shown until the first location pin is saved */}
+      <AP>
+        {showMapHint && !selectedItem && (
+          <motion.div
+            key="map-hint"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="absolute bottom-28 left-4 right-4 z-[999] pointer-events-none"
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-lg px-5 py-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <motion.span
+                  className="text-xl"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  📍
+                </motion.span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">No pins yet</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Tap <strong>+</strong> to clip a travel post — locations appear here automatically.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AP>
 
       {/* Import FAB */}
       {!selectedItem && (

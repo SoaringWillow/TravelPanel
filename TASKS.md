@@ -208,7 +208,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Wire into: share done state, board chip tap, delete confirm, retry button
 
 ### C3 — Empty States for All Pages
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `app/page.tsx`  
 **What to do**:
 - Inbox empty: illustration with "Save your first inspiration" + share instructions + "Try the demo" button

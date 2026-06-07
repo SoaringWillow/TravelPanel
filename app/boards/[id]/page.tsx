@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import SwipeToDelete from '@/components/SwipeToDelete';
+import EmptyState from '@/components/EmptyState';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -167,15 +168,13 @@ export default function BoardDetailPage() {
 
           {/* Items grid */}
           {boardItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                No places saved to this board yet.
-              </p>
-              <p className="text-sm text-gray-400">
-                Go to Inbox to add items.
-              </p>
-            </div>
+            <EmptyState
+              icon="📌"
+              title="No clips in this board yet"
+              body="Move clips here from your Inbox — swipe a card and tap the grid icon, or use the board picker."
+              gradient="violet"
+              cta={{ label: 'Go to Inbox', onClick: () => router.push('/inbox') }}
+            />
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {boardItems.map((item) => (
