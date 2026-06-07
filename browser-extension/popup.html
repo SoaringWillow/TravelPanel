@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header">
+    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="white" fill-opacity="0.95"/>
+      <circle cx="12" cy="9" r="2.5" fill="#818cf8"/>
+    </svg>
+    <div class="header-text">
+      <span class="logo-text">TravelPanel</span>
+      <span class="logo-sub">Clipper</span>
+    </div>
+  </div>
+
+  <div id="popup-content">
+    <div class="page-info">
+      <div id="platform-badge" class="platform-badge hidden"></div>
+      <div id="page-title" class="page-title">Loading…</div>
+      <div id="page-url" class="page-url"></div>
+    </div>
+
+    <div class="boards-section">
+      <div class="boards-label">Save to board</div>
+      <div id="boards" class="boards">
+        <button class="board-chip active" data-board="Inbox">📥 Inbox</button>
+      </div>
+      <div class="new-board-row">
+        <input
+          id="new-board-input"
+          class="new-board-input"
+          type="text"
+          placeholder="+ New board name…"
+          maxlength="40"
+        />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="save-btn" class="save-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+        Clip to TravelPanel
+      </button>
+    </div>
+
+    <div class="footer">
+      <button id="open-app-btn" class="text-btn">Open TravelPanel ↗</button>
+      <button id="settings-btn" class="text-btn">Settings</button>
+    </div>
+  </div>
+
+  <!-- Settings panel (hidden by default) -->
+  <div id="settings-panel" class="settings-panel hidden">
+    <div class="settings-header">
+      <button id="settings-back" class="icon-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span>Settings</span>
+    </div>
+    <div class="settings-body">
+      <label class="settings-label" for="app-url-input">TravelPanel URL</label>
+      <input
+        id="app-url-input"
+        class="settings-input"
+        type="url"
+        placeholder="https://travelpanel.vercel.app"
+      />
+      <p class="settings-hint">Set this to your deployed TravelPanel URL.</p>
+      <button id="save-settings-btn" class="save-btn" style="margin-top: 12px;">Save Settings</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

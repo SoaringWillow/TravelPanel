@@ -20,6 +20,8 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const preselectedBoard = searchParams.get('board') ?? ''; // from browser extension
+  const rawImageBase64  = searchParams.get('imageBase64') ?? ''; // from iOS Share Extension (Xiaohongshu etc.)
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -58,6 +60,11 @@ function SharePageInner() {
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 5);
 
+  // Board pre-selected by browser extension (matched by name, case-insensitive)
+  const extensionBoard = preselectedBoard
+    ? boards.find(b => b.name.toLowerCase() === preselectedBoard.toLowerCase())
+    : null;
+
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
@@ -88,9 +95,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if present (e.g. from Xiaohongshu via Share Extension)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, rawImageBase64 || undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -169,7 +176,23 @@ function SharePageInner() {
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
-          <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
+          {/* Quick-save button when browser extension pre-selected a board */}
+          {preselectedBoard && (
+            <button
+              type="button"
+              disabled={stage === 'saving'}
+              onClick={() =>
+                extensionBoard
+                  ? handleSave(extensionBoard.id, `${extensionBoard.emoji} ${extensionBoard.name}`)
+                  : handleSave(undefined, preselectedBoard)
+              }
+              className="mb-4 w-full bg-indigo-600 text-white font-semibold text-sm px-4 py-3 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <span>📌</span>
+              Save to &ldquo;{preselectedBoard}&rdquo;
+            </button>
+          )}
+          <p className="text-sm font-medium text-gray-500 mb-3">{preselectedBoard ? 'Or choose another:' : 'Save to:'}</p>
 
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">

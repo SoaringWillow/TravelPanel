@@ -83,10 +83,22 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+const SUBSTANCE_EXAMPLES = `
+- "Arrive before 8am to beat the queue" → tip
+- "The set lunch menu is half the price of dinner" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Skip the official viewpoint — the back alley has the better angle" → recommendation
+- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
+- "It was overrated for the price" → opinion
+- "If you're visiting in August, be aware it's typhoon season" → context
+- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning`;
+
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,9 +108,56 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  // ── Vision path (Xiaohongshu, WeChat, or any platform blocking scraping) ──
+  if (imageBase64) {
+    const visionPrompt = `You are a travel content analyzer. The user shared a screenshot from ${platform} (${url}).
+Many platforms (Xiaohongshu, WeChat, Instagram) block URL scraping, so the image is the primary source.
+
+Analyze the image and extract TWO layers:
+
+## Layer 1 — Spots (geographic skeleton)
+Real, identifiable locations with accurate GPS coordinates you are confident about.
+Return an empty array if no specific named places are visible.
+Do NOT invent or guess coordinates.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Every actionable insight, tip, warning, or opinion visible in the image (captions, overlaid text, comments shown).
+${SUBSTANCE_EXAMPLES}
+
+For list-format content, extract ALL items. Never return an empty substance array for real travel content.`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'image' as const,
+                image: imageBase64,
+                mimeType: (imageMimeType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+              },
+              { type: 'text' as const, text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to text-scraping path
+    }
+  }
+
+  // ── Text-scraping path (fallback or primary for open platforms) ──
+  if (!claudeResult) {
+    const page = await fetchPageData(url);
+
+    const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -115,40 +174,47 @@ Do NOT invent or guess coordinates.
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
 This is what competitors miss. Examples of what to capture:
-- "Arrive before 8am to beat the queue" → tip
-- "The set lunch menu is half the price of dinner" → tip
-- "Cash only, nearest ATM is 10 min walk" → warning
-- "Skip the official viewpoint — the back alley has the better angle" → recommendation
-- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
-- "It was overrated for the price" → opinion
-- "If you're visiting in August, be aware it's typhoon season" → context
-- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
+${SUBSTANCE_EXAMPLES}
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
+
+    const result: ImportResult = {
+      platform,
+      title: (claudeResult?.title || page?.title || url).slice(0, 200),
+      description: (claudeResult?.description || page?.description || '').slice(0, 500),
+      thumbnail: page?.thumbnail || undefined,
+      locations: claudeResult?.locations ?? [],
+      activities: claudeResult?.activities ?? [],
+      tags: claudeResult?.tags ?? [],
+      substance: claudeResult?.substance ?? [],
+    };
+
+    return NextResponse.json(result);
   }
 
+  // Vision path result (no page fetch needed)
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
-    thumbnail: page?.thumbnail || undefined,
-    locations: claudeResult?.locations ?? [],
-    activities: claudeResult?.activities ?? [],
-    tags: claudeResult?.tags ?? [],
-    substance: claudeResult?.substance ?? [],
+    title: (claudeResult.title || url).slice(0, 200),
+    description: (claudeResult.description || '').slice(0, 500),
+    thumbnail: undefined,
+    locations: claudeResult.locations ?? [],
+    activities: claudeResult.activities ?? [],
+    tags: claudeResult.tags ?? [],
+    substance: claudeResult.substance ?? [],
   };
 
   return NextResponse.json(result);
