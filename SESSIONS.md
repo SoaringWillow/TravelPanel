@@ -118,3 +118,6 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-07 15:44 | 7650428 | feat(E5): auto-retry stale pending clips on app focus
 2026-06-07 15:44 | ffbb5a4 | feat(E9): add offline/back-online banner
 2026-06-07 15:46 | 4602e51 | feat(E8): add Share Itinerary to trip plan export
+2026-06-07 15:46 | 6e6e2aa | chore: update SESSIONS.md
+2026-06-07 15:47 | 81ee588 | feat(E6): enrich share page done state with shimmer URL preview card
+2026-06-07 15:48 | f8eb97e | feat(E7): add global search page with grouped results
