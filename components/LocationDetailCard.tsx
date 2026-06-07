@@ -1,10 +1,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, ExternalLink, Navigation, Share2 } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
+
+// ─── Directions deep-link helper ─────────────────────────────────────────────
+
+function directionsUrl(lat: number, lng: number): string {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  if (isIOS) return `maps.apple.com/?daddr=${lat},${lng}`;
+  return `https://maps.google.com/maps?daddr=${lat},${lng}`;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -12,6 +23,18 @@ interface LocationDetailCardProps {
 }
 
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const hasLocations = item.locations.length > 0;
+  const primaryLocation = hasLocations ? item.locations[0] : null;
+
+  async function handleShare() {
+    const shareData = { title: item.title, url: item.url };
+    if (navigator.share) {
+      await navigator.share(shareData).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(item.url).catch(() => {});
+    }
+  }
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -32,7 +55,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[70vh] flex flex-col">
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">
             <div className="flex-1 min-w-0 pr-3">
@@ -55,6 +78,38 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             </button>
           </div>
 
+          {/* ── Action buttons ───────────────────────────────────────────── */}
+          <div className="flex gap-2 px-4 pb-3 flex-shrink-0">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all flex-1 justify-center"
+            >
+              <ExternalLink size={13} />
+              Open source
+            </a>
+            {primaryLocation && (
+              <a
+                href={directionsUrl(primaryLocation.lat, primaryLocation.lng)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-gray-200 active:scale-95 transition-all flex-1 justify-center"
+              >
+                <Navigation size={13} />
+                Directions
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-gray-200 active:scale-95 transition-all"
+              aria-label="Share"
+            >
+              <Share2 size={13} />
+            </button>
+          </div>
+
           {/* ── Scrollable body ──────────────────────────────────────────── */}
           <div className="overflow-y-auto px-4 pb-4 space-y-3">
             {/* Description */}
@@ -74,16 +129,21 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                   {item.locations.map((loc, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <MapPin size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <span className="text-sm text-gray-700 font-medium block">
                           {loc.name}
                         </span>
                         {loc.address && (
                           <span className="text-xs text-gray-400 block">{loc.address}</span>
                         )}
-                        <span className="text-xs text-gray-400">
-                          {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
-                        </span>
+                        <a
+                          href={directionsUrl(loc.lat, loc.lng)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-indigo-500 hover:underline"
+                        >
+                          {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)} ↗
+                        </a>
                       </div>
                     </div>
                   ))}
@@ -111,7 +171,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             )}
 
             {/* Substance — the Wisdom view (the moat) */}
-            <SubstanceList items={item.substance ?? []} />
+            <SubstanceList items={item.substance ?? []} collapseAfter={3} />
 
             {/* Tags */}
             {item.tags.length > 0 && (

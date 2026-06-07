@@ -94,7 +94,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 - The 3 seed boards are already loaded at this point — the map isn't empty
 
 ### E2 — Location Detail Card Polish
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The `LocationDetailCard` is the main reading surface but feels minimal. The substance items are the moat — make them feel premium.
 **Files to change**: `components/LocationDetailCard.tsx`, `components/SubstanceList.tsx`
 **What to do**:
