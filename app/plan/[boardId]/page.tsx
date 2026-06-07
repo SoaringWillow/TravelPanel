@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -14,11 +14,34 @@ import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import DayAccordionCard from '@/components/DayAccordionCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import { useToast } from '@/components/Toast';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
+
+function formatPlanAsText(plan: TripPlan, boardName: string): string {
+  const lines: string[] = [`🗺 ${boardName} — ${plan.days.length}-Day Itinerary`, ''];
+  if (plan.overview) lines.push(plan.overview, '');
+  for (const day of plan.days) {
+    lines.push(`── Day ${day.day}: ${day.theme} ──`);
+    for (const a of day.activities) {
+      lines.push(`  ${a.time} · ${a.location.name}`);
+      lines.push(`    ${a.name} (${a.duration})`);
+      for (const tip of a.tips.slice(0, 1)) lines.push(`    · ${tip}`);
+      for (const st of (a.sourcedTips ?? []).slice(0, 1)) {
+        lines.push(`    💡 ${st.content} [${st.sourceTitle}]`);
+      }
+    }
+    lines.push('');
+  }
+  if (plan.tips?.length) {
+    lines.push('── Tips ──');
+    for (const tip of plan.tips) lines.push(`· ${tip}`);
+  }
+  return lines.join('\n');
+}
 
 export default function PlanPage() {
   const params = useParams();
@@ -39,6 +62,7 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     async function load() {
@@ -184,6 +208,27 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  const handleShareItinerary = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const text = formatPlanAsText(plan, `${board.emoji} ${board.name}`);
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: `${board.name} Itinerary`, text });
+        track('plan_exported', { format: 'share', boardId });
+        return;
+      } catch {
+        // User cancelled or not supported — fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Itinerary copied to clipboard', 'success');
+      track('plan_exported', { format: 'clipboard', boardId });
+    } catch {
+      showToast('Could not copy itinerary', 'error');
+    }
+  }, [plan, board, boardId, showToast]);
 
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
@@ -459,20 +504,27 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex flex-col items-center justify-center gap-1 border border-gray-200 text-gray-700 text-[11px] font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Download size={15} />
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    className="flex flex-col items-center justify-center gap-1 border border-gray-200 text-gray-700 text-[11px] font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
+                    <CalendarPlus size={15} />
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleShareItinerary}
+                    className="flex flex-col items-center justify-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px] font-medium py-2.5 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                  >
+                    <Share2 size={15} />
+                    Share
                   </button>
                 </div>
               )}

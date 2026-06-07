@@ -392,7 +392,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Tap result → navigate to the item's context (inbox or board detail)
 
 ### E8 — Trip Export to Notes / Share Sheet
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - "Share itinerary" button that formats the plan as plain text (Day 1\n• Activity…)
