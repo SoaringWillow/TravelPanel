@@ -121,3 +121,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-07 15:46 | 6e6e2aa | chore: update SESSIONS.md
 2026-06-07 15:47 | 81ee588 | feat(E6): enrich share page done state with shimmer URL preview card
 2026-06-07 15:48 | f8eb97e | feat(E7): add global search page with grouped results
+2026-06-07 15:48 | 86db71b | chore: update SESSIONS.md
+2026-06-07 15:49 | a5c05b0 | feat(E10): add full-screen map overlay on board detail
