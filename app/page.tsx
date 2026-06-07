@@ -142,7 +142,7 @@ function HomePageInner() {
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} userLocation={userLocation ?? undefined} />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      <div className="absolute top-0 left-0 right-0 z-[1000] px-4 pb-4 pt-safe-header">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>

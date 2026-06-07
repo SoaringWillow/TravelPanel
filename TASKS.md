@@ -226,7 +226,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > All tasks in this phase address specific issues found in the iOS audit.
 
 ### D1 — Safe Area + Scroll Polish (iOS critical)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Headers/footers are cut off by notch/Dynamic Island/home indicator on real devices. This is visible and embarrassing.  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`, `app/settings/page.tsx`, `components/NavBar.tsx`, `app/globals.css`  
 **What to do**:

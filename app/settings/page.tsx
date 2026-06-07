@@ -121,7 +121,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="flex items-center gap-3 px-4 py-3 safe-top">
+        <div className="flex items-center gap-3 px-4 py-3 pt-safe-header">
           <Link href="/" className="text-indigo-600 flex items-center gap-1 text-sm font-medium">
             <ChevronLeft size={18} />
             Back
@@ -131,7 +131,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="px-4 py-6 max-w-lg mx-auto">
+      <div className="px-4 py-6 pb-nav max-w-lg mx-auto">
 
         {/* Your data stats */}
         {stats && (
