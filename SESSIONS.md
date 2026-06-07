@@ -110,3 +110,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-07 15:29 | c8af19a | feat(C6): inline clip editing in LocationDetailCard
 2026-06-07 15:30 | 1c25f16 | feat(C7): inbox sort options + expanded platform filter
 2026-06-07 15:35 | e42ed7f | feat(C9): add PWA icons and improve app branding metadata
+2026-06-07 15:35 | 603e914 | chore: update SESSIONS.md
+2026-06-07 15:37 | 4510618 | feat(C10): audit and fix safe-area insets for notch/home-indicator
