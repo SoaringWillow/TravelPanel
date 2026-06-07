@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import type { GeoPosition } from '@/hooks/useGeolocation';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -230,9 +231,10 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: GeoPosition | null;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -328,6 +330,24 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* ── User location dot (On-Trip mode) ── */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <div className="relative flex items-center justify-center">
+              {/* Pulsing accuracy ring */}
+              <span
+                className="absolute rounded-full bg-blue-400 animate-ping opacity-50"
+                style={{ width: 28, height: 28 }}
+              />
+              {/* Blue GPS dot */}
+              <div
+                className="w-4 h-4 rounded-full bg-blue-500 border-[3px] border-white"
+                style={{ boxShadow: '0 2px 8px rgba(59,130,246,0.6)' }}
+              />
+            </div>
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
