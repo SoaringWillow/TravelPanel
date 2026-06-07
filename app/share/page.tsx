@@ -21,6 +21,7 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const preselectedBoard = searchParams.get('board') ?? ''; // from browser extension
+  const rawImageBase64  = searchParams.get('imageBase64') ?? ''; // from iOS Share Extension (Xiaohongshu etc.)
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -94,9 +95,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if present (e.g. from Xiaohongshu via Share Extension)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, rawImageBase64 || undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
