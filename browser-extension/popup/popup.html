@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/>
+          <circle cx="12" cy="9" r="2.5" fill="white"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Open settings">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading-state" class="state">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <p>Reading page…</p>
+      </div>
+    </div>
+
+    <!-- Blocked URL State -->
+    <div id="blocked-state" class="state hidden">
+      <div class="blocked-content">
+        <div class="blocked-icon">🔒</div>
+        <h3>Can't clip this page</h3>
+        <p>Browser extension pages and local files can't be clipped. Navigate to a travel post or website.</p>
+      </div>
+    </div>
+
+    <!-- Main State -->
+    <div id="main-state" class="state hidden">
+      <div class="url-card">
+        <div id="platform-badge" class="platform-badge hidden"></div>
+        <div class="page-info">
+          <div class="page-title" id="page-title" title=""></div>
+          <div class="page-domain" id="page-domain"></div>
+        </div>
+        <div id="page-favicon" class="page-favicon"></div>
+      </div>
+
+      <div class="substance-hint">
+        <div class="hint-pills">
+          <span class="hint-pill">📍 Locations</span>
+          <span class="hint-pill">💡 Tips</span>
+          <span class="hint-pill">⭐ Wisdom</span>
+        </div>
+        <p class="hint-text">AI extracts all of these automatically</p>
+      </div>
+
+      <button id="save-btn" class="save-btn">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="17 21 17 13 7 13 7 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="7 3 7 8 15 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Save to TravelPanel
+      </button>
+    </div>
+
+    <!-- Saving State -->
+    <div id="saving-state" class="state hidden">
+      <div class="saving-content">
+        <div class="spinner teal"></div>
+        <p>Opening TravelPanel…</p>
+      </div>
+    </div>
+
+    <!-- Success State -->
+    <div id="success-state" class="state hidden">
+      <div class="success-content">
+        <div class="success-icon">
+          <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="28" cy="28" r="28" fill="#0d9488" fill-opacity="0.12"/>
+            <circle cx="28" cy="28" r="20" fill="#0d9488" fill-opacity="0.18"/>
+            <path d="M18 28l7 7 13-13" stroke="#0d9488" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Sent to TravelPanel!</h3>
+        <p>AI is extracting locations &amp; wisdom from this page</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="state hidden">
+      <div class="error-content">
+        <div class="error-icon">⚠️</div>
+        <h3>Couldn't open TravelPanel</h3>
+        <p id="error-message">Check that your TravelPanel URL is configured correctly in settings.</p>
+        <button id="retry-btn" class="save-btn outline">Try Again</button>
+        <button id="open-settings-btn" class="text-btn">Open Settings</button>
+      </div>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

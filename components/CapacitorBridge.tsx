@@ -11,9 +11,27 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: hasImage }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareHasImage' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareHasImage' }),
+    ]);
+
+    if (hasImage === 'true') {
+      const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImage' });
+      if (imageBase64) {
+        try { sessionStorage.setItem('pendingShareImage', imageBase64); } catch { /* ignore */ }
+        await Promise.all([
+          Preferences.remove({ key: 'pendingShareImage' }),
+          Preferences.remove({ key: 'pendingShareImageType' }),
+        ]);
+      }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -44,19 +62,35 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>[&hasImage=1]
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage = parsed.searchParams.get('hasImage') === '1';
 
-            if (shareUrl) {
-              const qs = new URLSearchParams({ url: shareUrl });
-              if (shareTitle) qs.set('title', shareTitle);
-              router.push(`/share?${qs.toString()}`);
+            if (!shareUrl) return;
+
+            if (hasImage) {
+              // Read image from App Group before navigating so it's ready in sessionStorage
+              try {
+                const { Preferences } = await import('@capacitor/preferences');
+                const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImage' });
+                if (imageBase64) {
+                  try { sessionStorage.setItem('pendingShareImage', imageBase64); } catch { /* ignore */ }
+                  await Promise.all([
+                    Preferences.remove({ key: 'pendingShareImage' }),
+                    Preferences.remove({ key: 'pendingShareImageType' }),
+                  ]);
+                }
+              } catch { /* Preferences not available */ }
             }
+
+            const qs = new URLSearchParams({ url: shareUrl });
+            if (shareTitle) qs.set('title', shareTitle);
+            router.push(`/share?${qs.toString()}`);
           } catch {
             // Malformed URL — ignore
           }

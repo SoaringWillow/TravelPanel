@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background -->
+  <rect width="128" height="128" rx="28" fill="#0d9488"/>
+  <!-- Map pin shape -->
+  <path d="M64 16C47.43 16 34 29.43 34 46c0 24.5 30 66 30 66s30-41.5 30-66C94 29.43 80.57 16 64 16z" fill="white"/>
+  <!-- Inner circle -->
+  <circle cx="64" cy="46" r="12" fill="#0d9488"/>
+  <!-- Small sparkle dots to suggest "substance/wisdom" -->
+  <circle cx="98" cy="24" r="4" fill="rgba(255,255,255,0.7)"/>
+  <circle cx="108" cy="36" r="2.5" fill="rgba(255,255,255,0.5)"/>
+  <circle cx="105" cy="18" r="2" fill="rgba(255,255,255,0.4)"/>
+</svg>
