@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { shareBoard } from '@/lib/shareBoard';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,7 +23,8 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]         = useState<Location | undefined>(undefined);
+  const [shareState, setShareState] = useState<'idle' | 'done' | 'error'>('idle');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -106,6 +108,38 @@ export default function BoardDetailPage() {
               {board.name}
             </h1>
           </div>
+
+          {/* Share button */}
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={async () => {
+                const result = await shareBoard(board, boardItems);
+                if (result !== 'error') {
+                  setShareState('done');
+                  setTimeout(() => setShareState('idle'), 2500);
+                } else {
+                  setShareState('error');
+                  setTimeout(() => setShareState('idle'), 2500);
+                }
+              }}
+              aria-label="Share board"
+              className={`p-2 rounded-xl transition-colors flex-shrink-0 ${
+                shareState === 'done'
+                  ? 'text-green-600 bg-green-50'
+                  : shareState === 'error'
+                  ? 'text-red-500 bg-red-50'
+                  : 'text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'
+              }`}
+              title={
+                shareState === 'done'  ? 'Link copied!' :
+                shareState === 'error' ? 'Share unavailable' :
+                'Share this collection'
+              }
+            >
+              {shareState === 'done' ? <Check size={18} /> : <Share2 size={18} />}
+            </button>
+          )}
 
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
