@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, Copy, Check } from 'lucide-react';
+import { buildShareUrl } from '@/lib/shareBoard';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -23,6 +24,20 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare() {
+    if (!board) return;
+    const url = buildShareUrl(board, boardItems);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Fallback: open in new tab so user can copy manually
+      window.open(url, '_blank');
+    }
+  }
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -110,6 +125,20 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            title="Share board"
+            className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+              copied
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {copied ? <Check size={13} /> : <Share2 size={13} />}
+            {copied ? 'Copied!' : 'Share'}
+          </button>
         </div>
       </div>
 

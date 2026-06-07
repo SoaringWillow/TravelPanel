@@ -207,7 +207,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a progress bar at the top: "X of Y activities visited"
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Social proof and virality. Users want to send a board to a friend ("here are my Tokyo recommendations").  
 **Files**: `app/boards/[id]/page.tsx`, new `app/shared/[token]/page.tsx`, `app/api/share/route.ts`  
 **What to do**:
