@@ -5,17 +5,20 @@ import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { Board } from '@/lib/types';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { SkeletonBoardList } from '@/components/Skeleton';
+import BoardManageSheet from '@/components/BoardManageSheet';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, updateBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [managingBoard, setManagingBoard] = useState<Board | null>(null);
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -24,10 +27,6 @@ export default function BoardsPage() {
 
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
-  }
-
-  async function handleDelete(id: string) {
-    await removeBoard(id);
   }
 
   return (
@@ -74,17 +73,20 @@ export default function BoardsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {boards.map((board) => (
-              <BoardCard
-                key={board.id}
-                board={board}
-                itemCount={getItemCount(board.id)}
-                onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
-              />
-            ))}
-          </div>
+          <>
+            <p className="text-xs text-gray-400 mb-3 text-center">Hold a board to rename, change emoji, or delete</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {boards.map((board) => (
+                <BoardCard
+                  key={board.id}
+                  board={board}
+                  itemCount={getItemCount(board.id)}
+                  onClick={() => router.push(`/boards/${board.id}`)}
+                  onLongPress={() => setManagingBoard(board)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -93,6 +95,15 @@ export default function BoardsPage() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
+      />
+
+      {/* Board management bottom sheet */}
+      <BoardManageSheet
+        board={managingBoard}
+        onClose={() => setManagingBoard(null)}
+        onRename={(id, name) => updateBoard(id, { name })}
+        onChangeEmoji={(id, emoji) => updateBoard(id, { emoji })}
+        onDelete={(id) => removeBoard(id)}
       />
 
       <NavBar active="boards" />

@@ -42,6 +42,17 @@ export function useBoards() {
     setBoards((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
+  const updateBoard = useCallback(async (id: string, patch: Partial<Pick<Board, 'name' | 'emoji' | 'coverThumbnail'>>): Promise<void> => {
+    setBoards((prev) => {
+      const updated = prev.map((b) =>
+        b.id === id ? { ...b, ...patch, updatedAt: Date.now() } : b
+      );
+      const board = updated.find((b) => b.id === id);
+      if (board) saveBoard(board);
+      return updated;
+    });
+  }, []);
+
   const moveItemToBoard = useCallback(async (boardId: string, itemId: string): Promise<void> => {
     await dbAddItemToBoard(boardId, itemId);
   }, []);
@@ -50,5 +61,5 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  return { boards, loading, createBoard, removeBoard, updateBoard, moveItemToBoard, removeItemFromBoard };
 }

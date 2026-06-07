@@ -66,7 +66,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 - MapView: ensure the NavigationControl doesn't overlap the top bar by adding top offset equal to the top bar height
 
 ### D5 — Board Management (rename, delete, cover image)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users can create boards but can't rename or delete them. This is a critical gap — after a few sessions the board list becomes messy.
 **Files to change**: `app/boards/page.tsx`, `app/boards/[id]/page.tsx`, `lib/db.ts`
 **What to do**:
