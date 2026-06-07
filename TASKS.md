@@ -281,7 +281,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Key surfaces: NavBar, InboxCard, BoardCard, LocationDetailCard, SharePage, SettingsPage
 
 ### D5 — Swipe-to-Delete on Clip Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Curation is core to the app. Removing a bad clip should be a one-thumb gesture, not buried in menus.  
 **Files**: `components/InboxCard.tsx`, new `components/SwipeableRow.tsx`  
 **What to do**:
