@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -262,8 +262,11 @@ const TERRAIN_STYLE = {
   layers: [{ id: 'terrain', type: 'raster' as const, source: 'terrain' }],
 };
 
+const STREETS_LIGHT = 'https://tiles.openfreemap.org/styles/liberty';
+const STREETS_DARK  = 'https://tiles.openfreemap.org/styles/dark-matter';
+
 const MAP_STYLES: Record<MapStyleKey, string | object> = {
-  streets:   'https://tiles.openfreemap.org/styles/liberty',
+  streets:   STREETS_LIGHT, // overridden at runtime for dark mode
   satellite: SATELLITE_STYLE,
   terrain:   TERRAIN_STYLE,
 };
@@ -287,8 +290,26 @@ interface MapViewProps {
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const [styleKey, setStyleKey] = useState<MapStyleKey>(loadSavedStyle);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  // Track system dark mode preference
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsDarkMode(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Resolve the active map style — use dark-matter streets when system is in dark mode
+  const resolvedMapStyle = useMemo(() => {
+    if (styleKey === 'streets') {
+      return isDarkMode ? STREETS_DARK : STREETS_LIGHT;
+    }
+    return MAP_STYLES[styleKey];
+  }, [styleKey, isDarkMode]);
 
   const cycleStyle = useCallback(() => {
     setStyleKey((cur) => {
@@ -332,7 +353,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle={MAP_STYLES[styleKey] as string}
+        mapStyle={resolvedMapStyle as string}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps

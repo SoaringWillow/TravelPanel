@@ -351,7 +351,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Also check `app/share/page.tsx` (the capture flow) for dark support
 
 ### F3 — Dark Mode: Map Tiles Switch to Dark Style
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When the app is in dark mode the base map stays bright white (OpenFreeMap liberty). The map style toggle from D6 handles manual switching, but the map should automatically use a dark tile style when the system is in dark mode.  
 **Files**: `components/MapView.tsx`  
 **What to do**:
