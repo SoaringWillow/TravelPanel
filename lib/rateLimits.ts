@@ -82,3 +82,22 @@ export function formatResetsIn(resetsAt: number): string {
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
 }
+
+// ─── Combined status for the settings UI ─────────────────────────────────────
+
+export function getRateLimitStatus() {
+  const enrichments = checkEnrichmentLimit();
+  const plans       = checkPlanLimit();
+  return {
+    enrichments: {
+      used:     ENRICH_LIMIT - enrichments.remaining,
+      max:      ENRICH_LIMIT,
+      resetsAt: enrichments.resetsAt,
+    },
+    plans: {
+      used:     PLAN_LIMIT - plans.remaining,
+      max:      PLAN_LIMIT,
+      resetsAt: plans.resetsAt,
+    },
+  };
+}
