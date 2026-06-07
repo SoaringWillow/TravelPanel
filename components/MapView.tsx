@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -269,11 +269,25 @@ export default function MapView({ items, onPinClick, flyTo, userLocation }: MapV
     [syncView],
   );
 
+  const [prefersDark, setPrefersDark] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    setPrefersDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const mapStyle = prefersDark
+    ? 'https://tiles.openfreemap.org/styles/dark'
+    : 'https://tiles.openfreemap.org/styles/liberty';
+
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={mapStyle}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps

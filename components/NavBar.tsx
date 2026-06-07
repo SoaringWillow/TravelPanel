@@ -17,8 +17,8 @@ const NAV_ITEMS = [
 export default function NavBar({ active }: NavBarProps) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
-      style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-stretch">
         {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {
@@ -28,7 +28,7 @@ export default function NavBar({ active }: NavBarProps) {
               key={key}
               href={href}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
-                isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
+                isActive ? 'text-indigo-500' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >
               <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />

@@ -118,7 +118,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 - Sticky day navigation: a compact horizontal "Day 1 · Day 2 · Day 3" scroll strip at the top that jumps to the selected day
 
 ### E4 — Dark Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Travel apps are used at night (planning a trip before bed). Dark mode is a first-class iOS feature and users expect it.
 **Files**: `app/globals.css`, `tailwind.config.js`, all major components
 **What to do**:
