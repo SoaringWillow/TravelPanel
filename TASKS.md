@@ -237,7 +237,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a "Change cover" option in board settings (just pick from existing clip thumbnails in that board)
 
 ### C6 — Inline Clip Editing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
 - In `LocationDetailCard`, add an Edit button (pencil icon) that switches to edit mode

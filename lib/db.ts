@@ -191,6 +191,18 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
+export async function updateItemFields(
+  id: string,
+  fields: Partial<Pick<SavedItem, 'title' | 'notes' | 'tags'>>,
+): Promise<SavedItem | undefined> {
+  const db   = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return undefined;
+  const updated = { ...item, ...fields };
+  await db.put('items', updated);
+  return updated;
+}
+
 export async function getAllTrips(): Promise<Trip[]> {
   try {
     const db = await getDB();
