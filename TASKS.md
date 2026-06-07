@@ -215,7 +215,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On iOS, `navigator.clipboard.readText()` requires a user gesture — listen on first tap
 
 ### D4 — Pull-to-Refresh in List Views
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/inbox/page.tsx`, `app/boards/[id]/page.tsx`
 **What to do**:
 - Overscroll-triggered refresh: pull down > 60px triggers a spinner + data reload
