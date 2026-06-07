@@ -10,11 +10,13 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { runRetryQueue } from '@/lib/retryQueue';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import PullToRefresh from '@/components/PullToRefresh';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,11 +31,17 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
+
+  const handlePullRefresh = useCallback(async () => {
+    await runRetryQueue(refreshItem);
+    await refresh();
+    track('pull_to_refresh', { page: 'inbox' });
+  }, [refreshItem, refresh]);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -97,9 +105,9 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 lg:pl-20">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white shadow-sm px-4 pt-safe-header pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -139,7 +147,8 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <PullToRefresh onRefresh={handlePullRefresh} className="scroll-touch">
+      <div className="px-4 py-4 pb-nav">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -182,6 +191,7 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>

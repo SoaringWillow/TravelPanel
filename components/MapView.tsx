@@ -224,15 +224,35 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── User location dot (pulsing blue GPS indicator) ─────────────────────────
+
+function UserLocationDot() {
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 24, height: 24 }}>
+      {/* Outer ping ring */}
+      <div
+        className="absolute rounded-full bg-blue-400/40 animate-ping"
+        style={{ width: 24, height: 24 }}
+      />
+      {/* Inner solid dot */}
+      <div
+        className="relative rounded-full bg-blue-500 border-2 border-white shadow-lg"
+        style={{ width: 14, height: 14 }}
+      />
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: { lat: number; lng: number };
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -281,6 +301,13 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         <NavigationControl position="top-right" />
 
         <MapController flyTo={flyTo} />
+
+        {/* User location dot */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <UserLocationDot />
+          </Marker>
+        )}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;

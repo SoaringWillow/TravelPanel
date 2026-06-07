@@ -71,3 +71,31 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Header top padding: always at least 3rem, grows with Dynamic Island / notch */
+.pt-safe-header {
+  padding-top: max(3rem, env(safe-area-inset-top, 0px));
+}
+
+/* Scrollable page content: clears NavBar (64px) + home indicator */
+.pb-nav {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* NavBar itself needs to grow with the home indicator */
+.h-nav {
+  height: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* iOS momentum scrolling */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* iPad left sidebar offset — applied to all pages so content clears the 80px sidebar */
+@media (min-width: 1024px) {
+  .pb-nav {
+    padding-bottom: 1.5rem;
+  }
+}

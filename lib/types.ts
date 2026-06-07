@@ -124,6 +124,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  completedAt?: number; // set when user marks trip as "Traveled" — enables timeline view
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

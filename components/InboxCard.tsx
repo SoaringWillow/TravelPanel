@@ -1,8 +1,21 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { hapticMedium } from '@/lib/haptics';
+import { onEnrichmentProgress } from '@/lib/enrichItem';
+import ThumbnailImage from './ThumbnailImage';
+
+const STAGE_LABELS: Record<string, string> = {
+  fetching:   'Fetching page…',
+  extracting: 'Extracting locations…',
+  done:       'Wrapping up…',
+};
+
+// 44×44px tap target helper — iOS minimum touch target size
+const btnCls = 'w-11 h-11 flex items-center justify-center rounded-xl transition-colors';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -41,6 +54,13 @@ export default function InboxCard({
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
+  // Live stage label while enrichment is in progress (e.g. "Fetching page…")
+  const [liveStage, setLiveStage] = useState('');
+  useEffect(() => {
+    if (enrichmentStatus !== 'processing') { setLiveStage(''); return; }
+    return onEnrichmentProgress(item.id, (stage) => setLiveStage(STAGE_LABELS[stage] ?? stage));
+  }, [item.id, enrichmentStatus]);
+
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
   // 'processing' on a card that already has a title = retry in flight
@@ -57,7 +77,7 @@ export default function InboxCard({
             <div className="h-3 bg-gray-200 rounded-full w-3/5" />
             <div className="flex items-center gap-2 pt-1">
               <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+              <span className="text-xs text-indigo-400 font-medium">{liveStage || 'Finding the magic…'}</span>
             </div>
           </div>
         </div>
@@ -83,25 +103,25 @@ export default function InboxCard({
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-1.5">
               <Loader2 size={12} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+              <span className="text-xs text-indigo-400 font-medium">{liveStage || 'Finding the magic…'}</span>
             </div>
             <div className="flex items-center gap-1">
               <a
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                className={`${btnCls} text-gray-400 hover:text-indigo-500 hover:bg-indigo-50`}
                 aria-label="Open original"
               >
-                <ExternalLink size={13} />
+                <ExternalLink size={15} />
               </a>
               <button
                 type="button"
-                onClick={() => onDelete(item.id)}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                onClick={() => { hapticMedium(); onDelete(item.id); }}
+                className={`${btnCls} text-gray-400 hover:text-red-500 hover:bg-red-50`}
                 aria-label="Delete"
               >
-                <Trash2 size={13} />
+                <Trash2 size={15} />
               </button>
             </div>
           </div>
@@ -190,21 +210,13 @@ export default function InboxCard({
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
-        </div>
-      )}
+      {/* Thumbnail with shimmer + platform-color fallback */}
+      <ThumbnailImage
+        src={item.thumbnail}
+        alt={item.title ?? ''}
+        platform={item.platform}
+        className="w-full h-32"
+      />
 
       <div className="p-4">
         {/* Platform badge */}
@@ -266,12 +278,12 @@ export default function InboxCard({
         <div className="flex items-center justify-between pt-2 border-t border-gray-50">
           <span className="text-xs text-gray-400">{date}</span>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {/* View on Map */}
             <button
               type="button"
-              onClick={() => onViewOnMap(item.id)}
-              className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
+              onClick={() => { hapticMedium(); onViewOnMap(item.id); }}
+              className={`${btnCls} text-indigo-600 hover:bg-indigo-50 text-xs font-semibold`}
             >
               Map
             </button>
@@ -281,32 +293,32 @@ export default function InboxCard({
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              className={`${btnCls} text-gray-400 hover:text-indigo-500 hover:bg-indigo-50`}
               aria-label={`Open in ${PLATFORM_LABELS[item.platform]}`}
             >
-              <ExternalLink size={13} />
+              <ExternalLink size={15} />
             </a>
 
             {/* Move to board */}
             {onMoveToBoard && (
               <button
                 type="button"
-                onClick={() => onMoveToBoard(item.id)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => { hapticMedium(); onMoveToBoard(item.id); }}
+                className={`${btnCls} text-gray-400 hover:text-gray-600 hover:bg-gray-100`}
                 aria-label="Move to collection"
               >
-                <LayoutGrid size={13} />
+                <LayoutGrid size={15} />
               </button>
             )}
 
             {/* Delete */}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              onClick={() => { hapticMedium(); onDelete(item.id); }}
+              className={`${btnCls} text-gray-400 hover:text-red-500 hover:bg-red-50`}
               aria-label="Delete"
             >
-              <Trash2 size={13} />
+              <Trash2 size={15} />
             </button>
           </div>
         </div>

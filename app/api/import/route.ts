@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { detectPlatform } from '@/lib/parse-url';
@@ -14,8 +14,6 @@ const locationSchema = z.object({
   address: z.string().optional(),
 });
 
-// Substance schema: the wisdom layer — tips, warnings, opinions extracted from
-// the post content itself, not just the location pins.
 const substanceSchema = z.object({
   type: z.enum(['tip', 'warning', 'opinion', 'wisdom', 'context', 'recommendation']),
   content: z.string().describe('The insight in 1–2 sentences, in your own words'),
@@ -36,6 +34,26 @@ const importSchema = z.object({
     'Aim for 2–8 items for a typical post; more for list-style content.'
   ),
 });
+
+// ─── NDJSON stream helper ────────────────────────────────────────────────────
+
+type ProgressStage = 'fetching' | 'extracting' | 'done';
+
+function makeStream() {
+  const encoder = new TextEncoder();
+  let controller!: ReadableStreamDefaultController;
+  const stream = new ReadableStream({
+    start(c) { controller = c; },
+  });
+
+  function send(obj: object) {
+    controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n'));
+  }
+
+  function close() { controller.close(); }
+
+  return { stream, send, close };
+}
 
 // ─── Page fetcher ────────────────────────────────────────────────────────────
 
@@ -83,29 +101,55 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+const VISION_PREFERRED_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
+
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = body.imageBase64 || undefined;
+    imageMimeType = body.imageMimeType || 'image/jpeg';
   } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), { status: 400 });
   }
 
   if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+    return new Response(JSON.stringify({ error: 'URL required' }), { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const { stream, send, close } = makeStream();
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Run the enrichment pipeline in the background — we need to return the stream immediately.
+  (async () => {
+    const platform = detectPlatform(url);
+    const useVision = !!imageBase64;
+
+    try {
+      send({ type: 'progress', stage: 'fetching' satisfies ProgressStage });
+
+      const page = VISION_PREFERRED_PLATFORMS.has(platform) && useVision
+        ? null
+        : await fetchPageData(url);
+
+      send({ type: 'progress', stage: 'extracting' satisfies ProgressStage });
+
+      const imageNote = useVision
+        ? '\n\nAn image of the post is included above. Treat it as the primary content source — read all visible text, captions, tags, and on-image annotations.'
+        : '';
+
+      const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — use the image as primary source if provided)'}
+${imageNote}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -128,28 +172,72 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
-  }
+      let claudeResult: z.infer<typeof importSchema> | null = null;
+      try {
+        const { object } = await generateObject({
+          model: models.enrichment,
+          schema: importSchema,
+          ...(useVision
+            ? {
+                messages: [
+                  {
+                    role: 'user' as const,
+                    content: [
+                      { type: 'image' as const, image: imageBase64!, mimeType: imageMimeType },
+                      { type: 'text' as const, text: prompt },
+                    ],
+                  },
+                ],
+              }
+            : { prompt }),
+        });
+        claudeResult = object;
+      } catch {
+        // Fall through to defaults
+      }
 
-  const result: ImportResult = {
-    platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
-    thumbnail: page?.thumbnail || undefined,
-    locations: claudeResult?.locations ?? [],
-    activities: claudeResult?.activities ?? [],
-    tags: claudeResult?.tags ?? [],
-    substance: claudeResult?.substance ?? [],
-  };
+      // E3 — Coordinate sanity check: filter out 0,0 coords and gross outliers
+      let locations = claudeResult?.locations ?? [];
+      locations = locations.filter((loc) => !(loc.lat === 0 && loc.lng === 0));
+      if (locations.length > 1) {
+        // Compute centroid and drop locations more than 5000 km away
+        const avgLat = locations.reduce((s, l) => s + l.lat, 0) / locations.length;
+        const avgLng = locations.reduce((s, l) => s + l.lng, 0) / locations.length;
+        locations = locations.filter((loc) => {
+          const dLat = (loc.lat - avgLat) * (Math.PI / 180);
+          const dLng = (loc.lng - avgLng) * (Math.PI / 180);
+          const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(avgLat * Math.PI / 180) * Math.cos(loc.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+          const km = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          return km <= 5000;
+        });
+      }
 
-  return NextResponse.json(result);
+      const result: ImportResult = {
+        platform,
+        title: (claudeResult?.title || page?.title || url).slice(0, 200),
+        description: (claudeResult?.description || page?.description || '').slice(0, 500),
+        thumbnail: page?.thumbnail || undefined,
+        locations,
+        activities: claudeResult?.activities ?? [],
+        tags: claudeResult?.tags ?? [],
+        substance: claudeResult?.substance ?? [],
+      };
+
+      send({ type: 'progress', stage: 'done' satisfies ProgressStage });
+      send({ type: 'result', data: result });
+    } catch (err) {
+      send({ type: 'error', message: String(err) });
+    } finally {
+      close();
+    }
+  })();
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson',
+      'Transfer-Encoding': 'chunked',
+      'Cache-Control': 'no-cache',
+    },
+  });
 }

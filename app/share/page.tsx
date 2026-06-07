@@ -4,11 +4,12 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { hapticSuccess } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -24,17 +25,33 @@ function SharePageInner() {
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
+  const skipDupeCheckRef                       = useRef(false);
   const [savedToName, setSavedToName]         = useState('');
   const [newBoardName, setNewBoardName]       = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image from iOS Share Extension (set in sessionStorage by CapacitorBridge)
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Consume image stored by CapacitorBridge (from iOS Share Extension App Group).
+    // Clear immediately so it isn't reused on subsequent shares.
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        pendingImageRef.current = img;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage may be unavailable in some native WebView configs
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -61,6 +78,15 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    // E2 — Duplicate detection: warn if URL already saved (skip if user acknowledged)
+    if (!skipDupeCheckRef.current) {
+      const existing = await findItemByUrl(rawUrl);
+      if (existing) {
+        setDuplicateItem(existing);
+        return;
+      }
+    }
+    setDuplicateItem(null);
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -88,9 +114,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image when available (Xiaohongshu/WeChat Vision fix)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -114,6 +140,7 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    hapticSuccess();
   }
 
   // ── Create new board + save ───────────────────────────────────────────────
@@ -166,6 +193,35 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Duplicate warning */}
+        {duplicateItem && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-2 mt-2">
+            <p className="text-sm font-semibold text-amber-800">⚠ Already saved</p>
+            <p className="text-xs text-amber-700 leading-snug">
+              You clipped this before as &ldquo;{duplicateItem.title}&rdquo;.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="flex-1 text-xs font-medium py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100 transition-colors"
+              >
+                Go back
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  skipDupeCheckRef.current = true;
+                  setDuplicateItem(null);
+                }}
+                className="flex-1 text-xs font-medium py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+              >
+                Save anyway
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
