@@ -152,35 +152,46 @@ function SharePageInner() {
 
   // ── Stage: picking ────────────────────────────────────────────────────────
 
+  // Parse domain for the URL preview card
+  let previewDomain = '';
+  let previewPath = '';
+  try {
+    const parsed = new URL(rawUrl);
+    previewDomain = parsed.hostname.replace(/^www\./, '');
+    previewPath = parsed.pathname.length > 1 ? parsed.pathname.slice(0, 40) + (parsed.pathname.length > 40 ? '…' : '') : '';
+  } catch { /* bad URL — leave empty */ }
+
   if (stage === 'picking' || stage === 'saving') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
-        {/* Top section */}
-        <div className="space-y-2 pt-4">
-          {/* Platform chip */}
-          <div className="flex items-center gap-2">
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-between p-6 safe-top safe-bottom">
+        {/* URL preview card */}
+        <div className="pt-4">
+          <div className="border-2 border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl p-4 space-y-2">
+            {/* Platform badge */}
             <span
-              className="text-white text-xs font-semibold px-3 py-1 rounded-full"
+              className="text-white text-xs font-semibold px-3 py-1 rounded-full inline-block"
               style={{ backgroundColor: platformColor }}
             >
               {platformLabel}
             </span>
+
+            {/* Title */}
+            <h1 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2">
+              {sharedTitle !== 'New inspiration' ? sharedTitle : previewDomain || 'New clip'}
+            </h1>
+
+            {/* Domain + path */}
+            {previewDomain && (
+              <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium">
+                {previewDomain}{previewPath}
+              </p>
+            )}
           </div>
-
-          {/* Title */}
-          <h1 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2">
-            {sharedTitle}
-          </h1>
-
-          {/* URL */}
-          {rawUrl && (
-            <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
-          )}
         </div>
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
-          <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Save to:</p>
 
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -189,7 +200,7 @@ function SharePageInner() {
               type="button"
               disabled={stage === 'saving'}
               onClick={() => handleSave(undefined, 'Inbox')}
-              className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
+              className="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800/60 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox
             </button>
@@ -201,7 +212,7 @@ function SharePageInner() {
                 type="button"
                 disabled={stage === 'saving'}
                 onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}
               </button>
@@ -212,7 +223,7 @@ function SharePageInner() {
               type="button"
               disabled={stage === 'saving'}
               onClick={() => setShowNewBoardInput((v) => !v)}
-              className="flex-shrink-0 border-2 border-dashed border-gray-300 text-gray-500 text-sm font-medium px-4 py-2 rounded-full hover:border-gray-400 hover:text-gray-600 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+              className="flex-shrink-0 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium px-4 py-2 rounded-full hover:border-gray-400 dark:hover:border-gray-600 hover:text-gray-600 dark:hover:text-gray-300 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
             >
               + New
             </button>
@@ -239,7 +250,7 @@ function SharePageInner() {
                     }}
                     placeholder="Board name…"
                     autoFocus
-                    className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none transition-colors"
+                    className="flex-1 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none transition-colors"
                   />
                   <button
                     type="button"
@@ -259,7 +270,7 @@ function SharePageInner() {
         <button
           type="button"
           onClick={() => window.history.back()}
-          className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
+          className="w-full py-3 rounded-2xl border-2 border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors flex items-center justify-center gap-1.5"
         >
           Return to app
           <ChevronRight size={15} />
@@ -271,7 +282,7 @@ function SharePageInner() {
   // ── Stage: done ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+    <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-between p-6 safe-top safe-bottom">
       {/* Success content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12">
         {/* Animated green checkmark */}
@@ -289,10 +300,10 @@ function SharePageInner() {
           transition={{ delay: 0.2 }}
           className="text-center space-y-1"
         >
-          <p className="text-xl font-bold text-gray-900">
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
             ✅ Saved to {savedToName}!
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {sharedTitle}
           </p>
         </motion.div>
@@ -305,23 +316,23 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-300 animate-pulse">🔍 Finding locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
-            <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
-              <p className="text-sm font-semibold text-indigo-700">
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl px-4 py-3 space-y-1.5">
+              <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
                 📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
               </p>
               {enrichedData.locations.map((loc, i) => (
-                <p key={i} className="text-sm text-indigo-600">
+                <p key={i} className="text-sm text-indigo-600 dark:text-indigo-400">
                   {loc.name}
                 </p>
               ))}
             </div>
           ) : enrichedData && enrichedData.locations.length === 0 ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3">
-              <p className="text-sm text-gray-500">No specific locations detected</p>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl px-4 py-3">
+              <p className="text-sm text-gray-500 dark:text-gray-400">No specific locations detected</p>
             </div>
           ) : null}
         </motion.div>
@@ -330,7 +341,7 @@ function SharePageInner() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-xs text-gray-400"
+          className="text-xs text-gray-400 dark:text-gray-500"
         >
           Returning automatically in a few seconds…
         </motion.p>
@@ -343,7 +354,7 @@ function SharePageInner() {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
           window.history.back();
         }}
-        className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
+        className="w-full py-3 rounded-2xl border-2 border-indigo-300 dark:border-indigo-700 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors flex items-center justify-center gap-1.5"
       >
         Return to app →
       </button>
@@ -357,8 +368,8 @@ export default function SharePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="text-sm text-gray-400 animate-pulse">Loading…</div>
+        <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
+          <div className="text-sm text-gray-400 dark:text-gray-500 animate-pulse">Loading…</div>
         </div>
       }
     >

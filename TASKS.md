@@ -362,7 +362,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Persist the manual override separately from the dark-mode default
 
 ### F4 — Share Page UX: URL Preview Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When the user arrives at `/share?url=...`, the current UI shows a simple input. Before saving, the user should see a preview of what's being captured (the page title + domain), giving them confidence the right thing was clipped.  
 **Files**: `app/share/page.tsx`  
 **What to do**:
