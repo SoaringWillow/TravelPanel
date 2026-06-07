@@ -179,19 +179,144 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
-## PHASE C — On-Trip Mode (Future)
+## PHASE C — On-Trip Mode
 
-### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+### C1 — On-Trip GPS Mode ("Near Me")
+**Status**: `[ ]` Not started  
+**Why**: When a user is physically traveling, the most useful thing is: "which of my saved clips are near me right now?" This turns TravelPanel from a planner into an on-trip companion.  
+**Files**: `app/page.tsx`, `components/MapView.tsx`, new `components/NearbyPanel.tsx`, `lib/geo.ts`  
+**What to do**:
+- Add a `lib/geo.ts` utility: `distanceKm(a, b)` using Haversine, `sortByDistance(clips, userLat, userLng)`
+- Add a "Near Me" FAB (location pin icon) to `app/page.tsx` below the existing + FAB
+- On tap: call `navigator.geolocation.getCurrentPosition()`, fly map to user location
+- Show a pulsing blue dot at user location on the MapLibre map
+- Slide up a `NearbyPanel` bottom sheet listing clips sorted by distance, with a distance badge (e.g. "0.4 km")
+- Only show clips that have at least one location coordinate
+- Dismiss panel on map tap; keep "Near Me" mode toggled until user explicitly turns it off
+- If geolocation is denied, show a toast: "Enable location in Settings to use Near Me"
+- Works fully offline (no API calls needed — distances are computed client-side)
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: After returning from a trip, users want to relive it. A timeline of visited spots with their substance notes creates a travel journal automatically.  
+**Files**: `app/trips/[boardId]/timeline/page.tsx` (new), `lib/db.ts`  
+**What to do**:
+- Add a "View Timeline" button to completed trip plans in `app/plan/[boardId]/page.tsx`
+- Create a vertical timeline view: each day is a row, each activity in that day is a card
+- Each card shows: location name, substance tips surfaced for that location, source clip thumbnail
+- Add a `completedAt?: number` field to the `Trip` type in `lib/types.ts`
+- Mark a plan as "completed" when user taps a new "Mark as Traveled" button
+- The timeline is read-only and shareable as a screenshot (use `html2canvas` or share API)
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Needs**: Supabase B1 keys  
+**What to do**: Generate a read-only shareable link for a board (deep link → web preview page showing the board's clips + map)
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Needs**: Supabase B1 keys  
+**What to do**: If user has clips for a destination and a weather/event signal fires (e.g. user's next trip), surface relevant clips as a push notification
+
+---
+
+## PHASE D — iOS Native Polish 🍎
+
+> Goal: make TravelPanel feel like a premium native iOS app, not a web app in a shell.
+> All tasks in this phase address specific issues found in the iOS audit.
+
+### D1 — Safe Area + Scroll Polish (iOS critical)
+**Status**: `[ ]` Not started  
+**Why**: Headers/footers are cut off by notch/Dynamic Island/home indicator on real devices. This is visible and embarrassing.  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`, `app/settings/page.tsx`, `components/NavBar.tsx`, `app/globals.css`  
+**What to do**:
+- Add `safe-area-inset-top` CSS variable support to `globals.css`: `.safe-top { padding-top: env(safe-area-inset-top, 0px) }`, `.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px) }`
+- Apply `safe-top` to all page headers and `safe-bottom` to all scrollable content areas
+- Apply `pb-[calc(6rem+env(safe-area-inset-bottom,0px))]` to all scrollable content (to clear the NavBar + home indicator)
+- Add `-webkit-overflow-scrolling: touch` to all scrollable containers for iOS momentum scroll
+- Test header doesn't clip on iPhone 14 Pro (Dynamic Island = 59px top inset)
+
+### D2 — Dark Mode
+**Status**: `[ ]` Not started  
+**Why**: The audit found zero dark mode support. iOS 17+ users with system dark mode see a blinding white app.  
+**Files**: All component files — add `dark:` Tailwind classes throughout  
+**What to do**:
+- Add `darkMode: 'class'` to `tailwind.config.ts` (or confirm it's set to `'media'`)
+- Update `app/layout.tsx` to add a `ThemeProvider` that detects system preference and adds `class="dark"` to `<html>`
+- Key color mappings: `bg-white → dark:bg-gray-900`, `bg-gray-50 → dark:bg-gray-950`, `text-gray-900 → dark:text-gray-100`, `border-gray-100 → dark:border-gray-800`, `bg-white/95 backdrop-blur → dark:bg-gray-900/95 backdrop-blur`
+- Files needing dark mode: all `app/**/page.tsx`, `NavBar.tsx`, `InboxCard.tsx`, `ImportSheet.tsx`, `LocationDetailCard.tsx`, `SearchBar.tsx`
+- Map dark style: MapLibre supports `demotiles` dark style — switch when system prefers dark
+
+### D3 — Touch Targets + Haptics
+**Status**: `[ ]` Not started  
+**Why**: Many interactive elements are 13–16px — below iOS 44pt minimum. Haptics make interactions feel native.  
+**Files**: `components/InboxCard.tsx`, `components/NavBar.tsx`, `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Increase all icon-only buttons to minimum `w-11 h-11` (44px × 44px) with `flex items-center justify-center`
+- Add Capacitor Haptics: `import { Haptics, ImpactStyle } from '@capacitor/haptics'`
+- Trigger `Haptics.impact({ style: ImpactStyle.Light })` on: clip save, board create, plan generate
+- Trigger `Haptics.impact({ style: ImpactStyle.Medium })` on: delete confirmation, share
+- Trigger `Haptics.notification({ type: NotificationType.Success })` on: enrichment complete
+- All haptic calls must be wrapped in try/catch (no-op outside native context)
+
+### D4 — Thumbnail Placeholder + Error States
+**Status**: `[ ]` Not started  
+**Why**: When thumbnails fail to load, cards look broken (empty grey). Need a consistent fallback.  
+**Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Create a `ThumbnailImage` wrapper component that: shows a skeleton shimmer while loading, shows a styled fallback (platform icon + gradient background) on error
+- Fallback design: gradient based on platform color (teal for YouTube, red for Instagram, etc.) with the platform initial letter centered
+- Use this wrapper everywhere a thumbnail is displayed
+
+### D5 — Pull to Refresh
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Implement pull-to-refresh using Capacitor's Motion plugin or a CSS overscroll trick
+- On pull: re-run the enrichment retry queue (retry all `status: 'failed'` items)
+- Show a native-looking spinner during the refresh
+- Update the "last refreshed" timestamp in the UI
+
+### D6 — iPad Split-View Layout  
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- At `lg:` breakpoint (768px+), show sidebar + content layout
+- Left sidebar (320px): clip list / search / boards nav
+- Right: full-width map or plan view
+- NavBar becomes a vertical sidebar on iPad
+
+---
+
+## PHASE E — AI Quality
+
+### E1 — Streaming Enrichment Status
+**Status**: `[ ]` Not started  
+**Why**: Enrichment takes 3–8s with no progress. Users think it's broken.  
+**Files**: `app/api/import/route.ts`, `lib/enrichItem.ts`, `components/InboxCard.tsx`  
+**What to do**:
+- Change `/api/import` to stream NDJSON (same pattern as `/api/plan`)
+- Emit events: `{ type: 'progress', stage: 'fetching' | 'extracting' | 'done' }`
+- `enrichItem.ts` reads the stream and updates a progress state
+- `InboxCard.tsx` shows the current stage text during enrichment: "Fetching page…" → "Extracting locations…" → "Done"
+
+### E2 — Smart Duplicate Detection
+**Status**: `[ ]` Not started  
+**Why**: Users accidentally clip the same URL twice. Silent duplicates pollute boards.  
+**Files**: `lib/db.ts`, `app/page.tsx` (ImportSheet flow), `app/share/page.tsx`  
+**What to do**:
+- Before saving a new item, check if `url` already exists in IndexedDB
+- If duplicate found, show a warning: "You already saved this. View it?" with a link
+- User can still save if they want (sometimes re-clips are intentional with different board)
+
+### E3 — Coordinate Verification Pass
+**Status**: `[ ]` Not started  
+**Why**: Claude sometimes hallucinated GPS coordinates. A verification step catches gross errors (e.g. a "Tokyo restaurant" at 0,0 or in the wrong country).  
+**Files**: `app/api/import/route.ts`  
+**What to do**:
+- After getting `locations` from Claude, run a lightweight sanity check: filter out any location with `lat === 0 && lng === 0`, and locations whose coordinates place them more than 5000 km from any other location in the same post (likely hallucination)
+- Log filtered locations to console in dev mode
+- No extra API calls needed — pure geometric logic
 
 ---
 
