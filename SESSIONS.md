@@ -96,3 +96,15 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-07 22:25 | 9099bab | feat(B2): add Chrome/Safari browser extension for one-click URL clipping
+2026-06-07 22:31 | c1d61a1 | feat(B3): Claude Vision fallback for Xiaohongshu / WeChat scraping block
+2026-06-07 22:32 | 864361e | feat(B5): settings page with full JSON data export + clear-all
+2026-06-07 22:35 | 71487e5 | docs: expand TASKS.md with Phase C/D/E — iOS polish + AI quality roadmap
+2026-06-07 22:38 | ed21b61 | feat(C1): On-Trip GPS Mode — Near Me FAB + nearby clips panel
+2026-06-07 22:41 | 1b4dc8e | feat(C2): post-trip timeline — mark as traveled + vertical day timeline
+2026-06-07 22:42 | e8558ac | fix(D1): iOS safe area + momentum scroll polish across all pages
+2026-06-07 22:47 | 8ee5556 | D3: Touch targets (44px) + haptics across key interactions
+2026-06-07 22:48 | 7eae842 | D4: ThumbnailImage component with shimmer + platform-color fallback
+2026-06-07 22:50 | 41bfc54 | D5: Pull-to-refresh on Inbox and Boards pages
+2026-06-07 22:51 | 67c2dbf | D6: iPad split-view layout with vertical left nav sidebar
+2026-06-07 22:55 | 55a533b | E1+E2+E3: Streaming enrichment, duplicate detection, coordinate sanity
