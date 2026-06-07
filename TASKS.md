@@ -314,7 +314,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Measure: before/after FPS profiling in Chrome DevTools on a list of 300 items
 
 ### E2 — Offline Queue for Enrichment
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users often clip on weak connections. Enrichment should queue and retry when connectivity returns.  
 **Files**: `lib/enrichItem.ts`, `lib/retryQueue.ts` (extend existing)  
 **What to do**:

@@ -6,6 +6,12 @@ import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
 export async function enrichItem(id: string, url: string, imageBase64?: string): Promise<boolean> {
+  // If offline, mark as queued so the UI shows "Waiting for connection…"
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    await updateItemEnrichment(id, 'queued');
+    return false;
+  }
+
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
     // Don't mark as failed — leave as pending so retry queue picks it up later

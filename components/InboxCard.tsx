@@ -41,6 +41,31 @@ export default function InboxCard({
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
+  // ── Queued (offline) state ───────────────────────────────────────────────
+  if (enrichmentStatus === 'queued') {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-2">
+        <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm leading-snug line-clamp-2">
+          {item.title !== item.url ? item.title : 'New clip'}
+        </h3>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs">📶</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">Waiting for connection…</span>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onDelete(item.id)}
+            className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+            aria-label="Delete"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
   // 'processing' on a card that already has a title = retry in flight
