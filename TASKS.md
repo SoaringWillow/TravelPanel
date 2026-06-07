@@ -313,7 +313,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - The map itself already works dark (MapLibre tiles are unchanged)
 
 ### E4 — Clipboard URL Quick-Import
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Power users often copy a link in another app, then switch to TravelPanel. Detecting and offering the clipboard URL turns a 5-tap flow into 1 tap.  
 **Files**: `app/page.tsx`, `components/ClipboardBanner.tsx` (new), `lib/haptics.ts`  
 **What to do**:
