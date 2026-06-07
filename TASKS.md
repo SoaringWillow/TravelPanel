@@ -248,7 +248,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Map dark style: MapLibre supports `demotiles` dark style — switch when system prefers dark
 
 ### D3 — Touch Targets + Haptics
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Many interactive elements are 13–16px — below iOS 44pt minimum. Haptics make interactions feel native.  
 **Files**: `components/InboxCard.tsx`, `components/NavBar.tsx`, `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
