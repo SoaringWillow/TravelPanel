@@ -26,7 +26,7 @@ export interface Location {
   address?: string;
 }
 
-export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'other';
+export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'youtube' | 'instagram' | 'other';
 
 // pending    → just captured, not yet started
 // queued     → offline when captured, waiting for connectivity

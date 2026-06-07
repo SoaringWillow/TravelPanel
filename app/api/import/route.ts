@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { detectPlatform } from '@/lib/parse-url';
-import { ImportResult } from '@/lib/types';
+import { ImportResult, Platform } from '@/lib/types';
 import { models } from '@/lib/models';
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
@@ -99,6 +99,12 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
+  const platformHints: Partial<Record<Platform, string>> = {
+    youtube: 'This is a YouTube video. The title and description are the primary content. Extract locations mentioned in the video description, pinned comments, or chapter titles. YouTube travel vlogs often mention multiple destinations.',
+    instagram: 'This is an Instagram post or reel. The caption is the primary content. Extract locations from the caption, hashtags (#Bali, #Tokyo), and tagged location. Instagram captions often use shorthand — infer intelligently.',
+  };
+  const platformHint = platformHints[platform] ?? '';
+
   const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
@@ -107,7 +113,7 @@ Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
 ${page?.textContent ?? '(could not fetch page — use the screenshot if provided)'}
-
+${platformHint ? `\nPlatform note: ${platformHint}` : ''}
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.

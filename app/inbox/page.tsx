@@ -25,10 +25,12 @@ import NavBar from '@/components/NavBar';
 
 const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
   { key: 'all', label: 'All' },
-  { key: 'wechat', label: 'WeChat' },
+  { key: 'youtube', label: 'YouTube' },
+  { key: 'instagram', label: 'Instagram' },
   { key: 'xiaohongshu', label: 'Little Red Book' },
   { key: 'douyin', label: 'Douyin' },
   { key: 'bilibili', label: 'Bilibili' },
+  { key: 'wechat', label: 'WeChat' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────

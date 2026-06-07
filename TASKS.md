@@ -403,7 +403,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Remove any `await` on `enrichItem()` in the save flow; fire-and-forget
 
 ### G2 — YouTube & Instagram URL Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Many users clip YouTube travel vlogs and Instagram reels. The `parse-url.ts` platform detection doesn't handle these, so they fall through as `other`. The Claude prompt should be updated to extract locations from these content types.  
 **Files**: `lib/parse-url.ts`, `lib/types.ts` (Platform type), `app/api/import/route.ts`  
 **What to do**:
