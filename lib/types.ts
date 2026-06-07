@@ -124,6 +124,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  visitedActivityIds?: string[]; // 'd{dayIdx}-a{actIdx}' format
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

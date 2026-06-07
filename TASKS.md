@@ -195,7 +195,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Empty state: "No saved spots nearby — clip some places you want to visit!"
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After visiting saved spots, users want to relive the trip as a chronological story. This drives retention and social sharing.  
 **Files**: `app/boards/[id]/page.tsx` or new `app/trips/[tripId]/timeline/page.tsx`  
 **What to do**:

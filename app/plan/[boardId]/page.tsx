@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, ListChecks, LayoutList } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import TripTimeline from '@/components/TripTimeline';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -38,6 +39,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'itinerary' | 'timeline'>('itinerary');
+  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -192,8 +195,31 @@ export default function PlanPage() {
     setDays(trip.days);
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
+    setVisitedIds(new Set(trip.visitedActivityIds ?? []));
+    setViewMode('itinerary');
     setStage('complete');
   }, []);
+
+  const toggleVisited = useCallback(async (actId: string) => {
+    setVisitedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(actId)) next.delete(actId); else next.add(actId);
+      return next;
+    });
+  }, []);
+
+  // Persist visited IDs whenever they change and we have a current trip
+  useEffect(() => {
+    if (!currentTripId) return;
+    setSavedTrips((trips) => {
+      const trip = trips.find((t) => t.id === currentTripId);
+      if (!trip) return trips;
+      const updated = { ...trip, visitedActivityIds: [...visitedIds] };
+      saveTrip(updated);
+      return trips.map((t) => (t.id === currentTripId ? updated : t));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visitedIds, currentTripId]);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
     const trip = savedTrips.find((t) => t.id === tripId);
@@ -488,8 +514,46 @@ export default function PlanPage() {
                 onNewVersion={handleNewVersion}
               />
 
-              {/* Day strip */}
-              {plan.days && plan.days.length > 0 && (
+              {/* View mode tab switcher */}
+              {planIsComplete(plan) && (
+                <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+                  <button
+                    onClick={() => setViewMode('itinerary')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                      viewMode === 'itinerary' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <LayoutList size={13} />
+                    Itinerary
+                  </button>
+                  <button
+                    onClick={() => setViewMode('timeline')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                      viewMode === 'timeline' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <ListChecks size={13} />
+                    Timeline
+                    {visitedIds.size > 0 && (
+                      <span className="ml-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        {visitedIds.size}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Timeline view */}
+              {viewMode === 'timeline' && planIsComplete(plan) && (
+                <TripTimeline
+                  plan={plan}
+                  visitedIds={visitedIds}
+                  onToggle={toggleVisited}
+                />
+              )}
+
+              {/* Day strip — shown in itinerary mode only */}
+              {viewMode === 'itinerary' && plan.days && plan.days.length > 0 && (
                 <div className="overflow-x-auto pb-2 -mx-4 px-4">
                   <div className="flex gap-3" style={{ width: 'max-content' }}>
                     {plan.days.map((day, idx) => (
@@ -505,8 +569,8 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Active day activities */}
-              {activeDayPlan && (
+              {/* Active day activities — itinerary mode only */}
+              {viewMode === 'itinerary' && activeDayPlan && (
                 <div className="space-y-3">
                   <h2 className="text-sm font-bold text-gray-700">
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
