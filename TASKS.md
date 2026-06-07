@@ -410,7 +410,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - When back online: briefly show a green "Back online" banner for 2 s then slide away
 
 ### E10 — Board Map View
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `app/boards/[id]/page.tsx`, `components/MapView.tsx`  
 **What to do**:
 - In the board detail page, the small map at the top is currently a mini MapView

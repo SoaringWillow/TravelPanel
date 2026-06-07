@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Maximize2, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -27,6 +27,7 @@ export default function BoardDetailPage() {
   const { showToast } = useToast();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [fullScreenMap, setFullScreenMap] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -133,6 +134,45 @@ export default function BoardDetailPage() {
               }}
               flyTo={flyTo}
             />
+            {/* Expand to full screen */}
+            <button
+              type="button"
+              onClick={() => setFullScreenMap(true)}
+              className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl p-2 shadow-md hover:bg-white transition-colors"
+              aria-label="Expand map"
+            >
+              <Maximize2 size={16} className="text-gray-700" />
+            </button>
+          </div>
+        )}
+
+        {/* Full-screen map overlay */}
+        {fullScreenMap && (
+          <div className="fixed inset-0 z-[2000] bg-black">
+            <MapView
+              items={boardItems}
+              onPinClick={() => {}}
+              flyTo={flyTo}
+            />
+            <button
+              type="button"
+              onClick={() => setFullScreenMap(false)}
+              className="absolute z-[2001] bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-md hover:bg-white transition-colors"
+              style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))', left: '1rem' }}
+              aria-label="Close full screen map"
+            >
+              <X size={18} className="text-gray-700" />
+            </button>
+            {/* Board label */}
+            <div
+              className="absolute z-[2001] left-14 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2.5 shadow-md"
+              style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
+            >
+              <p className="text-sm font-semibold text-gray-800">
+                {board.emoji} {board.name}
+              </p>
+              <p className="text-xs text-gray-500">{boardItems.length} place{boardItems.length !== 1 ? 's' : ''}</p>
+            </div>
           </div>
         )}
 
