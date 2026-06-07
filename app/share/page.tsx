@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
@@ -19,6 +19,7 @@ type Stage = 'picking' | 'saving' | 'done';
 
 function SharePageInner() {
   const searchParams    = useSearchParams();
+  const router          = useRouter();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
@@ -47,17 +48,17 @@ function SharePageInner() {
     } catch { /* sessionStorage unavailable (e.g. private browsing restrictions) */ }
   }, []);
 
-  // Auto-dismiss when done
+  // Auto-dismiss when done — navigate to inbox so user sees pending skeleton immediately
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
-      }, 3000);
+        router.push('/inbox');
+      }, 1200);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [stage]);
+  }, [stage, router]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
@@ -343,7 +344,7 @@ function SharePageInner() {
           transition={{ delay: 0.5 }}
           className="text-xs text-gray-400 dark:text-gray-500"
         >
-          Returning automatically in a few seconds…
+          Opening your inbox…
         </motion.p>
       </div>
 
@@ -352,11 +353,11 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          router.push('/inbox');
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 dark:border-indigo-700 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        Go to inbox →
       </button>
     </div>
   );

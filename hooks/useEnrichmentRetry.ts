@@ -21,9 +21,12 @@ export function useEnrichmentRetry(onItemUpdated: (id: string) => void) {
 
     async function runRetries() {
       // Recover items stuck in 'processing' — these were in-flight when the
-      // app was closed. Decrement their retryCount so they don't burn a retry slot.
+      // app was closed. Skip items that started very recently (< 45s) since
+      // they may still be running via a keepalive fetch from the share page.
       const stuckItems = await getItemsByStatus('processing');
+      const RECENT_MS = 45_000;
       for (const item of stuckItems) {
+        if (Date.now() - item.savedAt < RECENT_MS) continue;
         const db_item = { ...item, retryCount: Math.max(0, (item.retryCount ?? 0) - 1) };
         await updateItemEnrichment(db_item.id, 'failed');
         callbackRef.current(db_item.id);

@@ -392,7 +392,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > URL support breadth, and content fidelity.
 
 ### G1 — Instant Inbox Appearance
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Currently the clip only appears in the inbox AFTER enrichment completes (~3-5 seconds). Users return to the app and wonder if it saved. The clip should appear instantly with a "Finding the magic…" skeleton, then update in place.  
 **Files**: `app/share/page.tsx`, `lib/db.ts`, `hooks/useSavedItems.ts`  
 **What to do**:
