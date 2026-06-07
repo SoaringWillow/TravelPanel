@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, CheckCircle2, Clock } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -208,6 +209,16 @@ export default function PlanPage() {
     setSavedTrips((prev) => prev.filter((t) => t.id !== tripId));
     if (currentTripId === tripId) setCurrentTripId(null);
   }, [currentTripId]);
+
+  const handleMarkTraveled = useCallback(async () => {
+    if (!currentTripId) return;
+    const trip = savedTrips.find((t) => t.id === currentTripId);
+    if (!trip) return;
+    const updated = { ...trip, completedAt: Date.now() };
+    await saveTrip(updated);
+    setSavedTrips((prev) => prev.map((t) => (t.id === currentTripId ? updated : t)));
+    track('trip_marked_traveled', { boardId });
+  }, [currentTripId, savedTrips, boardId]);
 
   // "New version" — return to config (keeping preferences) to generate a fresh variant.
   const handleNewVersion = useCallback(() => {
@@ -579,6 +590,32 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Mark as Traveled / View Timeline */}
+              {(() => {
+                const currentTrip = savedTrips.find((t) => t.id === currentTripId);
+                if (currentTrip?.completedAt) {
+                  return (
+                    <Link
+                      href={`/trips/${boardId}/timeline`}
+                      className="flex items-center justify-center gap-2 w-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-emerald-100 active:scale-[0.98] transition-all"
+                    >
+                      <Clock size={15} />
+                      View Trip Timeline
+                    </Link>
+                  );
+                }
+                return (
+                  <button
+                    onClick={handleMarkTraveled}
+                    disabled={!currentTripId}
+                    className="flex items-center justify-center gap-2 w-full bg-green-50 border border-green-200 text-green-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-green-100 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircle2 size={15} />
+                    Mark as Traveled ✓
+                  </button>
+                );
+              })()}
 
               {/* Start Over */}
               <button

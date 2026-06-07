@@ -197,7 +197,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Works fully offline (no API calls needed — distances are computed client-side)
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After returning from a trip, users want to relive it. A timeline of visited spots with their substance notes creates a travel journal automatically.  
 **Files**: `app/trips/[boardId]/timeline/page.tsx` (new), `lib/db.ts`  
 **What to do**:
