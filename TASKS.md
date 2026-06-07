@@ -260,7 +260,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - All haptic calls must be wrapped in try/catch (no-op outside native context)
 
 ### D4 — Thumbnail Placeholder + Error States
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When thumbnails fail to load, cards look broken (empty grey). Need a consistent fallback.  
 **Files**: `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`  
 **What to do**:

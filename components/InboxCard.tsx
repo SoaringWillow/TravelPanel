@@ -1,9 +1,10 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { hapticMedium } from '@/lib/haptics';
+import ThumbnailImage from './ThumbnailImage';
 
 // 44×44px tap target helper — iOS minimum touch target size
 const btnCls = 'w-11 h-11 flex items-center justify-center rounded-xl transition-colors';
@@ -194,21 +195,13 @@ export default function InboxCard({
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
-        </div>
-      )}
+      {/* Thumbnail with shimmer + platform-color fallback */}
+      <ThumbnailImage
+        src={item.thumbnail}
+        alt={item.title ?? ''}
+        platform={item.platform}
+        className="w-full h-32"
+      />
 
       <div className="p-4">
         {/* Platform badge */}
