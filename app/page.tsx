@@ -13,6 +13,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import OnboardingSheet from '@/components/OnboardingSheet';
+import { impact, hapticSuccess } from '@/lib/haptics';
 
 const NEARBY_METERS = 300;
 
@@ -121,6 +122,7 @@ function HomePageInner() {
 
   function handleItemSaved(item: SavedItem) {
     addItem(item);
+    hapticSuccess();
     setShowImport(false);
     setPrefilledUrl('');
     if (item.locations.length > 0) {
@@ -138,7 +140,7 @@ function HomePageInner() {
       {/* Map fills entire screen */}
       <MapView
         items={items}
-        onPinClick={setSelectedItem}
+        onPinClick={(item) => { impact('light'); setSelectedItem(item); }}
         flyTo={flyTo}
         userLocation={onTrip ? geo.position : null}
       />

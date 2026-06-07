@@ -132,7 +132,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
   Switch map style based on `window.matchMedia('(prefers-color-scheme: dark)')`
 
 ### E5 — Haptic Feedback (iOS)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Needs**: `@capacitor/haptics` plugin (free, already in Capacitor ecosystem)
 **Files**: `app/share/page.tsx`, `components/NavBar.tsx`, `app/page.tsx`, new `lib/haptics.ts`
 **What to do**:
