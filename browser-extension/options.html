@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo {
+      font-size: 28px;
+      width: 48px;
+      height: 48px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-header h1 { color: white; font-size: 20px; font-weight: 700; }
+    .card-header p  { color: rgba(255,255,255,0.75); font-size: 13px; margin-top: 2px; }
+
+    .card-body { padding: 24px; }
+
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .field .hint {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+    .field input[type="url"],
+    .field input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #111827;
+      background: #f9fafb;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .field input:focus {
+      border-color: #6366f1;
+      background: white;
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 11px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .save-btn:hover { opacity: 0.92; }
+    .save-btn:active { opacity: 0.85; }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+    .status.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .status.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+
+    .divider { height: 1px; background: #f3f4f6; margin: 24px 0; }
+
+    .info-block {
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.6;
+    }
+    .info-block strong { color: #374151; }
+    .info-block code {
+      background: #e5e7eb;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="logo">✈️</div>
+      <div>
+        <h1>TravelPanel Clipper</h1>
+        <p>Extension Settings</p>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="field">
+        <label for="url-input">TravelPanel URL</label>
+        <input
+          type="url"
+          id="url-input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="hint">
+          Your deployed TravelPanel URL. Use <code>http://localhost:3000</code> for local dev.
+        </div>
+      </div>
+
+      <button class="save-btn" id="save-btn">Save Settings</button>
+      <div class="status" id="status"></div>
+
+      <div class="divider"></div>
+
+      <div class="info-block">
+        <strong>How it works</strong><br>
+        1. Browse any travel page (Instagram, YouTube, Xiaohongshu, etc.)<br>
+        2. Click the TravelPanel icon in your toolbar<br>
+        3. Choose a board and hit <strong>Clip to TravelPanel</strong><br>
+        4. Claude extracts locations + wisdom from the post automatically<br><br>
+
+        <strong>Safari users:</strong> Convert this extension using Xcode's
+        <code>xcrun safari-web-extension-converter</code> command after cloning the repo.
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

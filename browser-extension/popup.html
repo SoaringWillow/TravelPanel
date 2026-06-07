@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-logo {
+      width: 28px;
+      height: 28px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .header-title {
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .header-sub {
+      color: rgba(255,255,255,0.75);
+      font-size: 11px;
+    }
+    .settings-btn {
+      margin-left: auto;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      color: white;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .settings-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── Page preview ── */
+    .page-preview {
+      background: white;
+      margin: 12px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    .page-favicon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      object-fit: contain;
+      background: #f3f4f6;
+      flex-shrink: 0;
+    }
+    .page-favicon-placeholder {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .page-info {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-text { flex: 1; min-width: 0; }
+    .page-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #111827;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+    .page-url {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .platform-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 100px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Board picker ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0 12px;
+      margin-bottom: 6px;
+    }
+    .boards-list {
+      padding: 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .board-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      background: white;
+      transition: all 0.12s;
+      font-size: 13px;
+      color: #374151;
+      width: 100%;
+      text-align: left;
+    }
+    .board-option:hover { background: #f3f4f6; border-color: #d1d5db; }
+    .board-option.selected { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
+    .board-emoji { font-size: 16px; width: 24px; text-align: center; }
+    .board-name { flex: 1; font-weight: 500; }
+    .board-count { font-size: 11px; color: #9ca3af; }
+    .inbox-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      background: white;
+      transition: all 0.12s;
+      font-size: 13px;
+      color: #374151;
+      width: 100%;
+      text-align: left;
+      margin-bottom: 6px;
+    }
+    .inbox-option:hover { background: #f3f4f6; border-color: #d1d5db; }
+    .inbox-option.selected { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
+
+    /* ── Loading state ── */
+    .loading-boards {
+      padding: 10px 12px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #e5e7eb;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Empty state ── */
+    .no-boards {
+      padding: 12px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* ── URL not a travel page ── */
+    .not-travel {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      margin: 0 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #92400e;
+    }
+
+    /* ── Action bar ── */
+    .action-bar {
+      padding: 12px;
+      border-top: 1px solid #f3f4f6;
+      margin-top: 8px;
+    }
+    .clip-btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: opacity 0.15s;
+      letter-spacing: -0.01em;
+    }
+    .clip-btn:hover { opacity: 0.92; }
+    .clip-btn:active { opacity: 0.85; }
+    .clip-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Setup notice ── */
+    .setup-notice {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      margin: 0 12px 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #78350f;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .setup-notice a {
+      color: #4f46e5;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .setup-notice a:hover { text-decoration: underline; }
+
+    /* ── Success state ── */
+    .success-state {
+      padding: 24px 16px;
+      text-align: center;
+    }
+    .success-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+    .success-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+    .success-sub {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .open-app-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 14px;
+      padding: 7px 14px;
+      background: #eef2ff;
+      color: #4f46e5;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .open-app-btn:hover { background: #e0e7ff; }
+
+    /* ── Error state ── */
+    .error-state {
+      padding: 20px 16px;
+      text-align: center;
+    }
+    .error-icon { font-size: 28px; margin-bottom: 8px; }
+    .error-title { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 4px; }
+    .error-sub { font-size: 11px; color: #9ca3af; }
+    .retry-btn {
+      margin-top: 12px;
+      padding: 7px 14px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: #f3f4f6; margin: 8px 0; }
+
+    /* ── Config missing ── */
+    #config-missing { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">✈️</div>
+    <div>
+      <div class="header-title">TravelPanel</div>
+      <div class="header-sub">Clip travel inspiration</div>
+    </div>
+    <a id="settings-link" class="settings-btn" title="Settings">⚙️</a>
+  </div>
+
+  <!-- Main content -->
+  <div id="main-content">
+
+    <!-- Setup notice (hidden by default) -->
+    <div class="setup-notice" id="setup-notice" style="display:none; margin-top:12px;">
+      ⚠️ Set your TravelPanel URL in <a id="settings-link-inline" href="#">Settings</a> to start clipping.
+    </div>
+
+    <!-- Page preview -->
+    <div class="page-preview" id="page-preview">
+      <div class="page-info">
+        <div class="page-favicon-placeholder" id="favicon-placeholder">🌐</div>
+        <img class="page-favicon" id="favicon-img" style="display:none;" alt="" />
+        <div class="page-text">
+          <div class="page-title" id="page-title">Loading…</div>
+          <div class="page-url" id="page-url"></div>
+        </div>
+        <span class="platform-badge" id="platform-badge" style="display:none;"></span>
+      </div>
+    </div>
+
+    <!-- Board selector -->
+    <div id="board-section">
+      <div class="section-label">Save to</div>
+      <div class="boards-list" id="boards-list">
+        <div class="loading-boards">
+          <span class="spinner"></span> Loading boards…
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Clip button -->
+    <div class="action-bar">
+      <button class="clip-btn" id="clip-btn" disabled>
+        <span>📌</span> Clip to TravelPanel
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Success state (hidden) -->
+  <div id="success-state" style="display:none;">
+    <div class="header" style="padding:12px 16px;">
+      <div class="header-logo">✈️</div>
+      <div>
+        <div class="header-title">TravelPanel</div>
+        <div class="header-sub">Clip travel inspiration</div>
+      </div>
+    </div>
+    <div class="success-state">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Clipped!</div>
+      <div class="success-sub" id="success-sub">Saved to your TravelPanel</div>
+      <a id="open-app-link" class="open-app-btn" target="_blank">Open TravelPanel →</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
