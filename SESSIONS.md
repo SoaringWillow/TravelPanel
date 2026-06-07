@@ -100,3 +100,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-07 13:32 | 2eaa647 | feat(B3): Claude Vision fallback for Xiaohongshu / WeChat anti-scraping
 2026-06-07 13:32 | 24fe5bb | chore: update SESSIONS.md
 2026-06-07 13:59 | b337f90 | feat(B5): Settings page with JSON backup export and data stats
+2026-06-07 14:00 | e851f73 | chore: update SESSIONS.md
+2026-06-07 14:31 | 508e1bb | feat(C1+C2): swipe-to-delete gesture + haptic feedback
