@@ -174,7 +174,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
   - TestFlight: internal testing before external submission
 
 ### F3 — Performance Audit
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The app imports heavy libraries (MapLibre, Framer Motion, jsPDF). Route-based code splitting should reduce the initial load time significantly.
 **Files to change**: `next.config.js`, various page files
 **What to do**:

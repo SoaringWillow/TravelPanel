@@ -35,8 +35,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#6366f1" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-        {/* Preconnect to map tile server for faster first paint */}
+        {/* Preconnect to key external hosts for faster first requests */}
         <link rel="preconnect" href="https://tiles.openfreemap.org" />
+        <link rel="dns-prefetch" href="https://api.anthropic.com" />
       </head>
       <body>
         <CapacitorBridge />
