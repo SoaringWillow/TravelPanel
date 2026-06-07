@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
@@ -15,6 +15,32 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+
+// ─── Resurface helpers ────────────────────────────────────────────────────────
+
+const RESURFACE_AFTER_DAYS = 30;
+const RESURFACE_COUNT = 3;
+
+function seededRng(seed: number) {
+  let s = seed >>> 0;
+  return () => { s = Math.imul(s ^ (s >>> 16), 0x45d9f3b) >>> 0; return s / 0x100000000; };
+}
+
+function dailyPick(arr: SavedItem[], n: number): SavedItem[] {
+  if (arr.length === 0) return [];
+  const d = new Date();
+  const seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const rng  = seededRng(seed);
+  return [...arr].sort(() => rng() - 0.5).slice(0, n);
+}
+
+function timeAgo(ts: number): string {
+  const days = Math.floor((Date.now() - ts) / 86_400_000);
+  if (days < 60)  return `${days}d ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  const years = Math.floor(days / 365);
+  return `${years}yr ago`;
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -38,6 +64,17 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [resurface, setResurface] = useState(true); // dismissed flag
+
+  // Clips saved >30 days ago, across all boards, non-demo, enriched
+  const resurfaces = useMemo(() => {
+    if (!resurface) return [];
+    const cutoff = Date.now() - RESURFACE_AFTER_DAYS * 86_400_000;
+    const old = items.filter(
+      (i) => !i.isDemo && i.savedAt < cutoff && i.enrichmentStatus === 'done'
+    );
+    return dailyPick(old, RESURFACE_COUNT);
+  }, [items, resurface]);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -137,6 +174,69 @@ export default function InboxPage() {
           })}
         </div>
       </div>
+
+      {/* Resurface strip */}
+      <AnimatePresence>
+        {resurfaces.length > 0 && (
+          <motion.div
+            key="resurface"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden bg-amber-50 border-b border-amber-100"
+          >
+            <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={13} className="text-amber-500" />
+                <span className="text-xs font-semibold text-amber-700">Rediscover</span>
+                <span className="text-xs text-amber-500">· clips you saved a while back</span>
+              </div>
+              <button
+                onClick={() => setResurface(false)}
+                className="text-[10px] text-amber-400 hover:text-amber-600 font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+            <div className="flex gap-2.5 overflow-x-auto px-4 py-2 pb-3 scrollbar-hide">
+              {resurfaces.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleViewOnMap(item.id)}
+                  className="flex-shrink-0 w-36 bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden text-left hover:shadow-md active:scale-[0.97] transition-all"
+                >
+                  {item.thumbnail ? (
+                    <div className="h-20 w-full overflow-hidden bg-gray-100">
+                      <img
+                        src={item.thumbnail}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget.parentElement as HTMLDivElement).style.height = '0';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-12 w-full bg-amber-50 flex items-center justify-center text-xl">
+                      🗺
+                    </div>
+                  )}
+                  <div className="px-2 py-1.5">
+                    <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-tight">
+                      {item.title}
+                    </p>
+                    <p className="text-[10px] text-amber-500 font-medium mt-1">
+                      {timeAgo(item.savedAt)}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
