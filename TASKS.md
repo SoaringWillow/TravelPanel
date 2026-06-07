@@ -292,7 +292,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Also add swipe-right to "move to board" (shows a bottom sheet board picker) — secondary feature, implement only if swipe-left works cleanly
 
 ### D6 — Map Terrain & Satellite Toggle
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`  
 **What to do**:
 - Add a small control button (top-right of map) cycling through: Streets → Satellite → Terrain

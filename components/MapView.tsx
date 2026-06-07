@@ -224,6 +224,58 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── Map style definitions ───────────────────────────────────────────────────
+
+type MapStyleKey = 'streets' | 'satellite' | 'terrain';
+
+const STYLE_ORDER: MapStyleKey[] = ['streets', 'satellite', 'terrain'];
+
+const STYLE_LABELS: Record<MapStyleKey, string> = {
+  streets:   '🗺',
+  satellite: '🛰',
+  terrain:   '🏔',
+};
+
+const SATELLITE_STYLE = {
+  version: 8 as const,
+  sources: {
+    satellite: {
+      type: 'raster' as const,
+      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      tileSize: 256,
+      attribution: '© Esri',
+    },
+  },
+  layers: [{ id: 'satellite', type: 'raster' as const, source: 'satellite' }],
+};
+
+const TERRAIN_STYLE = {
+  version: 8 as const,
+  sources: {
+    terrain: {
+      type: 'raster' as const,
+      tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenTopoMap',
+    },
+  },
+  layers: [{ id: 'terrain', type: 'raster' as const, source: 'terrain' }],
+};
+
+const MAP_STYLES: Record<MapStyleKey, string | object> = {
+  streets:   'https://tiles.openfreemap.org/styles/liberty',
+  satellite: SATELLITE_STYLE,
+  terrain:   TERRAIN_STYLE,
+};
+
+const STYLE_STORAGE_KEY = 'travelPanelMapStyle';
+
+function loadSavedStyle(): MapStyleKey {
+  if (typeof window === 'undefined') return 'streets';
+  const saved = localStorage.getItem(STYLE_STORAGE_KEY);
+  return (saved && STYLE_ORDER.includes(saved as MapStyleKey) ? saved : 'streets') as MapStyleKey;
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
@@ -234,8 +286,17 @@ interface MapViewProps {
 
 export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [styleKey, setStyleKey] = useState<MapStyleKey>(loadSavedStyle);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+
+  const cycleStyle = useCallback(() => {
+    setStyleKey((cur) => {
+      const next = STYLE_ORDER[(STYLE_ORDER.indexOf(cur) + 1) % STYLE_ORDER.length];
+      localStorage.setItem(STYLE_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -271,7 +332,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={MAP_STYLES[styleKey] as string}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
@@ -279,6 +340,32 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+
+        {/* Style toggle button */}
+        <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10 }}>
+          <button
+            type="button"
+            onClick={cycleStyle}
+            aria-label={`Switch map style (current: ${styleKey})`}
+            title={`Switch to ${STYLE_ORDER[(STYLE_ORDER.indexOf(styleKey) + 1) % STYLE_ORDER.length]}`}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: 'white',
+              border: '1px solid rgba(0,0,0,0.15)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 17,
+              transition: 'box-shadow 0.15s',
+            }}
+          >
+            {STYLE_LABELS[styleKey]}
+          </button>
+        </div>
 
         <MapController flyTo={flyTo} />
 
