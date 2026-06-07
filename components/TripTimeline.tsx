@@ -1,7 +1,8 @@
 'use client';
 
-import { CheckCircle2, Circle, MapPin, Clock } from 'lucide-react';
+import { CheckCircle2, Circle, MapPin, Clock, Car } from 'lucide-react';
 import { TripPlan } from '@/lib/types';
+import { estimateDrivingTime } from '@/lib/haversine';
 
 interface TripTimelineProps {
   plan: TripPlan;
@@ -40,13 +41,23 @@ export default function TripTimeline({ plan, visitedIds, onToggle }: TripTimelin
       </div>
 
       {/* Activities by day */}
-      {plan.days.map((day, dayIdx) => (
+      {plan.days.map((day, dayIdx) => {
+        const drivingTime = estimateDrivingTime(
+          (day.locations ?? []).filter((l) => Number.isFinite(l.lat) && Number.isFinite(l.lng)),
+        );
+        return (
         <div key={dayIdx}>
-          <div className="flex items-center gap-2 mb-2 px-1">
+          <div className="flex items-center gap-2 mb-2 px-1 flex-wrap">
             <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               Day {day.day}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">— {day.theme}</span>
+            {drivingTime && (
+              <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-0.5 ml-auto">
+                <Car size={10} />
+                {drivingTime}
+              </span>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -129,7 +140,8 @@ export default function TripTimeline({ plan, visitedIds, onToggle }: TripTimelin
             })}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

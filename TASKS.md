@@ -438,7 +438,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE H — Navigation & Planning Intelligence
 
 ### H1 — Route Map: Per-Day Driving Time Estimates
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The plan view shows a day-by-day list but users have no sense of how long driving between stops will take. Adding rough estimates (based on haversine distance × average speed) makes the plan feel more real.  
 **Files**: `components/RouteMapView.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
