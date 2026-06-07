@@ -249,7 +249,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Empty-board state with a "Start clipping" prompt that opens the share flow
 
 ### D8 — iOS Status Bar & Notch Polish
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/layout.tsx`, `app/globals.css`, `ios/App/App/Info.plist`
 **What to do**:
 - Set `apple-mobile-web-app-status-bar-style` to `black-translucent` in dark mode

@@ -102,7 +102,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-900 shadow-sm dark:border-b dark:border-gray-800 px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:border-b dark:border-gray-800 px-4 pt-header pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
@@ -142,7 +142,7 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav-safe">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

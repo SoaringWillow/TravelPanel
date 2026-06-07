@@ -93,3 +93,14 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Header padding that respects the notch/Dynamic Island while keeping a
+   minimum of 12px above content so it looks right even without a notch. */
+.pt-header {
+  padding-top: max(3rem, calc(env(safe-area-inset-top) + 0.75rem));
+}
+
+/* NavBar bottom-safe: adds extra clearance for the iOS home indicator */
+.pb-nav-safe {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}

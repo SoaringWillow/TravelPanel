@@ -63,7 +63,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-4">
+        <div className="max-w-lg mx-auto px-4 pb-4 pt-header">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your data and preferences</p>
         </div>

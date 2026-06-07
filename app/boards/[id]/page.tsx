@@ -114,7 +114,8 @@ export default function BoardDetailPage() {
 
           {/* Back button */}
           <button type="button" onClick={() => router.back()}
-            className="absolute top-12 left-4 p-2 rounded-xl bg-black/30 backdrop-blur-sm text-white"
+            className="absolute left-4 p-2 rounded-xl bg-black/30 backdrop-blur-sm text-white"
+            style={{ top: 'max(48px, calc(env(safe-area-inset-top) + 8px))' }}
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
@@ -123,7 +124,8 @@ export default function BoardDetailPage() {
           {/* Plan CTA */}
           {hasLocations && (
             <button type="button" onClick={() => router.push(`/plan/${boardId}`)}
-              className="absolute top-12 right-4 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-lg"
+              className="absolute right-4 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-lg"
+              style={{ top: 'max(48px, calc(env(safe-area-inset-top) + 8px))' }}
             >
               <Rocket size={14} /> Plan trip
             </button>
@@ -142,7 +144,7 @@ export default function BoardDetailPage() {
         </div>
       ) : (
         /* Flat header (no cover image) */
-        <div className="bg-white dark:bg-gray-900 shadow-sm dark:border-b dark:border-gray-800 px-4 pt-12 pb-4 flex-shrink-0">
+        <div className="bg-white dark:bg-gray-900 shadow-sm dark:border-b dark:border-gray-800 px-4 pt-header pb-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => router.back()}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl -ml-1"
@@ -181,7 +183,7 @@ export default function BoardDetailPage() {
       )}
 
       {/* ── Content ── */}
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto pb-nav-safe">
         <div className="px-4 pt-4">
           {boardItems.length === 0 ? (
             /* Empty state */
