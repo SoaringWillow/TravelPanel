@@ -61,21 +61,21 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your TravelPanel data</p>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-12 pb-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your TravelPanel data</p>
       </div>
 
       <div className="px-4 py-6 space-y-6 max-w-lg mx-auto">
 
         {/* Stats card */}
         <section>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
             Your Data
           </h2>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800">
             <StatRow
               icon={<Map size={16} className="text-indigo-500" />}
               label="Saved clips"
@@ -96,26 +96,26 @@ export default function SettingsPage() {
 
         {/* Upcoming trip section */}
         <section>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
             Upcoming Trip
           </h2>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <Plane size={15} className="text-indigo-500" />
-              <span className="text-sm text-gray-600">Get a reminder when your trip is within 14 days</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Get a reminder when your trip is within 14 days</span>
             </div>
             <input
               type="text"
               placeholder="Destination (e.g. Tokyo)"
               value={tripDest}
               onChange={(e) => setTripDest(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
             />
             <input
               type="date"
               value={tripDate}
               onChange={(e) => setTripDate(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
             />
             <div className="flex gap-2">
               <button
@@ -141,18 +141,18 @@ export default function SettingsPage() {
 
         {/* Backup section */}
         <section>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
             Backup
           </h2>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
             <div className="p-4">
               <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                  <Database size={18} className="text-indigo-600" />
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                  <Database size={18} className="text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900 text-sm">Download all my data</div>
-                  <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Download all my data</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
                     Exports all clips, boards, and trip plans as a JSON file.
                     Includes all substance tips and location data.
                   </div>
@@ -184,7 +184,7 @@ export default function SettingsPage() {
               </button>
 
               {stats && (
-                <p className="text-center text-xs text-gray-400 mt-2">
+                <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-2">
                   {stats.items} clips · {stats.boards} boards · {stats.trips} plans
                 </p>
               )}
@@ -194,10 +194,10 @@ export default function SettingsPage() {
 
         {/* About */}
         <section>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
             About
           </h2>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800">
             <AboutRow label="App" value="TravelPanel" />
             <AboutRow label="Version" value="1.0.0" />
             <AboutRow label="Storage" value="On-device (IndexedDB)" />
@@ -222,11 +222,11 @@ function StatRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center">
+      <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
         {icon}
       </div>
-      <span className="flex-1 text-sm text-gray-700">{label}</span>
-      <span className="text-sm font-semibold text-gray-900 tabular-nums">{value}</span>
+      <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">{label}</span>
+      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{value}</span>
     </div>
   );
 }
@@ -234,8 +234,8 @@ function StatRow({
 function AboutRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-sm text-gray-500">{label}</span>
-      <span className="text-sm font-medium text-gray-900">{value}</span>
+      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
+      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{value}</span>
     </div>
   );
 }

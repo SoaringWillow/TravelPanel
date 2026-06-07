@@ -270,7 +270,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Alternatively: use CSS `overscroll-behavior: contain` + `useSwipeDown` hook detecting 80px+ downward swipe
 
 ### D4 — Dark Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Majority of iPhone users use dark mode. The current app is white-only and looks out of place at night.  
 **Files**: `app/globals.css`, `tailwind.config.js`, `app/layout.tsx`, across all components  
 **What to do**:

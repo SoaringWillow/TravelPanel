@@ -76,14 +76,14 @@ export default function NearbyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-12 pb-4">
         <div className="flex items-center gap-2">
-          <Navigation size={20} className="text-indigo-500" />
-          <h1 className="text-2xl font-bold text-gray-900">Nearby</h1>
+          <Navigation size={20} className="text-indigo-500 dark:text-indigo-400" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Nearby</h1>
         </div>
-        <p className="text-sm text-gray-500 mt-0.5">Saved spots close to you</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Saved spots close to you</p>
       </div>
 
       <div className="px-4 py-4">
@@ -145,7 +145,7 @@ function NearbyCard({ clip, onTap }: { clip: NearbyClip; onTap: () => void }) {
   return (
     <button
       onClick={onTap}
-      className="w-full text-left bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden active:scale-[0.99] transition-transform"
+      className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden active:scale-[0.99] transition-transform"
     >
       <div className="flex gap-3 p-3">
         {/* Thumbnail or platform badge */}
@@ -153,7 +153,7 @@ function NearbyCard({ clip, onTap }: { clip: NearbyClip; onTap: () => void }) {
           <img
             src={item.thumbnail}
             alt=""
-            className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-gray-100"
+            className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-gray-100 dark:bg-gray-700"
           />
         ) : (
           <div className={`w-16 h-16 rounded-xl flex-shrink-0 ${platformBg} flex items-center justify-center`}>
@@ -162,15 +162,15 @@ function NearbyCard({ clip, onTap }: { clip: NearbyClip; onTap: () => void }) {
         )}
 
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">
+          <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-snug line-clamp-2">
             {item.title}
           </div>
           <div className="flex items-center gap-1 mt-1">
             <MapPin size={11} className="text-gray-400 flex-shrink-0" />
-            <span className="text-xs text-gray-500 truncate">{location.name}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{location.name}</span>
           </div>
           {item.substance.length > 0 && (
-            <div className="text-xs text-indigo-500 mt-1">
+            <div className="text-xs text-indigo-500 dark:text-indigo-400 mt-1">
               {item.substance.length} tip{item.substance.length !== 1 ? 's' : ''}
             </div>
           )}
@@ -178,10 +178,10 @@ function NearbyCard({ clip, onTap }: { clip: NearbyClip; onTap: () => void }) {
 
         {/* Distance badge */}
         <div className="flex-shrink-0 flex flex-col items-end justify-start pt-0.5">
-          <span className="text-sm font-bold text-indigo-600 tabular-nums">
+          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
             {formatDistance(distanceKm)}
           </span>
-          <span className="text-[10px] text-gray-400 mt-0.5">away</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">away</span>
         </div>
       </div>
     </button>
@@ -200,8 +200,8 @@ function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
       {icon}
-      <div className="font-semibold text-gray-700 text-base">{title}</div>
-      <div className="text-sm text-gray-400 leading-relaxed max-w-xs">{body}</div>
+      <div className="font-semibold text-gray-700 dark:text-gray-300 text-base">{title}</div>
+      <div className="text-sm text-gray-400 dark:text-gray-500 leading-relaxed max-w-xs">{body}</div>
     </div>
   );
 }
