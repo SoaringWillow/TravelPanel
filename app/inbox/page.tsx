@@ -130,7 +130,7 @@ export default function InboxPage() {
   const visibleItems = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
-  function handleViewOnMap(id: string) {
+  const handleViewOnMap = useCallback((id: string) => {
     const item = items.find((i) => i.id === id);
     if (item && item.locations.length > 0) {
       const loc = item.locations[0];
@@ -138,11 +138,11 @@ export default function InboxPage() {
     } else {
       router.push('/');
     }
-  }
+  }, [items, router]);
 
-  function handleMoveToBoard(id: string) {
+  const handleMoveToBoard = useCallback((id: string) => {
     setMovingItemId(id);
-  }
+  }, []);
 
   const handleBoardSelect = useCallback(
     async (boardId: string | null) => {

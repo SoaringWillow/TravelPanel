@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
@@ -37,7 +37,7 @@ const REVEAL_WIDTH = 124; // total px for revealed action buttons
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function InboxCard({
+function InboxCardInner({
   item,
   onDelete,
   onViewOnMap,
@@ -403,3 +403,6 @@ export default function InboxCard({
     </div>
   );
 }
+
+const InboxCard = memo(InboxCardInner);
+export default InboxCard;

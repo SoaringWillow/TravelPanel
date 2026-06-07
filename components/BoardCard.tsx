@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Board } from '@/lib/types';
@@ -11,7 +12,7 @@ interface BoardCardProps {
   onDelete?: () => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+function BoardCardInner({ board, itemCount, onClick, onDelete }: BoardCardProps) {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -65,3 +66,6 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
     </motion.div>
   );
 }
+
+const BoardCard = memo(BoardCardInner);
+export default BoardCard;

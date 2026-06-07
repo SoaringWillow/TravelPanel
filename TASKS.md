@@ -376,7 +376,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a subtle "Plan edited" badge to indicate the plan has diverged from the AI version
 
 ### E10 — Performance: Memoize Card Components
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: InboxCard and BoardCard re-render on every parent state change (e.g., search query updates). With 100+ clips, this causes noticeable scroll jank.  
 **Files**: `components/InboxCard.tsx`, `components/BoardCard.tsx`, `components/DayStripCard.tsx`  
 **What to do**:
