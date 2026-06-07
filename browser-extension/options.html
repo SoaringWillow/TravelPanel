@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel — Extension Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #f8f8fa;
+      color: #0f0f10;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 48px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: #0f0f10;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+    }
+
+    .header h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 22px 20px;
+      border: 1px solid #ebebef;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f0f10;
+      margin-bottom: 6px;
+      letter-spacing: -0.1px;
+    }
+
+    .card-desc {
+      font-size: 12.5px;
+      color: #6b6b7b;
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b6b7b;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dcdce8;
+      border-radius: 8px;
+      font-size: 13.5px;
+      color: #0f0f10;
+      background: #fafafa;
+      outline: none;
+      transition: border-color 0.12s, background 0.12s;
+      font-family: inherit;
+    }
+
+    input:focus {
+      border-color: #0f0f10;
+      background: white;
+    }
+
+    .examples {
+      margin-top: 8px;
+      font-size: 11.5px;
+      color: #9b9bab;
+      line-height: 1.6;
+    }
+
+    .examples code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      background: #f0f0f4;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .save-btn {
+      width: 100%;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #0f0f10;
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+      letter-spacing: -0.1px;
+      font-family: inherit;
+    }
+    .save-btn:hover { background: #27272e; }
+    .save-btn:active { transform: scale(0.99); }
+
+    .status {
+      margin-top: 10px;
+      font-size: 12px;
+      text-align: center;
+      min-height: 18px;
+      transition: opacity 0.3s;
+    }
+
+    .status.success { color: #16a34a; }
+    .status.error   { color: #dc2626; }
+    .status.hidden  { opacity: 0; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #f0f0f2;
+      margin: 16px 0;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+      color: #6b6b7b;
+    }
+
+    .badge {
+      background: #dcfce7;
+      color: #15803d;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <div class="logo-icon">📍</div>
+      <h1>TravelPanel Settings</h1>
+    </div>
+
+    <div class="card">
+      <div class="card-title">TravelPanel URL</div>
+      <div class="card-desc">
+        Enter the URL of your TravelPanel app. The extension opens this URL with the current page pre-filled so you can clip it to a board.
+      </div>
+
+      <label for="tpUrl">App URL</label>
+      <input
+        type="url"
+        id="tpUrl"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      >
+
+      <div class="examples">
+        Examples:
+        <code>https://your-app.vercel.app</code> &nbsp;·&nbsp;
+        <code>http://localhost:3000</code>
+      </div>
+
+      <button class="save-btn" id="saveBtn">Save Settings</button>
+      <div class="status hidden" id="status"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">About</div>
+      <hr class="divider">
+      <div class="info-row">
+        <span>Version</span>
+        <span>1.0.0</span>
+      </div>
+      <hr class="divider">
+      <div class="info-row">
+        <span>Supported platforms</span>
+        <span style="text-align:right;font-size:11.5px;color:#0f0f10">
+          Instagram · YouTube · 小红书 · 抖音 · TikTok · Bilibili · X · Reddit · Any page
+        </span>
+      </div>
+      <hr class="divider">
+      <div class="info-row">
+        <span>How it works</span>
+        <span class="badge">opens /share?url=…</span>
+      </div>
+    </div>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

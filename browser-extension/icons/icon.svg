@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background rounded square -->
+  <rect width="128" height="128" rx="28" fill="#0f0f10"/>
+  <!-- Location pin -->
+  <path
+    d="M64 22C49.1 22 37 34.1 37 49c0 22.9 24.5 52.5 25.5 53.7a2 2 0 0 0 3 0C66.5 101.5 91 71.9 91 49c0-14.9-12.1-27-27-27zm0 38a11 11 0 1 1 0-22 11 11 0 0 1 0 22z"
+    fill="white"
+  />
+</svg>

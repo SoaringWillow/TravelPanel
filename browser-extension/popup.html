@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #ffffff;
+      color: #0f0f10;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 14px 12px;
+      border-bottom: 1px solid #f0f0f2;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f0f10;
+      letter-spacing: -0.2px;
+    }
+
+    .logo-icon {
+      width: 26px;
+      height: 26px;
+      background: #0f0f10;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .settings-btn {
+      width: 30px;
+      height: 30px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #b0b0bc;
+      transition: background 0.12s, color 0.12s;
+      padding: 0;
+    }
+    .settings-btn:hover { background: #f4f4f7; color: #6b6b7b; }
+
+    /* ── Page card ───────────────────────────────────────── */
+    .page-card {
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid #f0f0f2;
+    }
+
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px 3px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: 0.1px;
+    }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #0f0f10;
+      line-height: 1.45;
+      margin-bottom: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .page-url {
+      font-size: 11.5px;
+      color: #9b9bab;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Actions ─────────────────────────────────────────── */
+    .actions {
+      padding: 14px;
+    }
+
+    .clip-btn {
+      width: 100%;
+      padding: 11px 14px;
+      background: #0f0f10;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: background 0.12s, transform 0.08s;
+      letter-spacing: -0.1px;
+    }
+    .clip-btn:hover { background: #27272e; }
+    .clip-btn:active { transform: scale(0.985); }
+    .clip-btn:disabled { opacity: 0.45; cursor: default; }
+
+    .hint {
+      margin-top: 9px;
+      font-size: 11.5px;
+      color: #b0b0bc;
+      text-align: center;
+    }
+
+    /* ── Loading ─────────────────────────────────────────── */
+    .loading {
+      padding: 36px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 11px;
+      color: #9b9bab;
+      font-size: 12.5px;
+    }
+
+    .spinner {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #ebebef;
+      border-top-color: #0f0f10;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Notice ──────────────────────────────────────────── */
+    .notice {
+      padding: 28px 18px 26px;
+      text-align: center;
+      color: #9b9bab;
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+
+    .notice-icon { font-size: 30px; margin-bottom: 10px; }
+
+    .notice strong {
+      display: block;
+      color: #3b3b46;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+
+    /* ── Success ─────────────────────────────────────────── */
+    .success {
+      padding: 30px 14px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+      text-align: center;
+    }
+
+    .success-icon {
+      width: 46px;
+      height: 46px;
+      background: #dcfce7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 2px;
+    }
+
+    .success-title { font-size: 14px; font-weight: 600; }
+    .success-sub { font-size: 12px; color: #9b9bab; }
+
+    /* ── Platform badge colours ──────────────────────────── */
+    .badge-instagram  { background: #fce7f3; color: #9d174d; }
+    .badge-youtube    { background: #fee2e2; color: #991b1b; }
+    .badge-xhs        { background: #fee2e2; color: #c0392b; }
+    .badge-douyin     { background: #f0f0f2; color: #0f0f10; }
+    .badge-tiktok     { background: #f0f0f2; color: #0f0f10; }
+    .badge-bilibili   { background: #dbeafe; color: #1e3a8a; }
+    .badge-twitter    { background: #f0f0f2; color: #0f0f10; }
+    .badge-reddit     { background: #ffedd5; color: #9a3412; }
+    .badge-web        { background: #f4f4f7; color: #6b7280; }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">📍</div>
+      TravelPanel
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings" aria-label="Open settings">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7.5 9.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.3" fill="none"/>
+        <path d="M12.1 9.1l.7.4a.6.6 0 0 1 .2.8l-.9 1.5a.6.6 0 0 1-.7.3l-.8-.3a5.4 5.4 0 0 1-.9.5l-.1.9a.6.6 0 0 1-.6.5h-1.8a.6.6 0 0 1-.6-.5l-.1-.9a5.4 5.4 0 0 1-.9-.5l-.8.3a.6.6 0 0 1-.7-.3L2.2 10.3a.6.6 0 0 1 .2-.8l.7-.4a4.8 4.8 0 0 1 0-1l-.7-.4A.6.6 0 0 1 2.2 7L3 5.5a.6.6 0 0 1 .7-.3l.8.3a5.4 5.4 0 0 1 .9-.5l.1-.9A.6.6 0 0 1 6.1 3.6h1.8a.6.6 0 0 1 .6.5l.1.9a5.4 5.4 0 0 1 .9.5l.8-.3a.6.6 0 0 1 .7.3l.9 1.5a.6.6 0 0 1-.2.8l-.7.4a4.8 4.8 0 0 1 0 1z" stroke="currentColor" stroke-width="1.3" fill="none"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingState">
+    <div class="loading">
+      <div class="spinner"></div>
+      <span>Loading…</span>
+    </div>
+  </div>
+
+  <!-- Main: page info + clip button -->
+  <div id="mainState" hidden>
+    <div class="page-card">
+      <div id="platformBadge" class="platform-badge badge-web"></div>
+      <div id="pageTitle" class="page-title"></div>
+      <div id="pageUrl" class="page-url"></div>
+    </div>
+    <div class="actions">
+      <button id="clipBtn" class="clip-btn">
+        <span>✈️</span>
+        <span>Clip to TravelPanel</span>
+      </button>
+      <div class="hint" id="hintText">Opens TravelPanel in a new tab</div>
+    </div>
+  </div>
+
+  <!-- Notice: unsupported / special page -->
+  <div id="noticeState" hidden>
+    <div class="notice">
+      <div class="notice-icon">🌐</div>
+      <strong>Nothing to clip here</strong>
+      Navigate to a travel post or any web page, then click the extension to save it.
+    </div>
+  </div>
+
+  <!-- Notice: no TravelPanel URL configured -->
+  <div id="setupState" hidden>
+    <div class="notice">
+      <div class="notice-icon">⚙️</div>
+      <strong>Set your TravelPanel URL</strong>
+      Open Settings to enter your TravelPanel app URL before clipping.
+      <br><br>
+      <button id="openSettingsBtn" style="background:#0f0f10;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12.5px;font-weight:600;cursor:pointer;">
+        Open Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- Success -->
+  <div id="successState" hidden>
+    <div class="success">
+      <div class="success-icon">✈️</div>
+      <div class="success-title">Opening TravelPanel…</div>
+      <div class="success-sub">Complete the save in the new tab</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

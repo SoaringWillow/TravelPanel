@@ -22,6 +22,8 @@ function SharePageInner() {
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
+  const hasImageParam = searchParams.get('hasImage') === '1';
+
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
   const [savedToName, setSavedToName]         = useState('');
@@ -29,6 +31,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +39,18 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read the screenshot base64 that CapacitorBridge stored in sessionStorage.
+  useEffect(() => {
+    if (!hasImageParam) return;
+    try {
+      const b64 = sessionStorage.getItem('pendingShareImage');
+      if (b64) {
+        pendingImageRef.current = b64;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch { /* sessionStorage not available */ }
+  }, [hasImageParam]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +103,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot for Vision when available (e.g. Xiaohongshu)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

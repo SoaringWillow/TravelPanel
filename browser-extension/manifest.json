@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel — Clip Travel Inspiration",
+  "short_name": "TravelPanel",
+  "description": "Save travel inspiration from Instagram, YouTube, 小红书, and any web page to your TravelPanel boards with one click.",
+  "version": "1.0.0",
+  "permissions": ["tabs", "storage", "activeTab", "contextMenus"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  }
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+  Open this file in Chrome/Firefox to generate PNG icons from icon.svg.
+  For each size, click "Download" to save the PNG, then place it in this folder.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Generate TravelPanel Extension Icons</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 32px; background: #f8f8fa; color: #0f0f10; }
+    h1 { font-size: 18px; margin-bottom: 6px; }
+    p  { font-size: 13px; color: #6b6b7b; margin-bottom: 28px; }
+    .row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+    canvas { border-radius: 4px; image-rendering: pixelated; }
+    a { background: #0f0f10; color: white; padding: 7px 14px; border-radius: 7px; text-decoration: none; font-size: 13px; font-weight: 600; }
+    a:hover { background: #27272e; }
+    label { font-size: 13px; width: 80px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>📍 TravelPanel — Icon Generator</h1>
+  <p>Download each PNG and place it in the <code>icons/</code> folder alongside this file.</p>
+
+  <div class="row">
+    <label>icon16.png</label>
+    <canvas id="c16" width="16" height="16"></canvas>
+    <a id="dl16" download="icon16.png">Download</a>
+  </div>
+  <div class="row">
+    <label>icon48.png</label>
+    <canvas id="c48" width="48" height="48"></canvas>
+    <a id="dl48" download="icon48.png">Download</a>
+  </div>
+  <div class="row">
+    <label>icon128.png</label>
+    <canvas id="c128" width="128" height="128"></canvas>
+    <a id="dl128" download="icon128.png">Download</a>
+  </div>
+
+  <script>
+    const svgSrc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+      <rect width="128" height="128" rx="28" fill="#0f0f10"/>
+      <path d="M64 22C49.1 22 37 34.1 37 49c0 22.9 24.5 52.5 25.5 53.7a2 2 0 0 0 3 0C66.5 101.5 91 71.9 91 49c0-14.9-12.1-27-27-27zm0 38a11 11 0 1 1 0-22 11 11 0 0 1 0 22z" fill="white"/>
+    </svg>`;
+
+    const blob = new Blob([svgSrc], { type: 'image/svg+xml' });
+    const url  = URL.createObjectURL(blob);
+
+    [16, 48, 128].forEach(size => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.getElementById(`c${size}`);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.getElementById(`dl${size}`);
+        link.href = dataUrl;
+      };
+      img.src = url;
+    });
+  </script>
+</body>
+</html>
