@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.05);
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: #6366f1;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .logo-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .logo-text p {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #f3f4f6;
+      margin: 24px 0;
+    }
+    .field {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #111827;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    input:focus { border-color: #6366f1; }
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 5px;
+    }
+    .hint a { color: #6366f1; text-decoration: none; }
+    .hint a:hover { text-decoration: underline; }
+    .btn-save {
+      width: 100%;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 8px;
+    }
+    .btn-save:hover { background: #4f46e5; }
+    .toast {
+      display: none;
+      margin-top: 12px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #16a34a;
+      text-align: center;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #9ca3af;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-row">
+      <div class="logo-icon">📍</div>
+      <div class="logo-text">
+        <h1>TravelPanel Clipper</h1>
+        <p>Extension Settings</p>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <p class="section-title">Configuration</p>
+
+    <div class="field">
+      <label for="panel-url">TravelPanel App URL</label>
+      <input
+        type="url"
+        id="panel-url"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="hint">
+        The URL where your TravelPanel app is deployed. For local development use
+        <code>http://localhost:3000</code>.
+      </p>
+    </div>
+
+    <button class="btn-save" id="save-btn">Save Settings</button>
+    <div class="toast" id="toast">✓ Settings saved!</div>
+
+    <hr class="divider" />
+
+    <p class="section-title">How to use</p>
+    <ol style="font-size:13px;color:#6b7280;line-height:1.8;padding-left:18px;">
+      <li>Set your TravelPanel URL above.</li>
+      <li>Navigate to any travel post (Instagram, YouTube, Xiaohongshu, etc.).</li>
+      <li>Click the 📍 extension icon in your toolbar.</li>
+      <li>Click <strong>Clip to TravelPanel</strong> — the clip opens in TravelPanel's Share view.</li>
+      <li>You can also right-click any link → <em>Clip link to TravelPanel</em>.</li>
+    </ol>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

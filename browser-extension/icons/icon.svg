@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Indigo background -->
+  <rect width="128" height="128" rx="28" fill="#6366f1"/>
+  <!-- Map pin body -->
+  <path d="M64 22C48.536 22 36 34.536 36 50c0 20.25 28 58 28 58s28-37.75 28-58C92 34.536 79.464 22 64 22z" fill="white"/>
+  <!-- Inner circle (hole in pin) -->
+  <circle cx="64" cy="50" r="13" fill="#6366f1"/>
+</svg>
