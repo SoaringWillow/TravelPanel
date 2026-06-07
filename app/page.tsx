@@ -107,7 +107,8 @@ function HomePageInner() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ delay: 0.4, duration: 0.4 }}
-            className="absolute bottom-28 left-4 right-4 z-[999] pointer-events-none"
+            className="absolute left-4 right-4 z-[999] pointer-events-none"
+            style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
           >
             <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-lg px-5 py-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
@@ -134,7 +135,8 @@ function HomePageInner() {
       {!selectedItem && (
         <button
           onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          className="absolute right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
           aria-label="Clip inspiration"
         >
           <Plus size={24} />

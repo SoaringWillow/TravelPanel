@@ -159,7 +159,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white shadow-sm px-4 pt-safe-header pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -220,7 +220,7 @@ export default function InboxPage() {
       {/* Content — drag downward on the list to pull-to-refresh */}
       <motion.div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 pb-24 relative"
+        className="flex-1 overflow-y-auto px-4 pb-navbar relative"
         drag="y"
         dragDirectionLock
         dragConstraints={{ top: 0, bottom: PULL_THRESHOLD }}

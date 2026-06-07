@@ -279,7 +279,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Update `public/manifest.json` (or create it) with PWA metadata
 
 ### C10 — Safe Area & Notch Audit
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `app/globals.css`, `app/layout.tsx`, all page files  
 **What to do**:
 - Audit every page for proper `safe-area-inset-*` handling using `env()` CSS variables

@@ -90,7 +90,7 @@ export default function BoardDetailPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pt-safe-header pb-4 z-10">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -116,7 +116,7 @@ export default function BoardDetailPage() {
       </div>
 
       {/* Scrollable content below header */}
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto pb-navbar">
         {/* Map section */}
         {boardItems.length > 0 && (
           <div

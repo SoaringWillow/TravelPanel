@@ -103,7 +103,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-navbar">
       {/* Header */}
       <div
         className="bg-gradient-to-br from-indigo-600 to-violet-700 pt-14 pb-8 px-5"
