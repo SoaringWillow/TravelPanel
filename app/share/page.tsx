@@ -29,12 +29,28 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImage, setPendingImage]       = useState<{ base64: string; mimeType: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Claim any image the CapacitorBridge stashed in sessionStorage (Xiaohongshu / WeChat flow)
+  useEffect(() => {
+    try {
+      const base64   = sessionStorage.getItem('pendingShareImageData');
+      const mimeType = sessionStorage.getItem('pendingShareImageMimeType') || 'image/jpeg';
+      if (base64) {
+        setPendingImage({ base64, mimeType });
+        sessionStorage.removeItem('pendingShareImageData');
+        sessionStorage.removeItem('pendingShareImageMimeType');
+      }
+    } catch {
+      // sessionStorage unavailable — vision path skipped gracefully
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +104,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image payload for Xiaohongshu/WeChat vision path
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImage ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType } : undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

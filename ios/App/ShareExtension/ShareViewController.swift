@@ -5,11 +5,11 @@ import UniformTypeIdentifiers
 
 // TravelPanel Share Extension
 //
-// Receives a URL (and optional title) from the iOS Share Sheet and opens
-// the main TravelPanel app with the travelpanel://share?url=...&title=...
-// URL scheme, which the CapacitorBridge component routes to /share.
-//
-// Supported source types: URLs, plain text containing a URL, web pages.
+// Receives a URL (and optional image) from the iOS Share Sheet and opens
+// the main TravelPanel app with the travelpanel://share?url=...&title=... URL
+// scheme. When an image is also present (common with Xiaohongshu / WeChat
+// which block URL scraping), it is compressed and written to the App Group
+// so the main app can feed it to Claude Vision for extraction.
 
 class ShareViewController: UIViewController {
 
@@ -24,43 +24,99 @@ class ShareViewController: UIViewController {
             return
         }
 
+        // Walk all items and collect the first URL + first image found.
+        // We process them independently so a single share with URL + image works.
+        var collectedURL: String?
+        var collectedTitle: String?
+        var collectedImage: UIImage?
+        let group = DispatchGroup()
+
         for item in items {
             guard let attachments = item.attachments else { continue }
+            let itemTitle = item.attributedContentText?.string ?? ""
 
-            // Priority 1: a direct URL attachment
             for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-                    attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { [weak self] data, _ in
-                        guard let self else { return }
+                // URL attachment
+                if collectedURL == nil, attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+                    group.enter()
+                    attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { data, _ in
+                        defer { group.leave() }
                         if let url = data as? URL {
-                            let title = item.attributedContentText?.string ?? url.host ?? ""
-                            self.openApp(url: url.absoluteString, title: title)
-                        } else {
-                            self.finish()
+                            collectedURL = url.absoluteString
+                            collectedTitle = itemTitle.isEmpty ? (url.host ?? "") : itemTitle
                         }
                     }
-                    return
                 }
-            }
 
-            // Priority 2: plain text that may contain a URL
-            for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
-                    attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] data, _ in
-                        guard let self else { return }
-                        if let text = data as? String, let url = self.extractURL(from: text) {
-                            self.openApp(url: url, title: text)
-                        } else {
-                            self.finish()
+                // Image attachment (UIImage or file URL to image)
+                if collectedImage == nil, attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    group.enter()
+                    attachment.loadItem(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                        defer { group.leave() }
+                        if let image = data as? UIImage {
+                            collectedImage = image
+                        } else if let fileURL = data as? URL, let image = UIImage(contentsOfFile: fileURL.path) {
+                            collectedImage = image
                         }
                     }
-                    return
+                }
+
+                // Plain text fallback for URL extraction
+                if collectedURL == nil, attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+                    group.enter()
+                    attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { data, _ in
+                        defer { group.leave() }
+                        if let text = data as? String, let url = self.extractURL(from: text) {
+                            collectedURL = url
+                            collectedTitle = text
+                        }
+                    }
                 }
             }
         }
 
-        finish()
+        group.notify(queue: .main) {
+            guard let url = collectedURL else {
+                self.finish()
+                return
+            }
+            // Save image to App Group if present
+            let hasImage = collectedImage != nil
+            if let image = collectedImage {
+                self.saveImageToAppGroup(image)
+            }
+            self.openApp(url: url, title: collectedTitle ?? "", hasImage: hasImage)
+        }
     }
+
+    // MARK: - Image helpers
+
+    /// Compress and store image as JPEG base64 in the shared App Group.
+    /// Resized to max 1024px on the longest side to keep the payload small.
+    private func saveImageToAppGroup(_ image: UIImage) {
+        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+
+        let maxDimension: CGFloat = 1024
+        let resized = resizeImage(image, maxDimension: maxDimension)
+
+        guard let jpegData = resized.jpegData(compressionQuality: 0.72) else { return }
+        let base64 = jpegData.base64EncodedString()
+
+        defaults.set(base64, forKey: "pendingShareImageData")
+        defaults.set("image/jpeg", forKey: "pendingShareImageMimeType")
+        defaults.synchronize()
+    }
+
+    private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
+        let size = image.size
+        guard size.width > maxDimension || size.height > maxDimension else { return image }
+        let ratio = min(maxDimension / size.width, maxDimension / size.height)
+        let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
+    }
+
+    // MARK: - URL helpers
 
     private func extractURL(from text: String) -> String? {
         let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
@@ -68,22 +124,26 @@ class ShareViewController: UIViewController {
         return matches?.first.flatMap { $0.url?.absoluteString }
     }
 
-    private func openApp(url: String, title: String) {
+    // MARK: - App launch
+
+    private func openApp(url: String, title: String, hasImage: Bool) {
         var components = URLComponents()
         components.scheme = "travelpanel"
         components.host = "share"
         components.queryItems = [
-            URLQueryItem(name: "url", value: url),
+            URLQueryItem(name: "url",   value: url),
             URLQueryItem(name: "title", value: title),
         ]
+        if hasImage {
+            components.queryItems?.append(URLQueryItem(name: "hasImage", value: "1"))
+        }
 
         guard let deepLink = components.url else {
             finish()
             return
         }
 
-        // Open the main app with the deep link.
-        // On iOS 13+, Share Extensions can open URLs via the responder chain.
+        // Open the main app via the responder chain (iOS 13+)
         var responder: UIResponder? = self
         while let r = responder {
             if let application = r as? UIApplication {
@@ -95,16 +155,14 @@ class ShareViewController: UIViewController {
             responder = r.next
         }
 
-        // Fallback: write to App Group and let the main app pick it up on next launch
+        // Fallback: write URL to App Group and let the main app pick it up on next launch
         savePendingShareToAppGroup(url: url, title: title)
         finish()
     }
 
     private func savePendingShareToAppGroup(url: String, title: String) {
-        // App Group identifier must match the one configured in Xcode capabilities.
-        // See ios-setup.md for configuration instructions.
         guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
-        defaults.set(url, forKey: "pendingShareURL")
+        defaults.set(url,   forKey: "pendingShareURL")
         defaults.set(title, forKey: "pendingShareTitle")
         defaults.set(Date(), forKey: "pendingShareDate")
         defaults.synchronize()
