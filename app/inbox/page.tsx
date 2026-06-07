@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, RefreshCw } from 'lucide-react';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -38,6 +39,7 @@ export default function InboxPage() {
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
+  const keyboardHeight = useKeyboardHeight();
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -261,8 +263,8 @@ export default function InboxPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
-              style={{ maxHeight: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white dark:bg-gray-900 rounded-t-3xl"
+              style={{ maxHeight: 300, marginBottom: keyboardHeight }}
             >
               {/* Handle */}
               <div className="flex justify-center pt-3 pb-1">

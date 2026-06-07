@@ -324,7 +324,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Falls back gracefully if clipboard permission is denied (no banner shown)
 
 ### E5 — Board Cover Art from Clip Thumbnails
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (was already implemented in db.ts + BoardCard.tsx)  
 **Why**: Board cards are currently identified only by emoji + name. A visual cover image (from a saved clip) makes the boards page scannable at a glance.  
 **Files**: `components/BoardCard.tsx`, `app/boards/page.tsx`, `lib/db.ts`, `lib/types.ts`  
 **What to do**:
@@ -335,7 +335,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - If no thumbnail: keep the current solid-colored gradient card
 
 ### E6 — Keyboard Avoidance on iOS
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On iOS, the virtual keyboard overlaps bottom-anchored input fields. Plan notes, new-board input, and search bars become inaccessible when the keyboard opens.  
 **Files**: `hooks/useKeyboardHeight.ts` (new), `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:

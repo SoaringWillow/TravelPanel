@@ -10,6 +10,7 @@ import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 import { triggerHaptic } from '@/lib/haptics';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ function SharePageInner() {
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [ogImage, setOgImage]                 = useState<string | null>(null);
   const imageBase64Ref = useRef<string | undefined>(undefined);
+  const keyboardHeight = useKeyboardHeight();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -174,7 +176,10 @@ function SharePageInner() {
 
   if (stage === 'picking' || stage === 'saving') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      <div
+        className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-between p-6 safe-top"
+        style={{ paddingBottom: `max(24px, ${keyboardHeight + 16}px)` }}
+      >
         {/* Top section */}
         <div className="space-y-3 pt-4">
           {/* OG image thumbnail */}
