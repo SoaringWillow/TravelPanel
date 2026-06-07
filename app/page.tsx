@@ -12,6 +12,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import OnboardingSheet from '@/components/OnboardingSheet';
 
 const NEARBY_METERS = 300;
 
@@ -30,6 +31,20 @@ function HomePageInner() {
   const [onTrip, setOnTrip]             = useState(false);
   // Dismissed alert IDs so we don't keep re-showing the same spot
   const [dismissedNearby, setDismissedNearby] = useState<Set<string>>(new Set());
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding on first open (detect via localStorage)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!localStorage.getItem('tp_has_seen_onboarding')) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  function dismissOnboarding() {
+    localStorage.setItem('tp_has_seen_onboarding', '1');
+    setShowOnboarding(false);
+  }
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -249,6 +264,13 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+
+      {/* Onboarding walkthrough — shown on first open */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingSheet onDismiss={dismissOnboarding} />
+        )}
+      </AnimatePresence>
     </main>
   );
 }

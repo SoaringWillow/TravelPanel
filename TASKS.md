@@ -81,7 +81,7 @@ All MVP features are shipped. The next phases focus on **iOS polish, visual qual
 ## PHASE E — Visual Excellence
 
 ### E1 — Onboarding Walkthrough
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: New users open the app to an empty map with no clue what to do. The existing seed boards help but there's no explanation of the core flow.
 **Files**: new `components/OnboardingSheet.tsx`, `app/page.tsx`
 **What to do**:
