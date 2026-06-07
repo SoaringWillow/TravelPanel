@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- ── Header ──────────────────────────────────────────── -->
+    <div class="header">
+      <svg class="header-logo" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="9" fill="rgba(255,255,255,0.15)"/>
+        <path d="M18 5C12.48 5 8 9.48 8 15c0 8.25 10 21 10 21s10-12.75 10-21C28 9.48 23.52 5 18 5zm0 14.25c-2.9 0-5.25-2.35-5.25-5.25S15.1 8.75 18 8.75s5.25 2.35 5.25 5.25S20.9 19.25 18 19.25z" fill="white"/>
+      </svg>
+      <div class="header-text">
+        <h1>TravelPanel Clipper</h1>
+        <p>Extension Settings</p>
+      </div>
+    </div>
+
+    <!-- ── Configuration card ──────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 15.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 8.5 12 8.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm7.43-1.97c.04-.32.07-.64.07-.97s-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1s.03.65.07.97l-2.11 1.66c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z" fill="#4F46E5"/></svg>
+        Configuration
+      </div>
+
+      <div class="field">
+        <label for="tp-url">TravelPanel App URL</label>
+        <p class="field-hint">
+          Enter the URL where your TravelPanel app is running — either your deployed Vercel URL or localhost for development.
+        </p>
+        <input
+          type="url"
+          id="tp-url"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="examples">
+          <span class="examples-label">Quick fill:</span>
+          <button class="example-btn" data-url="http://localhost:3000">localhost:3000</button>
+          <button class="example-btn" data-url="http://localhost:3001">localhost:3001</button>
+        </div>
+      </div>
+
+      <button id="save-btn" class="save-btn">Save Settings</button>
+      <div id="saved-msg" class="saved-msg" style="display:none">✓ Settings saved!</div>
+    </div>
+
+    <!-- ── How it works card ────────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="#4F46E5"/></svg>
+        How it works
+      </div>
+      <ul class="how-list">
+        <li>
+          <span class="step-num">1</span>
+          <span>Browse any travel blog, Instagram, YouTube, or article you want to save.</span>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <span>Click the TravelPanel Clipper icon in your browser toolbar.</span>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <span>Hit <strong>Clip to TravelPanel</strong> — it opens the save sheet and saves the URL, title, and board of your choice.</span>
+        </li>
+        <li>
+          <span class="step-num">4</span>
+          <span>Claude AI extracts locations, tips, warnings, and wisdom from the page in the background.</span>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
