@@ -360,7 +360,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Clicking a cluster zooms to its bounding box; clicking a pin opens the detail card
 
 ### E5 — Enrichment Status Inline Retry
-**Status**: `[ ]` Not started  
+**Status**: `[x] Done`  
 **Files**: `components/InboxCard.tsx`, `hooks/useEnrichmentRetry.ts`  
 **What to do**:
 - Items with `enrichmentStatus === 'failed'` show a red ⚡ badge + "Retry" tap target
