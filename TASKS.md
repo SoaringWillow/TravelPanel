@@ -182,7 +182,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app should be useful *during* travel, not just during planning. Show saved spots near the user's current position with a "Nearby" tab.  
 **Files**: new `app/nearby/page.tsx`, `components/NavBar.tsx`, `lib/geo.ts`  
 **What to do**:
