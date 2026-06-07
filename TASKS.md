@@ -223,7 +223,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Reload `useSavedItems` / `useBoards` data on trigger
 
 ### D5 — Skeleton Placeholder Improvements
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/InboxCard.tsx`, `app/boards/page.tsx`
 **What to do**:
 - Replace the current spinner-only loading state in the boards list with card-shaped skeletons

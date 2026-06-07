@@ -55,8 +55,16 @@ export default function BoardsPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav-safe">
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden min-h-[160px] flex flex-col bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="skeleton-shimmer flex-1 p-4 flex flex-col gap-3 justify-end">
+                  <div className="w-8 h-8 rounded-xl skeleton-shimmer" />
+                  <div className="h-3.5 rounded-full skeleton-shimmer w-3/4" />
+                  <div className="h-3 rounded-full skeleton-shimmer w-1/2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">
