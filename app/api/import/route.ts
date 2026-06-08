@@ -81,12 +81,17 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Anti-scraping platform detection ───────────────────────────────────────
+
+const VISION_PREFERRED_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin', 'bilibili']);
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +101,21 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // For anti-scraping platforms, skip the page fetch and go straight to Vision
+  const skipFetch = VISION_PREFERRED_PLATFORMS.has(platform) && !!imageBase64;
+  const page = skipFetch ? null : await fetchPageData(url);
+
+  const useVision = !!imageBase64 && (!page?.textContent || VISION_PREFERRED_PLATFORMS.has(platform));
+
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — extract from the screenshot instead)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,12 +140,30 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision) {
+      // Vision path: pass the screenshot alongside the text prompt
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBase64 as string },
+              { type: 'text', text: textPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

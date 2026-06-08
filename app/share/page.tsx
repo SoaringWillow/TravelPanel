@@ -30,11 +30,26 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
+  // Screenshot passed by the iOS Share Extension (stored in sessionStorage by CapacitorBridge).
+  // Retrieved once on mount so it's available when handleSave fires.
+  const pendingImageRef = useRef<string | undefined>(undefined);
+
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Drain the screenshot from sessionStorage once (CapacitorBridge puts it there)
+  useEffect(() => {
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        pendingImageRef.current = img;
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch { /* sessionStorage unavailable */ }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +103,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment (pass screenshot when available — unlocks Claude Vision for
+    // Xiaohongshu and other anti-scraping platforms that block text fetching)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
