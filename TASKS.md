@@ -152,7 +152,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Track `clip_auto_assigned` and `clip_auto_assign_suggested` PostHog events
 
 ### E6 — Clip Notes (Personal Annotations)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to add their own notes to clips — "go with Mom", "need to book in advance", "check this in cherry blossom season". Currently `notes` field exists in the type but is never surfaced in UI.  
 **Files to change**: `components/LocationDetailCard.tsx`, `hooks/useSavedItems.ts`, `lib/db.ts`  
 **What to do**:

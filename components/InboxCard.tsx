@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 
@@ -264,7 +264,10 @@ export default function InboxCard({
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-800">
-          <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
+            {item.notes && <Pencil size={10} className="text-gray-300 dark:text-gray-600" aria-label="Has notes" />}
+          </div>
 
           <div className="flex items-center gap-1">
             {/* View on Map */}

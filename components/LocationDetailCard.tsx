@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -9,9 +10,21 @@ import SubstanceList from './SubstanceList';
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
+  onUpdateNotes?: (id: string, notes: string) => Promise<void>;
 }
 
-export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onUpdateNotes }: LocationDetailCardProps) {
+  const [noteValue, setNoteValue] = useState(item.notes ?? '');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function handleNotesBlur() {
+    setIsEditingNotes(false);
+    if (onUpdateNotes && noteValue !== (item.notes ?? '')) {
+      onUpdateNotes(item.id, noteValue);
+    }
+  }
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -128,12 +141,39 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             )}
 
             {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+            <div className="bg-amber-50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold text-amber-700">Notes</p>
+                {!isEditingNotes && onUpdateNotes && (
+                  <button
+                    type="button"
+                    onClick={() => { setIsEditingNotes(true); setTimeout(() => textareaRef.current?.focus(), 0); }}
+                    className="p-0.5 text-amber-400 hover:text-amber-600 transition-colors"
+                    aria-label="Edit note"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
               </div>
-            )}
+              {isEditingNotes ? (
+                <textarea
+                  ref={textareaRef}
+                  value={noteValue}
+                  onChange={(e) => setNoteValue(e.target.value)}
+                  onBlur={handleNotesBlur}
+                  placeholder="Add a personal note..."
+                  rows={3}
+                  className="w-full text-sm text-amber-900 bg-transparent resize-none outline-none placeholder:text-amber-300 placeholder:italic leading-relaxed"
+                />
+              ) : (
+                <p
+                  className={`text-sm leading-relaxed cursor-text ${noteValue ? 'text-amber-800' : 'text-amber-300 italic'}`}
+                  onClick={() => { if (onUpdateNotes) { setIsEditingNotes(true); setTimeout(() => textareaRef.current?.focus(), 0); } }}
+                >
+                  {noteValue || 'Add a personal note...'}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

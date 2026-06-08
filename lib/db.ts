@@ -109,6 +109,13 @@ export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedI
   }
 }
 
+export async function patchItem(id: string, patch: Partial<SavedItem>): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...patch });
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,

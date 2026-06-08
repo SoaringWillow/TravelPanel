@@ -18,7 +18,7 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 function HomePageInner() {
   const searchParams = useSearchParams();
-  const { items, loading, addItem } = useSavedItems();
+  const { items, loading, addItem, updateItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
@@ -91,6 +91,10 @@ function HomePageInner() {
           <LocationDetailCard
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            onUpdateNotes={async (id, notes) => {
+              await updateItem(id, { notes });
+              setSelectedItem((prev) => prev ? { ...prev, notes } : prev);
+            }}
           />
         )}
       </AnimatePresence>
