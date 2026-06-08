@@ -14,8 +14,6 @@ const locationSchema = z.object({
   address: z.string().optional(),
 });
 
-// Substance schema: the wisdom layer — tips, warnings, opinions extracted from
-// the post content itself, not just the location pins.
 const substanceSchema = z.object({
   type: z.enum(['tip', 'warning', 'opinion', 'wisdom', 'context', 'recommendation']),
   content: z.string().describe('The insight in 1–2 sentences, in your own words'),
@@ -37,7 +35,11 @@ const importSchema = z.object({
   ),
 });
 
-// ─── Page fetcher ────────────────────────────────────────────────────────────
+// ─── Platforms that commonly block server-side scraping ─────────────────────
+
+const VISION_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function fetchPageData(url: string) {
   try {
@@ -81,12 +83,53 @@ async function fetchPageData(url: string) {
   }
 }
 
+// Fetch an image URL and return as base64 + mimeType, or null on failure.
+// Used as a server-side Vision fallback for platforms that block HTML scraping.
+async function fetchImageForVision(
+  imageUrl: string,
+  refererOrigin: string,
+): Promise<{ data: string; mimeType: string } | null> {
+  try {
+    const res = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+        Accept: 'image/webp,image/avif,image/*',
+        Referer: refererOrigin,
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return null;
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!contentType.startsWith('image/')) return null;
+    const mimeType = contentType.split(';')[0].trim() as string;
+    const buf = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    // Chunked binary→base64 conversion that avoids call-stack limits on large images
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 8192) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+    }
+    const data = btoa(binary);
+    return { data, mimeType };
+  } catch {
+    return null;
+  }
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  // Optional base64 JPEG image sent by the iOS Share Extension via App Group.
+  // When present, skip server-side scraping entirely and rely on Vision.
+  let sharedImage: string | undefined;
+  let sharedImageMime: string | undefined;
+
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    sharedImage = typeof body.image === 'string' ? body.image : undefined;
+    sharedImageMime = typeof body.imageMime === 'string' ? body.imageMime : 'image/jpeg';
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +139,37 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const page = sharedImage ? null : await fetchPageData(url);
+
+  // Determine if we should use Vision:
+  // 1. iOS explicitly sent an image (always use Vision)
+  // 2. Platform blocks scraping and we have a thumbnail to fall back on
+  const pageContentSparse = !page || (page.textContent?.length ?? 0) < 300;
+  const shouldTryVision =
+    sharedImage != null ||
+    (VISION_PLATFORMS.has(platform) && pageContentSparse && !!page?.thumbnail);
+
+  // Build image payload for Claude Vision (base64 string + mimeType)
+  let visionImage: { data: string; mimeType: string } | null = null;
+  if (sharedImage) {
+    visionImage = { data: sharedImage, mimeType: sharedImageMime ?? 'image/jpeg' };
+  } else if (shouldTryVision && page?.thumbnail) {
+    try {
+      const origin = new URL(url).origin;
+      visionImage = await fetchImageForVision(page.thumbnail, origin);
+    } catch {
+      // origin parse failed — skip vision fallback
+    }
+  }
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+Title: ${page?.title ?? '(unavailable — image-only share)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(content not available — extract from image if provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -126,16 +190,38 @@ This is what competitors miss. Examples of what to capture:
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
-Never return an empty substance array for a real travel post.`;
+Never return an empty substance array for a real travel post.${visionImage ? '\n\nAn image from the post is attached — extract content from it as well.' : ''}`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (visionImage) {
+      // Vision path: include the image as a multimodal message
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image' as const,
+                image: visionImage.data,
+                mimeType: visionImage.mimeType,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
