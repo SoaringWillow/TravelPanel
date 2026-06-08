@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import type { GeoPosition } from '@/hooks/useGeoLocation';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -224,18 +225,53 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── User location dot ───────────────────────────────────────────────────────
+
+function UserLocationMarker() {
+  return (
+    <div style={{ position: 'relative', width: 20, height: 20 }}>
+      {/* Pulsing accuracy ring */}
+      <span style={{
+        position: 'absolute',
+        inset: -8,
+        borderRadius: '50%',
+        background: 'rgba(59,130,246,0.18)',
+        animation: 'gps-pulse 2s ease-out infinite',
+      }} />
+      {/* Solid dot */}
+      <span style={{
+        position: 'absolute',
+        inset: 3,
+        borderRadius: '50%',
+        background: '#3b82f6',
+        border: '2.5px solid white',
+        boxShadow: '0 2px 8px rgba(59,130,246,0.5)',
+      }} />
+      <style>{`
+        @keyframes gps-pulse {
+          0%   { transform: scale(1);   opacity: 0.8; }
+          100% { transform: scale(3.5); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userPosition?: GeoPosition | null;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userPosition }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
-  const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const mapInstanceRef   = useRef<maplibregl.Map | null>(null);
+  const prevUserPosRef   = useRef<GeoPosition | null>(null);
+  const centeredOnGpsRef = useRef(false);
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -266,6 +302,22 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     (e: ViewStateChangeEvent) => syncView(e.target as unknown as maplibregl.Map),
     [syncView],
   );
+
+  // Auto-centre on user's GPS position the first time it becomes available,
+  // then track silently without re-centering on each position update.
+  useEffect(() => {
+    if (!userPosition) { centeredOnGpsRef.current = false; return; }
+    if (!mapInstanceRef.current) return;
+    const prev = prevUserPosRef.current;
+    const isNew = !prev || prev.lat !== userPosition.lat || prev.lng !== userPosition.lng;
+    if (!isNew) return;
+    prevUserPosRef.current = userPosition;
+
+    if (!centeredOnGpsRef.current) {
+      centeredOnGpsRef.current = true;
+      mapInstanceRef.current.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 13, duration: 1200 });
+    }
+  }, [userPosition]);
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
@@ -328,6 +380,13 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* User GPS position */}
+        {userPosition && (
+          <Marker longitude={userPosition.lng} latitude={userPosition.lat} anchor="center">
+            <UserLocationMarker />
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
