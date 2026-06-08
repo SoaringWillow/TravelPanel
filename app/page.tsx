@@ -90,6 +90,24 @@ function HomePageInner() {
               visitedAt:    Date.now(),
               autoDetected: true,
             }).catch(() => {/* silent */});
+
+            // Fire a local notification if not already notified this session
+            const notifKey = `notified-${item.id}-${loc.name}-${today}`;
+            if (!sessionStorage.getItem(notifKey)) {
+              sessionStorage.setItem(notifKey, '1');
+              const tipBody = item.substance[0]?.content;
+              const body = tipBody ?? 'Tap to see tips from your saved clip.';
+              import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+                LocalNotifications.schedule({
+                  notifications: [{
+                    id: Math.abs(item.id.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0)),
+                    title: `📍 ${item.title}`,
+                    body: `${formatDistance(dist)} away · ${body.slice(0, 80)}`,
+                    extra: { itemId: item.id, lat: loc.lat, lng: loc.lng },
+                  }],
+                }).catch(() => {/* plugin not installed / no permission */});
+              }).catch(() => {/* no-op on web */});
+            }
           }
         }
       }

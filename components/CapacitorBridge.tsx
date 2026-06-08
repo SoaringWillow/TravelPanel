@@ -92,6 +92,17 @@ export function CapacitorBridge() {
 
         await SplashScreen.hide({ fadeOutDuration: 300 });
 
+        // Request local notification permission once (for proximity alerts in trip mode)
+        if (!localStorage.getItem('notifPermAsked')) {
+          try {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            await LocalNotifications.requestPermissions();
+            localStorage.setItem('notifPermAsked', '1');
+          } catch {
+            // Plugin not installed or permission not available
+          }
+        }
+
         // Check for a pending share written by the Share Extension via App Group
         // fallback (fires when the URL scheme open wasn't available).
         checkPendingAppGroupShare(router);

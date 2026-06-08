@@ -55,7 +55,7 @@ All Phase A–C tasks complete. The app has:
 - Run `npm install @capacitor/haptics && npx cap sync ios`
 
 ### D2 — Local Proximity Notifications
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users enable GPS trip mode but there's no notification when approaching a saved place. This is the killer feature of on-trip mode — a tap-on-shoulder "you're 150m from that ramen spot you saved in February."
 **Files to change**: `package.json`, `components/CapacitorBridge.tsx`, `app/page.tsx`
 **What to do**:
