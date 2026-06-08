@@ -32,6 +32,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImage, setPendingImage]       = useState<{ base64: string; mediaType: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -40,6 +41,21 @@ function SharePageInner() {
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Consume pending image stashed by CapacitorBridge from App Group (iOS Xiaohongshu flow)
+  useEffect(() => {
+    try {
+      const base64 = sessionStorage.getItem('pendingShareImage');
+      const mediaType = sessionStorage.getItem('pendingShareImageType');
+      if (base64) {
+        setPendingImage({ base64, mediaType: mediaType ?? 'image/jpeg' });
+        sessionStorage.removeItem('pendingShareImage');
+        sessionStorage.removeItem('pendingShareImageType');
+      }
+    } catch {
+      // sessionStorage unavailable (private browsing, etc.)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -94,9 +110,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image for platforms that block URL scraping (Xiaohongshu)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImage?.base64, pendingImage?.mediaType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

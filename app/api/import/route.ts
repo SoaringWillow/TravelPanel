@@ -81,40 +81,17 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Shared extraction prompt body ───────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
+const EXTRACTION_INSTRUCTIONS = `
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
-If the post doesn't mention specific named places, return an empty locations array.
+If no specific named places are mentioned, return an empty locations array.
 Do NOT invent or guess coordinates.
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
-Extract every piece of actionable insight, advice, warning, or opinion from the post.
-This is what competitors miss. Examples of what to capture:
+Extract every piece of actionable insight, advice, warning, or opinion.
+This is what competitors miss. Examples:
 - "Arrive before 8am to beat the queue" → tip
 - "The set lunch menu is half the price of dinner" → tip
 - "Cash only, nearest ATM is 10 min walk" → warning
@@ -124,20 +101,107 @@ This is what competitors miss. Examples of what to capture:
 - "If you're visiting in August, be aware it's typhoon season" → context
 - "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
 
-For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
+For list-format content like "35 mistakes to avoid" extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  // Parse body: JSON with optional imageBase64, or multipart/form-data with image file
+  let url = '';
+  let imageBase64: string | null = null;
+  let imageMediaType = 'image/jpeg';
+
+  const ct = req.headers.get('content-type') ?? '';
+  if (ct.includes('multipart/form-data')) {
+    try {
+      const form = await req.formData();
+      url = (form.get('url') as string) ?? '';
+      const file = form.get('image') as File | null;
+      if (file) {
+        const buf = await file.arrayBuffer();
+        imageBase64 = Buffer.from(buf).toString('base64');
+        imageMediaType = file.type || 'image/jpeg';
+      }
+    } catch {
+      return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
+    }
+  } else {
+    try {
+      const body = await req.json();
+      url = body.url ?? '';
+      imageBase64 = body.imageBase64 ?? null;
+      imageMediaType = body.imageMediaType ?? 'image/jpeg';
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
   let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+
+  // ── Vision path: image provided (e.g. Xiaohongshu screenshot from iOS share) ──
+  if (imageBase64) {
+    const visionPrompt = `You are a travel content analyzer. The user shared a screenshot of a social media travel post (platform: ${platform}, URL: ${url}).
+
+Analyze the image and extract TWO layers:
+${EXTRACTION_INSTRUCTIONS}
+
+Read all visible text in the image carefully — captions, overlays, hashtags, comments shown.`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: visionPrompt },
+              {
+                type: 'image',
+                image: imageBase64,
+                mimeType: imageMediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to text-based extraction as fallback
+    }
+  }
+
+  // ── Text path: fetch page and use text extraction ─────────────────────────
+  const page = await fetchPageData(url);
+
+  if (!claudeResult) {
+    const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+${EXTRACTION_INSTRUCTIONS}`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {
