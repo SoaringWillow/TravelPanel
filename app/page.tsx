@@ -9,7 +9,6 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
-import { EmptyState } from '@/components/EmptyState';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -95,26 +94,35 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
-      {/* Empty state — shown when no items and not loading */}
+      {/* First-pin onboarding card — below top bar, dismisses on first real item */}
       <AnimatePresence>
         {!loading && items.filter((i) => !i.isDemo).length === 0 && !selectedItem && (
           <motion.div
             key="map-empty"
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ duration: 0.3, delay: 0.4 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
             className="absolute left-4 right-4 z-[900]"
-            style={{ bottom: '7rem' }}
+            style={{ top: '5.5rem' }}
           >
-            <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-xl shadow-black/10 overflow-hidden">
-              <EmptyState
-                illustration="map"
-                title="Your travel map is waiting"
-                subtitle="Share a post from Instagram, YouTube, or Xiaohongshu to drop your first pin."
-                action={{ label: '+ Clip Your First Inspiration', onClick: () => setShowImport(true) }}
-                className="py-7"
-              />
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-lg shadow-black/10 px-4 py-4 flex items-center gap-3">
+              <span className="text-2xl flex-shrink-0">📍</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800 leading-snug">
+                  Your travel map is waiting
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  Share a post from Instagram, YouTube, or Xiaohongshu to drop your first pin.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="flex-shrink-0 bg-indigo-600 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+              >
+                Share a Link
+              </button>
             </div>
           </motion.div>
         )}

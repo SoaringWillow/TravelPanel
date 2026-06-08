@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, X, Check } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { impactHeavy, notifyWarning, notifySuccess, notifyError } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -82,6 +83,17 @@ export default function InboxCard({
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const prevStatusRef = useRef<string | null>(null);
+
+  // Fire haptic when enrichment completes or fails
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = enrichmentStatus ?? null;
+    if (prev === 'processing' || prev === 'pending') {
+      if (enrichmentStatus === 'done') notifySuccess();
+      else if (enrichmentStatus === 'failed') notifyError();
+    }
+  }, [enrichmentStatus]);
 
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
@@ -93,12 +105,15 @@ export default function InboxCard({
       // Full skeleton — no content yet
       return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
-          <div className="w-full h-32 bg-gray-200" />
-          <div className="p-4 space-y-3">
+          <div className="w-full aspect-video bg-gray-200" />
+          <div className="p-3 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-16 bg-gray-200 rounded-full" />
+            </div>
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
             <div className="h-3 bg-gray-200 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
+            <div className="flex items-center gap-2 pt-0.5">
+              <Loader2 size={13} className="text-indigo-400 animate-spin flex-shrink-0" />
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
             </div>
           </div>
@@ -231,72 +246,70 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Thumbnail or placeholder */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+      {/* ── Thumbnail (16/9, full-width) ── */}
       {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
+        <div className="w-full aspect-video overflow-hidden rounded-t-2xl flex-shrink-0">
+          <img
+            src={item.thumbnail}
+            alt={item.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).parentElement!.style.display = 'none';
+            }}
+          />
+        </div>
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
+        <div className="w-full aspect-video bg-gradient-to-br from-indigo-50 to-violet-100 flex items-center justify-center rounded-t-2xl flex-shrink-0">
+          <Globe size={28} className="text-indigo-200" />
         </div>
       )}
 
-      <div className="p-4">
-        {/* Platform badge */}
-        <span
-          className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full inline-block mb-2`}
-        >
-          {PLATFORM_LABELS[item.platform]}
-        </span>
+      <div className="p-3 flex flex-col flex-1">
+        {/* Platform chip + title */}
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span
+            className={`${PLATFORM_BG[item.platform]} text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0`}
+          >
+            {PLATFORM_LABELS[item.platform]}
+          </span>
+        </div>
 
-        {/* Title */}
         <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
-        {/* Description */}
+        {/* Description — 2 lines */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-xs text-gray-500 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
 
-        {/* Meta row: location count + activity count + substance count */}
-        {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0) && (
-          <div className="flex items-center gap-3 mb-2">
+        {/* Counts row */}
+        {(item.locations.length > 0 || (item.substance?.length ?? 0) > 0) && (
+          <div className="flex items-center gap-2.5 mb-2">
             {item.locations.length > 0 && (
               <span className="text-xs text-gray-500 flex items-center gap-0.5">
                 <MapPin size={10} className="text-indigo-400" />
                 {item.locations.length}
               </span>
             )}
-            {item.activities.length > 0 && (
-              <span className="text-xs text-gray-500">
-                🎯 {item.activities.length}
-              </span>
-            )}
             {(item.substance?.length ?? 0) > 0 && (
               <span className="text-xs text-amber-600 font-medium">
-                💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
+                💡 {item.substance!.length}
               </span>
             )}
           </div>
         )}
 
-        {/* Tags (first 3) */}
+        {/* Tags (first 2 to keep card compact) */}
         {item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {item.tags.slice(0, 3).map((tag) => (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {item.tags.slice(0, 2).map((tag) => (
               <span
                 key={tag}
-                className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                className="bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded-full"
               >
                 #{tag}
               </span>
@@ -304,22 +317,25 @@ export default function InboxCard({
           </div>
         )}
 
+        {/* Spacer pushes footer to bottom */}
+        <div className="flex-1" />
+
         {/* Footer */}
         {confirmingDelete ? (
           <DeleteConfirmFooter
-            onConfirm={() => { setConfirmingDelete(false); onDelete(item.id); }}
+            onConfirm={() => { setConfirmingDelete(false); impactHeavy(); notifyWarning(); onDelete(item.id); }}
             onCancel={() => setConfirmingDelete(false)}
           />
         ) : (
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-            <span className="text-xs text-gray-400">{date}</span>
+            <span className="text-[10px] text-gray-400">{date}</span>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               {/* View on Map */}
               <button
                 type="button"
                 onClick={() => onViewOnMap(item.id)}
-                className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
+                className="text-[10px] text-indigo-600 font-semibold hover:text-indigo-800 transition-colors px-1.5 py-1"
               >
                 Map
               </button>
@@ -332,7 +348,7 @@ export default function InboxCard({
                 className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
                 aria-label={`Open in ${PLATFORM_LABELS[item.platform]}`}
               >
-                <ExternalLink size={13} />
+                <ExternalLink size={12} />
               </a>
 
               {/* Move to board */}
@@ -343,18 +359,18 @@ export default function InboxCard({
                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   aria-label="Move to collection"
                 >
-                  <LayoutGrid size={13} />
+                  <LayoutGrid size={12} />
                 </button>
               )}
 
-              {/* Delete — shows in-card confirmation first */}
+              {/* Delete */}
               <button
                 type="button"
                 onClick={() => setConfirmingDelete(true)}
                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 aria-label="Delete"
               >
-                <Trash2 size={13} />
+                <Trash2 size={12} />
               </button>
             </div>
           </div>

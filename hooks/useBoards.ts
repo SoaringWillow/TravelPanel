@@ -50,5 +50,12 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  const renameBoard = useCallback(async (id: string, name: string): Promise<void> => {
+    setBoards((prev) => prev.map((b) => b.id === id ? { ...b, name, updatedAt: Date.now() } : b));
+    const all = await getAllBoards();
+    const board = all.find((b) => b.id === id);
+    if (board) await saveBoard({ ...board, name, updatedAt: Date.now() });
+  }, []);
+
+  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard, renameBoard };
 }

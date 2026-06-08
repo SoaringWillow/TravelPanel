@@ -228,7 +228,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Smooth visual re-sort using `AnimatePresence`
 
 ### D6 — Haptic Feedback (iOS native feel)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:
 - Install `@capacitor/haptics` (already in package.json likely — check first)
@@ -239,7 +239,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Create `lib/haptics.ts` with typed wrappers that no-op outside Capacitor
 
 ### D7 — Refined InboxCard Layout with Prominent Thumbnail
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:
 - When `item.thumbnail` exists: show as a full-width top image (aspect-ratio 16/9, object-cover, rounded-t-2xl)
@@ -248,7 +248,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Platform chip colors update: Xiaohongshu=#FF2442, YouTube=#FF0000, Instagram gradient border
 
 ### D8 — Map Empty State + First-Pin Onboarding
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`  
 **What to do**:
 - When `items.length === 0`: show a floating card below the top bar: "📍 Your travel map is waiting. Share a post from Instagram, YouTube, or Xiaohongshu to drop your first pin."
@@ -257,7 +257,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Don't show this card if demo/seed items exist
 
 ### D9 — Board Detail Page Redesign
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`  
 **What to do**:
 - Show board header: large cover image (first clip thumbnail) or gradient with emoji
@@ -266,7 +266,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Board edit: tap title to rename inline
 
 ### D10 — App Icon + Splash Screen Assets
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `ios/App/App/Assets.xcassets/`, `public/`  
 **What to do**:
 - Generate 1024x1024 App Icon using the same map-pin design as the browser extension (indigo background, white pin)
