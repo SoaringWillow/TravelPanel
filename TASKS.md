@@ -73,7 +73,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Empty state: "No wisdom extracted yet. Add more clips to unlock insights."
 
 ### D6 — Offline Plan Cache
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Plans are generated online but should be readable offline — essential for in-destination use.  
 **Files to change**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
 **What to do**:

@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, Wand2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -40,6 +41,8 @@ export default function PlanPage() {
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [refineText, setRefineText] = useState('');
+
+  const { isOnline, justCameOnline } = useOnlineStatus();
 
   // On-trip GPS mode
   const [isTripMode, setIsTripMode]         = useState(false);
@@ -409,6 +412,19 @@ export default function PlanPage() {
           />
         )}
       </div>
+
+      {/* Offline / back-online banners */}
+      {!isOnline && (
+        <div className="bg-gray-800 text-white text-xs text-center py-1.5 flex items-center justify-center gap-1.5 flex-shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+          Offline — plan is saved and readable
+        </div>
+      )}
+      {justCameOnline && (
+        <div className="bg-emerald-600 text-white text-xs text-center py-1.5 flex-shrink-0">
+          ✓ Back online
+        </div>
+      )}
 
       {/* Bottom scrollable panel */}
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
