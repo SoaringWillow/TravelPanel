@@ -1,6 +1,7 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, X, Check } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 
@@ -12,6 +13,46 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+}
+
+// ─── Delete Confirmation Footer ───────────────────────────────────────────────
+
+function DeleteConfirmFooter({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  // Auto-cancel after 3 seconds of no action
+  useEffect(() => {
+    const t = setTimeout(onCancel, 3000);
+    return () => clearTimeout(t);
+  }, [onCancel]);
+
+  return (
+    <div className="flex items-center justify-between pt-2 border-t border-red-100 bg-red-50/60 -mx-4 px-4 -mb-4 pb-3 mt-2 rounded-b-2xl">
+      <span className="text-xs font-semibold text-red-600">Delete this clip?</span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg hover:bg-white transition-colors"
+        >
+          <X size={12} />
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="flex items-center gap-1 text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg transition-colors active:scale-95"
+        >
+          <Check size={12} />
+          Delete
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -40,6 +81,7 @@ export default function InboxCard({
   onRetry,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // ── Pending / processing state ───────────────────────────────────────────
   // 'processing' on a card that has no content = initial enrichment in flight
@@ -97,7 +139,7 @@ export default function InboxCard({
               </a>
               <button
                 type="button"
-                onClick={() => onDelete(item.id)}
+                onClick={() => setConfirmingDelete(true)}
                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 aria-label="Delete"
               >
@@ -263,53 +305,60 @@ export default function InboxCard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-xs text-gray-400">{date}</span>
+        {confirmingDelete ? (
+          <DeleteConfirmFooter
+            onConfirm={() => { setConfirmingDelete(false); onDelete(item.id); }}
+            onCancel={() => setConfirmingDelete(false)}
+          />
+        ) : (
+          <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+            <span className="text-xs text-gray-400">{date}</span>
 
-          <div className="flex items-center gap-1">
-            {/* View on Map */}
-            <button
-              type="button"
-              onClick={() => onViewOnMap(item.id)}
-              className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
-            >
-              Map
-            </button>
-
-            {/* Open original */}
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
-              aria-label={`Open in ${PLATFORM_LABELS[item.platform]}`}
-            >
-              <ExternalLink size={13} />
-            </a>
-
-            {/* Move to board */}
-            {onMoveToBoard && (
+            <div className="flex items-center gap-1">
+              {/* View on Map */}
               <button
                 type="button"
-                onClick={() => onMoveToBoard(item.id)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Move to collection"
+                onClick={() => onViewOnMap(item.id)}
+                className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
               >
-                <LayoutGrid size={13} />
+                Map
               </button>
-            )}
 
-            {/* Delete */}
-            <button
-              type="button"
-              onClick={() => onDelete(item.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-              aria-label="Delete"
-            >
-              <Trash2 size={13} />
-            </button>
+              {/* Open original */}
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                aria-label={`Open in ${PLATFORM_LABELS[item.platform]}`}
+              >
+                <ExternalLink size={13} />
+              </a>
+
+              {/* Move to board */}
+              {onMoveToBoard && (
+                <button
+                  type="button"
+                  onClick={() => onMoveToBoard(item.id)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Move to collection"
+                >
+                  <LayoutGrid size={13} />
+                </button>
+              )}
+
+              {/* Delete — shows in-card confirmation first */}
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                aria-label="Delete"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

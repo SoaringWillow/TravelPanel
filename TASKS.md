@@ -193,7 +193,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Each empty state: consistent style — centered, illustration height 160px, title text-lg font-semibold text-gray-700, subtitle text-sm text-gray-400, indigo CTA button
 
 ### D2 — Delete Confirmation & Undo Toast
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, new `components/UndoToast.tsx`  
 **What to do**:
 - Replace single-tap delete with: tap → bottom confirmation sheet ("Delete this clip?" with red "Delete" button + gray "Cancel")

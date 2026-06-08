@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, deleteItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
+import { UndoToastPortal } from '@/components/UndoToast';
 import NavBar from '@/components/NavBar';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -39,6 +40,35 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // Soft-delete state for undo support
+  const [undoItem, setUndoItem]       = useState<SavedItem | null>(null);
+  const undoTimerRef                  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDeleteWithUndo = useCallback(async (id: string) => {
+    const target = items.find((i) => i.id === id);
+    if (!target) return;
+
+    // Remove from UI immediately
+    removeItem(id);
+
+    // Show undo toast
+    setUndoItem(target);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = setTimeout(async () => {
+      // Hard-delete after 5 seconds
+      await deleteItem(id);
+      setUndoItem(null);
+    }, 5000);
+  }, [items, removeItem]);
+
+  const handleUndo = useCallback(async () => {
+    if (!undoItem) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    await saveItem(undoItem);
+    router.refresh();
+    setUndoItem(null);
+  }, [undoItem, router]);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -182,7 +212,7 @@ export default function InboxPage() {
                 >
                   <InboxCard
                     item={item}
-                    onDelete={removeItem}
+                    onDelete={handleDeleteWithUndo}
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
@@ -272,6 +302,14 @@ export default function InboxPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Undo toast — appears after soft-delete */}
+      <UndoToastPortal
+        visible={!!undoItem}
+        message="Clip deleted"
+        onUndo={handleUndo}
+        onDismiss={() => setUndoItem(null)}
+      />
 
       <NavBar active="inbox" />
     </div>

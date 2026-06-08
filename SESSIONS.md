@@ -99,3 +99,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-08 12:25 | e0f0743 | feat(browser-extension): add Chrome/Safari Manifest V3 clipper extension
 2026-06-08 12:34 | f554494 | feat(b3): Xiaohongshu Claude Vision fix — image extraction from screenshots
 2026-06-08 12:36 | 8961460 | feat(b5): settings page with JSON data export
+2026-06-08 12:41 | 801b648 | feat(d1): beautiful empty states across map, inbox, and boards tabs
