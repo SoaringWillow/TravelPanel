@@ -43,6 +43,7 @@ export type AnalyticsEvent =
   | 'plan_exported'
   | 'board_created'
   | 'search_performed'
+  | 'smart_search'
   | 'substance_viewed';
 
 export function track(event: AnalyticsEvent, props?: Record<string, unknown>): void {

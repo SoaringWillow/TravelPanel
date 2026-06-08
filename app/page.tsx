@@ -2,14 +2,19 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Navigation, NavigationOff } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
+import { haversineKm, formatDistance } from '@/lib/geo';
+import { computeResurfaceSignal, ResurfaceSignal, dismissSignal } from '@/lib/resurfacing';
+import { useBoards } from '@/hooks/useBoards';
+import ResurfaceCard from '@/components/ResurfaceCard';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -17,11 +22,58 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 function HomePageInner() {
   const searchParams = useSearchParams();
+  const router       = useRouter();
   const { items, loading, addItem } = useSavedItems();
+  const { boards }                       = useBoards();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [gpsActive, setGpsActive]       = useState(false);
+  const [resurface, setResurface]       = useState<ResurfaceSignal | null>(() => null);
+  const { position: userPosition, status: gpsStatus } = useGeoLocation(gpsActive);
+
+  // Compute resurface signal once items are loaded (and re-compute when GPS fires)
+  useEffect(() => {
+    if (loading || items.length === 0) return;
+    setResurface(computeResurfaceSignal(items, boards, userPosition));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, items.length, boards.length, userPosition?.lat, userPosition?.lng]);
+
+  function handleResurfaceAction(signal: ResurfaceSignal) {
+    switch (signal.type) {
+      case 'proximity':
+        setSelectedItem(signal.item);
+        setFlyTo(signal.location);
+        break;
+      case 'inbox_pile':
+        // Navigate to inbox — handled by NavBar link, but we can set selectedItem
+        break;
+      case 'plan_nudge':
+        router.push(`/plan/${signal.board.id}`);
+        break;
+      case 'rediscover':
+        setSelectedItem(signal.item);
+        if (signal.item.locations.length > 0) setFlyTo(signal.item.locations[0]);
+        break;
+    }
+    dismissSignal(signal.type);
+    setResurface(null);
+  }
+
+  // Nearest clip to user when GPS is active
+  const nearestClip = (() => {
+    if (!userPosition || items.length === 0) return null;
+    let minDist = Infinity;
+    let nearest: { item: SavedItem; distKm: number } | null = null;
+    for (const item of items) {
+      for (const loc of item.locations) {
+        const d = haversineKm(userPosition.lat, userPosition.lng, loc.lat, loc.lng);
+        if (d < minDist) { minDist = d; nearest = { item, distKm: d }; }
+      }
+    }
+    return nearest;
+  })();
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,17 +123,55 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} userPosition={userPosition} />
 
-      {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
+      {/* Top bar – floating, respects Dynamic Island / notch */}
+      <div className="absolute top-0 left-0 right-0 z-[1000] px-4 pb-4" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg dark:shadow-gray-900/50 px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+          <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
+          <div className="ml-auto flex items-center gap-2">
+            {/* GPS status pill */}
+            {gpsActive && (
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                gpsStatus === 'acquiring' ? 'bg-amber-100 text-amber-700 animate-pulse' :
+                gpsStatus === 'active'    ? 'bg-green-100 text-green-700' :
+                gpsStatus === 'denied'    ? 'bg-red-100 text-red-600' :
+                                            'bg-gray-100 text-gray-500'
+              }`}>
+                {gpsStatus === 'acquiring' ? '📡 Locating…' :
+                 gpsStatus === 'active'    ? nearestClip ? `📍 ${formatDistance(nearestClip.distKm)} away` : '📍 On Trip' :
+                 gpsStatus === 'denied'    ? '🚫 Location denied' :
+                                            '⚠️ GPS error'}
+              </span>
+            )}
+            {/* GPS toggle */}
+            <button
+              type="button"
+              onClick={() => setGpsActive((v) => !v)}
+              title={gpsActive ? 'Stop trip mode' : 'Start trip mode — show my location'}
+              className={`flex items-center justify-center w-8 h-8 rounded-full transition-all active:scale-90 ${
+                gpsActive ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {gpsActive ? <Navigation size={15} /> : <NavigationOff size={15} />}
+            </button>
+            <span className="text-sm text-gray-500">
+              {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''}`}
+            </span>
           </div>
         </div>
+      </div>
+
+      {/* Proactive resurface card — shown below top bar when a signal is active */}
+      <div className="absolute left-0 right-0 z-[999]" style={{ top: 'calc(max(16px, env(safe-area-inset-top)) + 68px)' }}>
+        {!selectedItem && resurface && (
+          <ResurfaceCard
+            signal={resurface}
+            onDismiss={() => setResurface(null)}
+            onAction={handleResurfaceAction}
+          />
+        )}
       </div>
 
       {/* Selected item detail card */}

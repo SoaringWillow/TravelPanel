@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
+import { semanticSearch } from '@/lib/embeddings';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
@@ -26,6 +28,17 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
   { key: 'bilibili', label: 'Bilibili' },
 ];
 
+const COLUMNS = 2;
+
+// Split array into rows of N
+function chunkItems(items: SavedItem[], cols: number): SavedItem[][] {
+  const rows: SavedItem[][] = [];
+  for (let i = 0; i < items.length; i += cols) {
+    rows.push(items.slice(i, i + cols));
+  }
+  return rows;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
@@ -38,10 +51,26 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [smartMode, setSmartMode] = useState(false);
+  const [smartResults, setSmartResults] = useState<SavedItem[] | null>(null);
+  const [smartLoading, setSmartLoading] = useState(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
+    setSmartResults(null);
     if (q.trim()) track('search_performed', { length: q.trim().length });
+  }, []);
+
+  const handleSmartSearch = useCallback((q: string, smart: boolean) => {
+    setSmartMode(smart);
+    setQuery(q);
+    if (!smart || !q.trim()) {
+      setSmartResults(null);
+      return;
+    }
+    track('smart_search', { length: q.trim().length });
   }, []);
 
   // Only unassigned items (boardId === undefined)
@@ -52,7 +81,37 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  // Run semantic search when smartMode + query changes
+  useEffect(() => {
+    if (!smartMode || !query.trim()) {
+      setSmartResults(null);
+      return;
+    }
+    let cancelled = false;
+    setSmartLoading(true);
+    semanticSearch(platformFiltered, query).then((ranked) => {
+      if (!cancelled) {
+        setSmartResults(ranked);
+        setSmartLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setSmartLoading(false);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [smartMode, query, items.length, activePlatform]);
+
+  const filtered = smartResults ?? searchItems(platformFiltered, query);
+
+  // Group filtered items into rows for the 2-column grid virtualizer
+  const rows = useMemo(() => chunkItems(filtered, COLUMNS), [filtered]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 132, // card height ~120 + gap 12
+    overscan: 5,
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -73,12 +132,9 @@ export default function InboxPage() {
       if (!movingItemId) return;
 
       if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
         const item = items.find((i) => i.id === movingItemId);
         if (item && item.boardId) {
           await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
           const allItems = await getAllItems();
           const updatedItem = allItems.find((i) => i.id === movingItemId);
           if (updatedItem) {
@@ -90,16 +146,15 @@ export default function InboxPage() {
       }
 
       setMovingItemId(null);
-      // Trigger a soft reload by navigating to the same page
       router.refresh();
     },
     [movingItemId, items, router]
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 safe-top pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -110,7 +165,17 @@ export default function InboxPage() {
 
         {/* Search */}
         <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar
+            onSearch={handleSearch}
+            onSmartSearch={handleSmartSearch}
+            showSmartToggle
+          />
+          {smartLoading && (
+            <p className="text-xs text-indigo-500 mt-1 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+              Running semantic search…
+            </p>
+          )}
         </div>
 
         {/* Platform filter tabs */}
@@ -139,7 +204,7 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -159,26 +224,34 @@ export default function InboxPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
+          // Virtual scroll container — height must be explicit for the absolutelypositioned rows
+          <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+                className="grid grid-cols-2 gap-3 pb-3"
+              >
+                {rows[virtualRow.index].map((item) => (
                   <InboxCard
+                    key={item.id}
                     item={item}
                     onDelete={removeItem}
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
                   />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                ))}
+              </div>
+            ))}
           </div>
         )}
       </div>
