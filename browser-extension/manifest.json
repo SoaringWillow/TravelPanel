@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "short_name": "TravelPanel",
+  "description": "Save any travel page to TravelPanel with one click. Works with Instagram, YouTube, Xiaohongshu, TikTok, travel blogs, and more.",
+  "version": "1.0.0",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html"
+}
