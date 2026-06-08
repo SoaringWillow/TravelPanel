@@ -99,7 +99,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - In the Capacitor context, also call `Haptics.impact()` from `@capacitor/haptics` if available (dynamic import, no-op if not installed)
 
 ### E2 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect dark mode. Without it the app looks unpolished in system dark mode.  
 **Files to change**: `app/globals.css`, `app/layout.tsx`, multiple component files  
 **What to do**:
