@@ -22,6 +22,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#6366f1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="TravelPanel" />
+        <link rel="apple-touch-startup-image" href="/splash.png" />
+        <link rel="apple-touch-icon" href="/splash.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {/* Blocking theme script — must run before first paint to prevent dark→light flash */}
         <script dangerouslySetInnerHTML={{ __html: `

@@ -122,7 +122,7 @@
 - Preserve search filter: when search is active, filter the items array before passing to virtualizer
 
 ### D7 — App Icon + Splash Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app ships with the default Capacitor icon (gray square). App Store requires custom icons and a branded splash.  
 **Files to change**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `capacitor.config.ts`, possibly `public/`  
 **What to do**:
