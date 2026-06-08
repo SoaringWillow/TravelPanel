@@ -93,7 +93,7 @@ All Phase A–C tasks complete. The app has:
 - Mount `OfflineBanner` in `app/layout.tsx` below the children
 
 ### D4 — Pull-to-Refresh on Inbox and Boards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: On iOS, pull-to-refresh is a fundamental UX pattern. Without it, users don't know how to refresh stale data. Also useful to trigger the enrichment retry queue manually.
 **Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`, new `components/PullToRefresh.tsx`
 **What to do**:
