@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="64" fill="#6366f1"/>
+  <!-- Map pin -->
+  <path d="M64 22C49.6 22 38 33.6 38 48c0 21 26 58 26 58s26-37 26-58c0-14.4-11.6-26-26-26z" fill="white"/>
+  <circle cx="64" cy="48" r="10" fill="#6366f1"/>
+</svg>
