@@ -50,7 +50,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Use `react-pull-to-refresh` or implement with Framer Motion drag constraints; keep it simple (no library if 20 lines of code suffice)
 
 ### D4 — Natural-Language Plan Refinement
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After generating a plan, users want to adjust it conversationally — "more free time", "fewer stops", "budget-conscious version". Currently regeneration means starting over.  
 **Files to change**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`  
 **What to do**:

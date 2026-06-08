@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, Wand2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -39,6 +39,7 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [refineText, setRefineText] = useState('');
 
   // On-trip GPS mode
   const [isTripMode, setIsTripMode]         = useState(false);
@@ -161,6 +162,76 @@ export default function PlanPage() {
       }
     }
   }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+
+  const refinePlan = useCallback(async () => {
+    if (!refineText.trim() || !planIsComplete(plan)) return;
+    const refinement = refineText.trim();
+    setRefineText('');
+    setStage('generating');
+    setSteps([]);
+    const prevPlan = plan;
+
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: boardItems,
+        days,
+        preferences: Array.from(selectedChips).join('. '),
+        existingPlan: prevPlan,
+        refinement,
+      }),
+    });
+
+    if (!res.ok || !res.body) { setStage('complete'); setPlan(prevPlan); return; }
+
+    const reader = res.body.getReader();
+    let buf = '';
+    let latestPlan: Partial<TripPlan> | null = null;
+    const collectedSteps: AgentStep[] = [];
+    const versionName = refinement.slice(0, 30) + (refinement.length > 30 ? '…' : '');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += new TextDecoder().decode(value);
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line) as PlanStreamMessage;
+          if (msg.t === 'step') {
+            collectedSteps.push(msg.step);
+            setSteps((s) => [...s, msg.step]);
+            if (msg.step.type === 'done' || msg.step.type === 'error') {
+              setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+            }
+            if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              const trip: Trip = {
+                id: crypto.randomUUID(),
+                boardId,
+                boardName: board?.name ?? '',
+                name: versionName,
+                days,
+                preferences: refinement,
+                agentSteps: collectedSteps,
+                plan: latestPlan as TripPlan,
+                createdAt: Date.now(),
+              };
+              await saveTrip(trip);
+              setSavedTrips((prev) => [...prev, trip]);
+              setCurrentTripId(trip.id);
+            }
+          }
+          if (msg.t === 'plan') {
+            latestPlan = msg.plan as Partial<TripPlan>;
+            setPlan(latestPlan);
+          }
+        } catch { /* skip */ }
+      }
+    }
+  }, [refineText, plan, boardItems, days, selectedChips, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -652,6 +723,25 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Refine plan */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={refineText}
+                  onChange={(e) => setRefineText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && refineText.trim()) refinePlan(); }}
+                  placeholder="Refine this plan… e.g. more free time, budget-conscious"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                />
+                <button
+                  onClick={refinePlan}
+                  disabled={!refineText.trim()}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <Wand2 size={15} />
+                </button>
+              </div>
 
               {/* Start Over */}
               <button
