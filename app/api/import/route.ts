@@ -125,7 +125,17 @@ This is what competitors miss. Examples of what to capture:
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
-Never return an empty substance array for a real travel post.`;
+Never return an empty substance array for a real travel post.
+
+${platform === 'instagram' ? `Instagram-specific guidance:
+- Extract location tags and tagged places (these are pins)
+- Caption often contains travel tips — mine it thoroughly
+- Reel descriptions may mention multiple spots in sequence` : ''}
+${platform === 'youtube' ? `YouTube-specific guidance:
+- Extract place names from video title and description
+- Check timestamps/chapters for location mentions
+- "Travel vlog" titles often name the destination city explicitly
+- Description often contains a list of spots visited — these are all pins` : ''}`.trim();
 }
 
 export async function POST(req: NextRequest) {

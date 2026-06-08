@@ -21,11 +21,13 @@ import NavBar from '@/components/NavBar';
 // ─── Platform filter config ───────────────────────────────────────────────────
 
 const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'wechat', label: 'WeChat' },
-  { key: 'xiaohongshu', label: 'Little Red Book' },
-  { key: 'douyin', label: 'Douyin' },
-  { key: 'bilibili', label: 'Bilibili' },
+  { key: 'all',          label: 'All'             },
+  { key: 'instagram',    label: 'Instagram'        },
+  { key: 'youtube',      label: 'YouTube'          },
+  { key: 'xiaohongshu',  label: 'Little Red Book'  },
+  { key: 'wechat',       label: 'WeChat'           },
+  { key: 'douyin',       label: 'Douyin'           },
+  { key: 'bilibili',     label: 'Bilibili'         },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────

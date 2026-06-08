@@ -125,7 +125,7 @@ All Phase A–C tasks complete. The app has:
 ## PHASE E — Platform Expansion (More clip sources = more weekly clips)
 
 ### E1 — Instagram + YouTube Support
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Instagram and YouTube are the #1 and #2 sources of travel inspiration for the target audience, yet they're not explicitly detected. Currently they fall through as `'other'` with no branded badge. Adding them unlocks the browser extension's full value for English-speaking users.
 **Files to change**: `lib/types.ts`, `lib/parse-url.ts`, `app/inbox/page.tsx`, `browser-extension/popup.js`, `app/api/import/route.ts`
 **What to do**:

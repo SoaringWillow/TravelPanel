@@ -26,7 +26,7 @@ export interface Location {
   address?: string;
 }
 
-export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'other';
+export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'instagram' | 'youtube' | 'other';
 
 // pending  → just captured, SW hasn't processed yet
 // processing → SW currently calling /api/import
