@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+
+    .logo-sub {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    input[type="url"] {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 13px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      background: #f8fafc;
+    }
+
+    input[type="url"]:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+      background: white;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 9px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+      box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+    }
+
+    .btn-primary:hover { background: #1d4ed8; }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #374151;
+      border: 1px solid #e2e8f0;
+    }
+
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    .saved-msg {
+      font-size: 12px;
+      color: #16a34a;
+      margin-top: 10px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .saved-msg.show { display: flex; }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 24px 0;
+    }
+
+    .install-steps {
+      list-style: none;
+      counter-reset: steps;
+    }
+
+    .install-steps li {
+      counter-increment: steps;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.5;
+    }
+
+    .install-steps li::before {
+      content: counter(steps);
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    code {
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#2563eb"/>
+        <circle cx="12" cy="9" r="2.5" fill="white"/>
+      </svg>
+      <div>
+        <div class="logo-text">TravelPanel Clipper</div>
+        <div class="logo-sub">Settings</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>App URL</h2>
+      <p class="hint">The URL of your TravelPanel web app. This is where the extension will open when you clip a page. Use your Vercel deployment URL or <code>http://localhost:3000</code> for local dev.</p>
+      <label for="appUrl">TravelPanel URL</label>
+      <input
+        type="url"
+        id="appUrl"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="btn-row">
+        <button class="btn-primary" id="saveBtn">Save settings</button>
+        <button class="btn-secondary" id="resetBtn">Reset to default</button>
+      </div>
+      <div class="saved-msg" id="savedMsg">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Settings saved!
+      </div>
+    </div>
+
+    <hr />
+
+    <div class="section">
+      <h2>Install in Safari (macOS)</h2>
+      <p class="hint">Safari requires converting the extension through Xcode once:</p>
+      <ol class="install-steps">
+        <li>Install Xcode from the Mac App Store</li>
+        <li>Run: <code>xcrun safari-web-extension-converter /path/to/browser-extension</code></li>
+        <li>Open the generated Xcode project and build it (⌘B)</li>
+        <li>In Safari → Settings → Extensions, enable TravelPanel Clipper</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h2>Install in Chrome / Edge</h2>
+      <ol class="install-steps">
+        <li>Go to <code>chrome://extensions</code></li>
+        <li>Enable <strong>Developer mode</strong> (top right toggle)</li>
+        <li>Click <strong>Load unpacked</strong> and select the <code>browser-extension/</code> folder</li>
+        <li>The TravelPanel icon appears in your toolbar — pin it for quick access</li>
+      </ol>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
