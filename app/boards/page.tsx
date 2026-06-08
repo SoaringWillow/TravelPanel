@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Plus, LayoutGrid, Download } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -110,6 +111,13 @@ export default function BoardsPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Footer links */}
+      <div className="flex items-center justify-center gap-4 py-2 text-xs text-gray-400 dark:text-gray-600">
+        <Link href="/about" className="hover:text-indigo-500 transition-colors">About</Link>
+        <span>·</span>
+        <Link href="/privacy" className="hover:text-indigo-500 transition-colors">Privacy</Link>
       </div>
 
       {/* Create board modal */}

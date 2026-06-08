@@ -146,7 +146,7 @@
 ## PHASE E — App Store Readiness
 
 ### E1 — Privacy Policy + About Page
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/privacy/page.tsx`, new `app/about/page.tsx`, `components/NavBar.tsx`  
 **What to do**:
 - Create `/privacy` page with a clear privacy policy: what data is stored (locally only, no cloud without Supabase key), what APIs are called (Anthropic for extraction, PostHog for analytics if key provided), no data sold to third parties
