@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -276,60 +276,119 @@ function SharePageInner() {
     );
   }
 
-  // ── Stage: done ───────────────────────────────────────────────────────────
+  // ── Stage: done — confetti + animated checkmark ──────────────────────────
+
+  // Fire confetti once when the success screen mounts
+  useEffect(() => {
+    let cancelled = false;
+    import('canvas-confetti').then(({ default: confetti }) => {
+      if (cancelled) return;
+      confetti({
+        particleCount: 90,
+        spread: 70,
+        origin: { y: 0.5 },
+        colors: ['#6366f1', '#4ade80', '#f59e0b', '#ec4899'],
+        disableForReducedMotion: true,
+      });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const substanceCount = enrichedData?.substance?.length ?? 0;
+  const locationCount  = enrichedData?.locations?.length ?? 0;
 
   return (
     <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
       {/* Success content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12">
-        {/* Animated green checkmark */}
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', damping: 14, stiffness: 280, delay: 0.05 }}
-        >
-          <CheckCircle2 size={72} className="text-green-500" strokeWidth={1.5} />
-        </motion.div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 py-8">
 
+        {/* Animated SVG checkmark with pulsing ring */}
+        <div className="relative flex items-center justify-center" style={{ width: 100, height: 100 }}>
+          {/* Pulsing background ring */}
+          <motion.div
+            className="absolute inset-0 rounded-full bg-green-100"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: [1, 1.18, 1], opacity: [0.9, 0, 0.9] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          {/* Check circle */}
+          <motion.svg
+            width={80} height={80} viewBox="0 0 80 80"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', damping: 12, stiffness: 300, delay: 0.05 }}
+          >
+            {/* Circle */}
+            <motion.circle
+              cx="40" cy="40" r="36"
+              fill="none" stroke="#22c55e" strokeWidth="3"
+              strokeDasharray="226"
+              initial={{ strokeDashoffset: 226 }}
+              animate={{ strokeDashoffset: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+            />
+            {/* Checkmark */}
+            <motion.polyline
+              points="24,40 35,52 56,28"
+              fill="none" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
+              strokeDasharray="50"
+              initial={{ strokeDashoffset: 50 }}
+              animate={{ strokeDashoffset: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut', delay: 0.45 }}
+            />
+          </motion.svg>
+        </div>
+
+        {/* Saved to board text */}
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
           className="text-center space-y-1"
         >
-          <p className="text-xl font-bold text-gray-900">
-            ✅ Saved to {savedToName}!
+          <p className="text-2xl font-bold text-gray-900">
+            Saved to {savedToName}!
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 line-clamp-2 max-w-xs mx-auto">
             {sharedTitle}
           </p>
         </motion.div>
 
-        {/* Enrichment result */}
+        {/* AI extraction results */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35 }}
-          className="w-full"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="w-full space-y-2"
         >
           {enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+              <span className="w-3 h-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+              <span className="text-sm text-gray-500">Extracting locations & tips…</span>
             </div>
-          ) : enrichedData && enrichedData.locations.length > 0 ? (
-            <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
-              <p className="text-sm font-semibold text-indigo-700">
-                📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
-              </p>
-              {enrichedData.locations.map((loc, i) => (
-                <p key={i} className="text-sm text-indigo-600">
-                  {loc.name}
-                </p>
-              ))}
-            </div>
-          ) : enrichedData && enrichedData.locations.length === 0 ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3">
-              <p className="text-sm text-gray-500">No specific locations detected</p>
+          ) : enrichedData ? (
+            <div className="flex gap-2">
+              {locationCount > 0 && (
+                <div className="flex-1 bg-indigo-50 rounded-2xl px-3 py-3 text-center">
+                  <p className="text-lg font-bold text-indigo-700">{locationCount}</p>
+                  <p className="text-xs text-indigo-500 font-medium">
+                    location{locationCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              )}
+              {substanceCount > 0 && (
+                <div className="flex-1 bg-amber-50 rounded-2xl px-3 py-3 text-center">
+                  <p className="text-lg font-bold text-amber-700">{substanceCount}</p>
+                  <p className="text-xs text-amber-500 font-medium">
+                    tip{substanceCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              )}
+              {locationCount === 0 && substanceCount === 0 && (
+                <div className="flex-1 bg-gray-50 rounded-2xl px-4 py-3 text-center">
+                  <p className="text-xs text-gray-400">No locations detected in this post</p>
+                </div>
+              )}
             </div>
           ) : null}
         </motion.div>
@@ -337,10 +396,10 @@ function SharePageInner() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
           className="text-xs text-gray-400"
         >
-          Returning automatically in a few seconds…
+          Closing in a few seconds…
         </motion.p>
       </div>
 
@@ -351,7 +410,7 @@ function SharePageInner() {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
           window.history.back();
         }}
-        className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
+        className="w-full py-3 rounded-2xl bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors active:scale-[0.98]"
       >
         Return to app →
       </button>
