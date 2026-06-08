@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -29,6 +29,9 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Screenshot from iOS Share Sheet (via sessionStorage) or manual upload/paste
+  const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +39,50 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Pick up screenshot written by iOS Share Extension via CapacitorBridge → sessionStorage
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        sessionStorage.removeItem('pendingShareImage');
+        setScreenshotBase64(stored);
+        setScreenshotPreview(`data:image/jpeg;base64,${stored}`);
+      }
+    } catch {
+      // sessionStorage not available (e.g. private mode edge cases)
+    }
+  }, []);
+
+  // Handle image file/paste selection (web fallback for Xiaohongshu users)
+  const handleImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      // Strip the data-URL prefix to store only the base64 payload
+      const base64 = dataUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+      setScreenshotBase64(base64);
+      setScreenshotPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleImageDrop = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    const file = (e.dataTransfer?.files ?? [])[0];
+    if (file) handleImageFile(file);
+  }, [handleImageFile]);
+
+  const handleImagePaste = useCallback((e: ClipboardEvent) => {
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const imageItem = items.find((i: DataTransferItem) => i.type.startsWith('image/'));
+    if (imageItem) {
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (file) handleImageFile(file);
+    }
+  }, [handleImageFile]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +135,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot when available (bypasses Xiaohongshu scraping block)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotBase64 ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +211,46 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot upload — shown for platforms that block scraping */}
+          {(platform === 'xiaohongshu' || platform === 'wechat') && (
+            <div className="mt-3">
+              {screenshotPreview ? (
+                <div className="relative rounded-xl overflow-hidden border border-gray-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={screenshotPreview} alt="Post screenshot" className="w-full max-h-40 object-cover" />
+                  <button
+                    type="button"
+                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
+                    onClick={() => { setScreenshotBase64(null); setScreenshotPreview(null); }}
+                    aria-label="Remove screenshot"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  <span className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
+                    Screenshot attached ✓
+                  </span>
+                </div>
+              ) : (
+                <label
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 cursor-pointer text-center"
+                  onDrop={handleImageDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onPaste={handleImagePaste}
+                >
+                  <ImagePlus className="w-5 h-5 text-indigo-400" />
+                  <span className="text-xs font-medium text-indigo-600">Attach a screenshot</span>
+                  <span className="text-xs text-gray-400">Paste, drag, or tap to upload — helps Claude read the post</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }}
+                  />
+                </label>
+              )}
+            </div>
           )}
         </div>
 

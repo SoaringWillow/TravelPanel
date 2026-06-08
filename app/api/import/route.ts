@@ -93,33 +93,22 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
+function buildPrompt(url: string, platform: string, page: Awaited<ReturnType<typeof fetchPageData>>, hasImage: boolean) {
+  const imageNote = hasImage
+    ? 'A screenshot of the post is attached — use it as the primary source. Read all visible text, captions, and overlaid text.'
+    : '';
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
+${imageNote}
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — rely on the attached screenshot if provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
-Extract real, identifiable locations with GPS coordinates you are confident about.
-If the post doesn't mention specific named places, return an empty locations array.
+Extract real, identifiable locations with accurate GPS coordinates.
+If no specific named places are mentioned, return an empty locations array.
 Do NOT invent or guess coordinates.
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
@@ -137,15 +126,65 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  try {
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64 : undefined;
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // For platforms that block scraping (Xiaohongshu, WeChat) and when an image
+  // was provided via the iOS Share Sheet, skip the web fetch entirely.
+  const skipFetch = !!imageBase64 && (platform === 'xiaohongshu' || platform === 'wechat');
+  const page = skipFetch ? null : await fetchPageData(url);
+
+  const promptText = buildPrompt(url, platform, page, !!imageBase64);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: screenshot supplied (bypasses anti-scraping on Xiaohongshu/WeChat).
+      // Strip data-URI prefix if present, then decode base64 → binary.
+      const raw   = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+      const bytes = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: promptText },
+              {
+                type: 'image',
+                image: bytes,
+                mimeType: 'image/jpeg',
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: promptText,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
