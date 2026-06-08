@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -14,13 +14,37 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 type Stage = 'picking' | 'saving' | 'done';
 
+interface ScreenshotData {
+  imageBase64: string;
+  mediaType: string;
+  previewUrl: string;
+}
+
+// ─── Helper: read image file to base64 ──────────────────────────────────────
+
+function readFileAsBase64(file: File): Promise<{ base64: string; mediaType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const [header, base64] = result.split(',');
+      const mime = header.match(/data:([^;]+)/)?.[1] ?? file.type ?? 'image/jpeg';
+      resolve({ base64, mediaType: mime });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
-  const sharedTitle     = rawTitle || 'New inspiration';
+  const mode            = searchParams.get('mode') ?? '';
+  const isScreenshotMode = mode === 'screenshot';
+  const sharedTitle     = rawTitle || (isScreenshotMode ? 'Screenshot' : 'New inspiration');
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -29,13 +53,39 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshot, setScreenshot]           = useState<ScreenshotData | null>(null);
 
+  const fileInputRef    = useRef<HTMLInputElement>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Load screenshot from sessionStorage if Share Extension wrote image data
+  useEffect(() => {
+    if (!isScreenshotMode) return;
+    const imageBase64 = sessionStorage.getItem('pendingShareImage');
+    const mediaType   = sessionStorage.getItem('pendingShareMediaType') ?? 'image/jpeg';
+    if (imageBase64) {
+      sessionStorage.removeItem('pendingShareImage');
+      sessionStorage.removeItem('pendingShareMediaType');
+      const previewUrl = `data:${mediaType};base64,${imageBase64}`;
+      setScreenshot({ imageBase64, mediaType, previewUrl });
+    }
+  }, [isScreenshotMode]);
+
+  // Handle manual image file selection (browser/web flow for Xiaohongshu)
+  async function handleImageFile(file: File) {
+    try {
+      const { base64, mediaType } = await readFileAsBase64(file);
+      const previewUrl = `data:${mediaType};base64,${base64}`;
+      setScreenshot({ imageBase64: base64, mediaType, previewUrl });
+    } catch {
+      // Ignore read errors
+    }
+  }
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -49,9 +99,10 @@ function SharePageInner() {
     };
   }, [stage]);
 
-  const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
+  const platform     = rawUrl ? detectPlatform(rawUrl) : (isScreenshotMode ? 'xiaohongshu' : 'other');
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
+  const showScreenshotPrompt = platform === 'xiaohongshu' && !screenshot && !isScreenshotMode;
 
   // Most-recently-updated 5 boards for quick-pick
   const recentBoards = [...boards]
@@ -64,13 +115,14 @@ function SharePageInner() {
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    const effectivePlatform = isScreenshotMode && !rawUrl ? 'xiaohongshu' : platform;
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
       title: sharedTitle,
-      platform,
+      platform: effectivePlatform,
       description: '',
-      thumbnail: undefined,
+      thumbnail: screenshot?.previewUrl,
       locations: [],
       activities: [],
       tags: [],
@@ -82,15 +134,15 @@ function SharePageInner() {
     };
 
     await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    track('clip_saved', { platform: effectivePlatform, toBoard: !!selectedBoardId, hasScreenshot: !!screenshot });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshot?.imageBase64, screenshot?.mediaType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -165,6 +217,56 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Screenshot preview (when loaded from App Group or file picker) */}
+          {screenshot && (
+            <div className="mt-3 relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={screenshot.previewUrl}
+                alt="Screenshot preview"
+                className="w-full max-h-40 object-cover rounded-xl border border-gray-100"
+              />
+              <button
+                type="button"
+                onClick={() => setScreenshot(null)}
+                className="absolute top-1.5 right-1.5 bg-black/50 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+              >
+                ×
+              </button>
+              <span className="absolute bottom-1.5 left-1.5 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
+                📸 Claude Vision will analyze this
+              </span>
+            </div>
+          )}
+
+          {/* Xiaohongshu screenshot prompt — page content is blocked so encourage attaching a screenshot */}
+          {showScreenshotPrompt && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-3 w-full flex items-center gap-2 border-2 border-dashed border-red-200 rounded-xl px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 active:scale-98 transition-all"
+            >
+              <Camera size={15} className="flex-shrink-0" />
+              <span className="text-left">
+                <span className="font-semibold">Attach a screenshot</span>
+                <span className="text-red-400"> — Xiaohongshu blocks auto-fetch; Claude Vision extracts spots & tips from your screenshot</span>
+              </span>
+            </button>
+          )}
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImageFile(file);
+              e.target.value = '';
+            }}
+          />
         </div>
 
         {/* Middle section — board picker */}

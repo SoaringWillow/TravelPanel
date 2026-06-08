@@ -84,21 +84,90 @@ async function fetchPageData(url: string) {
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let url: string;
+  let url: string = '';
+  let imageBase64: string | undefined;
+  let mediaType: string = 'image/jpeg';
+
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url ?? '';
+    imageBase64 = body.imageBase64 ?? undefined;
+    mediaType = body.mediaType ?? 'image/jpeg';
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  if (!url && !imageBase64) {
+    return NextResponse.json({ error: 'url or imageBase64 required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  // Strip data-URL prefix if present (e.g. "data:image/jpeg;base64,...")
+  if (imageBase64?.includes(',')) {
+    const parts = imageBase64.split(',');
+    imageBase64 = parts[1];
+    const mime = parts[0].match(/data:([^;]+)/)?.[1];
+    if (mime) mediaType = mime;
+  }
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const platform = url ? detectPlatform(url) : 'xiaohongshu';
+  const page = url ? await fetchPageData(url) : null;
+
+  const substanceInstructions = `## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, warning, or opinion.
+This is what competitors miss. Examples:
+- "Arrive before 8am to beat the queue" → tip
+- "The set lunch menu is half the price of dinner" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Skip the official viewpoint — the back alley has the better angle" → recommendation
+- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
+- "It was overrated for the price" → opinion
+- "If you're visiting in August, be aware it's typhoon season" → context
+- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
+
+For list-format content, extract ALL items.
+Never return an empty substance array for a real travel post.`;
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  if (imageBase64) {
+    // Vision path: extract from screenshot (primary path for Xiaohongshu and similar)
+    const visionPrompt = `You are a travel content analyzer. Analyze this screenshot from a social media travel post.
+${url ? `Source URL: ${url} (Platform: ${platform})` : '(Screenshot only — no URL available)'}
+
+Extract TWO layers:
+
+## Layer 1 — Spots (geographic skeleton)
+Identify real, named locations visible in the screenshot with accurate GPS coordinates.
+Read any text, captions, or location tags in the image.
+Do NOT invent or guess coordinates.
+
+${substanceInstructions}
+
+Provide a descriptive title and 2-3 sentence summary of the travel content shown.`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBase64, mimeType: mediaType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to URL-only extraction if vision fails
+    }
+  }
+
+  // URL path (also runs as fallback if vision returned null)
+  if (!claudeResult && url) {
+    const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -112,37 +181,26 @@ Extract real, identifiable locations with GPS coordinates you are confident abou
 If the post doesn't mention specific named places, return an empty locations array.
 Do NOT invent or guess coordinates.
 
-## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
-Extract every piece of actionable insight, advice, warning, or opinion from the post.
-This is what competitors miss. Examples of what to capture:
-- "Arrive before 8am to beat the queue" → tip
-- "The set lunch menu is half the price of dinner" → tip
-- "Cash only, nearest ATM is 10 min walk" → warning
-- "Skip the official viewpoint — the back alley has the better angle" → recommendation
-- "Cherry blossom peaks mid-April, not early April as most guides say" → wisdom
-- "It was overrated for the price" → opinion
-- "If you're visiting in August, be aware it's typhoon season" → context
-- "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
+${substanceInstructions}
 
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
-A post with no specific location can still have 5–10 substance items.
-Never return an empty substance array for a real travel post.`;
+A post with no specific location can still have 5–10 substance items.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
+    title: (claudeResult?.title || page?.title || url || 'Screenshot').slice(0, 200),
     description: (claudeResult?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],
