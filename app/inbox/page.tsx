@@ -14,6 +14,7 @@ import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
+import ResurfaceBanner from '@/components/ResurfaceBanner';
 import NavBar from '@/components/NavBar';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -137,6 +138,19 @@ export default function InboxPage() {
           })}
         </div>
       </div>
+
+      {/* Resurfacing banner — archive items older than 30 days */}
+      <ResurfaceBanner
+        items={items}
+        onItemClick={(item) => {
+          if (item.locations.length > 0) {
+            const loc = item.locations[0];
+            router.push(`/?flyTo=${loc.lat},${loc.lng}&itemId=${item.id}`);
+          } else {
+            router.push('/');
+          }
+        }}
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
