@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- No-config warning -->
+    <div class="alert alert--warning hidden" id="noConfigAlert">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Set your TravelPanel URL in <button class="link-btn" id="openSettingsLink">Settings</button> first.</span>
+    </div>
+
+    <!-- Main content -->
+    <div class="main" id="mainContent">
+      <!-- Platform badge -->
+      <div class="platform-row">
+        <span class="platform-badge" id="platformBadge">
+          <span id="platformEmoji"></span>
+          <span id="platformName"></span>
+        </span>
+      </div>
+
+      <!-- Page preview -->
+      <div class="page-preview">
+        <p class="page-title" id="pageTitle">Loading…</p>
+        <p class="page-url" id="pageUrl">Loading…</p>
+      </div>
+
+      <!-- Clip button -->
+      <button class="clip-btn" id="clipBtn" disabled>
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="btn-label">Clip This Page</span>
+      </button>
+    </div>
+
+    <!-- Success state -->
+    <div class="success-state hidden" id="successState">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <p class="success-title">Clipped!</p>
+      <p class="success-subtitle" id="successSubtitle">Opening TravelPanel…</p>
+      <a class="open-link" id="openTravelPanel" href="#" target="_blank">Open TravelPanel →</a>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      Clips are saved to your <strong>Inbox</strong>
+    </footer>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

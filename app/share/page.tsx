@@ -1,12 +1,14 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { findSimilarItem } from '@/lib/deduplicate';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -29,6 +31,10 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Screenshot from iOS Share Sheet (via sessionStorage) or manual upload/paste
+  const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [dupItem, setDupItem] = useState<SavedItem | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +42,50 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Pick up screenshot written by iOS Share Extension via CapacitorBridge → sessionStorage
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      if (stored) {
+        sessionStorage.removeItem('pendingShareImage');
+        setScreenshotBase64(stored);
+        setScreenshotPreview(`data:image/jpeg;base64,${stored}`);
+      }
+    } catch {
+      // sessionStorage not available (e.g. private mode edge cases)
+    }
+  }, []);
+
+  // Handle image file/paste selection (web fallback for Xiaohongshu users)
+  const handleImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      // Strip the data-URL prefix to store only the base64 payload
+      const base64 = dataUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+      setScreenshotBase64(base64);
+      setScreenshotPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleImageDrop = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    const file = (e.dataTransfer?.files ?? [])[0];
+    if (file) handleImageFile(file);
+  }, [handleImageFile]);
+
+  const handleImagePaste = useCallback((e: ClipboardEvent) => {
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const imageItem = items.find((i: DataTransferItem) => i.type.startsWith('image/'));
+    if (imageItem) {
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (file) handleImageFile(file);
+    }
+  }, [handleImageFile]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -61,6 +111,18 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    // Check for duplicates before saving (quick client-side check)
+    if (rawUrl) {
+      try {
+        const allItems = await getAllItems();
+        const dup = findSimilarItem(rawUrl, [], sharedTitle, platform, allItems);
+        if (dup) {
+          setDupItem(dup);
+          return; // Show duplicate warning, don't save yet
+        }
+      } catch { /* skip dup check on error */ }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -88,9 +150,17 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Skip enrichment when offline — the retry queue will pick it up when back online
+    if (!navigator.onLine) {
+      hapticSuccess();
+      setSavedToName(boardDisplayName ?? 'Inbox');
+      setStage('done');
+      return;
+    }
+
+    // Background enrichment — pass screenshot when available (bypasses Xiaohongshu scraping block)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotBase64 ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -112,6 +182,7 @@ function SharePageInner() {
         setEnrichmentLoading(false);
       });
 
+    hapticSuccess();
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
   }
@@ -141,6 +212,57 @@ function SharePageInner() {
 
   // ── Stage: picking ────────────────────────────────────────────────────────
 
+  // ── Duplicate warning ───────────────────────────────────────────────────
+  if (dupItem) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col justify-center items-center p-6 text-center">
+        <div className="text-4xl mb-4">🔁</div>
+        <h2 className="text-lg font-bold text-gray-900 mb-2">Looks like you already have this saved</h2>
+        {dupItem.thumbnail && (
+          <img src={dupItem.thumbnail} alt="" className="w-full max-w-xs h-32 object-cover rounded-xl mb-3" />
+        )}
+        <p className="text-sm text-gray-600 font-medium mb-1">{dupItem.title}</p>
+        <p className="text-xs text-gray-400 mb-8">Saved {Math.floor((Date.now() - dupItem.savedAt) / 86400000)}d ago</p>
+        <div className="flex gap-3 w-full max-w-xs">
+          <button
+            type="button"
+            onClick={() => { setDupItem(null); window.history.back(); }}
+            className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-colors"
+          >
+            Open existing
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              setDupItem(null);
+              // Bypass dedup and save anyway — set stage first to avoid re-triggering check
+              setStage('saving');
+              const itemId = crypto.randomUUID();
+              const { saveItem: dbSave, addItemToBoard: dbAdd } = await import('@/lib/db');
+              const newItem: SavedItem = {
+                id: itemId, url: rawUrl, title: sharedTitle, platform,
+                description: '', thumbnail: undefined, locations: [], activities: [],
+                tags: [], substance: [], savedAt: Date.now(),
+                enrichmentStatus: 'pending', retryCount: 0,
+              };
+              await dbSave(newItem);
+              hapticSuccess();
+              setSavedToName('Inbox');
+              setStage('done');
+              if (navigator.onLine) {
+                const { enrichItem: enrich } = await import('@/lib/enrichItem');
+                enrich(itemId, rawUrl, screenshotBase64 ?? undefined);
+              }
+            }}
+            className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+          >
+            Keep both
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (stage === 'picking' || stage === 'saving') {
     return (
       <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
@@ -164,6 +286,46 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot upload — shown for platforms that block scraping */}
+          {(platform === 'xiaohongshu' || platform === 'wechat') && (
+            <div className="mt-3">
+              {screenshotPreview ? (
+                <div className="relative rounded-xl overflow-hidden border border-gray-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={screenshotPreview} alt="Post screenshot" className="w-full max-h-40 object-cover" />
+                  <button
+                    type="button"
+                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
+                    onClick={() => { setScreenshotBase64(null); setScreenshotPreview(null); }}
+                    aria-label="Remove screenshot"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  <span className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
+                    Screenshot attached ✓
+                  </span>
+                </div>
+              ) : (
+                <label
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 cursor-pointer text-center"
+                  onDrop={handleImageDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onPaste={handleImagePaste}
+                >
+                  <ImagePlus className="w-5 h-5 text-indigo-400" />
+                  <span className="text-xs font-medium text-indigo-600">Attach a screenshot</span>
+                  <span className="text-xs text-gray-400">Paste, drag, or tap to upload — helps Claude read the post</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }}
+                  />
+                </label>
+              )}
+            </div>
           )}
         </div>
 

@@ -18,6 +18,10 @@ export function useEnrichmentRetry(onItemUpdated: (id: string) => void) {
     if (hasRun.current) return;
     hasRun.current = true;
 
+    // Re-trigger retries when connectivity is restored (catches offline-saved clips)
+    const onOnline = () => { hasRun.current = false; runRetries(); };
+    window.addEventListener('travelPanel:online', onOnline);
+
     async function runRetries() {
       // Recover items stuck in 'processing' — these were in-flight when the
       // app was closed. Decrement their retryCount so they don't burn a retry slot.
@@ -43,6 +47,7 @@ export function useEnrichmentRetry(onItemUpdated: (id: string) => void) {
     }
 
     runRetries();
+    return () => window.removeEventListener('travelPanel:online', onOnline);
   }, []); // intentionally empty — runs once on mount
 
   // Manual retry triggered by the user clicking "Retry" on a card

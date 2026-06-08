@@ -14,16 +14,20 @@ import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
+import ResurfaceBanner from '@/components/ResurfaceBanner';
+import PullToRefresh from '@/components/PullToRefresh';
 import NavBar from '@/components/NavBar';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
 const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'wechat', label: 'WeChat' },
-  { key: 'xiaohongshu', label: 'Little Red Book' },
-  { key: 'douyin', label: 'Douyin' },
-  { key: 'bilibili', label: 'Bilibili' },
+  { key: 'all',          label: 'All'             },
+  { key: 'instagram',    label: 'Instagram'        },
+  { key: 'youtube',      label: 'YouTube'          },
+  { key: 'xiaohongshu',  label: 'Little Red Book'  },
+  { key: 'wechat',       label: 'WeChat'           },
+  { key: 'douyin',       label: 'Douyin'           },
+  { key: 'bilibili',     label: 'Bilibili'         },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -138,8 +142,24 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Resurfacing banner — archive items older than 30 days */}
+      <ResurfaceBanner
+        items={items}
+        onItemClick={(item) => {
+          if (item.locations.length > 0) {
+            const loc = item.locations[0];
+            router.push(`/?flyTo=${loc.lat},${loc.lng}&itemId=${item.id}`);
+          } else {
+            router.push('/');
+          }
+        }}
+      />
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <PullToRefresh
+        onRefresh={async () => { router.refresh(); await new Promise(r => setTimeout(r, 600)); }}
+        className="flex-1 overflow-y-auto px-4 py-4 pb-24"
+      >
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -181,7 +201,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
-      </div>
+      </PullToRefresh>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>

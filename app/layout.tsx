@@ -3,10 +3,23 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import OfflineBanner from '@/components/OfflineBanner';
+import OnboardingIntro from '@/components/OnboardingIntro';
+import { TransitionProvider } from '@/components/TransitionProvider';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
-  description: 'Map-centric travel app where AI extracts locations from social media links and helps you plan routes',
+  description: 'Save travel inspiration from Instagram, YouTube and more. AI extracts locations and wisdom from posts to build cited itineraries.',
+  openGraph: {
+    title: 'TravelPanel — AI Trip Planner',
+    description: 'Save travel inspiration from Instagram, YouTube and more. AI extracts locations and wisdom to build cited itineraries.',
+    type: 'website',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'TravelPanel',
+  },
 };
 
 export default function RootLayout({
@@ -27,9 +40,13 @@ export default function RootLayout({
         <CapacitorBridge />
         <AnalyticsProvider />
         <ResourceBanner />
-        <div className="min-h-screen">
-          {children}
-        </div>
+        <OfflineBanner />
+        <OnboardingIntro />
+        <TransitionProvider>
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </TransitionProvider>
       </body>
     </html>
   );

@@ -26,7 +26,7 @@ export interface Location {
   address?: string;
 }
 
-export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'other';
+export type Platform = 'wechat' | 'xiaohongshu' | 'douyin' | 'bilibili' | 'instagram' | 'youtube' | 'other';
 
 // pending  → just captured, SW hasn't processed yet
 // processing → SW currently calling /api/import
@@ -124,6 +124,18 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+}
+
+// ─── Post-trip visit log ─────────────────────────────────────────────────────
+
+export interface Visit {
+  id: string;           // UUID
+  itemId: string;       // SavedItem this belongs to
+  locationName: string; // which location in the item was visited
+  lat: number;
+  lng: number;
+  visitedAt: number;    // timestamp (ms)
+  autoDetected: boolean; // true = GPS proximity, false = manual check-in
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

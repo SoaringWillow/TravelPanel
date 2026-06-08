@@ -1,16 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { Globe2, Inbox, LayoutGrid } from 'lucide-react';
+import { Globe2, Inbox, LayoutGrid, Settings } from 'lucide-react';
+import { hapticLight } from '@/lib/haptics';
 
 interface NavBarProps {
-  active: 'home' | 'inbox' | 'boards';
+  active: 'home' | 'inbox' | 'boards' | 'settings';
 }
 
 const NAV_ITEMS = [
-  { key: 'home',   label: 'Map',         icon: Globe2,     href: '/'       },
-  { key: 'inbox',  label: 'Inspiration', icon: Inbox,      href: '/inbox'  },
-  { key: 'boards', label: 'Collections', icon: LayoutGrid, href: '/boards' },
+  { key: 'home',     label: 'Map',         icon: Globe2,     href: '/'         },
+  { key: 'inbox',    label: 'Inspiration', icon: Inbox,      href: '/inbox'    },
+  { key: 'boards',   label: 'Collections', icon: LayoutGrid, href: '/boards'   },
+  { key: 'settings', label: 'Settings',    icon: Settings,   href: '/settings' },
 ] as const;
 
 export default function NavBar({ active }: NavBarProps) {
@@ -26,6 +28,7 @@ export default function NavBar({ active }: NavBarProps) {
             <Link
               key={key}
               href={href}
+              onClick={() => hapticLight()}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
                 isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
               }`}

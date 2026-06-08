@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Upload } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
+import PullToRefresh from '@/components/PullToRefresh';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
@@ -38,14 +39,25 @@ export default function BoardsPage() {
             <LayoutGrid className="text-indigo-600" size={22} />
             <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            <Plus size={16} />
-            <span>New Board</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.push('/boards/import')}
+              className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 text-sm font-medium px-3 py-2 rounded-xl hover:bg-gray-50 active:scale-95 transition-all"
+              title="Import a shared board"
+            >
+              <Upload size={16} />
+              <span className="hidden sm:inline">Import</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+              <Plus size={16} />
+              <span>New Board</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -53,7 +65,10 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <PullToRefresh
+        onRefresh={async () => { router.refresh(); await new Promise(r => setTimeout(r, 600)); }}
+        className="flex-1 overflow-y-auto px-4 py-4 pb-24"
+      >
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -87,7 +102,7 @@ export default function BoardsPage() {
             ))}
           </div>
         )}
-      </div>
+      </PullToRefresh>
 
       {/* Create board modal */}
       <CreateBoardModal

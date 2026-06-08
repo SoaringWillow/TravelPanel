@@ -1,7 +1,7 @@
 'use client';
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { SavedItem, Board, Trip, EnrichmentStatus } from './types';
+import { SavedItem, Board, Trip, Visit, EnrichmentStatus } from './types';
 
 interface TravelPanelDB extends DBSchema {
   items: {
@@ -24,6 +24,11 @@ interface TravelPanelDB extends DBSchema {
     value: Trip;
     indexes: { 'by-board': string };
   };
+  visits: {
+    key: string;
+    value: Visit;
+    indexes: { 'by-date': number; 'by-item': string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<TravelPanelDB>> | null = null;
@@ -33,7 +38,7 @@ function getDB() {
     throw new Error('IndexedDB unavailable server-side');
   }
   if (!dbPromise) {
-    dbPromise = openDB<TravelPanelDB>('travel-panel', 2, {
+    dbPromise = openDB<TravelPanelDB>('travel-panel', 3, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const itemStore = db.createObjectStore('items', { keyPath: 'id' });
@@ -52,6 +57,11 @@ function getDB() {
           boardStore.createIndex('by-date', 'createdAt');
           const tripStore = db.createObjectStore('trips', { keyPath: 'id' });
           tripStore.createIndex('by-board', 'boardId');
+        }
+        if (oldVersion < 3) {
+          const visitStore = db.createObjectStore('visits', { keyPath: 'id' });
+          visitStore.createIndex('by-date', 'visitedAt');
+          visitStore.createIndex('by-item', 'itemId');
         }
       },
     });
@@ -208,4 +218,36 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+// ─── Visits ────────────────────────────────────────────────────────────────
+
+export async function saveVisit(visit: Visit): Promise<void> {
+  const db = await getDB();
+  await db.put('visits', visit);
+}
+
+export async function getAllVisits(): Promise<Visit[]> {
+  try {
+    const db = await getDB();
+    const visits = await db.getAllFromIndex('visits', 'by-date');
+    // Return newest first
+    return visits.reverse();
+  } catch {
+    return [];
+  }
+}
+
+export async function getVisitsForItem(itemId: string): Promise<Visit[]> {
+  try {
+    const db = await getDB();
+    return db.getAllFromIndex('visits', 'by-item', itemId);
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteVisit(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('visits', id);
 }
