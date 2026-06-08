@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">T</div>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button class="icon-btn" id="settingsToggle" title="Settings" aria-label="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Main clip panel -->
+  <main id="mainPanel">
+    <!-- Page preview -->
+    <div class="page-preview">
+      <div class="preview-label">Current page</div>
+      <div class="preview-title" id="pageTitle">Loading…</div>
+      <div class="preview-url" id="pageUrl"></div>
+    </div>
+
+    <!-- Platform badge -->
+    <div class="platform-row">
+      <span class="platform-badge" id="platformBadge"></span>
+    </div>
+
+    <!-- Save button -->
+    <button class="save-btn" id="saveBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17,21 17,13 7,13 7,21"/>
+        <polyline points="7,3 7,8 15,8"/>
+      </svg>
+      Save to TravelPanel
+    </button>
+
+    <!-- Quick open link -->
+    <button class="open-app-btn" id="openAppBtn">
+      Open TravelPanel
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15,3 21,3 21,9"/>
+        <line x1="10" y1="14" x2="21" y2="3"/>
+      </svg>
+    </button>
+  </main>
+
+  <!-- Success state -->
+  <main id="successPanel" class="hidden">
+    <div class="success-state">
+      <div class="success-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22,4 12,14.01 9,11.01"/>
+        </svg>
+      </div>
+      <div class="success-title">Saved!</div>
+      <div class="success-sub">TravelPanel is extracting locations and tips…</div>
+      <button class="view-btn" id="viewBtn">View in TravelPanel →</button>
+    </div>
+  </main>
+
+  <!-- Error state -->
+  <main id="errorPanel" class="hidden">
+    <div class="error-state">
+      <div class="error-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <div class="error-title">Could not connect</div>
+      <div class="error-sub" id="errorMsg">Check that TravelPanel is running.</div>
+      <button class="save-btn secondary" id="retryBtn">Retry</button>
+    </div>
+  </main>
+
+  <!-- Settings panel (inline drawer) -->
+  <div id="settingsPanel" class="settings-panel hidden">
+    <div class="settings-title">Settings</div>
+    <label class="field-label" for="appUrlInput">TravelPanel URL</label>
+    <input
+      class="field-input"
+      id="appUrlInput"
+      type="url"
+      placeholder="http://localhost:3000"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <div class="settings-hint">Your deployed Vercel URL or localhost for development.</div>
+    <button class="save-btn" id="saveSettingsBtn">Save settings</button>
+    <div class="settings-saved hidden" id="settingsSaved">✓ Saved</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
