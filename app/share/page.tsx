@@ -20,6 +20,9 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const preSelectedBoard = searchParams.get('board') ?? '';
+  const preNotes        = searchParams.get('notes') ?? '';
+  const fromExtension   = searchParams.get('source') === 'extension';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -32,6 +35,8 @@ function SharePageInner() {
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const dismiss = () => fromExtension ? window.close() : window.history.back();
+
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
@@ -40,23 +45,23 @@ function SharePageInner() {
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
-      dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
-      }, 3000);
+      dismissTimerRef.current = setTimeout(dismiss, fromExtension ? 2000 : 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
 
-  // Most-recently-updated 5 boards for quick-pick
+  // Most-recently-updated 5 boards for quick-pick; pre-selected board always included
   const recentBoards = [...boards]
     .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 5);
+    .filter((b, i, arr) => b.id === preSelectedBoard || i < 5)
+    .slice(0, 6);
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
@@ -79,6 +84,7 @@ function SharePageInner() {
       enrichmentStatus: 'pending',
       retryCount: 0,
       boardId: selectedBoardId,
+      ...(preNotes && { notes: preNotes }),
     };
 
     await saveItem(item);
@@ -178,7 +184,7 @@ function SharePageInner() {
               type="button"
               disabled={stage === 'saving'}
               onClick={() => handleSave(undefined, 'Inbox')}
-              className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
+              className={`flex-shrink-0 text-sm font-semibold px-4 py-2 rounded-full active:scale-95 transition-all disabled:opacity-50 ${!preSelectedBoard ? 'bg-indigo-600 text-white ring-2 ring-indigo-400' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
             >
               Inbox
             </button>
@@ -190,7 +196,7 @@ function SharePageInner() {
                 type="button"
                 disabled={stage === 'saving'}
                 onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                className={`flex-shrink-0 text-sm font-semibold px-4 py-2 rounded-full active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap ${board.id === preSelectedBoard ? 'bg-indigo-600 text-white ring-2 ring-indigo-400' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 {board.emoji} {board.name}
               </button>
@@ -247,7 +253,7 @@ function SharePageInner() {
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={dismiss}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
           Return to app

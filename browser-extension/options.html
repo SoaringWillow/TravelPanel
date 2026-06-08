@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <header>
+      <img src="icons/icon48.png" width="32" height="32" alt="" class="logo-img">
+      <div>
+        <h1>TravelPanel Clipper</h1>
+        <p class="subtitle">Browser extension settings</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>TravelPanel URL</h2>
+      <p class="desc">Set the URL where your TravelPanel app is running. The extension will open this app to save clips and read your boards.</p>
+
+      <div class="field-row">
+        <input type="url" id="app-url-input" placeholder="https://your-app.vercel.app or http://localhost:3000" autocomplete="off" spellcheck="false">
+        <button class="btn-test" id="test-btn">Test</button>
+      </div>
+      <div class="status-row" id="status-row"></div>
+
+      <div class="examples">
+        <span class="example-label">Examples:</span>
+        <button class="example-chip" data-url="http://localhost:3000">localhost:3000</button>
+        <button class="example-chip" data-url="https://travelpanel.vercel.app">Vercel deploy</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Cached Boards</h2>
+      <p class="desc">Boards are synced automatically when TravelPanel is open in a tab. You can clear the cache here.</p>
+      <div class="boards-preview" id="boards-preview">
+        <span class="muted">No boards cached yet. Open TravelPanel in a tab and click the extension icon.</span>
+      </div>
+      <button class="btn-secondary" id="clear-cache-btn">Clear board cache</button>
+    </section>
+
+    <div class="actions">
+      <button class="btn-primary" id="save-btn">Save Settings</button>
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>
