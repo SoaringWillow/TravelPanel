@@ -195,7 +195,7 @@ All Phase A–C tasks complete. The app has:
 - **Note**: Transformers.js first load is ~25MB WASM — lazy-import behind the toggle to avoid blocking initial load
 
 ### F2 — Clip Deduplication Warning
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users frequently save the same spot from different posts. Duplicates clutter the map and confuse the trip planner. A simple similarity check prevents this.
 **Files to change**: `app/share/page.tsx`, new `lib/deduplicate.ts`
 **What to do**:

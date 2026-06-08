@@ -4,7 +4,8 @@ import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { findSimilarItem } from '@/lib/deduplicate';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
@@ -33,6 +34,7 @@ function SharePageInner() {
   // Screenshot from iOS Share Sheet (via sessionStorage) or manual upload/paste
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [dupItem, setDupItem] = useState<SavedItem | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -109,6 +111,18 @@ function SharePageInner() {
   // ── Save handler ─────────────────────────────────────────────────────────
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+    // Check for duplicates before saving (quick client-side check)
+    if (rawUrl) {
+      try {
+        const allItems = await getAllItems();
+        const dup = findSimilarItem(rawUrl, [], sharedTitle, platform, allItems);
+        if (dup) {
+          setDupItem(dup);
+          return; // Show duplicate warning, don't save yet
+        }
+      } catch { /* skip dup check on error */ }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -197,6 +211,57 @@ function SharePageInner() {
   }
 
   // ── Stage: picking ────────────────────────────────────────────────────────
+
+  // ── Duplicate warning ───────────────────────────────────────────────────
+  if (dupItem) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col justify-center items-center p-6 text-center">
+        <div className="text-4xl mb-4">🔁</div>
+        <h2 className="text-lg font-bold text-gray-900 mb-2">Looks like you already have this saved</h2>
+        {dupItem.thumbnail && (
+          <img src={dupItem.thumbnail} alt="" className="w-full max-w-xs h-32 object-cover rounded-xl mb-3" />
+        )}
+        <p className="text-sm text-gray-600 font-medium mb-1">{dupItem.title}</p>
+        <p className="text-xs text-gray-400 mb-8">Saved {Math.floor((Date.now() - dupItem.savedAt) / 86400000)}d ago</p>
+        <div className="flex gap-3 w-full max-w-xs">
+          <button
+            type="button"
+            onClick={() => { setDupItem(null); window.history.back(); }}
+            className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-colors"
+          >
+            Open existing
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              setDupItem(null);
+              // Bypass dedup and save anyway — set stage first to avoid re-triggering check
+              setStage('saving');
+              const itemId = crypto.randomUUID();
+              const { saveItem: dbSave, addItemToBoard: dbAdd } = await import('@/lib/db');
+              const newItem: SavedItem = {
+                id: itemId, url: rawUrl, title: sharedTitle, platform,
+                description: '', thumbnail: undefined, locations: [], activities: [],
+                tags: [], substance: [], savedAt: Date.now(),
+                enrichmentStatus: 'pending', retryCount: 0,
+              };
+              await dbSave(newItem);
+              hapticSuccess();
+              setSavedToName('Inbox');
+              setStage('done');
+              if (navigator.onLine) {
+                const { enrichItem: enrich } = await import('@/lib/enrichItem');
+                enrich(itemId, rawUrl, screenshotBase64 ?? undefined);
+              }
+            }}
+            className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+          >
+            Keep both
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (stage === 'picking' || stage === 'saving') {
     return (
