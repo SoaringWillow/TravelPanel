@@ -189,6 +189,13 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   await tx.done;
 }
 
+export async function updateBoardItemOrder(boardId: string, itemIds: string[]): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', boardId);
+  if (!board) return;
+  await db.put('boards', { ...board, itemIds, updatedAt: Date.now() });
+}
+
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {

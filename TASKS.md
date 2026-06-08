@@ -126,7 +126,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Keep transitions fast (<250ms) — slow transitions are worse than none
 
 ### E4 — Item Reordering in Boards (Drag-to-Reorder)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The order of items in a board matters for trip planning. Currently items are in insertion order with no way to reorder.  
 **Files to change**: `app/boards/[id]/page.tsx`, `hooks/useBoards.ts`, `lib/db.ts`  
 **What to do**:

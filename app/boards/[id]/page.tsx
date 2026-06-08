@@ -8,9 +8,8 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location, SubstanceType } from '@/lib/types';
 import { shareBoardNative } from '@/lib/shareBoard';
-import InboxCard from '@/components/InboxCard';
-import SwipeableCard from '@/components/SwipeableCard';
 import SubstanceList from '@/components/SubstanceList';
+import SortableBoardGrid from '@/components/SortableBoardGrid';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -22,7 +21,7 @@ export default function BoardDetailPage() {
   const boardId = params.id as string;
   const router = useRouter();
 
-  const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
+  const { boards, loading: boardsLoading, removeItemFromBoard, reorderItems } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
@@ -219,20 +218,12 @@ export default function BoardDetailPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {boardItems.map((item) => (
-                    <SwipeableCard
-                      key={item.id}
-                      onDelete={() => handleDelete(item.id)}
-                    >
-                      <InboxCard
-                        item={item}
-                        onDelete={handleDelete}
-                        onViewOnMap={handleViewOnMap}
-                      />
-                    </SwipeableCard>
-                  ))}
-                </div>
+                <SortableBoardGrid
+                  items={boardItems}
+                  onReorder={(newIds) => reorderItems(boardId, newIds)}
+                  onDelete={handleDelete}
+                  onViewOnMap={handleViewOnMap}
+                />
               )}
             </>
           )}

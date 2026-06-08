@@ -7,6 +7,7 @@ import {
   deleteBoard,
   addItemToBoard as dbAddItemToBoard,
   removeItemFromBoard as dbRemoveItemFromBoard,
+  updateBoardItemOrder,
 } from '@/lib/db';
 import { track } from '@/lib/analytics';
 import { vibrate } from '@/lib/haptics';
@@ -52,10 +53,17 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
+  const reorderItems = useCallback(async (boardId: string, itemIds: string[]) => {
+    await updateBoardItemOrder(boardId, itemIds);
+    setBoards((prev) =>
+      prev.map((b) => (b.id === boardId ? { ...b, itemIds, updatedAt: Date.now() } : b))
+    );
+  }, []);
+
   const refresh = useCallback(async () => {
     const fetchedBoards = await getAllBoards();
     setBoards(fetchedBoards);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard, refresh };
+  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard, reorderItems, refresh };
 }
