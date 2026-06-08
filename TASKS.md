@@ -167,7 +167,7 @@
   - 6 screenshot descriptions for App Store Connect
 
 ### E3 — Error Monitoring Integration (Sentry)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: PostHog tracks events but not JavaScript errors. Sentry catches unhandled exceptions with stack traces.  
 **Files**: `app/layout.tsx`, `next.config.js`, new `lib/sentry.ts`  
 **What to do**:
