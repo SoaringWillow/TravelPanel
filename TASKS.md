@@ -115,7 +115,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Test: NavBar, BoardCard, InboxCard, LocationDetailCard, PlanVersionBar, header bars
 
 ### E3 — Smooth Page Transitions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Page transitions are abrupt. On iOS, views slide in/out with directional motion. This is the most visible signal that an app is native-quality.  
 **Files to change**: `app/layout.tsx`, new `components/PageTransition.tsx`  
 **What to do**:
