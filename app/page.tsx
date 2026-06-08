@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import ResurfaceCard from '@/components/ResurfaceCard';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -93,6 +94,16 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Proactive resurfacing widget */}
+      {!selectedItem && !showImport && (
+        <ResurfaceCard
+          onView={(item) => {
+            setSelectedItem(item);
+            if (item.locations.length > 0) setFlyTo(item.locations[0]);
+          }}
+        />
+      )}
 
       {/* Import FAB */}
       {!selectedItem && (
