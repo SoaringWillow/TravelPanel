@@ -30,7 +30,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - On desktop: show a three-dot context menu instead (detect via pointer media query or touch capability check)
 
 ### D2 — Duplicate Detection on Save
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users sharing the same URL twice get silent duplicates. This confuses boards and inflates counts.  
 **Files to change**: `app/share/page.tsx`, `lib/db.ts`, `hooks/useSavedItems.ts`  
 **What to do**:

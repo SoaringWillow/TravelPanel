@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -33,6 +33,8 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [pendingImage, setPendingImage]       = useState<{ base64: string; mediaType: string } | null>(null);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
+  const [pendingBoard, setPendingBoard]       = useState<{ id?: string; name?: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -81,7 +83,21 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDupeCheck = false) {
+    // Duplicate check — skip if user already acknowledged it
+    if (!skipDupeCheck && rawUrl) {
+      const existing = await getAllItems();
+      const dupe = existing.find(
+        (i) => i.url.toLowerCase().trim() === rawUrl.toLowerCase().trim()
+      );
+      if (dupe) {
+        setDuplicateItem(dupe);
+        setPendingBoard({ id: selectedBoardId, name: boardDisplayName });
+        track('clip_deduplicated', { platform });
+        return;
+      }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -187,6 +203,47 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Duplicate warning banner */}
+          <AnimatePresence>
+            {duplicateItem && (
+              <motion.div
+                key="dupe-banner"
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 space-y-2">
+                  <p className="text-xs font-semibold text-amber-800">
+                    ⚠️ Already saved on {new Date(duplicateItem.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {duplicateItem.boardId ? '' : ' to Inbox'}
+                  </p>
+                  <p className="text-xs text-amber-700 line-clamp-1">{duplicateItem.title || duplicateItem.url}</p>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={dismiss}
+                      className="flex-1 py-1.5 rounded-xl bg-white border border-amber-300 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition-colors"
+                    >
+                      View Existing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDuplicateItem(null);
+                        handleSave(pendingBoard?.id, pendingBoard?.name, true);
+                      }}
+                      className="flex-1 py-1.5 rounded-xl bg-amber-600 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+                    >
+                      Save Again
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Middle section — board picker */}
