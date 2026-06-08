@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid, Upload } from 'lucide-react';
+import { Plus, LayoutGrid, Upload, RefreshCw } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
@@ -10,12 +10,15 @@ import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { importBoardFromFile } from '@/lib/shareBoard';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const doRefresh = useCallback(async () => { await refreshBoards(); }, [refreshBoards]);
+  const { scrollRef, pullRatio, refreshing, touchHandlers } = usePullToRefresh(doRefresh);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,7 +98,20 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-4 pb-24"
+        {...touchHandlers}
+      >
+        {(pullRatio > 0 || refreshing) && (
+          <div className="flex justify-center pb-3 -mt-1" style={{ opacity: pullRatio }}>
+            <RefreshCw
+              size={18}
+              className={`text-indigo-500 ${refreshing ? 'animate-spin' : 'transition-transform'}`}
+              style={{ transform: refreshing ? undefined : `rotate(${pullRatio * 180}deg)` }}
+            />
+          </div>
+        )}
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

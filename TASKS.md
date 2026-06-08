@@ -40,7 +40,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Track deduplicated saves as a `clip_deduplicated` PostHog event
 
 ### D3 — Pull-to-Refresh on Inbox and Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users instinctively pull-to-refresh. Without it the app feels static and un-native.  
 **Files to change**: `app/page.tsx` (home / map), `app/boards/page.tsx`, the inbox view  
 **What to do**:

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -16,6 +16,7 @@ import InboxCard from '@/components/InboxCard';
 import SwipeableCard from '@/components/SwipeableCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -30,11 +31,12 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { scrollRef, pullRatio, refreshing, touchHandlers } = usePullToRefresh(refresh);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -140,7 +142,21 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-4 pb-24"
+        {...touchHandlers}
+      >
+        {/* Pull-to-refresh indicator */}
+        {(pullRatio > 0 || refreshing) && (
+          <div className="flex justify-center pb-3 -mt-1" style={{ opacity: pullRatio }}>
+            <RefreshCw
+              size={18}
+              className={`text-indigo-500 ${refreshing ? 'animate-spin' : 'transition-transform'}`}
+              style={{ transform: refreshing ? undefined : `rotate(${pullRatio * 180}deg)` }}
+            />
+          </div>
+        )}
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
