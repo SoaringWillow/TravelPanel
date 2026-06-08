@@ -61,7 +61,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Show a "Refining..." streaming state (reuse the existing agent-step UI)
 
 ### D5 — Board Wisdom Tab (Substance Library)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The substance extraction moat is invisible beyond individual clip detail cards. A board-level Wisdom view — all tips/warnings/opinions from all clips in one browsable list — is the killer feature for users with 20+ saves.  
 **Files to change**: `app/boards/[id]/page.tsx`  
 **What to do**:
