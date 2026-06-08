@@ -169,7 +169,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Needs**: Supabase pgvector (from B1)  
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
