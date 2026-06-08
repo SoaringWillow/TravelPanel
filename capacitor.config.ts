@@ -22,6 +22,13 @@ const config: CapacitorConfig = {
     limitsNavigationsToAppBoundDomains: false,
   },
   plugins: {
+    // Preferences must share the same App Group as the Share Extension so that
+    // the extension can write pendingShareImage/URL/Title and the main app can
+    // read them.  Requires "App Groups" capability enabled for BOTH the App target
+    // and the ShareExtension target in Xcode (see ios/App/ShareExtension/XCODE_SETUP.md).
+    Preferences: {
+      group: 'group.com.travelpanel.app',
+    },
     SplashScreen: {
       launchShowDuration: 800,
       backgroundColor: '#f9fafb',

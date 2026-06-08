@@ -81,32 +81,9 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Shared extraction instructions ─────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
+const EXTRACTION_INSTRUCTIONS = `
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
@@ -128,16 +105,79 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    ({ url, imageBase64 } = await req.json());
   } catch {
-    // Fall through to defaults
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  // ── Vision path: image payload available (e.g. Xiaohongshu iOS share) ──────
+  if (imageBase64) {
+    const visionPrompt = `You are analyzing a screenshot from a social media travel post.
+Extract travel information from BOTH the visual content in the image AND any text visible in it.
+
+Platform: ${platform}
+URL: ${url}
+${page?.title ? `Page title: ${page.title}` : ''}
+${page?.description ? `Page description: ${page.description}` : ''}
+${EXTRACTION_INSTRUCTIONS}`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBase64, mimeType: 'image/jpeg' as const },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to text-only path below
+    }
+  }
+
+  // ── Text path: standard HTML extraction ─────────────────────────────────────
+  if (!claudeResult) {
+    const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+${EXTRACTION_INSTRUCTIONS}`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {
