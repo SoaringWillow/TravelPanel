@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <!-- ── Loading state ─────────────────────────────── -->
+  <div class="state" id="state-loading">
+    <div class="brand">
+      <span class="brand-icon">🗺️</span>
+      <span class="brand-name">TravelPanel</span>
+    </div>
+    <div class="loading-body">
+      <div class="spinner"></div>
+      <span class="loading-label">Reading page...</span>
+    </div>
+  </div>
+
+  <!-- ── Not supported (chrome:// / edge:// / etc.) ── -->
+  <div class="state hidden" id="state-not-supported">
+    <div class="brand">
+      <span class="brand-icon">🗺️</span>
+      <span class="brand-name">TravelPanel</span>
+    </div>
+    <div class="not-supported-body">
+      <div class="ns-icon">🚫</div>
+      <p class="ns-title">Can't clip this page</p>
+      <p class="ns-sub">Navigate to a travel article, social post, or any page you want to save.</p>
+    </div>
+  </div>
+
+  <!-- ── Ready state ───────────────────────────────── -->
+  <div class="state hidden" id="state-ready">
+    <header class="header">
+      <div class="brand">
+        <span class="brand-icon">🗺️</span>
+        <span class="brand-name">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="btn-settings" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="preview-card" id="preview-card">
+      <div class="preview-thumb-wrap" id="preview-thumb-wrap">
+        <img class="preview-thumb hidden" id="preview-thumb" alt="">
+        <div class="preview-thumb-placeholder" id="preview-thumb-placeholder">
+          <span>🌍</span>
+        </div>
+      </div>
+      <div class="preview-meta">
+        <div class="platform-badge" id="platform-badge"></div>
+        <div class="preview-title" id="preview-title">Loading...</div>
+        <div class="preview-url" id="preview-url"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="clip-btn" id="btn-clip">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+
+    <div class="footer">
+      <span class="footer-hint">Extracts locations &amp; wisdom · Powered by Claude AI</span>
+    </div>
+  </div>
+
+  <!-- ── Success state ──────────────────────────────── -->
+  <div class="state hidden" id="state-success">
+    <div class="brand">
+      <span class="brand-icon">🗺️</span>
+      <span class="brand-name">TravelPanel</span>
+    </div>
+    <div class="success-body">
+      <div class="success-checkmark">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+      </div>
+      <p class="success-title">Opening TravelPanel...</p>
+      <p class="success-sub">Select a board to save this clip.</p>
+    </div>
+  </div>
+
+  <!-- ── Error state ───────────────────────────────── -->
+  <div class="state hidden" id="state-error">
+    <div class="brand">
+      <span class="brand-icon">🗺️</span>
+      <span class="brand-name">TravelPanel</span>
+    </div>
+    <div class="error-body">
+      <div class="error-icon">⚠️</div>
+      <p class="error-title" id="error-title">Something went wrong</p>
+      <p class="error-sub" id="error-sub">Check your TravelPanel URL in settings.</p>
+      <button class="secondary-btn" id="btn-retry">Try again</button>
+      <button class="link-btn" id="btn-open-settings-err">Open settings</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
