@@ -1,8 +1,9 @@
 'use client';
 
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { computeQualityScore, qualityLevel, QUALITY_DOT_COLOR } from '@/lib/quality';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -187,9 +188,16 @@ export default function InboxCard({
     month: 'short',
     day: 'numeric',
   });
+  const qScore = computeQualityScore(item);
+  const qLevel = qualityLevel(qScore);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+      {/* Quality dot — bottom-right corner */}
+      <div
+        className={`absolute bottom-2.5 right-2.5 w-2 h-2 rounded-full ${QUALITY_DOT_COLOR[qLevel]} z-10`}
+        title={`Extraction quality: ${qScore}/6`}
+      />
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -201,8 +209,8 @@ export default function InboxCard({
           }}
         />
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
+        <div className="w-full h-24 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <Globe size={32} className="text-gray-300 dark:text-gray-600" />
         </div>
       )}
 
@@ -215,13 +223,13 @@ export default function InboxCard({
         </span>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -263,8 +271,11 @@ export default function InboxCard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-xs text-gray-400">{date}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-800">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
+            {item.notes && <Pencil size={10} className="text-gray-300 dark:text-gray-600" aria-label="Has notes" />}
+          </div>
 
           <div className="flex items-center gap-1">
             {/* View on Map */}

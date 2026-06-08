@@ -1,17 +1,37 @@
 'use client';
 
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Pencil, RefreshCw, HelpCircle } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
+import { computeQualityScore, qualityLevel, qualityLabel, QUALITY_TEXT_COLOR } from '@/lib/quality';
 
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
+  onUpdateNotes?: (id: string, notes: string) => Promise<void>;
+  onRetry?: (id: string, url: string) => void;
 }
 
-export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onUpdateNotes, onRetry }: LocationDetailCardProps) {
+  const [noteValue, setNoteValue] = useState(item.notes ?? '');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [showQualityTip, setShowQualityTip] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const qScore = computeQualityScore(item);
+  const qLevel = qualityLevel(qScore);
+  const qLabel = qualityLabel(qLevel);
+
+  function handleNotesBlur() {
+    setIsEditingNotes(false);
+    if (onUpdateNotes && noteValue !== (item.notes ?? '')) {
+      onUpdateNotes(item.id, noteValue);
+    }
+  }
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -127,13 +147,73 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+            {/* Extraction quality */}
+            {item.enrichmentStatus === 'done' && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 relative">
+                  <span className={`text-xs font-medium ${QUALITY_TEXT_COLOR[qLevel]}`}>
+                    Extraction quality: {qLabel}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowQualityTip((v) => !v)}
+                    className="text-gray-300 hover:text-gray-500 transition-colors"
+                  >
+                    <HelpCircle size={12} />
+                  </button>
+                  {showQualityTip && (
+                    <div className="absolute bottom-full left-0 mb-1 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 w-56 shadow-lg z-10">
+                      Based on how much information was extracted from this clip
+                    </div>
+                  )}
+                </div>
+                {qLevel === 'low' && onRetry && (
+                  <button
+                    type="button"
+                    onClick={() => { onClose(); onRetry(item.id, item.url); }}
+                    className="flex items-center gap-1 text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
+                  >
+                    <RefreshCw size={11} />
+                    Retry extraction
+                  </button>
+                )}
               </div>
             )}
+
+            {/* Notes */}
+            <div className="bg-amber-50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold text-amber-700">Notes</p>
+                {!isEditingNotes && onUpdateNotes && (
+                  <button
+                    type="button"
+                    onClick={() => { setIsEditingNotes(true); setTimeout(() => textareaRef.current?.focus(), 0); }}
+                    className="p-0.5 text-amber-400 hover:text-amber-600 transition-colors"
+                    aria-label="Edit note"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
+              </div>
+              {isEditingNotes ? (
+                <textarea
+                  ref={textareaRef}
+                  value={noteValue}
+                  onChange={(e) => setNoteValue(e.target.value)}
+                  onBlur={handleNotesBlur}
+                  placeholder="Add a personal note..."
+                  rows={3}
+                  className="w-full text-sm text-amber-900 bg-transparent resize-none outline-none placeholder:text-amber-300 placeholder:italic leading-relaxed"
+                />
+              ) : (
+                <p
+                  className={`text-sm leading-relaxed cursor-text ${noteValue ? 'text-amber-800' : 'text-amber-300 italic'}`}
+                  onClick={() => { if (onUpdateNotes) { setIsEditingNotes(true); setTimeout(() => textareaRef.current?.focus(), 0); } }}
+                >
+                  {noteValue || 'Add a personal note...'}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

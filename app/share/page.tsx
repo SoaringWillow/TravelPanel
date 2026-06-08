@@ -4,11 +4,13 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, getAllItems, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { vibrate } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { autoAssignBoard } from '@/lib/autoAssign';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +22,9 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const preSelectedBoard = searchParams.get('board') ?? '';
+  const preNotes        = searchParams.get('notes') ?? '';
+  const fromExtension   = searchParams.get('source') === 'extension';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,38 +34,73 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImage, setPendingImage]       = useState<{ base64: string; mediaType: string } | null>(null);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
+  const [pendingBoard, setPendingBoard]       = useState<{ id?: string; name?: string } | null>(null);
+  const [autoAssignSuggestion, setAutoAssignSuggestion] = useState<{ boardId: string; boardName: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const dismiss = () => fromExtension ? window.close() : window.history.back();
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
+  // Consume pending image stashed by CapacitorBridge from App Group (iOS Xiaohongshu flow)
+  useEffect(() => {
+    try {
+      const base64 = sessionStorage.getItem('pendingShareImage');
+      const mediaType = sessionStorage.getItem('pendingShareImageType');
+      if (base64) {
+        setPendingImage({ base64, mediaType: mediaType ?? 'image/jpeg' });
+        sessionStorage.removeItem('pendingShareImage');
+        sessionStorage.removeItem('pendingShareImageType');
+      }
+    } catch {
+      // sessionStorage unavailable (private browsing, etc.)
+    }
+  }, []);
+
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
-      dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
-      }, 3000);
+      dismissTimerRef.current = setTimeout(dismiss, fromExtension ? 2000 : 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
 
-  // Most-recently-updated 5 boards for quick-pick
+  // Most-recently-updated 5 boards for quick-pick; pre-selected board always included
   const recentBoards = [...boards]
     .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 5);
+    .filter((b, i, arr) => b.id === preSelectedBoard || i < 5)
+    .slice(0, 6);
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDupeCheck = false) {
+    // Duplicate check — skip if user already acknowledged it
+    if (!skipDupeCheck && rawUrl) {
+      const existing = await getAllItems();
+      const dupe = existing.find(
+        (i) => i.url.toLowerCase().trim() === rawUrl.toLowerCase().trim()
+      );
+      if (dupe) {
+        setDuplicateItem(dupe);
+        setPendingBoard({ id: selectedBoardId, name: boardDisplayName });
+        track('clip_deduplicated', { platform });
+        return;
+      }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -79,21 +119,22 @@ function SharePageInner() {
       enrichmentStatus: 'pending',
       retryCount: 0,
       boardId: selectedBoardId,
+      ...(preNotes && { notes: preNotes }),
     };
 
     await saveItem(item);
+    vibrate('success');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image for platforms that block URL scraping (Xiaohongshu)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImage?.base64, pendingImage?.mediaType)
       .then(async (success) => {
         if (success) {
-          // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
           if (updated) {
@@ -107,6 +148,20 @@ function SharePageInner() {
               tags: updated.tags,
               substance: updated.substance,
             } as ImportResult);
+
+            // Auto-assign suggestion — only when item was saved to Inbox (no explicit board)
+            if (!selectedBoardId) {
+              const currentBoards = await getAllBoards();
+              const result = autoAssignBoard(updated, currentBoards);
+              if (result.type === 'suggested' && result.board) {
+                setAutoAssignSuggestion({ boardId: result.board.id, boardName: `${result.board.emoji} ${result.board.name}` });
+                track('clip_auto_assign_suggested', { platform });
+              } else if (result.type === 'assigned' && result.board) {
+                const { addItemToBoard: addToBd } = await import('@/lib/db');
+                await addToBd(result.board.id, itemId);
+                track('clip_auto_assigned', { platform, boardId: result.board.id });
+              }
+            }
           }
         }
         setEnrichmentLoading(false);
@@ -165,6 +220,47 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Duplicate warning banner */}
+          <AnimatePresence>
+            {duplicateItem && (
+              <motion.div
+                key="dupe-banner"
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 space-y-2">
+                  <p className="text-xs font-semibold text-amber-800">
+                    ⚠️ Already saved on {new Date(duplicateItem.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {duplicateItem.boardId ? '' : ' to Inbox'}
+                  </p>
+                  <p className="text-xs text-amber-700 line-clamp-1">{duplicateItem.title || duplicateItem.url}</p>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={dismiss}
+                      className="flex-1 py-1.5 rounded-xl bg-white border border-amber-300 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition-colors"
+                    >
+                      View Existing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDuplicateItem(null);
+                        handleSave(pendingBoard?.id, pendingBoard?.name, true);
+                      }}
+                      className="flex-1 py-1.5 rounded-xl bg-amber-600 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+                    >
+                      Save Again
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Middle section — board picker */}
@@ -178,7 +274,7 @@ function SharePageInner() {
               type="button"
               disabled={stage === 'saving'}
               onClick={() => handleSave(undefined, 'Inbox')}
-              className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
+              className={`flex-shrink-0 text-sm font-semibold px-4 py-2 rounded-full active:scale-95 transition-all disabled:opacity-50 ${!preSelectedBoard ? 'bg-indigo-600 text-white ring-2 ring-indigo-400' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
             >
               Inbox
             </button>
@@ -190,7 +286,7 @@ function SharePageInner() {
                 type="button"
                 disabled={stage === 'saving'}
                 onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                className={`flex-shrink-0 text-sm font-semibold px-4 py-2 rounded-full active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap ${board.id === preSelectedBoard ? 'bg-indigo-600 text-white ring-2 ring-indigo-400' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 {board.emoji} {board.name}
               </button>
@@ -247,7 +343,7 @@ function SharePageInner() {
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={dismiss}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
           Return to app
@@ -314,6 +410,47 @@ function SharePageInner() {
             </div>
           ) : null}
         </motion.div>
+
+        {/* Auto-assign suggestion */}
+        <AnimatePresence>
+          {autoAssignSuggestion && (
+            <motion.div
+              key="auto-assign"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="w-full bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 space-y-2"
+            >
+              <p className="text-xs font-semibold text-indigo-700">
+                Move to {autoAssignSuggestion.boardName}?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAutoAssignSuggestion(null)}
+                  className="flex-1 py-1.5 rounded-xl bg-white border border-indigo-200 text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors"
+                >
+                  Keep in Inbox
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { addItemToBoard: addToBd } = await import('@/lib/db');
+                    // Find the itemId from most recent saved item with this URL
+                    const { getAllItems: getAll } = await import('@/lib/db');
+                    const allItems = await getAll();
+                    const it = allItems.find((i) => i.url === rawUrl);
+                    if (it) await addToBd(autoAssignSuggestion.boardId, it.id);
+                    setAutoAssignSuggestion(null);
+                  }}
+                  className="flex-1 py-1.5 rounded-xl bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+                >
+                  Move
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.p
           initial={{ opacity: 0 }}

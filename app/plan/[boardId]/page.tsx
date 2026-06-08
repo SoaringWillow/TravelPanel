@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, Wand2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { vibrate } from '@/lib/haptics';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -14,8 +16,9 @@ import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
 
-const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
-const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+const RouteMapView  = dynamic(() => import('@/components/RouteMapView'),  { ssr: false });
+const MapView       = dynamic(() => import('@/components/MapView'),       { ssr: false });
+const TripNavigator = dynamic(() => import('@/components/TripNavigator'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
 
@@ -38,6 +41,15 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [refineText, setRefineText] = useState('');
+
+  const { isOnline, justCameOnline } = useOnlineStatus();
+
+  // On-trip GPS mode
+  const [isTripMode, setIsTripMode]         = useState(false);
+  const [userLocation, setUserLocation]     = useState<{ lat: number; lng: number } | null>(null);
+  const [activityIndex, setActivityIndex]   = useState(0);
+  const gpsWatchRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -128,6 +140,7 @@ export default function PlanPage() {
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              vibrate('success');
               const trip: Trip = {
                 id: crypto.randomUUID(),
                 boardId,
@@ -154,6 +167,76 @@ export default function PlanPage() {
       }
     }
   }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+
+  const refinePlan = useCallback(async () => {
+    if (!refineText.trim() || !planIsComplete(plan)) return;
+    const refinement = refineText.trim();
+    setRefineText('');
+    setStage('generating');
+    setSteps([]);
+    const prevPlan = plan;
+
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: boardItems,
+        days,
+        preferences: Array.from(selectedChips).join('. '),
+        existingPlan: prevPlan,
+        refinement,
+      }),
+    });
+
+    if (!res.ok || !res.body) { setStage('complete'); setPlan(prevPlan); return; }
+
+    const reader = res.body.getReader();
+    let buf = '';
+    let latestPlan: Partial<TripPlan> | null = null;
+    const collectedSteps: AgentStep[] = [];
+    const versionName = refinement.slice(0, 30) + (refinement.length > 30 ? '…' : '');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += new TextDecoder().decode(value);
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line) as PlanStreamMessage;
+          if (msg.t === 'step') {
+            collectedSteps.push(msg.step);
+            setSteps((s) => [...s, msg.step]);
+            if (msg.step.type === 'done' || msg.step.type === 'error') {
+              setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+            }
+            if (msg.step.type === 'done' && latestPlan?.days?.length) {
+              const trip: Trip = {
+                id: crypto.randomUUID(),
+                boardId,
+                boardName: board?.name ?? '',
+                name: versionName,
+                days,
+                preferences: refinement,
+                agentSteps: collectedSteps,
+                plan: latestPlan as TripPlan,
+                createdAt: Date.now(),
+              };
+              await saveTrip(trip);
+              setSavedTrips((prev) => [...prev, trip]);
+              setCurrentTripId(trip.id);
+            }
+          }
+          if (msg.t === 'plan') {
+            latestPlan = msg.plan as Partial<TripPlan>;
+            setPlan(latestPlan);
+          }
+        } catch { /* skip */ }
+      }
+    }
+  }, [refineText, plan, boardItems, days, selectedChips, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -208,6 +291,62 @@ export default function PlanPage() {
     setSavedTrips((prev) => prev.filter((t) => t.id !== tripId));
     if (currentTripId === tripId) setCurrentTripId(null);
   }, [currentTripId]);
+
+  // On-trip GPS mode
+  const startTrip = useCallback(() => {
+    if (!planIsComplete(plan)) return;
+    setIsTripMode(true);
+    setActivityIndex(0);
+    if (!navigator.geolocation) return;
+    gpsWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {}, // silent — GPS unavailable doesn't break the feature
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+    track('trip_started', { boardId, days: plan.days.length });
+  }, [plan, boardId]);
+
+  const endTrip = useCallback(() => {
+    setIsTripMode(false);
+    if (gpsWatchRef.current !== null) {
+      navigator.geolocation.clearWatch(gpsWatchRef.current);
+      gpsWatchRef.current = null;
+    }
+    track('trip_ended', { boardId });
+  }, [boardId]);
+
+  // Stop GPS on unmount
+  useEffect(() => {
+    return () => {
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+      }
+    };
+  }, []);
+
+  const advanceActivity = useCallback(() => {
+    if (!planIsComplete(plan)) return;
+    const dayActivities = plan.days[activeDayIndex]?.activities ?? [];
+    if (activityIndex < dayActivities.length - 1) {
+      setActivityIndex((i) => i + 1);
+    } else if (activeDayIndex < plan.days.length - 1) {
+      setActiveDayIndex((d) => d + 1);
+      setActivityIndex(0);
+    } else {
+      endTrip();
+    }
+  }, [plan, activeDayIndex, activityIndex, endTrip]);
+
+  const previousActivity = useCallback(() => {
+    if (activityIndex > 0) {
+      setActivityIndex((i) => i - 1);
+    } else if (activeDayIndex > 0) {
+      setActiveDayIndex((d) => d - 1);
+      if (planIsComplete(plan)) {
+        setActivityIndex((plan.days[activeDayIndex - 1]?.activities.length ?? 1) - 1);
+      }
+    }
+  }, [plan, activeDayIndex, activityIndex]);
 
   // "New version" — return to config (keeping preferences) to generate a fresh variant.
   const handleNewVersion = useCallback(() => {
@@ -271,9 +410,23 @@ export default function PlanPage() {
             items={boardItems}
             plan={plan}
             activeDayIndex={activeDayIndex}
+            userLocation={userLocation}
           />
         )}
       </div>
+
+      {/* Offline / back-online banners */}
+      {!isOnline && (
+        <div className="bg-gray-800 text-white text-xs text-center py-1.5 flex items-center justify-center gap-1.5 flex-shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+          Offline — plan is saved and readable
+        </div>
+      )}
+      {justCameOnline && (
+        <div className="bg-emerald-600 text-white text-xs text-center py-1.5 flex-shrink-0">
+          ✓ Back online
+        </div>
+      )}
 
       {/* Bottom scrollable panel */}
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
@@ -458,23 +611,32 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Export actions */}
+              {/* Start Trip + Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="space-y-2">
                   <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    onClick={startTrip}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-3 rounded-xl shadow-sm active:scale-[0.98] transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Navigation size={15} />
+                    Start Trip
                   </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -580,6 +742,25 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* Refine plan */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={refineText}
+                  onChange={(e) => setRefineText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && refineText.trim()) refinePlan(); }}
+                  placeholder="Refine this plan… e.g. more free time, budget-conscious"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                />
+                <button
+                  onClick={refinePlan}
+                  disabled={!refineText.trim()}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <Wand2 size={15} />
+                </button>
+              </div>
+
               {/* Start Over */}
               <button
                 onClick={handleStartOver}
@@ -593,6 +774,21 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {/* On-trip GPS navigator overlay */}
+      {isTripMode && planIsComplete(plan) && (
+        <TripNavigator
+          plan={plan}
+          activeDayIndex={activeDayIndex}
+          activityIndex={activityIndex}
+          userLocation={userLocation}
+          onEnd={endTrip}
+          onAdvance={advanceActivity}
+          onPrevious={previousActivity}
+          onDayChange={setActiveDayIndex}
+          onActivityChange={setActivityIndex}
+        />
+      )}
     </div>
   );
 }

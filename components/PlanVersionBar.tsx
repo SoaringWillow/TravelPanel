@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Pencil, Trash2, Plus } from 'lucide-react';
+import { Check, Pencil, Trash2, Plus, ScrollText } from 'lucide-react';
+import Link from 'next/link';
 import { Trip } from '@/lib/types';
 
 interface PlanVersionBarProps {
@@ -85,6 +86,13 @@ export default function PlanVersionBar({
                   >
                     <Pencil size={11} />
                   </button>
+                  <Link
+                    href={`/timeline/${trip.id}`}
+                    className="p-0.5 hover:bg-white/20 rounded-full"
+                    aria-label="View timeline"
+                  >
+                    <ScrollText size={11} />
+                  </Link>
                   <button
                     onClick={() => onDelete(trip.id)}
                     className="p-0.5 hover:bg-white/20 rounded-full"

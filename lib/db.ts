@@ -109,6 +109,13 @@ export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedI
   }
 }
 
+export async function patchItem(id: string, patch: Partial<SavedItem>): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', { ...item, ...patch });
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,
@@ -187,6 +194,20 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   });
   await tx.objectStore('items').put({ ...item, boardId: undefined });
   await tx.done;
+}
+
+export async function patchBoard(id: string, patch: Partial<Board>): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', id);
+  if (!board) return;
+  await db.put('boards', { ...board, ...patch, updatedAt: Date.now() });
+}
+
+export async function updateBoardItemOrder(boardId: string, itemIds: string[]): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', boardId);
+  if (!board) return;
+  await db.put('boards', { ...board, itemIds, updatedAt: Date.now() });
 }
 
 // ─── Trips ─────────────────────────────────────────────────────────────────

@@ -30,6 +30,7 @@ interface RouteMapViewProps {
   items: SavedItem[];
   plan: Partial<TripPlan> | null;
   activeDayIndex: number;
+  userLocation?: { lat: number; lng: number } | null;
 }
 
 interface BoundsControllerProps {
@@ -85,7 +86,7 @@ function BoundsController({ plan, items }: BoundsControllerProps) {
   return null;
 }
 
-export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapViewProps) {
+export default function RouteMapView({ items, plan, activeDayIndex, userLocation }: RouteMapViewProps) {
   const days = plan?.days ?? [];
 
   const allItemLocations = useMemo(
@@ -175,6 +176,39 @@ export default function RouteMapView({ items, plan, activeDayIndex }: RouteMapVi
             </Source>
           );
         })}
+
+      {/* User location — pulsing blue dot (GPS on-trip mode) */}
+      {userLocation && isValidLoc(userLocation) && (
+        <Marker
+          longitude={userLocation.lng}
+          latitude={userLocation.lat}
+          anchor="center"
+        >
+          <div style={{ position: 'relative', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Accuracy pulse */}
+            <div style={{
+              position: 'absolute',
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              backgroundColor: 'rgba(59,130,246,0.15)',
+              border: '1px solid rgba(59,130,246,0.3)',
+              animation: 'gpsPulse 1.8s ease-out infinite',
+            }} />
+            {/* Blue dot */}
+            <div style={{
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              backgroundColor: '#3b82f6',
+              border: '3px solid white',
+              boxShadow: '0 2px 8px rgba(59,130,246,0.5)',
+              position: 'relative',
+              zIndex: 1,
+            }} />
+          </div>
+        </Marker>
+      )}
 
       {/* Day location markers with numbers */}
       {days.length > 0 &&

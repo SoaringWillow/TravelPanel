@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { Board, SavedItem, Location } from '@/lib/types';
-import InboxCard from '@/components/InboxCard';
+import { Board, SavedItem, Location, SubstanceType } from '@/lib/types';
+import { shareBoardNative } from '@/lib/shareBoard';
+import SubstanceList from '@/components/SubstanceList';
+import SortableBoardGrid from '@/components/SortableBoardGrid';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -19,10 +21,12 @@ export default function BoardDetailPage() {
   const boardId = params.id as string;
   const router = useRouter();
 
-  const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
+  const { boards, loading: boardsLoading, removeItemFromBoard, reorderItems } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<'places' | 'wisdom'>('places');
+  const [substanceFilter, setSubstanceFilter] = useState<'all' | SubstanceType>('all');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -49,6 +53,15 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShare() {
+    if (!board) return;
+    try {
+      await shareBoardNative(board.id, board.name);
+    } catch (err) {
+      console.error('Share failed:', err);
+    }
   }
 
   if (loading) {
@@ -110,6 +123,15 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0"
+            aria-label="Share board"
+          >
+            <Share2 size={18} />
+          </button>
         </div>
       </div>
 
@@ -130,6 +152,24 @@ export default function BoardDetailPage() {
             />
           </div>
         )}
+
+        {/* Tab toggle */}
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mx-4 mt-3">
+          {(['places', 'wisdom'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${
+                activeTab === tab
+                  ? 'bg-white text-gray-800 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab === 'places' ? `🗺 Places` : `💡 Wisdom`}
+            </button>
+          ))}
+        </div>
 
         <div className="px-4 py-4">
           {/* Plan this trip CTA */}
@@ -164,29 +204,86 @@ export default function BoardDetailPage() {
             )}
           </div>
 
-          {/* Items grid */}
-          {boardItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                No places saved to this board yet.
-              </p>
-              <p className="text-sm text-gray-400">
-                Go to Inbox to add items.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
+          {/* Places tab */}
+          {activeTab === 'places' && (
+            <>
+              {boardItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-center">
+                  <MapPin className="text-gray-300 mb-3" size={40} />
+                  <p className="text-sm font-medium text-gray-600 mb-1">
+                    No places saved to this board yet.
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Go to Inbox to add items.
+                  </p>
+                </div>
+              ) : (
+                <SortableBoardGrid
+                  items={boardItems}
+                  onReorder={(newIds) => reorderItems(boardId, newIds)}
                   onDelete={handleDelete}
                   onViewOnMap={handleViewOnMap}
                 />
-              ))}
-            </div>
+              )}
+            </>
           )}
+
+          {/* Wisdom tab */}
+          {activeTab === 'wisdom' && (() => {
+            const TYPE_ORDER: SubstanceType[] = ['warning', 'tip', 'recommendation', 'wisdom', 'opinion', 'context'];
+            const allSubstance = boardItems.flatMap((item) =>
+              (item.substance ?? []).map((s) => ({ ...s, sourceTitle: item.title || item.url }))
+            );
+            const filtered = substanceFilter === 'all'
+              ? allSubstance
+              : allSubstance.filter((s) => s.type === substanceFilter);
+            const sorted = [...filtered].sort(
+              (a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type)
+            );
+            const typesPresent = Array.from(new Set(allSubstance.map((s) => s.type)));
+
+            if (allSubstance.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center h-48 text-center">
+                  <span className="text-4xl mb-3">🧠</span>
+                  <p className="text-sm font-medium text-gray-600 mb-1">No wisdom extracted yet.</p>
+                  <p className="text-sm text-gray-400">Add more clips to unlock insights.</p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-3">
+                {/* Filter pills */}
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                  {(['all', ...typesPresent] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setSubstanceFilter(f as 'all' | SubstanceType)}
+                      className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all capitalize ${
+                        substanceFilter === f
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                      }`}
+                    >
+                      {f === 'all' ? `All (${allSubstance.length})` : f}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Substance items */}
+                {sorted.map((s, i) => (
+                  <div key={i} className="space-y-1">
+                    <SubstanceList items={[s]} showHeader={false} />
+                    <p className="text-[10px] text-gray-400 pl-1">
+                      from: {s.sourceTitle}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

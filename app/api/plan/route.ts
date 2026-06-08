@@ -49,9 +49,10 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string,
+      existingPlan: object | undefined, refinement: string | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, existingPlan, refinement } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -73,6 +74,52 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        const contentSummary = items.map((i) => ({
+          title: i.title,
+          activities: i.activities,
+          tags: i.tags,
+          substance: (i.substance ?? []).map((s) => ({
+            type: s.type,
+            content: s.content,
+            applies_to: s.applies_to,
+          })),
+        }));
+
+        // ── Refinement path: skip location resolution & clustering ───────
+        if (refinement && existingPlan) {
+          step('searching', `Refining your plan: "${refinement}"…`);
+          step('routing', 'Applying your changes…');
+
+          const refineStream = streamObject({
+            model: models.planItinerary,
+            schema: tripPlanSchema,
+            prompt: `You are refining an existing travel itinerary based on a user request.
+
+Existing itinerary:
+${JSON.stringify(existingPlan)}
+
+User's refinement request: "${refinement}"
+
+Saved content from the user's clips (for sourced tips):
+${JSON.stringify(contentSummary)}
+
+Instructions:
+- Modify the itinerary to honour the user's request
+- Keep what is already good; only change what the request asks for
+- Maintain the day count (${days} days) unless the request changes it
+- Keep sourced tips that are still relevant; update or remove those that aren't
+- Do NOT fabricate sourced tips; only cite substance from the clips above`,
+          });
+
+          for await (const partial of refineStream.partialObjectStream) {
+            emit({ t: 'plan', plan: partial });
+          }
+
+          step('validating', 'Finalising refinement…');
+          step('done', `Done! Your plan has been updated.`);
+          return;
+        }
+
         // ── Step 1: Resolve locations ────────────────────────────────────
         step('searching', 'Collecting locations from your saved items…');
 
@@ -118,18 +165,6 @@ export async function POST(req: NextRequest) {
         step('routing', 'Building optimised route…');
 
         // ── Step 3: Stream full itinerary ────────────────────────────────
-        // Include substance (the wisdom layer) so the plan can cite the user's
-        // own clips inline — this is the sourced-itinerary moat.
-        const contentSummary = items.map((i) => ({
-          title: i.title,
-          activities: i.activities,
-          tags: i.tags,
-          substance: (i.substance ?? []).map((s) => ({
-            type: s.type,
-            content: s.content,
-            applies_to: s.applies_to,
-          })),
-        }));
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
