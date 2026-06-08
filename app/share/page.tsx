@@ -10,6 +10,7 @@ import { track } from '@/lib/analytics';
 import { vibrate } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { autoAssignBoard } from '@/lib/autoAssign';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ function SharePageInner() {
   const [pendingImage, setPendingImage]       = useState<{ base64: string; mediaType: string } | null>(null);
   const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
   const [pendingBoard, setPendingBoard]       = useState<{ id?: string; name?: string } | null>(null);
+  const [autoAssignSuggestion, setAutoAssignSuggestion] = useState<{ boardId: string; boardName: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -133,7 +135,6 @@ function SharePageInner() {
     enrichItem(itemId, rawUrl, pendingImage?.base64, pendingImage?.mediaType)
       .then(async (success) => {
         if (success) {
-          // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
           if (updated) {
@@ -147,6 +148,20 @@ function SharePageInner() {
               tags: updated.tags,
               substance: updated.substance,
             } as ImportResult);
+
+            // Auto-assign suggestion — only when item was saved to Inbox (no explicit board)
+            if (!selectedBoardId) {
+              const currentBoards = await getAllBoards();
+              const result = autoAssignBoard(updated, currentBoards);
+              if (result.type === 'suggested' && result.board) {
+                setAutoAssignSuggestion({ boardId: result.board.id, boardName: `${result.board.emoji} ${result.board.name}` });
+                track('clip_auto_assign_suggested', { platform });
+              } else if (result.type === 'assigned' && result.board) {
+                const { addItemToBoard: addToBd } = await import('@/lib/db');
+                await addToBd(result.board.id, itemId);
+                track('clip_auto_assigned', { platform, boardId: result.board.id });
+              }
+            }
           }
         }
         setEnrichmentLoading(false);
@@ -395,6 +410,47 @@ function SharePageInner() {
             </div>
           ) : null}
         </motion.div>
+
+        {/* Auto-assign suggestion */}
+        <AnimatePresence>
+          {autoAssignSuggestion && (
+            <motion.div
+              key="auto-assign"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="w-full bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 space-y-2"
+            >
+              <p className="text-xs font-semibold text-indigo-700">
+                Move to {autoAssignSuggestion.boardName}?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAutoAssignSuggestion(null)}
+                  className="flex-1 py-1.5 rounded-xl bg-white border border-indigo-200 text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors"
+                >
+                  Keep in Inbox
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { addItemToBoard: addToBd } = await import('@/lib/db');
+                    // Find the itemId from most recent saved item with this URL
+                    const { getAllItems: getAll } = await import('@/lib/db');
+                    const allItems = await getAll();
+                    const it = allItems.find((i) => i.url === rawUrl);
+                    if (it) await addToBd(autoAssignSuggestion.boardId, it.id);
+                    setAutoAssignSuggestion(null);
+                  }}
+                  className="flex-1 py-1.5 rounded-xl bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+                >
+                  Move
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.p
           initial={{ opacity: 0 }}

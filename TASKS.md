@@ -138,7 +138,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Persist the new order to IndexedDB
 
 ### E5 — Smart Auto-Board Assignment
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users shouldn't have to manually pick a board for every clip. The AI already extracts location and tags — use them to suggest (or automatically assign) the right board.  
 **Files to change**: `app/share/page.tsx`, new `lib/autoAssign.ts`  
 **What to do**:
