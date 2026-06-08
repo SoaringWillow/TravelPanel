@@ -100,3 +100,22 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-08 16:37 | 5a5163a | feat: B3 Xiaohongshu fix — Claude Vision image extraction
 2026-06-08 16:39 | 245b385 | feat: B5 cloud backup export — download/import all data as JSON
 2026-06-08 16:43 | 4342c8f | feat: C1 on-trip GPS mode — real-time navigation overlay for planned itineraries
+2026-06-08 16:44 | 6d21d55 | feat: C2 post-trip timeline — scrollable trip memory view with share
+2026-06-08 16:48 | 9c5f5aa | feat(C3): Shared Boards v1 — export/import .tpboard files
+2026-06-08 16:50 | 8141c05 | feat(C4): Proactive Resurfacing — "Remember this?" widget
+2026-06-08 16:52 | d91b3b4 | chore: new TASKS.md Phase D-F — iOS polish + engagement features
+2026-06-08 16:53 | 24ffab9 | feat(D1): swipe-left actions on inbox + board cards
+2026-06-08 16:54 | b12cdb2 | feat(D2): duplicate detection on save
+2026-06-08 16:57 | a6f58d5 | feat(D3): pull-to-refresh on inbox and boards
+2026-06-08 16:58 | 1c3c8f1 | feat(D4): natural-language plan refinement
+2026-06-08 16:59 | 4cf0826 | feat(D5): Board Wisdom tab — aggregated substance library
+2026-06-08 17:00 | a683959 | feat(D6): offline indicator on plan page
+2026-06-08 17:01 | df8886b | feat(E1): haptic feedback on key interactions
+2026-06-08 17:03 | e5e6f29 | feat(E2): dark mode support (system-adaptive)
+2026-06-08 17:04 | 8adc5b7 | feat(E3): smooth page transitions via Framer Motion AnimatePresence
+2026-06-08 17:06 | 68d793f | feat(E4): drag-to-reorder items within boards
+2026-06-08 17:09 | dee693b | feat(E5): smart auto-board assignment after enrichment
+2026-06-08 17:10 | eab1e93 | feat(E6): clip notes — inline personal annotations on clips
+2026-06-08 17:12 | 33098f3 | feat(F1): board cover photos with dark gradient overlay
+2026-06-08 17:13 | 411f1f0 | feat(F2): trip count & streak on home screen
+2026-06-08 17:15 | 544875b | feat(F3): enrichment quality indicator on clips
