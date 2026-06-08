@@ -161,11 +161,11 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
@@ -174,8 +174,105 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "Download all my data" as JSON from the account settings page
+
+---
+
+## PHASE D — Polish & iOS Native Feel (Current Sprint)
+
+> Goal: a beautiful, fluid iOS app that feels native. Every interaction should feel intentional.
+
+### D1 — Beautiful Empty States (every tab)
+**Status**: `[x]` Done  
+**Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- **Map tab** (no items): Centered overlay: indigo gradient map-pin SVG illustration, "Your travel map is empty", "Add your first clip →" button that opens the import sheet
+- **Inbox tab** (no items after filtering): Platform-specific or generic: share-arrow SVG, "No clips yet. Share a travel post from any app to see it here." + link to `/share`
+- **Boards tab** (no boards after dismissing demo): Cards illustration, "Create your first collection to organize your travels." + "New Collection" button
+- Each empty state: consistent style — centered, illustration height 160px, title text-lg font-semibold text-gray-700, subtitle text-sm text-gray-400, indigo CTA button
+
+### D2 — Delete Confirmation & Undo Toast
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`, new `components/UndoToast.tsx`  
+**What to do**:
+- Replace single-tap delete with: tap → bottom confirmation sheet ("Delete this clip?" with red "Delete" button + gray "Cancel")
+- After confirming: show an "Undo" toast (5 seconds, indigo) — clicking Undo restores the item
+- Use a soft delete: mark `deletedAt` on item, hide from list, only hard-delete after 5s or on app close
+
+### D3 — Board Card Cover Images
+**Status**: `[x]` Done  
+**Files**: `components/BoardCard.tsx`  
+**What to do**:
+- Show the thumbnail image of the first item that has one as a full-bleed card header (max height 120px, object-cover)
+- If no thumbnail available: gradient placeholder using the board's emoji character rendered large
+- Item count badge overlay (bottom-right)
+- Card title + emoji below the cover image
+
+### D4 — Inline Clip Notes (personal annotations)
+**Status**: `[x]` Done  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add "My Notes" section to LocationDetailCard (bottom of the detail sheet, before close button)
+- Tap section → inline `<textarea>` appears with 500-char limit
+- Auto-saves to `SavedItem.notes` on blur (debounced 400ms)
+- Saved indicator: "✓ Saved" fades in next to label
+
+### D5 — Sort Options for Inbox
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- Add a sort selector beneath the platform filter row: "Newest" (default) | "Oldest" | "Most Locations" | "Most Tips"
+- Implemented as a horizontal chip row (compact, single-select)
+- Persists in `localStorage` as `inboxSortOrder`
+- Smooth visual re-sort using `AnimatePresence`
+
+### D6 — Haptic Feedback (iOS native feel)
+**Status**: `[x]` Done  
+**Files**: `app/share/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Install `@capacitor/haptics` (already in package.json likely — check first)
+- On clip saved (share page): `HapticsImpact.Medium`
+- On delete confirmed: `HapticsImpact.Heavy` + `HapticsNotificationType.Warning`
+- On enrichment complete (card updates): `HapticsNotificationType.Success`
+- On error: `HapticsNotificationType.Error`
+- Create `lib/haptics.ts` with typed wrappers that no-op outside Capacitor
+
+### D7 — Refined InboxCard Layout with Prominent Thumbnail
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- When `item.thumbnail` exists: show as a full-width top image (aspect-ratio 16/9, object-cover, rounded-t-2xl)
+- Redesign card layout: image → platform chip + title → description (2 lines) → location/tip counts row → tags
+- Rich loading skeleton matching the new layout
+- Platform chip colors update: Xiaohongshu=#FF2442, YouTube=#FF0000, Instagram gradient border
+
+### D8 — Map Empty State + First-Pin Onboarding
+**Status**: `[x]` Done  
+**Files**: `app/page.tsx`  
+**What to do**:
+- When `items.length === 0`: show a floating card below the top bar: "📍 Your travel map is waiting. Share a post from Instagram, YouTube, or Xiaohongshu to drop your first pin."
+- CTA: "Share a Link" button → opens import sheet
+- Card dismisses on first item added (AnimatePresence exit)
+- Don't show this card if demo/seed items exist
+
+### D9 — Board Detail Page Redesign
+**Status**: `[x]` Done  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- Show board header: large cover image (first clip thumbnail) or gradient with emoji
+- Grid of InboxCards for items in this board (same as inbox but filtered)
+- "Plan a Trip" CTA at bottom → links to `/plan/[boardId]`
+- Board edit: tap title to rename inline
+
+### D10 — App Icon + Splash Screen Assets
+**Status**: `[x]` Done  
+**Files**: `ios/App/App/Assets.xcassets/`, `public/`  
+**What to do**:
+- Generate 1024x1024 App Icon using the same map-pin design as the browser extension (indigo background, white pin)
+- Scale to all required iOS sizes via `generate-icons.js` (extend existing script)
+- Update capacitor.config.ts splash screen color to match
+- Create `public/apple-touch-icon.png` (180x180) for PWA bookmark icon
 
 ---
 

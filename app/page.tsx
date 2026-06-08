@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
@@ -91,6 +91,40 @@ function HomePageInner() {
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* First-pin onboarding card — below top bar, dismisses on first real item */}
+      <AnimatePresence>
+        {!loading && items.filter((i) => !i.isDemo).length === 0 && !selectedItem && (
+          <motion.div
+            key="map-empty"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+            className="absolute left-4 right-4 z-[900]"
+            style={{ top: '5.5rem' }}
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-lg shadow-black/10 px-4 py-4 flex items-center gap-3">
+              <span className="text-2xl flex-shrink-0">📍</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800 leading-snug">
+                  Your travel map is waiting
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  Share a post from Instagram, YouTube, or Xiaohongshu to drop your first pin.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="flex-shrink-0 bg-indigo-600 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+              >
+                Share a Link
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

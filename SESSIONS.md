@@ -96,3 +96,12 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-08 12:25 | e0f0743 | feat(browser-extension): add Chrome/Safari Manifest V3 clipper extension
+2026-06-08 12:34 | f554494 | feat(b3): Xiaohongshu Claude Vision fix — image extraction from screenshots
+2026-06-08 12:36 | 8961460 | feat(b5): settings page with JSON data export
+2026-06-08 12:41 | 801b648 | feat(d1): beautiful empty states across map, inbox, and boards tabs
+2026-06-08 12:43 | 830fb0f | feat(d2): delete confirmation with in-card UI + 5-second undo toast
+2026-06-08 12:44 | b05f9c9 | feat(d3): board cards with cover images and gradient fallbacks
+2026-06-08 12:45 | 4714e48 | feat(d4): inline editable notes in clip detail with debounced auto-save
+2026-06-08 12:46 | 6cbd271 | feat(d5): sort options for inbox (newest/oldest/most pins/most tips)
+2026-06-08 12:55 | c8aa6a8 | D6-D10: haptics, card redesign, board detail, map onboarding, app icon

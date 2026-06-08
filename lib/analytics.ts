@@ -43,7 +43,8 @@ export type AnalyticsEvent =
   | 'plan_exported'
   | 'board_created'
   | 'search_performed'
-  | 'substance_viewed';
+  | 'substance_viewed'
+  | 'data_exported';
 
 export function track(event: AnalyticsEvent, props?: Record<string, unknown>): void {
   if (!KEY) return; // fast path — no client, no cost
