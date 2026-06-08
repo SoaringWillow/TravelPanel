@@ -111,7 +111,7 @@
 - The import route should gracefully show "Saved (enrichment pending — will retry when online)" when offline
 
 ### D6 — Inbox Virtual Scrolling
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: `useSavedItems` loads ALL clips into memory and renders them all. At 200+ items this causes noticeable lag on mobile.  
 **Files to change**: `app/inbox/page.tsx`, possibly new `hooks/useVirtualList.ts`  
 **What to do**:

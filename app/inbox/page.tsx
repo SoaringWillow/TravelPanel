@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
@@ -26,6 +27,17 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
   { key: 'bilibili', label: 'Bilibili' },
 ];
 
+const COLUMNS = 2;
+
+// Split array into rows of N
+function chunkItems(items: SavedItem[], cols: number): SavedItem[][] {
+  const rows: SavedItem[][] = [];
+  for (let i = 0; i < items.length; i += cols) {
+    rows.push(items.slice(i, i + cols));
+  }
+  return rows;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
@@ -38,6 +50,8 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -53,6 +67,16 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  // Group filtered items into rows for the 2-column grid virtualizer
+  const rows = useMemo(() => chunkItems(filtered, COLUMNS), [filtered]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 132, // card height ~120 + gap 12
+    overscan: 5,
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -73,12 +97,9 @@ export default function InboxPage() {
       if (!movingItemId) return;
 
       if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
         const item = items.find((i) => i.id === movingItemId);
         if (item && item.boardId) {
           await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
           const allItems = await getAllItems();
           const updatedItem = allItems.find((i) => i.id === movingItemId);
           if (updatedItem) {
@@ -90,7 +111,6 @@ export default function InboxPage() {
       }
 
       setMovingItemId(null);
-      // Trigger a soft reload by navigating to the same page
       router.refresh();
     },
     [movingItemId, items, router]
@@ -139,7 +159,7 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -159,26 +179,34 @@ export default function InboxPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
+          // Virtual scroll container — height must be explicit for the absolutelypositioned rows
+          <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+                className="grid grid-cols-2 gap-3 pb-3"
+              >
+                {rows[virtualRow.index].map((item) => (
                   <InboxCard
+                    key={item.id}
                     item={item}
                     onDelete={removeItem}
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
                   />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                ))}
+              </div>
+            ))}
           </div>
         )}
       </div>
