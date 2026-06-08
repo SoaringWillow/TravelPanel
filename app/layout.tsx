@@ -22,6 +22,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {/* Blocking theme script — must run before first paint to prevent dark→light flash */}
+        <script dangerouslySetInnerHTML={{ __html: `
+(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t!=='light'&&d)){document.documentElement.classList.add('dark');}}catch(e){}})();
+        `.trim() }} />
       </head>
       <body>
         <CapacitorBridge />

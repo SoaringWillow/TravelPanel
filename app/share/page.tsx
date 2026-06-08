@@ -162,7 +162,7 @@ function SharePageInner() {
 
   if (stage === 'picking' || stage === 'saving') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-between p-6 safe-top safe-bottom">
         {/* Top section */}
         <div className="space-y-2 pt-4">
           {/* Platform chip */}

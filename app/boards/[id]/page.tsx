@@ -77,7 +77,7 @@ export default function BoardDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
         <div className="flex items-center justify-center flex-1">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
         </div>
@@ -88,7 +88,7 @@ export default function BoardDetailPage() {
 
   if (!board) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
         <div className="flex flex-col items-center justify-center flex-1 text-center px-6">
           <div className="text-5xl mb-4">🗺</div>
           <h2 className="text-lg font-bold text-gray-800 mb-2">Board not found</h2>
@@ -110,9 +110,9 @@ export default function BoardDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 safe-top pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:shadow-gray-800/50 px-4 safe-top pb-4 z-10">
         <div className="flex items-center gap-3">
           <button
             type="button"

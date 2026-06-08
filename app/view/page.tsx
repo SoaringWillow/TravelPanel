@@ -76,7 +76,7 @@ function SharedBoardViewInner() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 safe-top pb-4">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 safe-top pb-4">
         <div className="flex items-start gap-3">
           <span className="text-3xl leading-none">{payload.e}</span>
           <div className="flex-1 min-w-0">

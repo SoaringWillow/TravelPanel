@@ -89,7 +89,7 @@
 - Install `canvas-confetti` if not present (`npm install canvas-confetti @types/canvas-confetti`)
 
 ### D4 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: ~70% of iPhone users run Dark Mode. A light-only app feels unfinished on iOS.  
 **Files to change**: `app/globals.css`, `tailwind.config.js`, all components  
 **What to do**:
