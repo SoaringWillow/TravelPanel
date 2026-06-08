@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Globe2, Inbox, LayoutGrid, Settings } from 'lucide-react';
+import { hapticLight } from '@/lib/haptics';
 
 interface NavBarProps {
   active: 'home' | 'inbox' | 'boards' | 'settings';
@@ -27,6 +28,7 @@ export default function NavBar({ active }: NavBarProps) {
             <Link
               key={key}
               href={href}
+              onClick={() => hapticLight()}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
                 isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
               }`}

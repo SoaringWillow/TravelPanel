@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -159,6 +160,7 @@ function SharePageInner() {
         setEnrichmentLoading(false);
       });
 
+    hapticSuccess();
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
   }

@@ -9,6 +9,7 @@ import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } fro
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { hapticMedium } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -127,6 +128,7 @@ export default function PlanPage() {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
             }
             // Persist the finished plan as a new named variant.
+            if (msg.step.type === 'done') hapticMedium();
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
               const trip: Trip = {
                 id: crypto.randomUUID(),
