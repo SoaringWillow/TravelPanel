@@ -8,7 +8,17 @@ import OnboardingIntro from '@/components/OnboardingIntro';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
-  description: 'Map-centric travel app where AI extracts locations from social media links and helps you plan routes',
+  description: 'Save travel inspiration from Instagram, YouTube and more. AI extracts locations and wisdom from posts to build cited itineraries.',
+  openGraph: {
+    title: 'TravelPanel — AI Trip Planner',
+    description: 'Save travel inspiration from Instagram, YouTube and more. AI extracts locations and wisdom to build cited itineraries.',
+    type: 'website',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'TravelPanel',
+  },
 };
 
 export default function RootLayout({

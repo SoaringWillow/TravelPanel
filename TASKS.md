@@ -247,7 +247,7 @@ All Phase A–C tasks complete. The app has:
 - The existing `/boards/import?data=` path still works as a direct import link
 
 ### G3 — Privacy Policy + App Store Metadata
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Required for App Store submission. Apple rejects apps without a privacy policy URL. Also improves trust signals for new users.
 **Files to change**: new `app/privacy/page.tsx`, `app/layout.tsx`
 **What to do**:

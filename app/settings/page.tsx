@@ -164,6 +164,12 @@ export default function SettingsPage() {
                 Your data is stored locally on this device. Cloud sync (Supabase) will be available in a future update.
               </p>
             </div>
+            <div className="flex items-center justify-between py-1.5 border-t border-gray-50">
+              <span className="text-sm text-gray-500">Privacy Policy</span>
+              <Link href="/privacy" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+                View →
+              </Link>
+            </div>
           </div>
         </section>
 
