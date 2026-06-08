@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 100%;
+      max-width: 500px;
+      margin: 48px auto;
+      padding: 0 24px 48px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      color: #1e293b;
+      background: #f8fafc;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .brand-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+    .brand-subtitle {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .preset-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .preset-btn {
+      padding: 4px 10px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .preset-btn:hover { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
+
+    input[type="url"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #0f172a;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      background: #fafafa;
+    }
+    input[type="url"]:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+      background: white;
+    }
+    input[type="url"].error { border-color: #ef4444; }
+
+    .hint {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    button.save-btn {
+      padding: 10px 22px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    button.save-btn:hover { background: #1d4ed8; }
+    button.reset-btn {
+      padding: 10px 16px;
+      background: white;
+      color: #64748b;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    button.reset-btn:hover { border-color: #cbd5e1; color: #ef4444; }
+
+    .status-msg {
+      margin-top: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      min-height: 18px;
+      transition: opacity 0.3s;
+    }
+    .status-msg.success { color: #16a34a; }
+    .status-msg.error   { color: #dc2626; }
+
+    /* Install steps card */
+    .steps { list-style: none; padding: 0; }
+    .steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.5;
+    }
+    .steps li:last-child { border-bottom: none; }
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    code {
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 12px;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #7c3aed;
+    }
+
+    .keyboard-hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+    kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 11px;
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="brand">
+    <div class="brand-logo">✈️</div>
+    <div>
+      <div class="brand-name">TravelPanel</div>
+      <div class="brand-subtitle">Clipper Extension Settings</div>
+    </div>
+  </div>
+
+  <!-- URL config card -->
+  <div class="card">
+    <h2>🔗 TravelPanel URL</h2>
+
+    <label for="url-input">Your TravelPanel deployment</label>
+    <div class="preset-row">
+      <button class="preset-btn" data-url="http://localhost:3000">localhost:3000</button>
+      <button class="preset-btn" data-url="https://travelpanel.vercel.app">travelpanel.vercel.app</button>
+    </div>
+    <input type="url" id="url-input" placeholder="https://your-app.vercel.app" autocomplete="off" spellcheck="false" />
+    <p class="hint">Paste the URL of your running TravelPanel app. Use <code>localhost:3000</code> for local dev.</p>
+
+    <div class="btn-row">
+      <button class="save-btn" id="save-btn">Save</button>
+      <button class="reset-btn" id="reset-btn">Clear</button>
+    </div>
+    <div class="status-msg" id="status-msg"></div>
+  </div>
+
+  <!-- Keyboard shortcut -->
+  <div class="card">
+    <h2>⌨️ Keyboard Shortcut</h2>
+    <p class="hint" style="margin:0 0 8px">
+      Default shortcut to open the clipper popup:<br>
+      Mac: <kbd>⌘ Shift T</kbd>&nbsp;&nbsp; Windows/Linux: <kbd>Alt T</kbd>
+    </p>
+    <p class="hint">
+      Override via <code>chrome://extensions/shortcuts</code> (Chrome) or
+      <code>about:addons</code> → Manage Extension Shortcuts (Firefox).
+    </p>
+  </div>
+
+  <!-- Install guide -->
+  <div class="card">
+    <h2>🛠 Installation (Sideload)</h2>
+    <ol class="steps">
+      <li>
+        <span class="step-num">1</span>
+        <span>Clone or download the <code>browser-extension/</code> folder from the TravelPanel repo.</span>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <span>Generate icon PNGs by running <code>node generate-icons.js</code> inside the folder.</span>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <span><b>Chrome/Edge/Brave:</b> Go to <code>chrome://extensions</code>, enable <em>Developer mode</em>, click <em>Load unpacked</em>, and select the <code>browser-extension/</code> folder.</span>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <span><b>Safari (macOS 14+):</b> Run <code>xcrun safari-web-extension-converter browser-extension/</code> in Terminal, then open the generated Xcode project and build to install.</span>
+      </li>
+      <li>
+        <span class="step-num">5</span>
+        <span>Pin the extension to your toolbar, click it, and enter your TravelPanel URL above.</span>
+      </li>
+    </ol>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
