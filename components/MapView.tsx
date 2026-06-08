@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl, GeolocateControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
@@ -230,9 +230,11 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  tripMode?: boolean;
+  onUserLocation?: (lat: number, lng: number) => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, tripMode, onUserLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -279,6 +281,19 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+
+        {tripMode && (
+          <GeolocateControl
+            position="top-right"
+            positionOptions={{ enableHighAccuracy: true }}
+            trackUserLocation
+            showUserHeading
+            showAccuracyCircle
+            onGeolocate={(e: GeolocationPosition) => {
+              onUserLocation?.(e.coords.latitude, e.coords.longitude);
+            }}
+          />
+        )}
 
         <MapController flyTo={flyTo} />
 

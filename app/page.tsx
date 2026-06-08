@@ -1,10 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, Navigation2, X, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
@@ -12,6 +12,35 @@ import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+// ─── Haversine distance (km) ──────────────────────────────────────────────────
+
+function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R    = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(km: number): string {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1)} km`;
+}
+
+// ─── Inner page (needs useSearchParams) ──────────────────────────────────────
+
+// ─── Nearby result type ───────────────────────────────────────────────────────
+
+interface NearbyResult {
+  item: SavedItem;
+  location: Location;
+  distanceKm: number;
+}
 
 // ─── Inner page (needs useSearchParams) ──────────────────────────────────────
 
@@ -22,6 +51,28 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+
+  // ── Trip Mode ──────────────────────────────────────────────────────────────
+  const [tripMode, setTripMode]       = useState(false);
+  const [nearbyItems, setNearbyItems] = useState<NearbyResult[]>([]);
+  const [userLat, setUserLat]         = useState<number | null>(null);
+  const [userLng, setUserLng]         = useState<number | null>(null);
+
+  const handleUserLocation = useCallback((lat: number, lng: number) => {
+    setUserLat(lat);
+    setUserLng(lng);
+
+    // Find the 3 nearest saved locations
+    const candidates: NearbyResult[] = [];
+    for (const item of items) {
+      for (const loc of item.locations) {
+        if (!Number.isFinite(loc.lat) || !Number.isFinite(loc.lng)) continue;
+        candidates.push({ item, location: loc, distanceKm: distanceKm(lat, lng, loc.lat, loc.lng) });
+      }
+    }
+    candidates.sort((a, b) => a.distanceKm - b.distanceKm);
+    setNearbyItems(candidates.slice(0, 3));
+  }, [items]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,18 +122,93 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        tripMode={tripMode}
+        onUserLocation={handleUserLocation}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
+        <div
+          className={`backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 transition-colors ${
+            tripMode ? 'bg-indigo-600/95' : 'bg-white/90'
+          }`}
+        >
+          <Globe2 className={tripMode ? 'text-white' : 'text-indigo-600'} size={22} />
+          <span className={`font-bold text-lg ${tripMode ? 'text-white' : 'text-gray-800'}`}>
+            {tripMode ? 'On-Trip Mode' : 'TravelPanel'}
+          </span>
+          <div className={`ml-auto text-sm ${tripMode ? 'text-indigo-200' : 'text-gray-500'}`}>
             {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
           </div>
         </div>
       </div>
+
+      {/* ── Nearby places strip (Trip Mode) ─────────────────────────────────── */}
+      <AnimatePresence>
+        {tripMode && nearbyItems.length > 0 && !selectedItem && (
+          <motion.div
+            key="nearby-strip"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 260 }}
+            className="absolute left-4 right-4 z-[900]"
+            style={{ bottom: 80 }}
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
+              <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+                <Navigation2 size={15} className="text-indigo-500" />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Nearby saved places
+                </span>
+              </div>
+              {nearbyItems.map(({ item, location, distanceKm: dist }) => (
+                <button
+                  key={`${item.id}-${location.name}`}
+                  type="button"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 border-t border-gray-50 transition-colors text-left"
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setFlyTo(location);
+                  }}
+                >
+                  {item.thumbnail ? (
+                    <img
+                      src={item.thumbnail}
+                      alt=""
+                      className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                      <MapPin size={16} className="text-indigo-500" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{location.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{item.title}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                    <span className="text-xs font-bold text-indigo-600">{formatDistance(dist)}</span>
+                    <a
+                      href={`https://maps.apple.com/?daddr=${location.lat},${location.lng}&dirflg=w`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-500 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Navigate →
+                    </a>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Selected item detail card */}
       <AnimatePresence>
@@ -93,6 +219,30 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Trip Mode FAB */}
+      {!selectedItem && !showImport && (
+        <button
+          onClick={() => {
+            setTripMode((v) => !v);
+            if (tripMode) {
+              setNearbyItems([]);
+              setUserLat(null);
+              setUserLng(null);
+            }
+          }}
+          className={`absolute z-[1000] rounded-full p-3 shadow-xl transition-all active:scale-95 ${
+            tripMode
+              ? 'bg-indigo-600 text-white bottom-24 left-4 hover:bg-indigo-700'
+              : 'bg-white text-indigo-600 bottom-24 left-4 hover:bg-indigo-50'
+          }`}
+          style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.18)' }}
+          aria-label={tripMode ? 'Exit trip mode' : 'Enter trip mode'}
+          title={tripMode ? 'Exit trip mode' : 'On-Trip GPS mode'}
+        >
+          {tripMode ? <X size={20} /> : <Navigation2 size={20} />}
+        </button>
+      )}
 
       {/* Import FAB */}
       {!selectedItem && (
