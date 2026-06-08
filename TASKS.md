@@ -167,7 +167,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 ## PHASE F — Engagement & Retention Features
 
 ### F1 — Board Cover Photos
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Boards with cover photos feel like curated collections, not database entries. This directly supports the "editorial curation" identity emotional promise.  
 **Files to change**: `components/BoardCard.tsx`, `hooks/useBoards.ts`, `lib/db.ts`  
 **What to do**:

@@ -196,6 +196,13 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   await tx.done;
 }
 
+export async function patchBoard(id: string, patch: Partial<Board>): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', id);
+  if (!board) return;
+  await db.put('boards', { ...board, ...patch, updatedAt: Date.now() });
+}
+
 export async function updateBoardItemOrder(boardId: string, itemIds: string[]): Promise<void> {
   const db = await getDB();
   const board = await db.get('boards', boardId);

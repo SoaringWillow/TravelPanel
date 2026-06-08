@@ -8,6 +8,7 @@ import {
   addItemToBoard as dbAddItemToBoard,
   removeItemFromBoard as dbRemoveItemFromBoard,
   updateBoardItemOrder,
+  patchBoard,
 } from '@/lib/db';
 import { track } from '@/lib/analytics';
 import { vibrate } from '@/lib/haptics';
@@ -60,10 +61,17 @@ export function useBoards() {
     );
   }, []);
 
+  const setBoardCover = useCallback(async (boardId: string, thumbnail: string) => {
+    await patchBoard(boardId, { coverThumbnail: thumbnail });
+    setBoards((prev) =>
+      prev.map((b) => (b.id === boardId ? { ...b, coverThumbnail: thumbnail } : b))
+    );
+  }, []);
+
   const refresh = useCallback(async () => {
     const fetchedBoards = await getAllBoards();
     setBoards(fetchedBoards);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard, reorderItems, refresh };
+  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard, reorderItems, setBoardCover, refresh };
 }

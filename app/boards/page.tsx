@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid, Upload, RefreshCw } from 'lucide-react';
+import { Plus, LayoutGrid, Upload, RefreshCw, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
@@ -11,9 +11,10 @@ import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { importBoardFromFile } from '@/lib/shareBoard';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { SavedItem } from '@/lib/types';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, setBoardCover, refresh: refreshBoards } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -21,6 +22,7 @@ export default function BoardsPage() {
   const { scrollRef, pullRatio, refreshing, touchHandlers } = usePullToRefresh(doRefresh);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [coverPickBoardId, setCoverPickBoardId] = useState<string | null>(null);
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -49,6 +51,14 @@ export default function BoardsPage() {
 
   async function handleDelete(id: string) {
     await removeBoard(id);
+  }
+
+  function getBoardItemsWithThumbnails(boardId: string): SavedItem[] {
+    const board = boards.find((b) => b.id === boardId);
+    if (!board) return [];
+    return board.itemIds
+      .map((id) => items.find((i) => i.id === id))
+      .filter((i): i is SavedItem => !!i && !!i.thumbnail);
   }
 
   return (
@@ -141,6 +151,11 @@ export default function BoardsPage() {
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
+                onLongPress={() => {
+                  if (getBoardItemsWithThumbnails(board.id).length > 0) {
+                    setCoverPickBoardId(board.id);
+                  }
+                }}
               />
             ))}
           </div>
@@ -153,6 +168,43 @@ export default function BoardsPage() {
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
       />
+
+      {/* Cover photo picker sheet */}
+      {coverPickBoardId && (() => {
+        const coverItems = getBoardItemsWithThumbnails(coverPickBoardId);
+        return (
+          <div className="fixed inset-0 z-50 flex items-end">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setCoverPickBoardId(null)} />
+            <div className="relative w-full bg-white rounded-t-3xl p-5 pb-10 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800 text-base">Set Cover Photo</h3>
+                <button
+                  type="button"
+                  onClick={() => setCoverPickBoardId(null)}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {coverItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={async () => {
+                      await setBoardCover(coverPickBoardId, item.thumbnail!);
+                      setCoverPickBoardId(null);
+                    }}
+                    className="aspect-square rounded-xl overflow-hidden border-2 border-transparent hover:border-indigo-500 transition-all focus:outline-none"
+                  >
+                    <img src={item.thumbnail!} alt={item.title} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <NavBar active="boards" />
     </div>
