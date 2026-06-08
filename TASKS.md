@@ -101,7 +101,7 @@
 - Focus on: NavBar, top bars, InboxCard, BoardCard, LocationDetailCard, share page
 
 ### D5 — Offline Indicator
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `components/OfflineBanner.tsx`, `app/layout.tsx`  
 **What to do**:
 - Create `OfflineBanner` component that listens to `navigator.onLine` + `online`/`offline` events
