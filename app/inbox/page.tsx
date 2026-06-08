@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -12,6 +12,7 @@ import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
+import { semanticSearch } from '@/lib/embeddings';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
@@ -50,12 +51,26 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [smartMode, setSmartMode] = useState(false);
+  const [smartResults, setSmartResults] = useState<SavedItem[] | null>(null);
+  const [smartLoading, setSmartLoading] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
+    setSmartResults(null);
     if (q.trim()) track('search_performed', { length: q.trim().length });
+  }, []);
+
+  const handleSmartSearch = useCallback((q: string, smart: boolean) => {
+    setSmartMode(smart);
+    setQuery(q);
+    if (!smart || !q.trim()) {
+      setSmartResults(null);
+      return;
+    }
+    track('smart_search', { length: q.trim().length });
   }, []);
 
   // Only unassigned items (boardId === undefined)
@@ -66,7 +81,27 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  // Run semantic search when smartMode + query changes
+  useEffect(() => {
+    if (!smartMode || !query.trim()) {
+      setSmartResults(null);
+      return;
+    }
+    let cancelled = false;
+    setSmartLoading(true);
+    semanticSearch(platformFiltered, query).then((ranked) => {
+      if (!cancelled) {
+        setSmartResults(ranked);
+        setSmartLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setSmartLoading(false);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [smartMode, query, items.length, activePlatform]);
+
+  const filtered = smartResults ?? searchItems(platformFiltered, query);
 
   // Group filtered items into rows for the 2-column grid virtualizer
   const rows = useMemo(() => chunkItems(filtered, COLUMNS), [filtered]);
@@ -130,7 +165,17 @@ export default function InboxPage() {
 
         {/* Search */}
         <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar
+            onSearch={handleSearch}
+            onSmartSearch={handleSmartSearch}
+            showSmartToggle
+          />
+          {smartLoading && (
+            <p className="text-xs text-indigo-500 mt-1 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+              Running semantic search…
+            </p>
+          )}
         </div>
 
         {/* Platform filter tabs */}

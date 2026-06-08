@@ -183,7 +183,7 @@
 ## PHASE F — Growth & Engagement Features
 
 ### F1 — "Vibe Search" (Semantic Search Upgrade)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Current search is keyword-only (matches title/description/tags). A user searching "minimalist cafe" won't find a clip tagged "coffee" unless those words appear in the text. Semantic search fixes this.  
 **Approach**: Client-side embedding using `@xenova/transformers` (runs in-browser, no API needed)  
 **Files**: new `lib/embeddings.ts`, `components/SearchBar.tsx`, `lib/db.ts`  

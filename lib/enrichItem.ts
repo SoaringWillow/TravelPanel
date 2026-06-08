@@ -1,9 +1,10 @@
 'use client';
 
-import { updateItemEnrichment } from './db';
+import { updateItemEnrichment, getItemById, saveItem } from './db';
 import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
+import { embedText, itemToEmbedText } from './embeddings';
 
 export async function enrichItem(id: string, url: string, imageBase64?: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
@@ -44,6 +45,16 @@ export async function enrichItem(id: string, url: string, imageBase64?: string):
       locationCount: data.locations.length,
       substanceCount: data.substance?.length ?? 0,
     });
+
+    // Generate semantic embedding for vibe search (fire-and-forget, best-effort)
+    try {
+      const enriched = await getItemById(id);
+      if (enriched) {
+        const embedding = await embedText(itemToEmbedText(enriched));
+        await saveItem({ ...enriched, embedding });
+      }
+    } catch { /* model unavailable or WASM not ready — embedding stays undefined */ }
+
     return true;
   } catch {
     await updateItemEnrichment(id, 'failed');
