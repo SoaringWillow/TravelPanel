@@ -201,7 +201,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use a soft delete: mark `deletedAt` on item, hide from list, only hard-delete after 5s or on app close
 
 ### D3 — Board Card Cover Images
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/BoardCard.tsx`  
 **What to do**:
 - Show the thumbnail image of the first item that has one as a full-bleed card header (max height 120px, object-cover)
