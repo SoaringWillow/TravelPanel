@@ -278,7 +278,7 @@ All Phase A–C tasks complete. The app has:
 - In `components/InboxCard.tsx`, wrap the thumbnail in a `relative` container with `aspect-video` to prevent layout shift
 
 ### H2 — Animated Tab Transitions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Navigating between tabs currently has an instant cut. On iOS, page transitions are a core part of the premium feel. Even a simple 150ms fade-slide makes the app feel 10x more native.
 **Files to change**: `app/layout.tsx`, possibly a new `components/PageTransition.tsx`
 **What to do**:

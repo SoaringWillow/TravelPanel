@@ -5,6 +5,7 @@ import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
 import OfflineBanner from '@/components/OfflineBanner';
 import OnboardingIntro from '@/components/OnboardingIntro';
+import { TransitionProvider } from '@/components/TransitionProvider';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -41,9 +42,11 @@ export default function RootLayout({
         <ResourceBanner />
         <OfflineBanner />
         <OnboardingIntro />
-        <div className="min-h-screen">
-          {children}
-        </div>
+        <TransitionProvider>
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </TransitionProvider>
       </body>
     </html>
   );
