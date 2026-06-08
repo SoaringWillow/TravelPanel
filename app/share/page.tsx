@@ -21,6 +21,7 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const source          = searchParams.get('source') ?? '';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -30,6 +31,8 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image captured by the iOS Share Extension via App Group (Xiaohongshu / WeChat fix)
+  const pendingImageRef = useRef<{ base64: string; mime: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,6 +40,32 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read pending image from App Group Preferences if the Share Extension wrote one
+  useEffect(() => {
+    if (!hasImage) return;
+    (async () => {
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const [imgResult, mimeResult] = await Promise.all([
+          Preferences.get({ key: 'pendingShareImageBase64' }),
+          Preferences.get({ key: 'pendingShareImageMime' }),
+        ]);
+        if (imgResult.value) {
+          pendingImageRef.current = {
+            base64: imgResult.value,
+            mime: mimeResult.value ?? 'image/jpeg',
+          };
+          // Clean up — don't re-use the same image on next share
+          await Preferences.remove({ key: 'pendingShareImageBase64' });
+          await Preferences.remove({ key: 'pendingShareImageMime' });
+          await Preferences.remove({ key: 'pendingShareImageDate' });
+        }
+      } catch {
+        // Not running in Capacitor (web/dev) — image capture not available
+      }
+    })();
+  }, [hasImage]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -93,9 +122,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass captured image if available (Xiaohongshu / WeChat Vision fix)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const img = pendingImageRef.current;
+    enrichItem(itemId, rawUrl, img?.base64, img?.mime)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

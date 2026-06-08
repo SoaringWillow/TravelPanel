@@ -22,6 +22,11 @@ const config: CapacitorConfig = {
     limitsNavigationsToAppBoundDomains: false,
   },
   plugins: {
+    Preferences: {
+      // Use the App Group container so the Share Extension and main app
+      // share the same UserDefaults — required for pendingShareImageBase64.
+      group: 'group.com.travelpanel.app',
+    },
     SplashScreen: {
       launchShowDuration: 800,
       backgroundColor: '#f9fafb',
