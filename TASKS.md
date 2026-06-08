@@ -189,7 +189,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Tap the stat area → slide up a tiny stats sheet: total clips, this week, this month, longest streak
 
 ### F3 — Enrichment Quality Indicator
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users don't know when a clip was well-extracted vs. poorly extracted. A quality signal builds trust in the extraction layer.  
 **Files to change**: `components/InboxCard.tsx`, `lib/types.ts`  
 **What to do**:

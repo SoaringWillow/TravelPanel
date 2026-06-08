@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { computeQualityScore, qualityLevel, QUALITY_DOT_COLOR } from '@/lib/quality';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -187,9 +188,16 @@ export default function InboxCard({
     month: 'short',
     day: 'numeric',
   });
+  const qScore = computeQualityScore(item);
+  const qLevel = qualityLevel(qScore);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+    <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+      {/* Quality dot — bottom-right corner */}
+      <div
+        className={`absolute bottom-2.5 right-2.5 w-2 h-2 rounded-full ${QUALITY_DOT_COLOR[qLevel]} z-10`}
+        title={`Extraction quality: ${qScore}/6`}
+      />
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img

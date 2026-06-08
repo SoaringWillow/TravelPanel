@@ -2,21 +2,28 @@
 
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, Pencil } from 'lucide-react';
+import { X, MapPin, Pencil, RefreshCw, HelpCircle } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
+import { computeQualityScore, qualityLevel, qualityLabel, QUALITY_TEXT_COLOR } from '@/lib/quality';
 
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
   onUpdateNotes?: (id: string, notes: string) => Promise<void>;
+  onRetry?: (id: string, url: string) => void;
 }
 
-export default function LocationDetailCard({ item, onClose, onUpdateNotes }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onUpdateNotes, onRetry }: LocationDetailCardProps) {
   const [noteValue, setNoteValue] = useState(item.notes ?? '');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [showQualityTip, setShowQualityTip] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const qScore = computeQualityScore(item);
+  const qLevel = qualityLevel(qScore);
+  const qLabel = qualityLabel(qLevel);
 
   function handleNotesBlur() {
     setIsEditingNotes(false);
@@ -137,6 +144,39 @@ export default function LocationDetailCard({ item, onClose, onUpdateNotes }: Loc
                     #{t}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {/* Extraction quality */}
+            {item.enrichmentStatus === 'done' && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 relative">
+                  <span className={`text-xs font-medium ${QUALITY_TEXT_COLOR[qLevel]}`}>
+                    Extraction quality: {qLabel}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowQualityTip((v) => !v)}
+                    className="text-gray-300 hover:text-gray-500 transition-colors"
+                  >
+                    <HelpCircle size={12} />
+                  </button>
+                  {showQualityTip && (
+                    <div className="absolute bottom-full left-0 mb-1 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 w-56 shadow-lg z-10">
+                      Based on how much information was extracted from this clip
+                    </div>
+                  )}
+                </div>
+                {qLevel === 'low' && onRetry && (
+                  <button
+                    type="button"
+                    onClick={() => { onClose(); onRetry(item.id, item.url); }}
+                    className="flex items-center gap-1 text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
+                  >
+                    <RefreshCw size={11} />
+                    Retry extraction
+                  </button>
+                )}
               </div>
             )}
 
