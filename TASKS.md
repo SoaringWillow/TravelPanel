@@ -160,7 +160,7 @@ All Phase A–C tasks complete. The app has:
 - Keep it to 30 lines total — no new component file needed, inline in board detail page
 
 ### E3 — Trip Plan Share-as-Image
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The trip plan is valuable content but can only be exported as PDF or ICS. A one-tap "share as image" for Instagram/WeChat stories is the viral loop — other users see it and ask "how did you make this?"
 **Files to change**: `app/plan/[boardId]/page.tsx`, new `lib/exportImage.ts`
 **What to do**:

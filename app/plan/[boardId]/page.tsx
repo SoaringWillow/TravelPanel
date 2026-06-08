@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Camera } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
+import { exportPlanAsImage } from '@/lib/exportImage';
 import { track } from '@/lib/analytics';
 import { hapticMedium } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
@@ -184,6 +185,31 @@ export default function PlanPage() {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
+  }, [plan, board, boardId]);
+
+  const [exportingImage, setExportingImage] = useState(false);
+  const handleShareAsImage = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    setExportingImage(true);
+    try {
+      const blob = await exportPlanAsImage(plan as TripPlan, board.name);
+      const file = new File([blob], `${board.name}-trip.png`, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${board.name} trip plan` });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      track('plan_exported', { format: 'image', boardId });
+    } catch {
+      // User cancelled share or export failed — silent
+    } finally {
+      setExportingImage(false);
+    }
   }, [plan, board, boardId]);
 
   // Load a previously-saved plan variant into view.
@@ -468,14 +494,22 @@ export default function PlanPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleShareAsImage}
+                    disabled={exportingImage}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    <Camera size={14} />
+                    {exportingImage ? '…' : 'Share'}
                   </button>
                 </div>
               )}
