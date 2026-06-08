@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, Download, Link as LinkIcon, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { buildSharePayload, downloadBoardFile, encodeShareLink } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -22,7 +23,10 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]       = useState<Location | undefined>(undefined);
+  const [showShare, setShowShare] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null | undefined>(undefined);
+  const [copied, setCopied]       = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -49,6 +53,32 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShare() {
+    if (!board) return;
+    const payload  = await buildSharePayload(board, boardItems);
+    const baseUrl  = typeof window !== 'undefined' ? window.location.origin : '';
+    const link     = encodeShareLink(payload, baseUrl);
+    setShareLink(link); // null = too large for URL
+    setShowShare(true);
+  }
+
+  async function handleDownload() {
+    if (!board) return;
+    const payload = await buildSharePayload(board, boardItems);
+    downloadBoardFile(payload);
+  }
+
+  async function handleCopyLink() {
+    if (!shareLink) return;
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable — show the link for manual copy
+    }
   }
 
   if (loading) {
@@ -110,8 +140,92 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={handleShare}
+              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+              aria-label="Share board"
+              title="Share board"
+            >
+              <Share2 size={18} />
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Share modal */}
+      {showShare && (
+        <div
+          className="fixed inset-0 z-[2000] bg-black/50 flex items-end"
+          onClick={() => setShowShare(false)}
+        >
+          <div
+            className="w-full bg-white rounded-t-3xl p-6 pb-10 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-gray-900">Share "{board?.name}"</h2>
+              <button
+                type="button"
+                onClick={() => setShowShare(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              {boardItems.length} clip{boardItems.length !== 1 ? 's' : ''} will be shared.
+              Recipients import into their own TravelPanel.
+            </p>
+
+            {/* Copy link */}
+            {shareLink !== null && (
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-left"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                  <LinkIcon size={18} className="text-indigo-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {copied ? 'Copied!' : 'Copy share link'}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {shareLink ? shareLink.slice(0, 55) + '…' : ''}
+                  </p>
+                </div>
+              </button>
+            )}
+
+            {/* Too large notice */}
+            {shareLink === null && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                This board is too large for a URL link — use file export instead.
+              </div>
+            )}
+
+            {/* Download file */}
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <Download size={18} className="text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Save as file</p>
+                <p className="text-xs text-gray-400">Downloads a .tpboard file to share</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Scrollable content below header */}
       <div className="flex-1 overflow-y-auto pb-24">
