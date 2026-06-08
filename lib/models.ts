@@ -10,6 +10,10 @@ export const models = {
   // Simple structured extraction — runs on every clip save, must be fast and cheap
   enrichment: anthropic('claude-haiku-4-5-20251001'),
 
+  // Vision extraction — used when an image is available (e.g. Xiaohongshu screenshots)
+  // Haiku 4.5 supports vision and is cheapest for this workload
+  vision: anthropic('claude-haiku-4-5-20251001'),
+
   // Intermediate planning steps — coordinate resolution and geographic clustering
   planResolve: anthropic('claude-haiku-4-5-20251001'),
   planCluster: anthropic('claude-haiku-4-5-20251001'),

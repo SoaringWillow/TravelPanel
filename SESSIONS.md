@@ -96,3 +96,8 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-08 21:24 | 76d7c3c | feat(B2): add Chrome/Safari browser extension for one-click URL clipping
+2026-06-08 21:29 | 22448fd | feat(B3): Xiaohongshu fix — Claude Vision extraction from Share Extension images
+2026-06-08 21:33 | 27b2dab | feat(B4): AI vibe search — Claude-powered semantic query expansion
+2026-06-08 21:34 | 9cdb59a | feat(B5): settings page + one-tap JSON backup export
+2026-06-08 21:37 | cb49d81 | chore: rewrite TASKS.md with detailed Phase C+D tasks for iOS app completion

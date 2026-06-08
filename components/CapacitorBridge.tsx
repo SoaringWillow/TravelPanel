@@ -3,17 +3,33 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+const SESSION_IMAGE_KEY = 'tp_share_imageBase64';
+
 // Reads a pending share URL stored by the iOS Share Extension via App Groups.
 // The App Group suite name must match the one in ShareViewController.swift.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
+
+    // Configure to read from the shared App Group suite used by the extension.
+    // This is a no-op on platforms that don't support groups.
+    await Preferences.configure({ group: 'group.com.travelpanel.app' }).catch(() => {});
+
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: title }      = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImageBase64' });
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareImageBase64' });
+
+    // Stash image in sessionStorage — the /share page reads it from there.
+    // Avoids blowing the URL size limit with a large base64 string.
+    if (imageBase64) {
+      sessionStorage.setItem(SESSION_IMAGE_KEY, imageBase64);
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -49,10 +65,18 @@ export function CapacitorBridge() {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
-            const shareUrl = parsed.searchParams.get('url');
+            const shareUrl   = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            // When the Share Extension signals that image data is waiting in App Groups
+            const hasImage   = parsed.searchParams.get('hasImage') === '1';
 
             if (shareUrl) {
+              // Image data is in App Group — the bridge's Preferences check will pick it up.
+              // For the URL-scheme path, trigger that check before navigating.
+              if (hasImage) {
+                checkPendingAppGroupShare(router);
+                return;
+              }
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);

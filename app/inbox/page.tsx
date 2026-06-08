@@ -10,10 +10,10 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
-import { searchItems } from '@/lib/searchItems';
+import { searchItems, vibeSearchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
-import SearchBar from '@/components/SearchBar';
+import SearchBar, { type SearchResult } from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -37,11 +37,16 @@ export default function InboxPage() {
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [searchResult, setSearchResult] = useState<SearchResult>({ query: '', vibeMode: false });
 
-  const handleSearch = useCallback((q: string) => {
-    setQuery(q);
-    if (q.trim()) track('search_performed', { length: q.trim().length });
+  const handleSearch = useCallback((result: SearchResult) => {
+    setSearchResult(result);
+    if (result.query.trim()) {
+      track('search_performed', {
+        length: result.query.trim().length,
+        vibeMode: result.vibeMode,
+      });
+    }
   }, []);
 
   // Only unassigned items (boardId === undefined)
@@ -52,7 +57,9 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const filtered = searchResult.vibeMode && searchResult.expansion
+    ? vibeSearchItems(platformFiltered, searchResult.expansion.terms)
+    : searchItems(platformFiltered, searchResult.query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -146,13 +153,15 @@ export default function InboxPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
+            <div className="text-5xl mb-4">{searchResult.query.trim() ? '🔍' : '📥'}</div>
             <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
+              {searchResult.query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
             <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
+              {searchResult.query.trim()
+                ? searchResult.vibeMode
+                  ? `No clips match the vibe "${searchResult.query.trim()}". Try different words.`
+                  : `No clips match "${searchResult.query.trim()}". Try a different search.`
                 : activePlatform === 'all'
                 ? 'Share content from social apps to get started!'
                 : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
