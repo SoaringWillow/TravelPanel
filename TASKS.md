@@ -177,7 +177,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 - Allow manual override: long-press a board card → "Set as Cover" context option (pick from the board's items with thumbnails)
 
 ### F2 — Trip Count & Streak on Home Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Gamification light — showing users their clipping streak and total count makes clipping feel like a habit, not a chore. Directly affects North Star metric (weekly clips per active user).  
 **Files to change**: `app/page.tsx` (home header)  
 **What to do**:

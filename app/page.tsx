@@ -1,18 +1,27 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { AnimatePresence, motion, useSpring, useTransform } from 'framer-motion';
+import { Globe2, Plus, X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import ResurfaceCard from '@/components/ResurfaceCard';
 import NavBar from '@/components/NavBar';
+import { computeStreakStats, StreakStats } from '@/lib/streak';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+// ─── Animated number counter ─────────────────────────────────────────────────
+function AnimatedCount({ value }: { value: number }) {
+  const spring = useSpring(0, { stiffness: 80, damping: 20 });
+  const display = useTransform(spring, (v) => Math.round(v).toLocaleString());
+  useEffect(() => { spring.set(value); }, [value, spring]);
+  return <motion.span>{display}</motion.span>;
+}
 
 // ─── Inner page (needs useSearchParams) ──────────────────────────────────────
 
@@ -23,6 +32,14 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [stats, setStats]               = useState<StreakStats | null>(null);
+  const [showStats, setShowStats]       = useState(false);
+
+  useEffect(() => {
+    if (!loading && items.length > 0) {
+      setStats(computeStreakStats(items));
+    }
+  }, [items, loading]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -79,11 +96,75 @@ function HomePageInner() {
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
-          </div>
+          <button
+            type="button"
+            onClick={() => stats && setShowStats(true)}
+            className="ml-auto flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition-colors active:scale-95"
+          >
+            {loading ? (
+              <span>Loading…</span>
+            ) : (
+              <>
+                <span>
+                  <AnimatedCount value={items.length} /> place{items.length !== 1 ? 's' : ''}
+                </span>
+                {stats && stats.currentStreak >= 2 && (
+                  <span className="bg-orange-50 text-orange-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    🔥 {stats.currentStreak}w streak
+                  </span>
+                )}
+              </>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Stats sheet */}
+      <AnimatePresence>
+        {showStats && stats && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[1100] bg-black/30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowStats(false)}
+            />
+            <motion.div
+              className="fixed top-20 left-4 right-4 z-[1200] bg-white rounded-2xl shadow-xl p-5"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800">Your Travel Stats</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowStats(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Total clips', value: stats.total, emoji: '📍' },
+                  { label: 'This week', value: stats.thisWeek, emoji: '📅' },
+                  { label: 'This month', value: stats.thisMonth, emoji: '🗓' },
+                  { label: 'Longest streak', value: `${stats.longestStreak}w`, emoji: '🏆' },
+                ].map(({ label, value, emoji }) => (
+                  <div key={label} className="bg-gray-50 rounded-xl p-3">
+                    <span className="text-xl">{emoji}</span>
+                    <p className="text-xl font-bold text-gray-800 mt-1">{value}</p>
+                    <p className="text-xs text-gray-500">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Selected item detail card */}
       <AnimatePresence>
