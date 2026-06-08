@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus, Navigation, NavigationOff } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -12,6 +12,9 @@ import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { haversineKm, formatDistance } from '@/lib/geo';
+import { computeResurfaceSignal, ResurfaceSignal, dismissSignal } from '@/lib/resurfacing';
+import { useBoards } from '@/hooks/useBoards';
+import ResurfaceCard from '@/components/ResurfaceCard';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -19,13 +22,44 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 function HomePageInner() {
   const searchParams = useSearchParams();
+  const router       = useRouter();
   const { items, loading, addItem } = useSavedItems();
+  const { boards }                       = useBoards();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [gpsActive, setGpsActive]       = useState(false);
+  const [resurface, setResurface]       = useState<ResurfaceSignal | null>(() => null);
   const { position: userPosition, status: gpsStatus } = useGeoLocation(gpsActive);
+
+  // Compute resurface signal once items are loaded (and re-compute when GPS fires)
+  useEffect(() => {
+    if (loading || items.length === 0) return;
+    setResurface(computeResurfaceSignal(items, boards, userPosition));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, items.length, boards.length, userPosition?.lat, userPosition?.lng]);
+
+  function handleResurfaceAction(signal: ResurfaceSignal) {
+    switch (signal.type) {
+      case 'proximity':
+        setSelectedItem(signal.item);
+        setFlyTo(signal.location);
+        break;
+      case 'inbox_pile':
+        // Navigate to inbox — handled by NavBar link, but we can set selectedItem
+        break;
+      case 'plan_nudge':
+        router.push(`/plan/${signal.board.id}`);
+        break;
+      case 'rediscover':
+        setSelectedItem(signal.item);
+        if (signal.item.locations.length > 0) setFlyTo(signal.item.locations[0]);
+        break;
+    }
+    dismissSignal(signal.type);
+    setResurface(null);
+  }
 
   // Nearest clip to user when GPS is active
   const nearestClip = (() => {
@@ -127,6 +161,17 @@ function HomePageInner() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Proactive resurface card — shown below top bar when a signal is active */}
+      <div className="absolute top-[84px] left-0 right-0 z-[999]">
+        {!selectedItem && resurface && (
+          <ResurfaceCard
+            signal={resurface}
+            onDismiss={() => setResurface(null)}
+            onAction={handleResurfaceAction}
+          />
+        )}
       </div>
 
       {/* Selected item detail card */}
