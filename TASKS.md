@@ -195,7 +195,7 @@
 - Update `SearchBar` to offer a toggle "Smart Search" mode: when active, embed the query and sort results by cosine similarity instead of substring match
 
 ### F2 — Trip Sharing (Social Export)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to share trip plans, not just boards. A shareable trip plan URL (or PDF social card) drives organic growth.  
 **Files**: `app/plan/[boardId]/page.tsx`, `lib/exportPlan.ts`, new `app/trip/page.tsx`  
 **What to do**:
