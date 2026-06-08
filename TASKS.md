@@ -210,7 +210,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Card title + emoji below the cover image
 
 ### D4 — Inline Clip Notes (personal annotations)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:
 - Add "My Notes" section to LocationDetailCard (bottom of the detail sheet, before close button)

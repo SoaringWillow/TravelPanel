@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, NotebookPen } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { saveItem } from '@/lib/db';
 import SubstanceList from './SubstanceList';
 
 interface LocationDetailCardProps {
@@ -11,7 +13,27 @@ interface LocationDetailCardProps {
   onClose: () => void;
 }
 
+const NOTES_MAX = 500;
+
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const [notes, setNotes]         = useState(item.notes ?? '');
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveTimerRef              = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced save to IndexedDB
+  const persistNotes = useCallback((value: string) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSaveState('saving');
+    saveTimerRef.current = setTimeout(async () => {
+      await saveItem({ ...item, notes: value || undefined });
+      setSaveState('saved');
+      setTimeout(() => setSaveState('idle'), 1500);
+    }, 400);
+  }, [item]);
+
+  // Clean up timer on unmount
+  useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -127,13 +149,53 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+            {/* Notes — editable personal annotations */}
+            <div className="bg-amber-50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-semibold text-amber-700 flex items-center gap-1">
+                  <NotebookPen size={11} />
+                  My Notes
+                </p>
+                {saveState === 'saved' && (
+                  <span className="text-xs text-green-600 font-medium">✓ Saved</span>
+                )}
+                {saveState === 'saving' && (
+                  <span className="text-xs text-amber-500">Saving…</span>
+                )}
               </div>
-            )}
+              {editingNotes ? (
+                <textarea
+                  autoFocus
+                  value={notes}
+                  maxLength={NOTES_MAX}
+                  rows={3}
+                  onChange={(e) => {
+                    setNotes(e.target.value);
+                    persistNotes(e.target.value);
+                  }}
+                  onBlur={() => setEditingNotes(false)}
+                  placeholder="Add your personal notes, tips, or reminders…"
+                  className="w-full bg-transparent text-sm text-amber-900 resize-none outline-none placeholder:text-amber-300 leading-relaxed"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditingNotes(true)}
+                  className="w-full text-left"
+                >
+                  {notes ? (
+                    <p className="text-sm text-amber-800 leading-relaxed">{notes}</p>
+                  ) : (
+                    <p className="text-sm text-amber-300 italic">Tap to add notes…</p>
+                  )}
+                </button>
+              )}
+              {editingNotes && (
+                <p className="text-right text-xs text-amber-300 mt-1">
+                  {notes.length}/{NOTES_MAX}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
