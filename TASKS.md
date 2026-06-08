@@ -106,7 +106,7 @@ All Phase A–C tasks complete. The app has:
 - **Note**: Must account for the existing `overflow-y-auto` container — PullToRefresh detects scroll position = 0 before activating
 
 ### D5 — Swipeable Onboarding Intro (First Run)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: New users land on an empty map with no context. The current `OnboardingSeed` banner is functional but not delightful. A 3-screen intro explains the value prop before showing the app.
 **Files to change**: new `components/OnboardingIntro.tsx`, `app/page.tsx` or `app/layout.tsx`
 **What to do**:
