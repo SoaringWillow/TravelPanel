@@ -154,7 +154,7 @@
 - Add a subtle "About / Privacy" link to the bottom of the Collections page (below the board grid)
 
 ### E2 — App Store Metadata Package
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `APP_STORE.md` (documentation only)  
 **What to do**:
 - Create `APP_STORE.md` with ready-to-paste App Store metadata:
