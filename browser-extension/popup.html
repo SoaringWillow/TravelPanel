@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fff;
+      color: #111827;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-logo {
+      width: 28px;
+      height: 28px;
+    }
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.3px;
+    }
+    .header-settings {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9CA3AF;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    .header-settings:hover { color: #6B7280; background: #F3F4F6; }
+
+    /* ── Page preview ── */
+    .preview {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    .preview-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #9CA3AF;
+      margin-bottom: 6px;
+    }
+    .preview-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.35;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .preview-url {
+      font-size: 11px;
+      color: #6B7280;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .preview-platform {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    /* ── Platform colors ── */
+    .platform-instagram  { background: #FDF2F8; color: #9D174D; }
+    .platform-youtube    { background: #FEF2F2; color: #991B1B; }
+    .platform-tiktok     { background: #F0FDF4; color: #166534; }
+    .platform-xiaohongshu { background: #FFF1F2; color: #BE123C; }
+    .platform-web        { background: #EFF6FF; color: #1D4ED8; }
+
+    /* ── Board selector ── */
+    .section {
+      padding: 12px 16px;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #9CA3AF;
+      margin-bottom: 8px;
+    }
+    .board-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .board-chip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1.5px solid #E5E7EB;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+      white-space: nowrap;
+    }
+    .board-chip:hover { border-color: #2563EB; color: #2563EB; }
+    .board-chip.selected { border-color: #2563EB; background: #EFF6FF; color: #1D4ED8; }
+    .board-chip-new { border-style: dashed; color: #6B7280; }
+    .board-chip-new:hover { border-color: #2563EB; color: #2563EB; background: white; }
+
+    /* ── Note input ── */
+    .note-input {
+      width: 100%;
+      border: 1.5px solid #E5E7EB;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: #374151;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.4;
+    }
+    .note-input:focus { border-color: #2563EB; }
+    .note-input::placeholder { color: #D1D5DB; }
+
+    /* ── Actions ── */
+    .actions {
+      padding: 12px 16px 14px;
+    }
+    .btn-clip {
+      width: 100%;
+      padding: 11px;
+      border-radius: 10px;
+      border: none;
+      background: #2563EB;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: background 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+    .btn-clip:hover  { background: #1D4ED8; }
+    .btn-clip:active { transform: scale(0.98); }
+    .btn-clip:disabled { background: #93C5FD; cursor: not-allowed; transform: none; }
+
+    /* ── Success state ── */
+    .success-banner {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px;
+      gap: 10px;
+      text-align: center;
+    }
+    .success-icon {
+      width: 44px;
+      height: 44px;
+      background: #DCFCE7;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .success-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .success-sub {
+      font-size: 12px;
+      color: #6B7280;
+      line-height: 1.4;
+    }
+    .success-open {
+      margin-top: 4px;
+      background: none;
+      border: 1.5px solid #2563EB;
+      color: #2563EB;
+      padding: 7px 18px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .success-open:hover { background: #EFF6FF; }
+
+    .hidden { display: none !important; }
+    .visible { display: flex !important; }
+
+    /* ── Loading skeleton ── */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .skeleton {
+      background: #F3F4F6;
+      border-radius: 4px;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-brand">
+      <svg class="header-logo" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="28" height="28" rx="8" fill="#EFF6FF"/>
+        <path d="M14 5C10.686 5 8 7.686 8 11C8 15.5 14 22 14 22C14 22 20 15.5 20 11C20 7.686 17.314 5 14 5Z" fill="#2563EB"/>
+        <circle cx="14" cy="11" r="2.5" fill="white"/>
+      </svg>
+      <span class="header-title">TravelPanel</span>
+    </div>
+    <button class="header-settings" id="settingsBtn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Main clip form -->
+  <div id="mainView">
+    <!-- Page preview -->
+    <div class="preview" id="previewSection">
+      <div class="preview-label">Clipping</div>
+      <div class="preview-title" id="pageTitle">
+        <div class="skeleton" style="height:14px;width:85%;margin-bottom:5px"></div>
+        <div class="skeleton" style="height:14px;width:60%"></div>
+      </div>
+      <div class="preview-url" id="pageUrl">
+        <div class="skeleton" style="height:11px;width:75%"></div>
+      </div>
+      <div id="platformBadge" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Board selector -->
+    <div class="section">
+      <div class="section-label">Save to board</div>
+      <div class="board-list" id="boardList">
+        <div class="skeleton" style="height:26px;width:70px;border-radius:999px"></div>
+        <div class="skeleton" style="height:26px;width:55px;border-radius:999px"></div>
+        <div class="skeleton" style="height:26px;width:80px;border-radius:999px"></div>
+      </div>
+    </div>
+
+    <!-- Note -->
+    <div class="section">
+      <div class="section-label">Quick note (optional)</div>
+      <textarea class="note-input" id="noteInput" rows="2" placeholder="Add a note about this place…"></textarea>
+    </div>
+
+    <!-- Clip button -->
+    <div class="actions">
+      <button class="btn-clip" id="clipBtn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+        Clip to TravelPanel
+      </button>
+    </div>
+  </div>
+
+  <!-- Success state -->
+  <div class="success-banner" id="successView">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Clipped!</div>
+    <div class="success-sub" id="successMsg">Saved to your board.<br>Claude is extracting wisdom from this post…</div>
+    <button class="success-open" id="openAppBtn">Open TravelPanel →</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
