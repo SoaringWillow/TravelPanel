@@ -102,3 +102,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-08 12:41 | 801b648 | feat(d1): beautiful empty states across map, inbox, and boards tabs
 2026-06-08 12:43 | 830fb0f | feat(d2): delete confirmation with in-card UI + 5-second undo toast
 2026-06-08 12:44 | b05f9c9 | feat(d3): board cards with cover images and gradient fallbacks
+2026-06-08 12:45 | 4714e48 | feat(d4): inline editable notes in clip detail with debounced auto-save

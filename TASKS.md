@@ -219,7 +219,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Saved indicator: "✓ Saved" fades in next to label
 
 ### D5 — Sort Options for Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
 - Add a sort selector beneath the platform filter row: "Newest" (default) | "Oldest" | "Most Locations" | "Most Tips"

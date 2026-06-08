@@ -37,9 +37,22 @@ export default function InboxPage() {
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
+  type SortKey = 'newest' | 'oldest' | 'most_locations' | 'most_tips';
+
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('inboxSortOrder') as SortKey) ?? 'newest';
+    }
+    return 'newest';
+  });
+
+  function handleSortChange(key: SortKey) {
+    setSortKey(key);
+    if (typeof window !== 'undefined') localStorage.setItem('inboxSortOrder', key);
+  }
 
   // Soft-delete state for undo support
   const [undoItem, setUndoItem]       = useState<SavedItem | null>(null);
@@ -83,7 +96,16 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const searched = searchItems(platformFiltered, query);
+
+  const filtered = [...searched].sort((a, b) => {
+    switch (sortKey) {
+      case 'oldest':        return a.savedAt - b.savedAt;
+      case 'most_locations': return (b.locations?.length ?? 0) - (a.locations?.length ?? 0);
+      case 'most_tips':      return (b.substance?.length ?? 0) - (a.substance?.length ?? 0);
+      default:               return b.savedAt - a.savedAt; // newest
+    }
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -145,7 +167,7 @@ export default function InboxPage() {
         </div>
 
         {/* Platform filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {PLATFORM_FILTERS.map((p) => {
             const count =
               p.key === 'all'
@@ -166,6 +188,31 @@ export default function InboxPage() {
               </button>
             );
           })}
+        </div>
+
+        {/* Sort options */}
+        <div className="flex items-center gap-1.5 pb-3 overflow-x-auto scrollbar-hide">
+          <span className="text-xs text-gray-400 flex-shrink-0 pr-0.5">Sort:</span>
+          {(
+            [
+              { key: 'newest',         label: 'Newest' },
+              { key: 'oldest',         label: 'Oldest' },
+              { key: 'most_locations', label: '📍 Most Pins' },
+              { key: 'most_tips',      label: '💡 Most Tips' },
+            ] as const
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => handleSortChange(key)}
+              className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full transition-all ${
+                sortKey === key
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
