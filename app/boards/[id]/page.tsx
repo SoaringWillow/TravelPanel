@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { shareBoardNative } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -49,6 +50,15 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  async function handleShare() {
+    if (!board) return;
+    try {
+      await shareBoardNative(board.id, board.name);
+    } catch (err) {
+      console.error('Share failed:', err);
+    }
   }
 
   if (loading) {
@@ -110,6 +120,15 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0"
+            aria-label="Share board"
+          >
+            <Share2 size={18} />
+          </button>
         </div>
       </div>
 
