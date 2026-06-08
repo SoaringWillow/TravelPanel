@@ -56,7 +56,7 @@
 ## PHASE D — iOS Polish & Native Feel
 
 ### D1 — Haptic Feedback (Capacitor Haptics)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS apps feel cheap without haptics. Every save, every plan generation, every success state should vibrate gently. This is a 30-minute task that dramatically improves perceived quality.  
 **Files to change**: `lib/haptics.ts` (new), `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:
