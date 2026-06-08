@@ -103,6 +103,11 @@ export function CapacitorBridge() {
           }
         }
 
+        // When connectivity is restored, signal the retry queue hook to re-run
+        window.addEventListener('online', () => {
+          window.dispatchEvent(new CustomEvent('travelPanel:online'));
+        });
+
         // Check for a pending share written by the Share Extension via App Group
         // fallback (fires when the URL scheme open wasn't available).
         checkPendingAppGroupShare(router);

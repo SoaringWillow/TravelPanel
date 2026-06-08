@@ -69,7 +69,7 @@ All Phase A–C tasks complete. The app has:
 - **iOS requires**: add `NSLocationWhenInUseUsageDescription` to Info.plist if not present (check first)
 
 ### D3 — Offline Mode Banner + Operation Queue
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The app silently breaks offline (enrichment API fails, no user feedback). Users need to know they're offline, and clips saved offline should auto-enrich when reconnected.
 **Files to change**: new `hooks/useNetworkStatus.ts`, new `components/OfflineBanner.tsx`, `app/layout.tsx` or `app/share/page.tsx`, `lib/enrichItem.ts`
 **What to do**:

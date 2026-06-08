@@ -136,6 +136,14 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
+    // Skip enrichment when offline — the retry queue will pick it up when back online
+    if (!navigator.onLine) {
+      hapticSuccess();
+      setSavedToName(boardDisplayName ?? 'Inbox');
+      setStage('done');
+      return;
+    }
+
     // Background enrichment — pass screenshot when available (bypasses Xiaohongshu scraping block)
     setEnrichmentLoading(true);
     enrichItem(itemId, rawUrl, screenshotBase64 ?? undefined)
