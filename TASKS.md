@@ -67,7 +67,7 @@
 - Wire `errorVibration()` on enrichment failure (3 retries exhausted)
 
 ### D2 — Consistent Safe Area Insets
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On iPhone 14/15 with Dynamic Island, `pt-12` (48px) clips the notch on some pages and leaves too much padding on others. Must use CSS env(safe-area-inset-top).  
 **Files to change**: `app/globals.css`, all page files with `pt-12` or `pt-safe` classes  
 **What to do**:

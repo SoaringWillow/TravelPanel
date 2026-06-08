@@ -167,7 +167,7 @@ export default function TimelinePage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 safe-top pb-4 z-10">
         <div className="flex items-center gap-2">
           <Clock className="text-indigo-600" size={22} />
           <h1 className="text-xl font-bold text-gray-800">Timeline</h1>
