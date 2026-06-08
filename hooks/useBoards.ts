@@ -9,6 +9,7 @@ import {
   removeItemFromBoard as dbRemoveItemFromBoard,
 } from '@/lib/db';
 import { track } from '@/lib/analytics';
+import { vibrate } from '@/lib/haptics';
 
 export function useBoards() {
   const [boards, setBoards] = useState<Board[]>([]);
@@ -32,6 +33,7 @@ export function useBoards() {
       updatedAt: now,
     };
     await saveBoard(board);
+    vibrate('success');
     track('board_created');
     setBoards((prev) => [board, ...prev]);
     return board;

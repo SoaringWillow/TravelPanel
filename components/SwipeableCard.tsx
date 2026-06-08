@@ -2,6 +2,7 @@
 
 import { motion, useMotionValue, animate, PanInfo } from 'framer-motion';
 import { Trash2, LayoutGrid } from 'lucide-react';
+import { vibrate } from '@/lib/haptics';
 
 const REVEAL_THRESHOLD = 50; // px horizontal drag to snap open
 
@@ -25,11 +26,13 @@ export default function SwipeableCard({ children, onDelete, onMoveToBoard }: Swi
   }
 
   function handleDelete() {
+    vibrate('medium');
     animate(x, 0, { duration: 0.15 }).then(() => onDelete());
   }
 
   function handleMove() {
     if (!onMoveToBoard) return;
+    vibrate('light');
     animate(x, 0, { duration: 0.15 }).then(() => onMoveToBoard());
   }
 

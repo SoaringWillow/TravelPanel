@@ -88,7 +88,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 ## PHASE E — Native iOS Feel
 
 ### E1 — Haptic Feedback on Key Interactions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Haptic feedback is the single biggest signal that an app is "native-quality" on iOS. Without it the app feels like a website.  
 **Files to change**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/InboxCard.tsx`, `app/boards/[id]/page.tsx`  
 **What to do**:
