@@ -29,12 +29,25 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image data from iOS Share Sheet — read once, cleared after save
+  const imageDataRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Consume any image payload the iOS Share Extension left in sessionStorage
+    try {
+      const stored = sessionStorage.getItem('travelPanelShareImage');
+      if (stored) {
+        imageDataRef.current = stored;
+        sessionStorage.removeItem('travelPanelShareImage');
+      }
+    } catch {
+      // sessionStorage unavailable — ignore
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +101,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image data for Xiaohongshu/WeChat vision fallback
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageDataRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

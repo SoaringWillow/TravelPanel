@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- Map pin / location marker -->
+  <path d="M64 20C46.3 20 32 34.3 32 52c0 13.5 8.5 25.1 20.5 31.2L64 108l11.5-24.8C87.5 77.1 96 65.5 96 52 96 34.3 81.7 20 64 20z" fill="white" opacity="0.95"/>
+  <!-- Inner circle -->
+  <circle cx="64" cy="52" r="13" fill="url(#bg)"/>
+  <!-- Tiny dot in center -->
+  <circle cx="64" cy="52" r="4" fill="white"/>
+</svg>

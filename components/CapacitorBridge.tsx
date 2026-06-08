@@ -11,9 +11,25 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
-    await Preferences.remove({ key: 'pendingShareURL' });
-    await Preferences.remove({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: imageData }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImage' }),
+    ]);
+
+    await Promise.all([
+      Preferences.remove({ key: 'pendingShareURL' }),
+      Preferences.remove({ key: 'pendingShareTitle' }),
+      Preferences.remove({ key: 'pendingShareImage' }),
+    ]);
+
+    // Stash image in sessionStorage so the /share page can retrieve it after navigation
+    if (imageData) {
+      try {
+        sessionStorage.setItem('travelPanelShareImage', imageData);
+      } catch {
+        // sessionStorage full or unavailable — proceed without image
+      }
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -49,10 +65,15 @@ export function CapacitorBridge() {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
-            const shareUrl = parsed.searchParams.get('url');
+            const shareUrl   = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const shareImage = parsed.searchParams.get('image');
 
             if (shareUrl) {
+              // Stash image for the /share page if provided via the URL scheme
+              if (shareImage) {
+                try { sessionStorage.setItem('travelPanelShareImage', shareImage); } catch { /* ignore */ }
+              }
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);

@@ -81,24 +81,19 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+// Platforms that block server-side scraping — image fallback is valuable here
+const ANTI_SCRAPING_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
+function isContentThin(page: Awaited<ReturnType<typeof fetchPageData>>): boolean {
+  if (!page) return true;
+  const wordCount = page.textContent.trim().split(/\s+/).filter(Boolean).length;
+  return wordCount < 80 && (page.title?.length ?? 0) < 10;
+}
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -127,15 +122,69 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageData: string | undefined;
+  try {
+    ({ url, imageData } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+
+  // Use vision when an image is provided AND the platform blocks scraping or content is thin
+  const useVision =
+    !!imageData &&
+    (ANTI_SCRAPING_PLATFORMS.has(platform) || isContentThin(page));
+
+  const prompt = buildPrompt(platform, url, page);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision && imageData) {
+      const imageDataUrl = imageData.startsWith('data:')
+        ? imageData
+        : `data:image/jpeg;base64,${imageData}`;
+
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text:
+                  prompt +
+                  '\n\nAn image from the post is attached. Use it to extract location names, any text ' +
+                  'visible in the image, and substance insights. This image is the primary source — the ' +
+                  'page content above may be empty due to anti-scraping.',
+              },
+              { type: 'image', image: imageDataUrl },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
