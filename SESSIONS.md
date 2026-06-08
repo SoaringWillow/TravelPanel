@@ -96,3 +96,24 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-08 01:26 | bd95a86 | feat(B2): Chrome/Safari browser extension for one-click travel clipping
+2026-06-08 01:30 | 0970c85 | feat(B3): Xiaohongshu / anti-scraping fix via Claude Vision
+2026-06-08 01:32 | f25cae0 | feat(B5): one-click data export from the Collections page
+2026-06-08 01:34 | 9680e4f | feat(C1): On-Trip GPS Mode — live position tracking with nearest-clip distance
+2026-06-08 01:36 | 552694c | feat(C2): Post-Trip Timeline — chronological travel diary view
+2026-06-08 01:39 | ea9a969 | feat(C3): Shared Boards v1 — URL-encoded read-only board sharing
+2026-06-08 01:40 | ae9a337 | feat(C4): Proactive Resurfacing — smart discovery card on the map screen
+2026-06-08 01:43 | a45123c | chore: new TASKS.md — Phase D/E/F roadmap for beautiful iOS app
+2026-06-08 01:45 | f68d2f9 | feat(D1): haptic feedback via @capacitor/haptics
+2026-06-08 01:46 | 43b1c11 | fix(D2): consistent iOS safe area insets across all pages
+2026-06-08 01:47 | 3d502a2 | feat(D3): share page delight — confetti burst + animated SVG checkmark
+2026-06-08 01:49 | b820923 | feat(D4): dark mode support — class strategy with flash-free init
+2026-06-08 01:49 | 99fd6ff | feat(D5): offline indicator banner with spring animation
+2026-06-08 01:53 | 5c81f3a | feat(D6): inbox virtual scrolling with @tanstack/react-virtual
+2026-06-08 01:54 | 03eda58 | feat(D7): branded app icon + splash screen
+2026-06-08 01:55 | 293dad8 | feat(D8): iOS keyboard and input polish
+2026-06-08 01:57 | a72b2a5 | feat(E1): privacy policy and about pages
+2026-06-08 01:57 | 007a030 | feat(E2): App Store metadata package
+2026-06-08 01:59 | 3d625ee | feat(E3): Sentry error monitoring integration
+2026-06-08 02:02 | da9e138 | feat(F1): vibe search — client-side semantic search via WASM
+2026-06-08 02:04 | 945cb8c | feat(F2): trip sharing — shareable URL for trip plans
