@@ -104,3 +104,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-08 12:44 | b05f9c9 | feat(d3): board cards with cover images and gradient fallbacks
 2026-06-08 12:45 | 4714e48 | feat(d4): inline editable notes in clip detail with debounced auto-save
 2026-06-08 12:46 | 6cbd271 | feat(d5): sort options for inbox (newest/oldest/most pins/most tips)
+2026-06-08 12:55 | c8aa6a8 | D6-D10: haptics, card redesign, board detail, map onboarding, app icon
