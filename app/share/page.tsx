@@ -21,6 +21,8 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  // Set when the iOS Share Extension captured an image and stored it in App Group
+  const hasImageParam   = searchParams.get('hasImage') === '1';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -29,6 +31,8 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image captured by the iOS Share Extension (read from App Group on mount)
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +40,24 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read the pending image from App Group Preferences (written by iOS Share Extension).
+  // Only attempted when the deep link includes hasImage=1.
+  useEffect(() => {
+    if (!hasImageParam) return;
+    (async () => {
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value } = await Preferences.get({ key: 'pendingShareImage' });
+        if (value) {
+          pendingImageRef.current = value;
+          await Preferences.remove({ key: 'pendingShareImage' });
+        }
+      } catch {
+        // Not in native context or plugin unavailable — vision path skipped
+      }
+    })();
+  }, [hasImageParam]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +110,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass captured image for vision extraction on opaque platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
