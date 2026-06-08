@@ -19,7 +19,7 @@ The app's core loop is complete. Now the goal is **iOS-native quality** and **UX
 ## PHASE D — iOS Polish & UX Quality
 
 ### D1 — Swipe Actions on Inbox Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On mobile, users expect swipe-left to reveal actions (delete, move to board) on list items. This is a standard iOS pattern absent from the current card grid.  
 **Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx` (or wherever the inbox grid lives — check `app/page.tsx` and `components/`)  
 **What to do**:

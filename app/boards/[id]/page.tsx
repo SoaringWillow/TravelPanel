@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import { shareBoardNative } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
+import SwipeableCard from '@/components/SwipeableCard';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -197,12 +198,16 @@ export default function BoardDetailPage() {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {boardItems.map((item) => (
-                <InboxCard
+                <SwipeableCard
                   key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
-                />
+                  onDelete={() => handleDelete(item.id)}
+                >
+                  <InboxCard
+                    item={item}
+                    onDelete={handleDelete}
+                    onViewOnMap={handleViewOnMap}
+                  />
+                </SwipeableCard>
               ))}
             </div>
           )}
