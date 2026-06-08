@@ -98,3 +98,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
 2026-06-08 16:31 | ff6d6bd | feat: B2 browser extension — one-click URL clipper for Chrome/Safari
 2026-06-08 16:37 | 5a5163a | feat: B3 Xiaohongshu fix — Claude Vision image extraction
+2026-06-08 16:39 | 245b385 | feat: B5 cloud backup export — download/import all data as JSON

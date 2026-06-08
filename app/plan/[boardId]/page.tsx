@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -14,8 +14,9 @@ import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
 
-const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
-const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+const RouteMapView  = dynamic(() => import('@/components/RouteMapView'),  { ssr: false });
+const MapView       = dynamic(() => import('@/components/MapView'),       { ssr: false });
+const TripNavigator = dynamic(() => import('@/components/TripNavigator'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
 
@@ -38,6 +39,12 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+
+  // On-trip GPS mode
+  const [isTripMode, setIsTripMode]         = useState(false);
+  const [userLocation, setUserLocation]     = useState<{ lat: number; lng: number } | null>(null);
+  const [activityIndex, setActivityIndex]   = useState(0);
+  const gpsWatchRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -209,6 +216,62 @@ export default function PlanPage() {
     if (currentTripId === tripId) setCurrentTripId(null);
   }, [currentTripId]);
 
+  // On-trip GPS mode
+  const startTrip = useCallback(() => {
+    if (!planIsComplete(plan)) return;
+    setIsTripMode(true);
+    setActivityIndex(0);
+    if (!navigator.geolocation) return;
+    gpsWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {}, // silent — GPS unavailable doesn't break the feature
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+    track('trip_started', { boardId, days: plan.days.length });
+  }, [plan, boardId]);
+
+  const endTrip = useCallback(() => {
+    setIsTripMode(false);
+    if (gpsWatchRef.current !== null) {
+      navigator.geolocation.clearWatch(gpsWatchRef.current);
+      gpsWatchRef.current = null;
+    }
+    track('trip_ended', { boardId });
+  }, [boardId]);
+
+  // Stop GPS on unmount
+  useEffect(() => {
+    return () => {
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+      }
+    };
+  }, []);
+
+  const advanceActivity = useCallback(() => {
+    if (!planIsComplete(plan)) return;
+    const dayActivities = plan.days[activeDayIndex]?.activities ?? [];
+    if (activityIndex < dayActivities.length - 1) {
+      setActivityIndex((i) => i + 1);
+    } else if (activeDayIndex < plan.days.length - 1) {
+      setActiveDayIndex((d) => d + 1);
+      setActivityIndex(0);
+    } else {
+      endTrip();
+    }
+  }, [plan, activeDayIndex, activityIndex, endTrip]);
+
+  const previousActivity = useCallback(() => {
+    if (activityIndex > 0) {
+      setActivityIndex((i) => i - 1);
+    } else if (activeDayIndex > 0) {
+      setActiveDayIndex((d) => d - 1);
+      if (planIsComplete(plan)) {
+        setActivityIndex((plan.days[activeDayIndex - 1]?.activities.length ?? 1) - 1);
+      }
+    }
+  }, [plan, activeDayIndex, activityIndex]);
+
   // "New version" — return to config (keeping preferences) to generate a fresh variant.
   const handleNewVersion = useCallback(() => {
     setStage('idle');
@@ -271,6 +334,7 @@ export default function PlanPage() {
             items={boardItems}
             plan={plan}
             activeDayIndex={activeDayIndex}
+            userLocation={userLocation}
           />
         )}
       </div>
@@ -458,23 +522,32 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Export actions */}
+              {/* Start Trip + Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <div className="space-y-2">
                   <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    onClick={startTrip}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-3 rounded-xl shadow-sm active:scale-[0.98] transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Navigation size={15} />
+                    Start Trip
                   </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -593,6 +666,21 @@ export default function PlanPage() {
 
         </div>
       </div>
+
+      {/* On-trip GPS navigator overlay */}
+      {isTripMode && planIsComplete(plan) && (
+        <TripNavigator
+          plan={plan}
+          activeDayIndex={activeDayIndex}
+          activityIndex={activityIndex}
+          userLocation={userLocation}
+          onEnd={endTrip}
+          onAdvance={advanceActivity}
+          onPrevious={previousActivity}
+          onDayChange={setActiveDayIndex}
+          onActivityChange={setActivityIndex}
+        />
+      )}
     </div>
   );
 }
