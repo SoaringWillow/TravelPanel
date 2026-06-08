@@ -25,7 +25,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="TravelPanel" />
         <link rel="apple-touch-startup-image" href="/splash.png" />
         <link rel="apple-touch-icon" href="/splash.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
         {/* Blocking theme script — must run before first paint to prevent dark→light flash */}
         <script dangerouslySetInnerHTML={{ __html: `
 (function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t!=='light'&&d)){document.documentElement.classList.add('dark');}}catch(e){}})();

@@ -247,6 +247,8 @@ function SharePageInner() {
                     }}
                     placeholder="Board name…"
                     autoFocus
+                    autoCapitalize="words"
+                    enterKeyHint="done"
                     className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none transition-colors"
                   />
                   <button

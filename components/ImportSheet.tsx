@@ -203,6 +203,11 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               }}
               placeholder="Paste URL from WeChat, Red Book, Douyin, Bilibili…"
               disabled={stage === 'loading'}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="go"
+              inputMode="url"
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
             />
           </div>

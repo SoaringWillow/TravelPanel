@@ -75,6 +75,8 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
               if (e.key === 'Enter') handleCreate();
             }}
             autoFocus
+            autoCapitalize="words"
+            enterKeyHint="done"
           />
         </div>
 

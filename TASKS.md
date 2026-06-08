@@ -132,7 +132,7 @@
 - Create a branded splash HTML canvas image at `public/splash.png` (1290x2796 for iPhone 14 Pro Max) — same indigo background + white airplane + "TravelPanel" wordmark
 
 ### D8 — iOS Keyboard & Input Polish
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `components/ImportSheet.tsx`, `components/CreateBoardModal.tsx`  
 **What to do**:
 - Add `inputMode="url"` to URL input fields (shows URL keyboard on iOS)
