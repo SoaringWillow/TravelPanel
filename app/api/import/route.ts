@@ -85,8 +85,11 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64 : undefined;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,15 +101,8 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
+  // Core extraction instructions shared by both text and vision paths
+  const extractionInstructions = `
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
@@ -128,14 +124,50 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+${extractionInstructions}`;
+
+  const visionPrompt = `You are a travel content analyzer. The image is a screenshot from a ${platform} travel post.
+URL: ${url}
+${page?.title ? `Title hint: ${page.title}` : ''}
+
+Analyze BOTH the visual content AND any text visible in the image.
+Pay special attention to text overlays, captions, location tags, and user-written tips.
+${extractionInstructions}`;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: image provided (e.g. from iOS Share Extension capturing a Xiaohongshu post)
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBase64, mimeType: 'image/jpeg' },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
