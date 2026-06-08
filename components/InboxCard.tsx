@@ -191,20 +191,22 @@ export default function InboxCard({
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
-        </div>
-      )}
+      <div className="relative w-full h-32 overflow-hidden bg-gray-100">
+        {item.thumbnail ? (
+          <img
+            src={item.thumbnail}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Globe size={32} className="text-gray-300" />
+          </div>
+        )}
+      </div>
 
       <div className="p-4">
         {/* Platform badge */}

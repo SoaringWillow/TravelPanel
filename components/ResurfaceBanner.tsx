@@ -114,6 +114,8 @@ export default function ResurfaceBanner({ items, onItemClick }: ResurfaceBannerP
               <img
                 src={item.thumbnail}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="w-full h-24 object-cover"
               />
             ) : (

@@ -267,7 +267,7 @@ All Phase A–C tasks complete. The app has:
 ## PHASE H — Performance & Polish
 
 ### H1 — Image Lazy Loading + Thumbnail Optimization
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The inbox and boards pages render all clip thumbnails at once. With 50+ clips, this causes layout jank and excessive network requests on mobile.
 **Files to change**: `components/InboxCard.tsx`, `components/BoardCard.tsx`, `components/ResurfaceBanner.tsx`
 **What to do**:
