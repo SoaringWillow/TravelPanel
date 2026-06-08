@@ -1,12 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus, Navigation2, X, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
+import { saveVisit } from '@/lib/db';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -58,6 +59,10 @@ function HomePageInner() {
   const [userLat, setUserLat]         = useState<number | null>(null);
   const [userLng, setUserLng]         = useState<number | null>(null);
 
+  // Track which places were auto-logged this session to avoid duplicates.
+  // Key: `${itemId}-${locationName}-${YYYY-MM-DD}`
+  const loggedVisitsRef = useRef<Set<string>>(new Set());
+
   const handleUserLocation = useCallback((lat: number, lng: number) => {
     setUserLat(lat);
     setUserLng(lng);
@@ -67,7 +72,26 @@ function HomePageInner() {
     for (const item of items) {
       for (const loc of item.locations) {
         if (!Number.isFinite(loc.lat) || !Number.isFinite(loc.lng)) continue;
-        candidates.push({ item, location: loc, distanceKm: distanceKm(lat, lng, loc.lat, loc.lng) });
+        const dist = distanceKm(lat, lng, loc.lat, loc.lng);
+        candidates.push({ item, location: loc, distanceKm: dist });
+
+        // Auto-log a visit if within 200m and not already logged today
+        if (dist <= 0.2) {
+          const today = new Date().toISOString().slice(0, 10);
+          const key   = `${item.id}-${loc.name}-${today}`;
+          if (!loggedVisitsRef.current.has(key)) {
+            loggedVisitsRef.current.add(key);
+            saveVisit({
+              id:           crypto.randomUUID(),
+              itemId:       item.id,
+              locationName: loc.name,
+              lat:          loc.lat,
+              lng:          loc.lng,
+              visitedAt:    Date.now(),
+              autoDetected: true,
+            }).catch(() => {/* silent */});
+          }
+        }
       }
     }
     candidates.sort((a, b) => a.distanceKm - b.distanceKm);
@@ -165,6 +189,12 @@ function HomePageInner() {
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Nearby saved places
                 </span>
+                <a
+                  href="/timeline"
+                  className="ml-auto text-xs text-indigo-500 hover:underline"
+                >
+                  Trip log →
+                </a>
               </div>
               {nearbyItems.map(({ item, location, distanceKm: dist }) => (
                 <button

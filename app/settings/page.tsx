@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, Trash2, Info, Database, BookOpen, Map } from 'lucide-react';
+import { ArrowLeft, Download, Info, Database, BookOpen, Map, Navigation2 } from 'lucide-react';
 import { getAllItems, getAllBoards, getTripsForBoard } from '@/lib/db';
 import { SavedItem, Board, Trip } from '@/lib/types';
 
@@ -99,6 +99,24 @@ export default function SettingsPage() {
             <StatTile icon={<BookOpen  size={18} className="text-purple-500" />} value={stats.boards} label="Boards" />
             <StatTile icon={<Map       size={18} className="text-emerald-500" />} value={stats.trips}  label="Plans" />
           </div>
+        </section>
+
+        {/* Trip log */}
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-50">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Trip History</h2>
+          </div>
+          <Link
+            href="/timeline"
+            className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <Navigation2 size={18} className="text-indigo-500" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900">Trip Log</p>
+              <p className="text-xs text-gray-400">Places visited during On-Trip GPS sessions</p>
+            </div>
+            <span className="text-gray-300 text-lg">›</span>
+          </Link>
         </section>
 
         {/* Backup & export */}

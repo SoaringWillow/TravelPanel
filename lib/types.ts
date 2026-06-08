@@ -126,6 +126,18 @@ export interface Trip {
   createdAt: number;
 }
 
+// ─── Post-trip visit log ─────────────────────────────────────────────────────
+
+export interface Visit {
+  id: string;           // UUID
+  itemId: string;       // SavedItem this belongs to
+  locationName: string; // which location in the item was visited
+  lat: number;
+  lng: number;
+  visitedAt: number;    // timestamp (ms)
+  autoDetected: boolean; // true = GPS proximity, false = manual check-in
+}
+
 // ─── API types ───────────────────────────────────────────────────────────────
 
 export interface ImportResult {
