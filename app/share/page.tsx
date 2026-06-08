@@ -16,6 +16,8 @@ type Stage = 'picking' | 'saving' | 'done';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
+const SESSION_IMAGE_KEY = 'tp_share_imageBase64';
+
 function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
@@ -88,9 +90,13 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
+    // Read any image the Share Extension or CapacitorBridge stashed in sessionStorage
+    const imageBase64 = sessionStorage.getItem(SESSION_IMAGE_KEY) ?? undefined;
+    sessionStorage.removeItem(SESSION_IMAGE_KEY);
+
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
