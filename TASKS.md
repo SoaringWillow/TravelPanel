@@ -143,7 +143,7 @@ All Phase A–C tasks complete. The app has:
 - Test: create a seed demo clip for each platform in `lib/seedData.ts` (or verify existing ones cover it)
 
 ### E2 — Smart Trip Suggestion CTA
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users save 5+ clips to a board but don't realize they have enough to generate a trip. A proactive "You're ready to plan!" nudge converts passive savers into active planners — directly improving the North Star metric.
 **Files to change**: `app/boards/[id]/page.tsx`
 **What to do**:

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, Share2, Download, Link as LinkIcon, X } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, Download, Link as LinkIcon, X, Sparkles } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -34,6 +34,26 @@ export default function BoardDetailPage() {
     : [];
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
+
+  // Detect dominant city for smart nudge copy
+  const cityFreq: Record<string, number> = {};
+  for (const item of boardItems) {
+    for (const loc of item.locations) {
+      const parts = loc.name.split(',');
+      const city = (parts[parts.length > 1 ? parts.length - 2 : 0] ?? loc.name).trim();
+      if (city) cityFreq[city] = (cityFreq[city] ?? 0) + 1;
+    }
+  }
+  const dominantCity = Object.entries(cityFreq).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  const tripNudgeKey = `tripNudgeDismissed-${boardId}-${new Date().toISOString().slice(0, 10)}`;
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const showTripNudge =
+    boardItems.length >= 5 &&
+    hasLocations &&
+    !nudgeDismissed &&
+    typeof window !== 'undefined' &&
+    !localStorage.getItem(tripNudgeKey);
 
   const loading = boardsLoading || itemsLoading;
 
@@ -277,6 +297,38 @@ export default function BoardDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Smart trip nudge — shown when 5+ items saved */}
+          {showTripNudge && (
+            <div className="mb-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-4 flex items-start gap-3">
+              <Sparkles size={18} className="text-indigo-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-indigo-900">
+                  {dominantCity
+                    ? `You have ${boardItems.length} places saved in ${dominantCity} — enough for a great trip!`
+                    : `You have ${boardItems.length} saved places — enough for a great trip!`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/plan/${boardId}`)}
+                  className="mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                >
+                  Generate itinerary →
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem(tripNudgeKey, '1');
+                  setNudgeDismissed(true);
+                }}
+                className="p-1 text-indigo-300 hover:text-indigo-500 rounded-lg transition-colors flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
           {/* Items grid */}
           {boardItems.length === 0 ? (
