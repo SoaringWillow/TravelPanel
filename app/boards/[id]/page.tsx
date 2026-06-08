@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
+import { encodeBoardForSharing } from '@/lib/shareBoard';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -22,7 +23,30 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]       = useState<Location | undefined>(undefined);
+  const [sharing, setSharing]   = useState(false);
+  const [shareCopied, setCopied] = useState(false);
+
+  async function handleShare() {
+    if (!board) return;
+    setSharing(true);
+    try {
+      const token = await encodeBoardForSharing(board);
+      const shareUrl = `${window.location.origin}/view?b=${token}`;
+
+      if (navigator.share) {
+        await navigator.share({ title: `${board.emoji} ${board.name} — TravelPanel`, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      }
+    } catch {
+      // User cancelled or clipboard unavailable
+    } finally {
+      setSharing(false);
+    }
+  }
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -107,9 +131,21 @@ export default function BoardDetailPage() {
             </h1>
           </div>
 
-          <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
-            {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={sharing || boardItems.length === 0}
+              title="Share this board"
+              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 active:scale-95 transition-all"
+            >
+              {shareCopied ? <Check size={12} /> : <Share2 size={12} />}
+              {shareCopied ? 'Copied!' : 'Share'}
+            </button>
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
       </div>
 
