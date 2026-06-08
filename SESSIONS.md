@@ -96,3 +96,22 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-08 14:28 | 7ceb9da | feat(B2): add Chrome/Safari browser extension for one-click URL clipping
+2026-06-08 14:36 | a067139 | feat(B3): Xiaohongshu/WeChat fix via Claude Vision + screenshot upload
+2026-06-08 14:38 | b1f4308 | feat(B5): cloud backup export + settings page
+2026-06-08 14:42 | f1dbbb7 | feat(C1): On-Trip GPS Mode with real-time location + nearby places strip
+2026-06-08 14:45 | 12f2557 | feat(C2): Post-Trip Timeline — visit log + timeline page
+2026-06-08 14:48 | 79344fa | feat(C3): Shared Boards v1 — URL/file export + import
+2026-06-08 14:51 | 7fd8f29 | feat(C4): add proactive resurfacing banner to Inbox
+2026-06-08 15:00 | 74e7c6f | feat(D1): add haptic feedback for native iOS feel
+2026-06-08 15:02 | 0af1776 | feat(D2): local proximity notifications in trip mode
+2026-06-08 15:04 | f887269 | feat(D3): offline mode banner + reconnect retry queue
+2026-06-08 15:05 | 29e568f | feat(D4): pull-to-refresh on Inbox and Boards pages
+2026-06-08 15:06 | 3c0c3d4 | feat(D5): 3-screen swipeable onboarding intro
+2026-06-08 15:07 | 83428c3 | feat(E1): add Instagram and YouTube platform support
+2026-06-08 15:08 | be31804 | feat(E2): smart trip suggestion nudge on board detail
+2026-06-08 15:09 | 9ee67bf | feat(E3): share trip plan as image (1080x1920 PNG)
+2026-06-08 15:11 | 003aed3 | feat(F2): clip deduplication warning on share
+2026-06-08 15:12 | aba15e3 | feat(G3): privacy policy page + OG meta tags
+2026-06-08 15:13 | ea24d06 | perf(H1): lazy image loading + aspect-ratio thumbnail containers
+2026-06-08 15:13 | b67b600 | feat(H2): animated page transitions between tabs
