@@ -3,12 +3,13 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import { EmptyState } from '@/components/EmptyState';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -91,6 +92,31 @@ function HomePageInner() {
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Empty state — shown when no items and not loading */}
+      <AnimatePresence>
+        {!loading && items.filter((i) => !i.isDemo).length === 0 && !selectedItem && (
+          <motion.div
+            key="map-empty"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+            className="absolute left-4 right-4 z-[900]"
+            style={{ bottom: '7rem' }}
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-xl shadow-black/10 overflow-hidden">
+              <EmptyState
+                illustration="map"
+                title="Your travel map is waiting"
+                subtitle="Share a post from Instagram, YouTube, or Xiaohongshu to drop your first pin."
+                action={{ label: '+ Clip Your First Inspiration', onClick: () => setShowImport(true) }}
+                className="py-7"
+              />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
