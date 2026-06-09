@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generate TravelPanel Extension Icons</title>
+  <style>
+    body { font-family: sans-serif; padding: 32px; background: #f9fafb; color: #111; }
+    h1 { margin-bottom: 8px; font-size: 20px; }
+    p  { color: #6b7280; margin-bottom: 20px; font-size: 14px; }
+    button {
+      padding: 10px 24px; background: #0ea5e9; color: white;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; margin-bottom: 24px;
+    }
+    button:hover { background: #0284c7; }
+    #previews { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
+    .preview-item { text-align: center; }
+    .preview-item p { margin-top: 6px; font-size: 12px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>TravelPanel Extension Icon Generator</h1>
+  <p>Click the button to generate PNG icons and automatically download them.<br>
+     Move the downloaded files into this <code>icons/</code> folder, then reload the extension.</p>
+
+  <button id="gen-btn">Generate &amp; Download All Icons</button>
+
+  <div id="previews"></div>
+
+  <script>
+  function drawIcon(size) {
+    const canvas = document.createElement('canvas');
+    canvas.width  = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const r   = size * 0.22; // corner radius
+
+    // Rounded rectangle background
+    ctx.fillStyle = '#0ea5e9';
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(size - r, 0);
+    ctx.quadraticCurveTo(size, 0, size, r);
+    ctx.lineTo(size, size - r);
+    ctx.quadraticCurveTo(size, size, size - r, size);
+    ctx.lineTo(r, size);
+    ctx.quadraticCurveTo(0, size, 0, size - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Map pin — white teardrop
+    const cx         = size / 2;
+    const pinRadius  = size * 0.185;
+    const pinCenterY = size * 0.38;
+    const dropTipY   = size * 0.82;
+
+    // Teardrop: top circle + triangle bottom
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(cx, pinCenterY, pinRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Triangle connecting to drop tip
+    const halfBase = pinRadius * 0.65;
+    ctx.beginPath();
+    ctx.moveTo(cx - halfBase, pinCenterY + pinRadius * 0.7);
+    ctx.lineTo(cx, dropTipY);
+    ctx.lineTo(cx + halfBase, pinCenterY + pinRadius * 0.7);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner circle hole (blue to show pin ring)
+    ctx.fillStyle = '#0ea5e9';
+    ctx.beginPath();
+    ctx.arc(cx, pinCenterY, pinRadius * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+
+    return canvas;
+  }
+
+  document.getElementById('gen-btn').addEventListener('click', () => {
+    const previews = document.getElementById('previews');
+    previews.innerHTML = '';
+
+    [16, 32, 48, 128].forEach((size) => {
+      const canvas = drawIcon(size);
+
+      // Download
+      const a      = document.createElement('a');
+      a.download   = `icon${size}.png`;
+      a.href       = canvas.toDataURL('image/png');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Preview
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-item';
+      wrapper.appendChild(canvas);
+      const label = document.createElement('p');
+      label.textContent = `${size}×${size}`;
+      wrapper.appendChild(label);
+      previews.appendChild(wrapper);
+    });
+  });
+  </script>
+</body>
+</html>

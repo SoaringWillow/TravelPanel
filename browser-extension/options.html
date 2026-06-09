@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: #0ea5e9;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo svg { width: 20px; height: 20px; }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .field { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    input[type="url"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 9px;
+      font-size: 14px;
+      color: #111827;
+      outline: none;
+      transition: border-color 0.15s;
+      background: #fff;
+    }
+
+    input[type="url"]:focus { border-color: #0ea5e9; }
+
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    code {
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #374151;
+    }
+
+    .btn-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    button[type="submit"] {
+      padding: 10px 24px;
+      background: #0ea5e9;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button[type="submit"]:hover { background: #0284c7; }
+
+    .saved-msg {
+      font-size: 13px;
+      color: #059669;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .saved-msg.visible { opacity: 1; }
+
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 10px;
+    }
+
+    .install-steps { list-style: none; counter-reset: steps; }
+
+    .install-steps li {
+      counter-increment: steps;
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .install-steps li::before {
+      content: counter(steps);
+      min-width: 20px;
+      height: 20px;
+      background: #e0f2fe;
+      color: #0369a1;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-row">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M12 2C8.686 2 6 4.686 6 8c0 4.813 6 14 6 14s6-9.187 6-14c0-3.314-2.686-6-6-6zm0 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+        </svg>
+      </div>
+      <h1>TravelPanel Clipper</h1>
+    </div>
+    <p class="subtitle">Configure the extension to point at your TravelPanel app.</p>
+
+    <form id="settings-form">
+      <div class="field">
+        <label for="app-url">TravelPanel App URL</label>
+        <input
+          type="url"
+          id="app-url"
+          name="app-url"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="hint">
+          Local dev: <code>http://localhost:3000</code>
+          &nbsp;·&nbsp;
+          Production: your Vercel URL (e.g. <code>https://travel.vercel.app</code>)
+        </p>
+      </div>
+
+      <div class="btn-row">
+        <button type="submit">Save settings</button>
+        <span class="saved-msg" id="saved-msg">✓ Settings saved!</span>
+      </div>
+    </form>
+
+    <hr />
+
+    <p class="section-title">Quick-start guide</p>
+    <ol class="install-steps">
+      <li>
+        <span>Generate icons by opening <code>icons/generate-pngs.html</code> in your browser and clicking the generate button. Move the downloaded PNGs into the <code>icons/</code> folder.</span>
+      </li>
+      <li>
+        <span>In Chrome, navigate to <code>chrome://extensions</code>, enable <strong>Developer mode</strong>, click <strong>Load unpacked</strong>, and select the <code>browser-extension/</code> directory.</span>
+      </li>
+      <li>
+        <span>Enter your TravelPanel URL above and click <strong>Save settings</strong>.</span>
+      </li>
+      <li>
+        <span>Browse to any travel page and click the TravelPanel icon in your toolbar to clip it.</span>
+      </li>
+    </ol>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
