@@ -235,7 +235,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On iOS Capacitor, the native share sheet appears automatically via Web Share API
 
 ### D6 — Map "Locate Me" Button + User Location Dot
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The map has no user location indicator — disorienting for on-trip use when you want to see what's nearby.  
 **Files**: `components/MapView.tsx`  
 **What to do**:
