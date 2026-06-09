@@ -30,8 +30,22 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [shareImageBase64, setShareImageBase64] = useState<string>('');
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Grab image thumbnail written to sessionStorage by CapacitorBridge
+  useEffect(() => {
+    try {
+      const img = sessionStorage.getItem('pendingShareImage') || '';
+      if (img) {
+        setShareImageBase64(img);
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage not available (e.g. private mode)
+    }
+  }, []);
 
   // Load boards on mount; auto-save if boardId was passed (e.g. from browser extension)
   useEffect(() => {
@@ -98,9 +112,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image when available (e.g. Xiaohongshu)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, shareImageBase64 || undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -174,6 +188,18 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Shared image thumbnail (e.g. from Xiaohongshu) */}
+          {shareImageBase64 && (
+            <div className="mt-3 rounded-xl overflow-hidden border border-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`data:image/jpeg;base64,${shareImageBase64}`}
+                alt="Shared post preview"
+                className="w-full max-h-48 object-cover"
+              />
+            </div>
           )}
         </div>
 
