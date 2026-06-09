@@ -1,3 +1,32 @@
+import type { SavedItem, Location } from '@/lib/types';
+
+export interface LocationGroup {
+  location: Location; // representative (first encountered)
+  clips: Array<{ item: SavedItem; location: Location }>;
+}
+
+// Group (item, location) pairs where coordinates are within `thresholdMeters` of each other.
+// Greedy: each point joins the first group whose representative is within range.
+export function groupLocationsByProximity(
+  pairs: Array<{ item: SavedItem; location: Location }>,
+  thresholdMeters = 50,
+): LocationGroup[] {
+  const groups: LocationGroup[] = [];
+  for (const pair of pairs) {
+    const { location } = pair;
+    let added = false;
+    for (const group of groups) {
+      if (haversineMeters(group.location.lat, group.location.lng, location.lat, location.lng) <= thresholdMeters) {
+        group.clips.push(pair);
+        added = true;
+        break;
+      }
+    }
+    if (!added) groups.push({ location, clips: [pair] });
+  }
+  return groups;
+}
+
 // Haversine distance in meters between two lat/lng points
 export function haversineMeters(
   lat1: number, lng1: number,

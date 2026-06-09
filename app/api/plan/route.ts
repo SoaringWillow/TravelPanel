@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { haversineMeters } from '@/lib/distance';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -76,7 +77,13 @@ export async function POST(req: NextRequest) {
         // ── Step 1: Resolve locations ────────────────────────────────────
         step('searching', 'Collecting locations from your saved items…');
 
-        const rawLocations = items.flatMap((i) => i.locations);
+        // Deduplicate locations within 50 m before sending to Claude
+        const rawLocations: { name: string; lat: number; lng: number; address?: string }[] = [];
+        for (const loc of items.flatMap((i) => i.locations)) {
+          if (!rawLocations.some((r) => haversineMeters(r.lat, r.lng, loc.lat, loc.lng) < 50)) {
+            rawLocations.push(loc);
+          }
+        }
 
         if (rawLocations.length === 0) {
           step('error', 'No locations found in saved items. Add items with identified locations first.');

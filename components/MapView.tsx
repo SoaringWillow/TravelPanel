@@ -7,7 +7,7 @@ import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/mapl
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
-import { useSupercluster } from '@/hooks/useSupercluster';
+import { useSupercluster, ClipRef } from '@/hooks/useSupercluster';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ function getPinEmoji(tags: string[]): string | null {
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface PopupInfo {
-  item: SavedItem;
+  clips: ClipRef[];
   location: Location;
   longitude: number;
   latitude: number;
@@ -83,14 +83,15 @@ function MapController({ flyTo }: MapControllerProps) {
 // ─── Pin component ───────────────────────────────────────────────────────────
 
 interface PinProps {
-  item: SavedItem;
-  locName: string;
+  clips: ClipRef[];
   onClick: () => void;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ clips, onClick }: PinProps) {
   const [hovered, setHovered] = useState(false);
+  const { item, location } = clips[0]; // representative clip
   const emoji = getPinEmoji(item.tags);
+  const count = clips.length;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -114,11 +115,11 @@ function Pin({ item, locName, onClick }: PinProps) {
         >
           <p style={{ fontSize: 11, fontWeight: 600, color: '#1f2937', lineHeight: 1.3, margin: 0 }}
              className="line-clamp-1">
-            {locName}
+            {location.name}
           </p>
           <p style={{ fontSize: 10, color: '#6b7280', marginTop: 1, margin: 0 }}
-             className="line-clamp-2">
-            {item.title}
+             className="line-clamp-1">
+            {count > 1 ? `${count} clips` : item.title}
           </p>
         </div>
       )}
@@ -127,17 +128,16 @@ function Pin({ item, locName, onClick }: PinProps) {
         /* Photo-style pin */
         <button
           type="button"
-          aria-label={`${item.title} – ${locName}`}
+          aria-label={`${location.name}${count > 1 ? ` – ${count} clips` : ` – ${item.title}`}`}
           onClick={onClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           style={{
+            position:     'relative',
             width:        36,
             height:       36,
             borderRadius: 8,
-            overflow:     'hidden',
-            border:       '2.5px solid white',
-            boxShadow:    hovered ? '0 4px 12px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.25)',
+            overflow:     'visible',
             cursor:       'pointer',
             padding:      0,
             display:      'block',
@@ -148,22 +148,38 @@ function Pin({ item, locName, onClick }: PinProps) {
           <img
             src={item.thumbnail}
             alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            style={{
+              width: 36, height: 36, objectFit: 'cover', display: 'block',
+              borderRadius: 8, border: '2.5px solid white',
+              boxShadow: hovered ? '0 4px 12px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.25)',
+            }}
             onError={(e) => {
-              // Fallback: hide image, show emoji circle instead
               (e.currentTarget.closest('button') as HTMLButtonElement).style.display = 'none';
             }}
           />
+          {count > 1 && (
+            <span style={{
+              position: 'absolute', top: -6, right: -6,
+              background: '#6366f1', color: 'white',
+              fontSize: 9, fontWeight: 700, lineHeight: 1,
+              padding: '2px 4px', borderRadius: 8,
+              border: '1.5px solid white',
+              pointerEvents: 'none',
+            }}>
+              {count}
+            </span>
+          )}
         </button>
       ) : (
         /* Emoji / color circle pin */
         <button
           type="button"
-          aria-label={`${item.title} – ${locName}`}
+          aria-label={`${location.name}${count > 1 ? ` – ${count} clips` : ` – ${item.title}`}`}
           onClick={onClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           style={{
+            position:        'relative',
             width:           emoji ? 34 : 26,
             height:          emoji ? 34 : 26,
             borderRadius:    '50%',
@@ -181,6 +197,18 @@ function Pin({ item, locName, onClick }: PinProps) {
           }}
         >
           {emoji ?? ''}
+          {count > 1 && (
+            <span style={{
+              position: 'absolute', top: -6, right: -6,
+              background: '#6366f1', color: 'white',
+              fontSize: 9, fontWeight: 700, lineHeight: 1,
+              padding: '2px 4px', borderRadius: 8,
+              border: '1.5px solid white',
+              pointerEvents: 'none',
+            }}>
+              {count}
+            </span>
+          )}
         </button>
       )}
     </div>
@@ -196,7 +224,6 @@ interface ClusterMarkerProps {
 }
 
 function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
-  // Scale the bubble with how many pins it holds (relative to the largest group).
   const size = 28 + Math.min(count / total, 1) * 24;
   return (
     <button
@@ -224,6 +251,56 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── Multi-clip popup ─────────────────────────────────────────────────────────
+
+function MultiClipPopup({
+  info,
+  onClose,
+  onItemClick,
+}: {
+  info: PopupInfo;
+  onClose: () => void;
+  onItemClick: (item: SavedItem) => void;
+}) {
+  return (
+    <Popup
+      longitude={info.longitude}
+      latitude={info.latitude}
+      anchor="top"
+      onClose={onClose}
+      closeButton
+      closeOnClick={false}
+      offset={[0, -6] as [number, number]}
+    >
+      <div style={{ minWidth: 180, maxWidth: 220 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#1f2937', marginBottom: 6 }}
+           className="line-clamp-1">
+          {info.location.name}
+        </p>
+        {info.clips.map(({ item }) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => { onItemClick(item); onClose(); }}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '4px 6px', borderRadius: 6, marginBottom: 2,
+              cursor: 'pointer', background: 'transparent',
+              border: 'none',
+            }}
+            className="hover:bg-indigo-50 transition-colors"
+          >
+            <span style={{ fontSize: 11, color: '#4f46e5', fontWeight: 600 }}
+                  className="line-clamp-2 block">
+              {item.title}
+            </span>
+          </button>
+        ))}
+      </div>
+    </Popup>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MapViewProps {
@@ -237,7 +314,6 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
-  // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
     (m, c) => (c.properties.cluster ? Math.max(m, (c.properties.point_count as number) || 0) : m),
     1,
@@ -308,21 +384,21 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             );
           }
 
-          // ── Individual pin ──
-          const { item, location } = feature.properties;
+          // ── Deduplicated location pin ──
+          const { clips, location } = feature.properties;
+          const key = `${location.lat},${location.lng}`;
           return (
-            <Marker
-              key={`${item.id}-${location.lat},${location.lng}`}
-              longitude={lng}
-              latitude={lat}
-              anchor="bottom"
-            >
+            <Marker key={key} longitude={lng} latitude={lat} anchor="bottom">
               <Pin
-                item={item}
-                locName={location.name}
+                clips={clips}
                 onClick={() => {
-                  setPopupInfo({ item, location, longitude: lng, latitude: lat });
-                  onPinClick(item);
+                  if (clips.length === 1) {
+                    // Single clip — open detail card directly
+                    onPinClick(clips[0].item);
+                  } else {
+                    // Multiple clips — show mini-list popup
+                    setPopupInfo({ clips, location, longitude: lng, latitude: lat });
+                  }
                 }}
               />
             </Marker>
@@ -330,24 +406,32 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         })}
 
         {popupInfo && (
-          <Popup
-            longitude={popupInfo.longitude}
-            latitude={popupInfo.latitude}
-            anchor="top"
-            onClose={() => setPopupInfo(null)}
-            closeButton
-            closeOnClick={false}
-            offset={[0, -6] as [number, number]}
-          >
-            <div className="max-w-[200px] px-1 py-0.5">
-              <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1">
-                {popupInfo.location.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
-                {popupInfo.item.title}
-              </p>
-            </div>
-          </Popup>
+          popupInfo.clips.length === 1 ? (
+            <Popup
+              longitude={popupInfo.longitude}
+              latitude={popupInfo.latitude}
+              anchor="top"
+              onClose={() => setPopupInfo(null)}
+              closeButton
+              closeOnClick={false}
+              offset={[0, -6] as [number, number]}
+            >
+              <div className="max-w-[200px] px-1 py-0.5">
+                <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1">
+                  {popupInfo.location.name}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
+                  {popupInfo.clips[0].item.title}
+                </p>
+              </div>
+            </Popup>
+          ) : (
+            <MultiClipPopup
+              info={popupInfo}
+              onClose={() => setPopupInfo(null)}
+              onItemClick={onPinClick}
+            />
+          )
         )}
       </Map>
     </div>

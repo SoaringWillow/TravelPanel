@@ -403,7 +403,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test case: Xiaohongshu title "去日本一定要打卡的50个地方！" should become "50 Must-Visit Places in Japan"
 
 ### G2 — Location Deduplication on Board
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: When multiple clips reference the same restaurant/temple/beach, the map shows duplicate overlapping pins. The trip planner also generates duplicate activities.
 **Files**: `components/MapView.tsx`, `app/api/plan/route.ts`
 **What to do**:
