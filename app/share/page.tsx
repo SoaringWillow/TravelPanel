@@ -29,12 +29,29 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // base64 JPEG injected by AppDelegate from the iOS Share Extension screenshot.
+  // Used by Claude Vision for anti-scraping platforms (Xiaohongshu, WeChat).
+  const [pendingImage, setPendingImage]       = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Read the screenshot image injected by AppDelegate via localStorage.
+  // AppDelegate stores it as 'pendingShareImage' right before opening the URL scheme.
+  useEffect(() => {
+    try {
+      const img = localStorage.getItem('pendingShareImage');
+      if (img) {
+        setPendingImage(img);
+        localStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // localStorage unavailable (e.g. SSR guard — this runs client-side only)
+    }
   }, []);
 
   // Auto-dismiss when done — handles both iOS back-nav and browser-extension new tab
@@ -93,9 +110,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (enables Claude Vision
+    // for anti-scraping platforms like Xiaohongshu).
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImage)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

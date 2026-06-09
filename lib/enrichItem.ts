@@ -5,7 +5,10 @@ import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
-export async function enrichItem(id: string, url: string): Promise<boolean> {
+// image: optional base64 JPEG from the iOS Share Extension screenshot.
+// Passed through to /api/import for Claude Vision extraction on anti-scraping
+// platforms like Xiaohongshu that block HTML fetching.
+export async function enrichItem(id: string, url: string, image?: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
     // Don't mark as failed — leave as pending so retry queue picks it up later
@@ -18,10 +21,13 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
   await updateItemEnrichment(id, 'processing');
   recordEnrichment();
   try {
+    const body: Record<string, string> = { url };
+    if (image) body.image = image;
+
     const res = await fetch('/api/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(body),
       keepalive: true,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
