@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,9 +97,37 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Skip page fetch when we have an image — scraping-blocked platforms (Xiaohongshu,
+  // WeChat) return empty HTML anyway, so the image is the only signal we have.
+  const page = imageBase64 ? null : await fetchPageData(url);
+
+  const prompt = imageBase64
+    ? `You are a travel content analyzer extracting TWO layers from this ${platform} post screenshot.
+
+Platform: ${platform}
+URL: ${url}
+
+Analyze the screenshot carefully — it is a social media travel post and is the PRIMARY source of information.
+The URL cannot be fetched (anti-scraping), so everything must come from what you see in the image.
+
+## Layer 1 — Spots (geographic skeleton)
+Read all text visible in the image. Extract real, identifiable locations with accurate GPS coordinates.
+Look for place names, addresses, map pins, location tags, and any text naming a specific place.
+Only include locations you can confidently geocode from what you see. Do NOT invent coordinates.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, tip, warning, or opinion visible in the image text.
+Read captions, overlaid text, hashtags, and any written content thoroughly.
+Examples:
+- "排队要1小时" → warning (1 hour queue)
+- "早上8点前来没有人" → tip (arrive before 8am)
+- "人均150元" → context (avg spend ¥150)
+- "强烈推荐" → recommendation
+- "周末不要来，人太多" → warning (avoid weekends)
+
+Even if you cannot read all text clearly, extract what you can see.`
+    : `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -130,12 +159,42 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Strip data URL prefix if present (e.g. "data:image/jpeg;base64,")
+      const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
+      const mimeType = imageBase64.startsWith('data:image/png') ? 'image/png'
+        : imageBase64.startsWith('data:image/webp') ? 'image/webp'
+        : 'image/jpeg';
+
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: Buffer.from(base64Data, 'base64'),
+                mimeType,
+              },
+              {
+                type: 'text',
+                text: prompt,
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

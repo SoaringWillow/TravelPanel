@@ -3,12 +3,37 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+
+// Compress an image file to ≤768px JPEG for Vision API upload
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 768;
+      const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('canvas')); return; }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = reject;
+    img.src = objectUrl;
+  });
+}
+
+// Platforms whose pages are scraping-blocked — Vision is the only extraction path
+const VISION_BLOCKED = new Set(['xiaohongshu', 'wechat']);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,8 +54,11 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [capturedImage, setCapturedImage]     = useState<string | null>(null);
+  const [imageLoading, setImageLoading]       = useState(false);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef    = useRef<HTMLInputElement>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
@@ -88,9 +116,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot when available (Xiaohongshu, WeChat)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, capturedImage ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -165,6 +193,69 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Screenshot picker — always visible; required for scraping-blocked platforms */}
+          <div className="pt-1">
+            {capturedImage ? (
+              <div className="relative inline-block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={capturedImage}
+                  alt="Post screenshot"
+                  className="h-24 w-auto rounded-xl border border-gray-200 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCapturedImage(null)}
+                  className="absolute -top-2 -right-2 bg-gray-800 text-white rounded-full p-0.5 hover:bg-gray-700 transition-colors"
+                  aria-label="Remove screenshot"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={stage === 'saving' || imageLoading}
+                onClick={() => fileInputRef.current?.click()}
+                className={[
+                  'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-colors',
+                  VISION_BLOCKED.has(platform)
+                    ? 'border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50',
+                  'disabled:opacity-50',
+                ].join(' ')}
+              >
+                <ImagePlus size={14} />
+                {imageLoading
+                  ? 'Loading…'
+                  : VISION_BLOCKED.has(platform)
+                  ? 'Add screenshot (recommended)'
+                  : 'Add screenshot (optional)'}
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setImageLoading(true);
+                try {
+                  const compressed = await compressImage(file);
+                  setCapturedImage(compressed);
+                  track('screenshot_added', { platform });
+                } catch {
+                  // ignore compression errors
+                } finally {
+                  setImageLoading(false);
+                  e.target.value = '';
+                }
+              }}
+            />
+          </div>
         </div>
 
         {/* Middle section — board picker */}
