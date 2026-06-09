@@ -117,12 +117,29 @@ export async function updateItemEnrichment(
   const db = await getDB();
   const item = await db.get('items', id);
   if (!item) return;
-  await db.put('items', {
+
+  const updated: SavedItem = {
     ...item,
     ...enrichedData,
     enrichmentStatus: status,
     retryCount: status === 'failed' ? (item.retryCount ?? 0) + 1 : item.retryCount ?? 0,
-  });
+  };
+
+  // If enrichment just provided a thumbnail and the item belongs to a board
+  // that has no cover yet, promote this thumbnail as the board's cover image.
+  const newThumbnail = enrichedData?.thumbnail;
+  if (newThumbnail && updated.boardId) {
+    const board = await db.get('boards', updated.boardId);
+    if (board && !board.coverThumbnail) {
+      const tx = db.transaction(['items', 'boards'], 'readwrite');
+      await tx.objectStore('items').put(updated);
+      await tx.objectStore('boards').put({ ...board, coverThumbnail: newThumbnail });
+      await tx.done;
+      return;
+    }
+  }
+
+  await db.put('items', updated);
 }
 
 // ─── Boards ────────────────────────────────────────────────────────────────

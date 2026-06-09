@@ -5,7 +5,19 @@ import { detectPlatform } from '@/lib/parse-url';
 import { ImportResult } from '@/lib/types';
 import { models } from '@/lib/models';
 
-// ─── Schemas ────────────────────────────────────────────────────────────────
+// ─── CORS ────────────────────────────────────────────────────────────────────
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
+// ─── Schemas ─────────────────────────────────────────────────────────────────
 
 const locationSchema = z.object({
   name: z.string(),
@@ -14,8 +26,6 @@ const locationSchema = z.object({
   address: z.string().optional(),
 });
 
-// Substance schema: the wisdom layer — tips, warnings, opinions extracted from
-// the post content itself, not just the location pins.
 const substanceSchema = z.object({
   type: z.enum(['tip', 'warning', 'opinion', 'wisdom', 'context', 'recommendation']),
   content: z.string().describe('The insight in 1–2 sentences, in your own words'),
@@ -37,7 +47,7 @@ const importSchema = z.object({
   ),
 });
 
-// ─── Page fetcher ────────────────────────────────────────────────────────────
+// ─── Page fetcher ─────────────────────────────────────────────────────────────
 
 async function fetchPageData(url: string) {
   try {
@@ -81,24 +91,10 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Shared prompt template ───────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -127,15 +123,90 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  return `You are analyzing a screenshot of a ${platform} travel post shared by a user.
+The screenshot is attached as an image. URL of the post: ${url}
+
+Read ALL visible text in the image — captions, overlaid text, comments, any Chinese or other language text.
+Translate if necessary. Then extract TWO layers:
+
+## Layer 1 — Spots (geographic skeleton)
+Extract every real, identifiable location visible in the image or mentioned in the caption.
+Include GPS coordinates you are confident about.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, warning, or opinion visible in the post.
+Xiaohongshu and similar platforms often contain dense travel tips in their captions.
+Capture ALL of them — ratings, price info, best time to visit, what to order, what to skip, seasonal tips, and more.
+Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg';
+
+  try {
+    const body = await req.json();
+    url = body.url;
+    if (body.imageBase64 && typeof body.imageBase64 === 'string') {
+      imageBase64 = body.imageBase64;
+    }
+    if (body.imageMimeType && ['image/jpeg', 'image/png', 'image/webp'].includes(body.imageMimeType)) {
+      imageMimeType = body.imageMimeType;
+    }
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
+
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision mode: analyze the screenshot directly — used for Xiaohongshu, WeChat,
+      // and any platform where URL scraping returns empty content.
+      // Pass as a data URL so no Buffer conversion is needed (works in Edge Runtime too).
+      const imageDataUrl = `data:${imageMimeType};base64,${imageBase64}`;
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageDataUrl,
+              },
+              {
+                type: 'text',
+                text: buildVisionPrompt(platform, url),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text mode: scrape page and analyze the text content.
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildPrompt(platform, url, page),
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
@@ -151,5 +222,5 @@ Never return an empty substance array for a real travel post.`;
     substance: claudeResult?.substance ?? [],
   };
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: CORS_HEADERS });
 }

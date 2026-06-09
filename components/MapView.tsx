@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl, GeolocateControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
@@ -226,13 +226,33 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
+// ─── Haversine distance ───────────────────────────────────────────────────────
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  onNearbyItems?: (nearby: Array<{ item: SavedItem; distanceKm: number }>) => void;
+  nearbyRadiusKm?: number;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({
+  items,
+  onPinClick,
+  flyTo,
+  onNearbyItems,
+  nearbyRadiusKm = 0.5,
+}: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -279,6 +299,30 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+
+        <GeolocateControl
+          position="top-right"
+          trackUserLocation
+          showUserLocation
+          showAccuracyCircle
+          fitBoundsOptions={{ maxZoom: 15 }}
+          onGeolocate={(e) => {
+            if (!onNearbyItems) return;
+            const { latitude: userLat, longitude: userLng } = e.coords;
+            const nearby: Array<{ item: SavedItem; distanceKm: number }> = [];
+            for (const item of items) {
+              for (const loc of item.locations) {
+                const d = haversineKm(userLat, userLng, loc.lat, loc.lng);
+                if (d <= nearbyRadiusKm) {
+                  nearby.push({ item, distanceKm: d });
+                  break; // count each item once (nearest location)
+                }
+              }
+            }
+            nearby.sort((a, b) => a.distanceKm - b.distanceKm);
+            onNearbyItems(nearby);
+          }}
+        />
 
         <MapController flyTo={flyTo} />
 

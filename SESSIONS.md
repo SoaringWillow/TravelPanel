@@ -96,3 +96,16 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-09 22:27 | 44fbb5d | feat(B2): browser extension — TravelPanel Clipper (Manifest V3)
+2026-06-09 22:34 | b68e408 | feat(B3): Xiaohongshu fix — Claude Vision pipeline for screenshot-based extraction
+2026-06-09 22:36 | abbcf53 | feat(B5): cloud backup export — Settings page with full JSON download
+2026-06-09 22:38 | 7be7cc2 | feat(C1): on-trip GPS mode — GeolocateControl + nearby clips panel
+2026-06-09 22:41 | 9829e1b | feat(C2): post-trip timeline view in Inspiration/Inbox page
+2026-06-09 22:42 | 451b31a | feat(C4): proactive resurfacing — Daily Discovery widget
+2026-06-09 22:49 | 0b296fb | feat: D2+D10 — clipboard paste button & URL validation in ImportSheet
+2026-06-09 22:51 | 0f2bd8d | feat: D6+D8 — retry-all button & offline indicator
+2026-06-09 22:52 | 7f2c88f | feat: D5 — pull-to-refresh on Inbox and Boards pages
+2026-06-09 22:54 | 193062c | feat: D7 — haptic feedback on save, enrichment success, and delete
+2026-06-09 22:55 | 9d03e00 | feat: D9 — board cover gradient overlay in BoardCard
+2026-06-09 22:56 | 00b4fb3 | feat: D4 — app icon generation (SVG source + all PWA/iOS sizes)
+2026-06-09 22:57 | 798cf18 | feat: D3 — local notifications on enrichment completion

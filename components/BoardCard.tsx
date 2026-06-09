@@ -21,15 +21,19 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
       style={{ borderLeftWidth: undefined }}
     >
       {/* Cover thumbnail background */}
-      {board.coverThumbnail && (
+      {board.coverThumbnail ? (
         <>
           <img
             src={board.coverThumbnail}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
-          <div className="absolute inset-0 bg-white/80" />
+          {/* Gradient: clear at top, dark at bottom so text is legible */}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.55) 100%)' }} />
         </>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50" />
       )}
 
       {/* Content */}
@@ -38,12 +42,12 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
         <div className="text-2xl leading-none mb-3">{board.emoji}</div>
 
         {/* Name */}
-        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
+        <h3 className={`font-bold text-sm leading-snug line-clamp-1 mb-1 ${board.coverThumbnail ? 'text-white drop-shadow-sm' : 'text-gray-800'}`}>
           {board.name}
         </h3>
 
         {/* Item count */}
-        <p className="text-sm text-gray-400">
+        <p className={`text-sm ${board.coverThumbnail ? 'text-white/80' : 'text-gray-400'}`}>
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
@@ -55,7 +59,7 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
               e.stopPropagation();
               onDelete();
             }}
-            className="absolute bottom-3 right-3 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            className={`absolute bottom-3 right-3 p-1.5 rounded-lg transition-colors ${board.coverThumbnail ? 'text-white/60 hover:text-white hover:bg-white/20' : 'text-gray-300 hover:text-red-500 hover:bg-red-50'}`}
             aria-label="Delete board"
           >
             <Trash2 size={14} />

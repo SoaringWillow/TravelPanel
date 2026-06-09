@@ -3,12 +3,14 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, WifiOff } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
-import { enrichItem } from '@/lib/enrichItem';
+import { enrichItem, EnrichOptions } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { impact, notification } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,12 +31,28 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [enrichOpts, setEnrichOpts]           = useState<EnrichOptions>({});
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isOnline = useOnlineStatus();
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards on mount and read any pending screenshot from the native side
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Read image stored by CapacitorBridge (from iOS Share Extension screenshot)
+    try {
+      const image = sessionStorage.getItem('pendingShareImage');
+      const mime  = sessionStorage.getItem('pendingShareImageMime');
+      if (image) {
+        const mimeType = (mime ?? 'image/jpeg') as EnrichOptions['imageMimeType'];
+        setEnrichOpts({ imageBase64: image, imageMimeType: mimeType });
+        sessionStorage.removeItem('pendingShareImage');
+        sessionStorage.removeItem('pendingShareImageMime');
+      }
+    } catch {
+      // sessionStorage not available (SSR safety)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -81,6 +99,7 @@ function SharePageInner() {
       boardId: selectedBoardId,
     };
 
+    impact('light');
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
@@ -88,29 +107,31 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
-    setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
-      .then(async (success) => {
-        if (success) {
-          // Read back the enriched data to show location count in the done UI
-          const { getItemById } = await import('@/lib/db');
-          const updated = await getItemById(itemId);
-          if (updated) {
-            setEnrichedData({
-              platform: updated.platform,
-              title: updated.title,
-              description: updated.description,
-              thumbnail: updated.thumbnail,
-              locations: updated.locations,
-              activities: updated.activities,
-              tags: updated.tags,
-              substance: updated.substance,
-            } as ImportResult);
+    // Background enrichment — skip when offline (retry queue handles it)
+    if (isOnline) {
+      setEnrichmentLoading(true);
+      enrichItem(itemId, rawUrl, enrichOpts)
+        .then(async (success) => {
+          if (success) {
+            notification('success');
+            const { getItemById } = await import('@/lib/db');
+            const updated = await getItemById(itemId);
+            if (updated) {
+              setEnrichedData({
+                platform: updated.platform,
+                title: updated.title,
+                description: updated.description,
+                thumbnail: updated.thumbnail,
+                locations: updated.locations,
+                activities: updated.activities,
+                tags: updated.tags,
+                substance: updated.substance,
+              } as ImportResult);
+            }
           }
-        }
-        setEnrichmentLoading(false);
-      });
+          setEnrichmentLoading(false);
+        });
+    }
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
@@ -144,6 +165,14 @@ function SharePageInner() {
   if (stage === 'picking' || stage === 'saving') {
     return (
       <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+        {/* Offline banner */}
+        {!isOnline && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-2">
+            <WifiOff size={14} className="text-amber-500 shrink-0" />
+            <p className="text-xs text-amber-700">You're offline — clip will enrich when you reconnect</p>
+          </div>
+        )}
+
         {/* Top section */}
         <div className="space-y-2 pt-4">
           {/* Platform chip */}
@@ -293,7 +322,12 @@ function SharePageInner() {
           transition={{ delay: 0.35 }}
           className="w-full"
         >
-          {enrichmentLoading && !enrichedData ? (
+          {!isOnline ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-2">
+              <WifiOff size={14} className="text-amber-500 shrink-0" />
+              <p className="text-sm text-amber-700">Enrichment will run when you reconnect</p>
+            </div>
+          ) : enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
               <span className="text-sm animate-pulse">🔍 Finding locations…</span>
             </div>

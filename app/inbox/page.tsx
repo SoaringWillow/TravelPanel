@@ -1,20 +1,139 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, LayoutGrid, Clock, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+
+// ─── Timeline grouping ────────────────────────────────────────────────────────
+
+function getDateGroup(ts: number): string {
+  const now = Date.now();
+  const diff = now - ts;
+  const day = 86_400_000;
+
+  if (diff < day) return 'Today';
+  if (diff < 2 * day) return 'Yesterday';
+  if (diff < 7 * day) return 'This week';
+  if (diff < 30 * day) return 'Last month';
+
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function groupByDate(items: SavedItem[]): Array<{ label: string; items: SavedItem[] }> {
+  const map = new Map<string, SavedItem[]>();
+  const sorted = [...items].sort((a, b) => b.savedAt - a.savedAt);
+
+  for (const item of sorted) {
+    const group = getDateGroup(item.savedAt);
+    if (!map.has(group)) map.set(group, []);
+    map.get(group)!.push(item);
+  }
+
+  return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
+}
+
+// ─── Timeline view ────────────────────────────────────────────────────────────
+
+function TimelineView({
+  items,
+  boardMap,
+  onViewOnMap,
+}: {
+  items: SavedItem[];
+  boardMap: Map<string, string>;
+  onViewOnMap: (id: string) => void;
+}) {
+  const groups = groupByDate(items);
+
+  if (groups.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-60 text-center">
+        <div className="text-5xl mb-4">🗓️</div>
+        <h3 className="font-semibold text-gray-700 mb-2">No clips yet</h3>
+        <p className="text-sm text-gray-500">Save travel content to see your timeline.</p>
+      </div>
+    );
+  }
+
+  const fmtTime = (ts: number) =>
+    new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  return (
+    <div className="relative pl-8">
+      {/* Vertical spine */}
+      <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-indigo-100" />
+
+      {groups.map((group) => (
+        <div key={group.label} className="mb-6">
+          {/* Date chip */}
+          <div className="relative flex items-center mb-3">
+            <div className="absolute -left-5 w-3 h-3 rounded-full bg-indigo-500 border-2 border-white shadow-sm" />
+            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">
+              {group.label}
+            </span>
+          </div>
+
+          {/* Clips in this group */}
+          <div className="flex flex-col gap-2.5">
+            {group.items.map((item) => (
+              <div key={item.id} className="relative">
+                <div className="absolute -left-5 top-3 w-2 h-2 rounded-full bg-gray-300 border-2 border-white" />
+
+                <div
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex gap-3 cursor-pointer active:bg-gray-50 transition-colors"
+                  onClick={() => onViewOnMap(item.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && onViewOnMap(item.id)}
+                >
+                  {item.thumbnail && (
+                    <img
+                      src={item.thumbnail}
+                      alt=""
+                      className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">
+                      {item.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-xs text-gray-400">{fmtTime(item.savedAt)}</span>
+                      {item.boardId && boardMap.get(item.boardId) && (
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                          {boardMap.get(item.boardId)}
+                        </span>
+                      )}
+                      {item.locations.length > 0 && (
+                        <span className="text-xs text-indigo-500">
+                          📍 {item.locations[0].name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,20 +148,37 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { boards } = useBoards();
   const router = useRouter();
 
-  const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { retryItem, retryAll } = useEnrichmentRetry(refreshItem);
+  const [retryingAll, setRetryingAll] = useState(false);
+  const { pullDistance, refreshing } = usePullToRefresh({ onRefresh: refresh, scrollContainerRef: scrollRef });
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'inbox' | 'timeline'>('inbox');
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
+
+  // Failed items across all (not just inbox unassigned)
+  const failedItems = items.filter((i) => i.enrichmentStatus === 'failed');
+
+  async function handleRetryAll() {
+    if (retryingAll || failedItems.length === 0) return;
+    setRetryingAll(true);
+    await retryAll(failedItems.map((i) => ({ id: i.id, url: i.url })));
+    setRetryingAll(false);
+  }
+
+  // Build board name lookup for the timeline
+  const boardMap = new Map(boards.map((b) => [b.id, `${b.emoji} ${b.name}`]));
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
@@ -101,20 +237,59 @@ export default function InboxPage() {
       {/* Header */}
       <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
-          </span>
+          <span className="text-2xl">{viewMode === 'timeline' ? '🗓️' : '📥'}</span>
+          <h1 className="text-xl font-bold text-gray-800">
+            {viewMode === 'timeline' ? 'Timeline' : 'Inbox'}
+          </h1>
+          {viewMode === 'inbox' && (
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {inboxItems.length} unsorted
+            </span>
+          )}
+
+          {/* Retry all failed */}
+          {failedItems.length > 0 && viewMode === 'inbox' && (
+            <button
+              type="button"
+              onClick={handleRetryAll}
+              disabled={retryingAll}
+              className="flex items-center gap-1 bg-red-50 text-red-600 text-xs font-semibold px-2.5 py-1 rounded-full hover:bg-red-100 active:scale-95 transition-all disabled:opacity-60"
+            >
+              <RefreshCw size={11} className={retryingAll ? 'animate-spin' : ''} />
+              {failedItems.length} failed · Retry
+            </button>
+          )}
+
+          {/* View toggle */}
+          <div className="ml-auto flex bg-gray-100 rounded-xl p-1">
+            <button
+              onClick={() => setViewMode('inbox')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'inbox' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500'
+              }`}
+            >
+              <LayoutGrid size={13} /> Inbox
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'timeline' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500'
+              }`}
+            >
+              <Clock size={13} /> Timeline
+            </button>
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
-        </div>
+        {/* Search (inbox mode only) */}
+        {viewMode === 'inbox' && (
+          <div className="mb-3">
+            <SearchBar onSearch={handleSearch} />
+          </div>
+        )}
 
-        {/* Platform filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+        {/* Platform filter tabs (inbox mode only) */}
+        {viewMode === 'inbox' && <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
           {PLATFORM_FILTERS.map((p) => {
             const count =
               p.key === 'all'
@@ -135,16 +310,32 @@ export default function InboxPage() {
               </button>
             );
           })}
-        </div>
+        </div>}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
-        {loading ? (
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ paddingTop: pullDistance > 0 ? pullDistance : 16 }}>
+        {/* Pull-to-refresh indicator */}
+        {(pullDistance > 0 || refreshing) && (
+          <div className="flex justify-center mb-2" style={{ height: 28 }}>
+            <div className={`w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent ${refreshing ? 'animate-spin' : ''}`} style={{ opacity: Math.min(pullDistance / 64, 1) }} />
+          </div>
+        )}
+        {/* Timeline mode */}
+        {viewMode === 'timeline' && !loading && (
+          <TimelineView
+            items={items.filter((i) => !i.isDemo)}
+            boardMap={boardMap}
+            onViewOnMap={handleViewOnMap}
+          />
+        )}
+
+        {/* Inbox mode */}
+        {viewMode === 'inbox' && loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : viewMode === 'inbox' && filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
             <h3 className="font-semibold text-gray-700 mb-2">
@@ -158,7 +349,7 @@ export default function InboxPage() {
                 : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
             </p>
           </div>
-        ) : (
+        ) : viewMode === 'inbox' ? (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>
               {filtered.map((item) => (
@@ -180,7 +371,7 @@ export default function InboxPage() {
               ))}
             </AnimatePresence>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Board selector bottom sheet */}
