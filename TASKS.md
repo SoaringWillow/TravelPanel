@@ -179,6 +179,73 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & UX Excellence (Current Sprint)
+
+> Goal: make TravelPanel feel like a native iOS app. Every task here is implementable
+> without Supabase keys. Ordered by user-visible impact.
+
+### D1 — Navigate to Maps from Location Items
+**Status**: `[x]` Done  
+**Why**: The most practical feature gap — user saves a restaurant, but can't tap to navigate. Single most useful addition for on-trip use.  
+**Files**: `components/LocationDetailCard.tsx`, possibly `components/InboxCard.tsx`  
+**What to do**:
+- Add a "Navigate" button on each location item inside the detail card
+- On iOS (Capacitor): open `maps://` URL scheme with the lat/lng for Apple Maps
+- On other platforms: open `https://maps.google.com/?q=lat,lng`
+- Detect platform via `navigator.platform` or Capacitor's `getPlatform()`
+- Also add a subtle "copy coordinates" icon button next to each location
+
+### D2 — Bottom Sheet Polish (drag handle + swipe-to-dismiss)
+**Status**: `[x]` Done  
+**Why**: LocationDetailCard currently closes only on backdrop click — feels like a web modal, not an iOS sheet.  
+**Files**: `components/LocationDetailCard.tsx`  
+**What to do**:
+- Add a drag handle indicator (pill shape, 4×32px, gray, centered at top of sheet)
+- Implement swipe-down-to-dismiss: on touch, track delta-Y; if dragged >80px, animate off and close
+- Use framer-motion's `drag="y"` with `dragConstraints={{ top: 0 }}` and `onDragEnd` to check threshold
+- Keep backdrop-click-to-close as a fallback
+
+### D3 — Swipe-to-Delete on InboxCard
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect horizontal swipe to reveal delete. Tap-and-hold → menu feels sluggish.  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- On horizontal swipe left (>60px), reveal a red Delete zone behind the card
+- If swipe exceeds 120px or user lifts finger in delete zone, trigger delete with confirmation
+- Use framer-motion `drag="x"` with `dragConstraints={{ right: 0 }}` and a red layer behind
+- On swipe right (>60px), reveal a "Move to board" icon (reuse existing Move logic)
+
+### D4 — Skeleton Loading Grids
+**Status**: `[ ]` Not started  
+**Why**: Inbox and Boards show a tiny spinner during load — jarring on fast devices (flicker) and slow on cold start.  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Replace the `animate-spin` spinner with a 3-item skeleton card grid
+- Skeleton card: shimmer animation (`animate-pulse`), matches the real card dimensions
+- Show 3 skeleton cards while `loading === true`
+
+### D5 — Native Share from Clip Detail
+**Status**: `[x]` Done  
+**Why**: Users want to share travel discoveries with friends. One share = potential new user.  
+**Files**: `components/LocationDetailCard.tsx`  
+**What to do**:
+- Add a Share button in the detail card header (next to the close X)
+- On tap: call `navigator.share({ title, text: description, url })` (Web Share API)
+- Fallback: copy URL to clipboard and show a "Copied!" toast
+- On iOS Capacitor, the native share sheet appears automatically via Web Share API
+
+### D6 — Map "Locate Me" Button + User Location Dot
+**Status**: `[ ]` Not started  
+**Why**: The map has no user location indicator — disorienting for on-trip use when you want to see what's nearby.  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Add a "locate me" FAB (⊕ or crosshairs icon) overlaid on the map (bottom-right, above clusters)
+- On tap: call `navigator.geolocation.getCurrentPosition()`, fly the map to the result
+- Add a blue dot for the user's location using a GeoJSON source + symbol layer
+- Handle permission denied gracefully (show "Location permission required" toast)
+
+---
+
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
