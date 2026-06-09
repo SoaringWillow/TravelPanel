@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #ffffff;
+      color: #1a1a2e;
+      overflow: hidden;
+    }
+
+    /* ── Header ───────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #164e63 100%);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: white;
+      text-decoration: none;
+    }
+    .logo-icon { font-size: 20px; line-height: 1; }
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: white;
+    }
+    .header-actions { display: flex; gap: 4px; }
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255,255,255,0.6);
+      padding: 5px;
+      border-radius: 6px;
+      font-size: 15px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+    }
+    .icon-btn:hover {
+      color: white;
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* ── Body ─────────────────────────────────────────── */
+    .body { padding: 16px 18px 18px; }
+
+    .page-preview {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 13px;
+      min-height: 60px;
+    }
+    .preview-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+    .micro-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #e2e8f0;
+      border-top-color: #94a3b8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    .page-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: none;
+    }
+    .page-host {
+      font-size: 11px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: none;
+    }
+    .platform-badge {
+      display: none;
+      margin-top: 7px;
+      padding: 3px 9px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .badge-youtube   { background: #fee2e2; color: #b91c1c; }
+    .badge-instagram { background: #fce7f3; color: #be185d; }
+    .badge-xhs       { background: #fff1f2; color: #e11d48; }
+    .badge-douyin    { background: #f0fdf4; color: #15803d; }
+    .badge-bilibili  { background: #eff6ff; color: #1d4ed8; }
+    .badge-tiktok    { background: #f5f3ff; color: #6d28d9; }
+    .badge-travel    { background: #e0f2fe; color: #0369a1; }
+    .badge-default   { background: #f1f5f9; color: #475569; }
+
+    /* ── CTA Button ───────────────────────────────────── */
+    .clip-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.15s, background 0.15s;
+      box-shadow: 0 3px 10px rgba(14, 165, 233, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: -0.1px;
+    }
+    .clip-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 14px rgba(14, 165, 233, 0.45);
+    }
+    .clip-btn:active { transform: scale(0.98); }
+    .clip-btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .btn-spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Success State ────────────────────────────────── */
+    .success-state {
+      display: none;
+      padding: 24px 18px 20px;
+      text-align: center;
+    }
+    .success-circle {
+      width: 54px;
+      height: 54px;
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin: 0 auto 12px;
+      animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .success-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #15803d;
+      margin-bottom: 4px;
+    }
+    .success-sub {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    /* ── Error ────────────────────────────────────────── */
+    .error-msg {
+      display: none;
+      font-size: 12px;
+      color: #dc2626;
+      margin-top: 9px;
+      text-align: center;
+      padding: 8px;
+      background: #fef2f2;
+      border-radius: 7px;
+    }
+
+    /* ── Footer ───────────────────────────────────────── */
+    .footer {
+      padding: 9px 18px;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-hint { font-size: 10px; color: #cbd5e1; }
+    .open-app-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      color: #0ea5e9;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .open-app-btn:hover { color: #0284c7; text-decoration: underline; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pop {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">
+      <span class="logo-icon">🗺</span>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+    </div>
+  </div>
+
+  <div id="main-body">
+    <div class="body">
+      <div class="page-preview" id="page-preview">
+        <div class="preview-loading" id="preview-loading">
+          <div class="micro-spinner"></div>
+          <span>Reading page…</span>
+        </div>
+        <div class="page-title" id="page-title"></div>
+        <div class="page-host" id="page-host"></div>
+        <span class="platform-badge" id="platform-badge"></span>
+      </div>
+
+      <button class="clip-btn" id="clip-btn" disabled>
+        <div class="btn-spinner" id="btn-spinner"></div>
+        <span id="btn-text">✈ Clip this page</span>
+      </button>
+
+      <div class="error-msg" id="error-msg">
+        Couldn't open TravelPanel. Check Settings for the correct app URL.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span class="footer-hint">AI extracts tips &amp; locations</span>
+      <button class="open-app-btn" id="open-app-btn">Open TravelPanel ↗</button>
+    </div>
+  </div>
+
+  <div class="success-state" id="success-state">
+    <div class="success-circle">✈</div>
+    <div class="success-title">Clipped!</div>
+    <div class="success-sub">TravelPanel is opening…</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
