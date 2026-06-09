@@ -81,7 +81,7 @@ new `components/OfflineBanner.tsx`
   state in case IndexedDB is blocked (private browsing on some browsers)
 
 ### D5 — Onboarding Flow (First Use Tutorial)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: New users see a blank map and don't know what to do. The demo seed boards
 show content but don't explain the product.
 **Files to change**: new `app/onboarding/page.tsx`, new `components/OnboardingSlides.tsx`,

@@ -8,6 +8,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import OfflineBanner from '@/components/OfflineBanner';
 import { ToastProvider } from '@/components/Toast';
 import { OnboardingGuard } from '@/components/OnboardingGuard';
+import { SwipeBackGesture } from '@/components/SwipeBackGesture';
+import { PageTransition } from '@/components/PageTransition';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -33,13 +35,14 @@ export default function RootLayout({
           <ToastProvider>
             <ErrorBoundary>
               <OnboardingGuard />
+              <SwipeBackGesture />
               <OfflineBanner />
               <CapacitorBridge />
               <AnalyticsProvider />
               <ResourceBanner />
-              <div className="min-h-screen">
+              <PageTransition>
                 {children}
-              </div>
+              </PageTransition>
             </ErrorBoundary>
           </ToastProvider>
         </ThemeProvider>
