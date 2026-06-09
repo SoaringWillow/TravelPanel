@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <svg class="logo-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#6366f1"/>
+        <circle cx="12" cy="9" r="2.5" fill="white" opacity="0.9"/>
+      </svg>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="settings-btn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main clip content -->
+  <div id="main-content">
+
+    <!-- Not configured banner -->
+    <div class="banner warning" id="not-configured-banner" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span>TravelPanel URL not set. <button class="link" id="open-settings-link">Open settings →</button></span>
+    </div>
+
+    <!-- Internal URL banner -->
+    <div class="banner error" id="internal-url-banner" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>Can't clip browser internal pages.</span>
+    </div>
+
+    <!-- Platform badge (shown for detected platforms) -->
+    <div style="padding: 0 12px" id="platform-wrap" style="display:none"></div>
+
+    <!-- Page info card -->
+    <div class="page-card">
+      <div class="page-favicon-wrap">
+        <img class="page-favicon" id="page-favicon" src="" alt="">
+        <span class="favicon-placeholder" id="favicon-placeholder">✈</span>
+      </div>
+      <div class="page-info">
+        <div class="page-title" id="page-title">Loading…</div>
+        <div class="page-url" id="page-url"></div>
+      </div>
+    </div>
+
+    <!-- Clip button -->
+    <button class="clip-btn" id="clip-btn" disabled>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+
+    <div class="shortcut-hint" id="shortcut-hint">
+      Quick clip: <kbd id="shortcut-key">⌘⇧S</kbd>
+    </div>
+
+  </div>
+
+  <!-- Success state (hidden initially) -->
+  <div class="success-wrap" id="success-wrap">
+    <div class="success-icon">📌</div>
+    <div class="success-title">Opening TravelPanel…</div>
+    <div class="success-sub">Select a board and save your clip</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

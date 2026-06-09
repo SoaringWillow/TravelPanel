@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+
+  <div class="logo">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#6366f1"/>
+      <circle cx="12" cy="9" r="2.5" fill="white" opacity="0.9"/>
+    </svg>
+    <div>
+      <div class="logo-text">TravelPanel</div>
+      <div class="logo-sub">Clipper Settings</div>
+    </div>
+  </div>
+
+  <!-- App URL section -->
+  <section>
+    <h2>TravelPanel URL</h2>
+    <label for="app-url">Your TravelPanel app URL</label>
+    <input
+      type="url"
+      id="app-url"
+      placeholder="https://your-app.vercel.app"
+      autocomplete="off"
+      spellcheck="false"
+    >
+    <div class="input-hint">
+      The URL where your TravelPanel is deployed. If running locally, use
+      <code style="background:#1e1e26;padding:1px 4px;border-radius:3px;font-size:11px">http://localhost:3000</code>.
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="save-btn">Save</button>
+      <button class="btn btn-secondary" id="test-btn">Test connection</button>
+    </div>
+
+    <div class="status" id="status-msg"></div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Keyboard shortcuts -->
+  <section>
+    <h2>Keyboard Shortcuts</h2>
+    <div class="shortcut-row">
+      <span>Open clip popup</span>
+      <div class="shortcut-keys">
+        <kbd id="shortcut-popup">—</kbd>
+      </div>
+    </div>
+    <div class="shortcut-row">
+      <span>Clip page instantly (no popup)</span>
+      <div class="shortcut-keys">
+        <kbd id="shortcut-clip">—</kbd>
+      </div>
+    </div>
+    <div class="input-hint" style="margin-top:10px">
+      To change shortcuts, visit
+      <a href="#" id="shortcuts-link">chrome://extensions/shortcuts</a>
+    </div>
+  </section>
+
+  <div class="version-row" id="version-row">TravelPanel Clipper v1.0.0</div>
+
+  <script src="options.js"></script>
+</body>
+</html>
