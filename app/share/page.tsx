@@ -1,10 +1,10 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { impact, notify } from '@/lib/haptics';
@@ -20,6 +20,7 @@ type Stage = 'picking' | 'saving' | 'done';
 
 function SharePageInner() {
   const searchParams    = useSearchParams();
+  const router          = useRouter();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const preselectedBoardId = searchParams.get('boardId') ?? '';
@@ -33,6 +34,8 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [shareImageBase64, setShareImageBase64] = useState<string>('');
+  const [duplicateItem, setDuplicateItem] = useState<SavedItem | null>(null);
+  const pendingSaveRef = useRef<{ boardId?: string; boardName?: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -86,8 +89,19 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDuplicateCheck = false) {
     void impact('medium');
+
+    // Duplicate URL check
+    if (!skipDuplicateCheck && rawUrl) {
+      const existing = await getItemByUrl(rawUrl);
+      if (existing) {
+        setDuplicateItem(existing);
+        pendingSaveRef.current = { boardId: selectedBoardId, boardName: boardDisplayName };
+        return;
+      }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -170,6 +184,46 @@ function SharePageInner() {
   }
 
   // ── Stage: picking ────────────────────────────────────────────────────────
+
+  if (duplicateItem) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col justify-center p-6 safe-top safe-bottom gap-6">
+        <div className="text-center space-y-2">
+          <div className="text-4xl mb-3">🔁</div>
+          <h2 className="text-xl font-bold text-gray-800">Already saved</h2>
+          <p className="text-sm text-gray-500 max-w-xs mx-auto">
+            This URL is already in your library as <span className="font-medium text-gray-700">"{duplicateItem.title || 'Untitled'}"</span>
+          </p>
+        </div>
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              router.push(`/?itemId=${duplicateItem.id}`);
+            }}
+            className="w-full bg-indigo-600 text-white font-semibold text-sm py-3.5 rounded-2xl"
+          >
+            View existing clip
+          </button>
+          <button
+            onClick={() => {
+              const p = pendingSaveRef.current;
+              setDuplicateItem(null);
+              void handleSave(p?.boardId, p?.boardName, true);
+            }}
+            className="w-full border border-gray-200 text-gray-700 font-medium text-sm py-3.5 rounded-2xl"
+          >
+            Save again anyway
+          </button>
+          <button
+            onClick={() => window.history.back()}
+            className="w-full text-gray-400 text-sm py-2"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (stage === 'picking' || stage === 'saving') {
     return (

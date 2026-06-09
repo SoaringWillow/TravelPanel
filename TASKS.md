@@ -263,7 +263,7 @@ clipping habitual — same psychology as Duolingo's streak.
 ## PHASE H — Robustness + Data Safety
 
 ### H1 — Duplicate URL Detection
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: Users save the same URL twice (e.g. tapping Share on the same post twice). This clogs the inbox with duplicate cards and wastes enrichment quota.
 **Files to change**: `lib/db.ts`, `app/share/page.tsx`
 **What to do**:
