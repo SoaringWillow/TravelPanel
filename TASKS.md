@@ -331,7 +331,7 @@ clipping habitual — same psychology as Duolingo's streak.
 - The fallback should be visually consistent: a soft gradient div with the first letter of the item title
 
 ### I2 — Onboarding Demo Data Banner
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete (OnboardingSeed component already implemented)
 **Why**: New users see pre-populated demo boards and don't understand they're examples. Without a clear "this is a demo" indicator, users may not understand the app's purpose.
 **Files to change**: `app/boards/page.tsx`, `lib/db.ts`
 **What to do**:
@@ -342,7 +342,7 @@ clipping habitual — same psychology as Duolingo's streak.
 - Store dismissal in localStorage (`demoBannerDismissed`) so it only shows once per device
 
 ### I3 — Map Clustering Polish
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: At low zoom with 50+ pins, clusters exist but the cluster bubbles lack click-to-expand behavior — tapping a cluster should zoom in, not open a detail card.
 **Files to change**: `components/MapView.tsx`
 **What to do**:
@@ -353,7 +353,7 @@ clipping habitual — same psychology as Duolingo's streak.
 - Add a subtle animation when zooming into a cluster (Framer Motion won't work here — use MapLibre's built-in flyTo easing)
 
 ### I4 — Local Push Notifications (Resurfacing Reminder)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: The North Star metric is weekly clips per active user. The best re-engagement trigger is a scheduled local notification on iOS: "You have 12 saved places you haven't visited yet — ready to plan?"
 **Files to change**: `lib/notifications.ts` (new), `app/settings/page.tsx`, `ios/App/App/Info.plist`
 **What to do**:

@@ -207,17 +207,20 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
         width: size,
         height: size,
         borderRadius: '50%',
-        backgroundColor: 'rgba(99,102,241,0.92)',
-        border: '2.5px solid white',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.28)',
-        color: 'white',
-        fontWeight: 700,
-        fontSize: count > 99 ? 12 : 13,
+        backgroundColor: 'white',
+        border: '2.5px solid #6366f1',
+        boxShadow: '0 0 0 4px rgba(99,102,241,0.2), 0 2px 10px rgba(0,0,0,0.2)',
+        color: '#4338ca',
+        fontWeight: 800,
+        fontSize: count > 99 ? 11 : 13,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        transition: 'transform 0.15s ease',
       }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.1)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
     >
       {count}
     </button>

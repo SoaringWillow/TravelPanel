@@ -7,6 +7,7 @@ import NavBar from '@/components/NavBar';
 import { useTheme, ThemeMode } from '@/components/ThemeProvider';
 import { cloudEnabled, getSession, onAuthChange } from '@/lib/supabase';
 import { getAnalyticsConsent, setAnalyticsConsent } from '@/lib/analytics';
+import { requestNotificationPermission, isNotificationPermissionGranted, scheduleWeeklyReminder, cancelReminders } from '@/lib/notifications';
 import { useRouter } from 'next/navigation';
 import type { Session } from '@supabase/supabase-js';
 
@@ -134,11 +135,26 @@ export default function SettingsPage() {
   const [exportError, setExportError] = useState('');
   const [cloudSession, setCloudSession] = useState<Session | null>(null);
   const [analyticsConsent, setAnalyticsConsentState] = useState<'yes' | 'no' | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setAnalyticsConsentState(getAnalyticsConsent());
+    isNotificationPermissionGranted().then(setNotificationsEnabled);
   }, []);
+
+  async function handleNotificationToggle() {
+    if (notificationsEnabled) {
+      await cancelReminders();
+      setNotificationsEnabled(false);
+    } else {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        await scheduleWeeklyReminder();
+        setNotificationsEnabled(true);
+      }
+    }
+  }
 
   useEffect(() => {
     if (!cloudEnabled) return;
@@ -179,8 +195,29 @@ export default function SettingsPage() {
       </div>
 
       {/* Privacy section */}
-      <SectionHeader title="Privacy" />
-      <div className="mx-4 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+      <SectionHeader title="Privacy & Notifications" />
+      <div className="mx-4 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
+        {/* Weekly reminder toggle */}
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+            🔔
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-medium text-gray-800 dark:text-gray-100">Weekly planning reminder</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Monday 9am nudge to plan your saved places</div>
+          </div>
+          <button
+            type="button"
+            onClick={handleNotificationToggle}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              notificationsEnabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              notificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
         <div className="flex items-center gap-3 px-4 py-3.5">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
             📊

@@ -71,5 +71,7 @@
 	<string>TravelPanel uses your photo library to attach memories to places you visit.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>TravelPanel uses your location to show saved places nearby and to navigate your itinerary.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>TravelPanel sends weekly reminders to help you plan trips from your saved inspiration.</string>
 </dict>
 </plist>
