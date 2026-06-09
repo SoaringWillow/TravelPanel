@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -13,6 +13,8 @@ import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import TripNavigator, { TripStop } from '@/components/TripNavigator';
+import { AnimatePresence } from 'framer-motion';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -38,6 +40,8 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [tripMode, setTripMode] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | undefined>();
 
   useEffect(() => {
     async function load() {
@@ -63,6 +67,17 @@ export default function PlanPage() {
 
   const itemsWithLocations = boardItems.filter((item) => item.locations.length > 0);
   const hasLocations = itemsWithLocations.length > 0;
+
+  // All real GPS stops for the trip navigator — one entry per location per clip
+  const tripStops: TripStop[] = itemsWithLocations.flatMap((item) =>
+    item.locations.map((loc) => ({
+      name: loc.name,
+      lat: loc.lat,
+      lng: loc.lng,
+      itemTitle: item.title,
+      tags: item.tags,
+    }))
+  );
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
@@ -265,7 +280,7 @@ export default function PlanPage() {
         style={{ height: stage === 'idle' ? '45vh' : '45vh' }}
       >
         {stage === 'idle' ? (
-          <MapView items={boardItems} onPinClick={() => {}} />
+          <MapView items={boardItems} onPinClick={() => {}} userLocation={userLocation} />
         ) : (
           <RouteMapView
             items={boardItems}
@@ -273,6 +288,17 @@ export default function PlanPage() {
             activeDayIndex={activeDayIndex}
           />
         )}
+
+        {/* On-Trip GPS Navigator overlay */}
+        <AnimatePresence>
+          {tripMode && (
+            <TripNavigator
+              stops={tripStops}
+              onLocationChange={(lat, lng) => setUserLocation({ lat, lng })}
+              onClose={() => { setTripMode(false); setUserLocation(undefined); }}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Bottom scrollable panel */}
@@ -461,6 +487,23 @@ export default function PlanPage() {
               {/* Export actions */}
               {planIsComplete(plan) && (
                 <div className="flex gap-2">
+                  {/* On-Trip GPS mode toggle */}
+                  <button
+                    onClick={() => {
+                      setTripMode((v) => !v);
+                      if (tripMode) setUserLocation(undefined);
+                      track('trip_mode_toggled', { active: !tripMode });
+                    }}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] ${
+                      tripMode
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'border border-indigo-300 text-indigo-600 hover:bg-indigo-50'
+                    }`}
+                  >
+                    <Navigation2 size={14} />
+                    {tripMode ? 'Live' : 'Go Live'}
+                  </button>
+
                   <button
                     onClick={handleExportPDF}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"

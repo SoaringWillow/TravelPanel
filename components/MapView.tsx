@@ -230,9 +230,10 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: { lat: number; lng: number };
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -328,6 +329,28 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* Live user location dot */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <div style={{ position: 'relative', width: 20, height: 20 }}>
+              {/* Outer pulse ring */}
+              <div style={{
+                position: 'absolute', inset: -6, borderRadius: '50%',
+                background: 'rgba(99,102,241,0.18)',
+                animation: 'gps-pulse 2s ease-out infinite',
+              }} />
+              {/* Inner dot */}
+              <div style={{
+                width: 16, height: 16, borderRadius: '50%',
+                background: '#6366f1',
+                border: '2.5px solid white',
+                boxShadow: '0 2px 6px rgba(99,102,241,0.5)',
+                position: 'absolute', top: 2, left: 2,
+              }} />
+            </div>
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
