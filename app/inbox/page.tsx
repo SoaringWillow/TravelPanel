@@ -10,7 +10,7 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
-import { searchItems } from '@/lib/searchItems';
+import { searchItems, rankItems, VibeQuery } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
@@ -38,11 +38,31 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [vibeResults, setVibeResults] = useState<ReturnType<typeof rankItems> | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
+    // Clear any previous vibe results when switching back to keyword mode
+    if (!q.trim()) setVibeResults(null);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
+
+  const handleVibeSearch = useCallback(async (q: string) => {
+    track('vibe_search_performed', { length: q.trim().length });
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q }),
+      });
+      if (!res.ok) throw new Error('search API error');
+      const vibe: VibeQuery = await res.json();
+      setVibeResults(rankItems(items, vibe));
+    } catch {
+      // Fall back to keyword search on error
+      setVibeResults(null);
+    }
+  }, [items]);
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
@@ -52,7 +72,10 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  // Vibe results override keyword filter; both are then scoped to platform filter
+  const filtered = vibeResults
+    ? vibeResults.filter((i) => activePlatform === 'all' || i.platform === activePlatform)
+    : searchItems(platformFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -110,7 +133,10 @@ export default function InboxPage() {
 
         {/* Search */}
         <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar
+            onSearch={handleSearch}
+            onVibeSearch={handleVibeSearch}
+          />
         </div>
 
         {/* Platform filter tabs */}
@@ -140,19 +166,36 @@ export default function InboxPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Vibe search result banner */}
+        {vibeResults && (
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <span className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+              ✨ {vibeResults.length} vibe match{vibeResults.length !== 1 ? 'es' : ''}
+            </span>
+            <button
+              type="button"
+              onClick={() => setVibeResults(null)}
+              className="text-xs text-gray-400 hover:text-gray-600 underline"
+            >
+              clear
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
+            <div className="text-5xl mb-4">{query.trim() || vibeResults ? '🔍' : '📥'}</div>
             <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
+              {query.trim() || vibeResults ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
             <p className="text-sm text-gray-500 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
+                : vibeResults
+                ? 'No clips match that vibe. Try different words.'
                 : activePlatform === 'all'
                 ? 'Share content from social apps to get started!'
                 : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
