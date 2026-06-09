@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import {
   Download, Trash2, Info, ExternalLink,
-  CheckCircle2, AlertTriangle, Database, Sun, Moon, Monitor,
+  CheckCircle2, AlertTriangle, Database, Sun, Moon, Monitor, Sparkles,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import { exportAllData, downloadJSON } from '@/lib/exportData';
 import { track } from '@/lib/analytics';
@@ -162,6 +163,7 @@ function ThemeRow() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const router = useRouter();
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24 pt-0">
       {/* Header */}
@@ -196,6 +198,19 @@ export default function SettingsPage() {
           label="Cloud Backup"
           sublabel="Sign in to sync across devices — coming soon"
           right={<span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Soon</span>}
+        />
+      </Section>
+
+      {/* Discover */}
+      <Section title="Discover">
+        <Row
+          icon={Sparkles}
+          iconColor="text-indigo-600"
+          iconBg="bg-indigo-50"
+          label="Inspiration Digest"
+          sublabel="Resurface travel clips you saved weeks ago"
+          right="›"
+          onClick={() => router.push('/digest')}
         />
       </Section>
 

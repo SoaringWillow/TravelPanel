@@ -37,5 +37,21 @@
       "title": "title"
     }
   },
-  "categories": ["travel", "productivity", "lifestyle"]
+  "categories": ["travel", "productivity", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Inspiration Digest",
+      "short_name": "Digest",
+      "description": "Resurface travel clips you saved a while back",
+      "url": "/digest",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Add Clip",
+      "short_name": "Clip",
+      "description": "Clip a travel URL to TravelPanel",
+      "url": "/share",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }

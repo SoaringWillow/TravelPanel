@@ -421,7 +421,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This gives Xiaohongshu and WeChat clips a cover photo sourced from the iOS screenshot
 
 ### G4 — Weekly Inspiration Digest
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users forget about clips they saved weeks ago. A weekly "This week in your collection" reminder keeps the app top-of-mind.
 **Files**: new `app/digest/page.tsx`, `lib/db.ts`
 **What to do**:
