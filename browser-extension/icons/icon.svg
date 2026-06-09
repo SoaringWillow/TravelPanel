@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Sky-blue rounded square background -->
+  <rect width="128" height="128" rx="28" fill="#0ea5e9"/>
+  <!-- Map pin (teardrop + hole) -->
+  <path fill-rule="evenodd" clip-rule="evenodd"
+    d="M64 22C50.745 22 40 32.745 40 46c0 19.25 24 60 24 60s24-40.75 24-60c0-13.255-10.745-24-24-24zm0 32a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"
+    fill="white"/>
+</svg>
