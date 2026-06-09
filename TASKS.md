@@ -299,7 +299,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Status**: `[ ]` Blocked on B1 activation  
 
 ### D5 — On-Trip GPS Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: "I'm there now" mode — shows nearest saved clips, real walking distance, turn-by-turn link to Apple Maps
 
 ---

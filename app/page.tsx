@@ -4,13 +4,14 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Locate } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location, Board } from '@/lib/types';
 import { getAllBoards } from '@/lib/db';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import BoardFilterBar from '@/components/BoardFilterBar';
+import NearbyClipsSheet from '@/components/NearbyClipsSheet';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -27,6 +28,7 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [boards, setBoards]             = useState<Board[]>([]);
+  const [showNearby, setShowNearby]     = useState(false);
   const [filteredBoardId, setFilteredBoardId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     return sessionStorage.getItem(FILTER_KEY) || null;
@@ -141,16 +143,38 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
-      {/* Import FAB */}
+      {/* FABs — bottom right */}
       {!selectedItem && (
-        <button
-          onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          aria-label="Clip inspiration"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="absolute bottom-24 right-4 z-[1000] flex flex-col gap-3">
+          {/* GPS / Nearby mode */}
+          <button
+            onClick={() => setShowNearby(true)}
+            className="bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 rounded-full p-3.5 shadow-lg hover:bg-indigo-50 active:scale-95 transition-all"
+            aria-label="Show nearby saved places"
+          >
+            <Locate size={20} />
+          </button>
+          {/* Clip FAB */}
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            aria-label="Clip inspiration"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       )}
+
+      {/* Nearby Clips GPS sheet */}
+      <AnimatePresence>
+        {showNearby && (
+          <NearbyClipsSheet
+            items={visibleItems}
+            onClose={() => setShowNearby(false)}
+            onPinClick={setSelectedItem}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Import Sheet */}
       <ImportSheet
