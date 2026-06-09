@@ -48,19 +48,42 @@ export type AnalyticsEvent =
   | 'stop_marked_visited'
   | 'trip_mode_toggled';
 
+const CONSENT_KEY = 'analyticsConsent';
+
+export function getAnalyticsConsent(): 'yes' | 'no' | null {
+  if (typeof window === 'undefined') return null;
+  const v = localStorage.getItem(CONSENT_KEY);
+  return v === 'yes' ? 'yes' : v === 'no' ? 'no' : null;
+}
+
+export function setAnalyticsConsent(consent: 'yes' | 'no'): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(CONSENT_KEY, consent);
+  if (consent === 'no' && client) {
+    client.opt_out_capturing();
+  }
+  if (consent === 'yes') {
+    void getClient();
+  }
+}
+
+function isConsentGiven(): boolean {
+  return getAnalyticsConsent() === 'yes';
+}
+
 export function track(event: AnalyticsEvent, props?: Record<string, unknown>): void {
-  if (!KEY) return; // fast path — no client, no cost
+  if (!KEY || !isConsentGiven()) return;
   void getClient().then((ph) => ph?.capture(event, props));
 }
 
 export function identify(userId: string, props?: Record<string, unknown>): void {
-  if (!KEY) return;
+  if (!KEY || !isConsentGiven()) return;
   void getClient().then((ph) => ph?.identify(userId, props));
 }
 
-// Call once on app mount to warm the client (and fire the initial pageview).
+// Call once on app mount — only warms the client if consent is given.
 export function initAnalytics(): void {
-  if (!KEY) return;
+  if (!KEY || !isConsentGiven()) return;
   void getClient();
 }
 

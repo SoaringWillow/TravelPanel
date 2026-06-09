@@ -276,7 +276,7 @@ clipping habitual — same psychology as Duolingo's streak.
 - Add `url` field to the IndexedDB `items` store index for fast lookups (add to db.ts schema if not present)
 
 ### H2 — Analytics Consent Gate
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: PostHog fires without user consent — a regulatory requirement for GDPR/CCPA, and an App Store review concern. Must be opt-in.
 **Files to change**: `lib/analytics.ts`, `app/settings/page.tsx`, `app/layout.tsx`
 **What to do**:

@@ -10,6 +10,7 @@ import { ToastProvider } from '@/components/Toast';
 import { OnboardingGuard } from '@/components/OnboardingGuard';
 import { SwipeBackGesture } from '@/components/SwipeBackGesture';
 import { PageTransition } from '@/components/PageTransition';
+import AnalyticsConsentBanner from '@/components/AnalyticsConsentBanner';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -40,6 +41,7 @@ export default function RootLayout({
               <CapacitorBridge />
               <AnalyticsProvider />
               <ResourceBanner />
+              <AnalyticsConsentBanner />
               <PageTransition>
                 {children}
               </PageTransition>

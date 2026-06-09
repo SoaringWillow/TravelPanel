@@ -6,6 +6,7 @@ import { getAllItems, getAllBoards, getTripsForBoard } from '@/lib/db';
 import NavBar from '@/components/NavBar';
 import { useTheme, ThemeMode } from '@/components/ThemeProvider';
 import { cloudEnabled, getSession, onAuthChange } from '@/lib/supabase';
+import { getAnalyticsConsent, setAnalyticsConsent } from '@/lib/analytics';
 import { useRouter } from 'next/navigation';
 import type { Session } from '@supabase/supabase-js';
 
@@ -132,7 +133,12 @@ export default function SettingsPage() {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [exportError, setExportError] = useState('');
   const [cloudSession, setCloudSession] = useState<Session | null>(null);
+  const [analyticsConsent, setAnalyticsConsentState] = useState<'yes' | 'no' | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    setAnalyticsConsentState(getAnalyticsConsent());
+  }, []);
 
   useEffect(() => {
     if (!cloudEnabled) return;
@@ -170,6 +176,35 @@ export default function SettingsPage() {
       <SectionHeader title="Appearance" />
       <div className="mx-4">
         <ThemeToggle />
+      </div>
+
+      {/* Privacy section */}
+      <SectionHeader title="Privacy" />
+      <div className="mx-4 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+            📊
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-medium text-gray-800 dark:text-gray-100">Share usage analytics</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Anonymous data to improve the app. No personal info or location.</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = analyticsConsent === 'yes' ? 'no' : 'yes';
+              setAnalyticsConsent(next);
+              setAnalyticsConsentState(next);
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              analyticsConsent === 'yes' ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              analyticsConsent === 'yes' ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
       </div>
 
       {/* Data section */}
