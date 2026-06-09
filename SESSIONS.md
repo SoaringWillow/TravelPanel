@@ -96,3 +96,12 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-09 14:27 | 1f39662 | feat(B2): add Chrome browser extension for one-click clip capture
+2026-06-09 14:32 | 6df2143 | feat(B3): Claude Vision fallback for scraping-resistant platforms (Xiaohongshu, WeChat)
+2026-06-09 14:33 | 8aa7c80 | feat(B5): data export + Settings page with full JSON backup
+2026-06-09 14:36 | 327fbe5 | chore: update TASKS.md with Phase C–E roadmap (post-Phase-B review)
+2026-06-09 14:37 | 3d07f68 | feat(C1): board filter pills on map view
+2026-06-09 14:38 | f3d891a | feat(C2): clip edit mode — title, notes, tags inline in detail card
+2026-06-09 14:40 | 234b0d3 | feat(C3): inline board rename in BoardCard
+2026-06-09 14:42 | c356867 | feat(C4): iOS safe areas, haptics, pull-to-refresh
+2026-06-09 14:45 | a1f85ca | feat(C6): virtual 2-column grid in inbox for scroll performance

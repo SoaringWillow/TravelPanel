@@ -92,7 +92,7 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
         <div
-          className={`bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all
+          className={`bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all
             ${editMode ? 'max-h-[80vh]' : 'max-h-[60vh]'}`}
         >
           {/* ── Header ── */}
@@ -109,7 +109,7 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
                   ref={titleRef}
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="font-bold text-gray-800 text-base w-full border-b-2 border-indigo-400 outline-none bg-transparent pb-0.5 leading-snug"
+                  className="font-bold text-gray-800 dark:text-gray-100 text-base w-full border-b-2 border-indigo-400 outline-none bg-transparent pb-0.5 leading-snug"
                   placeholder="Clip title"
                   maxLength={200}
                 />
@@ -162,8 +162,8 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
                       value={notes}
                       onChange={e => setNotes(e.target.value)}
                       rows={3}
-                      className="w-full border-1.5 border-gray-200 rounded-xl p-3 text-sm text-gray-700
-                        outline-none focus:border-indigo-400 bg-gray-50 focus:bg-white transition-colors
+                      className="w-full border-1.5 border-gray-200 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-700 dark:text-gray-200
+                        outline-none focus:border-indigo-400 bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-700 transition-colors
                         resize-none leading-relaxed"
                       placeholder="Add a personal note…"
                       maxLength={500}

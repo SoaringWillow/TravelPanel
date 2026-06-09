@@ -3,21 +3,22 @@
 import { useState } from 'react';
 import {
   Download, Trash2, Info, ExternalLink,
-  CheckCircle2, AlertTriangle, Database,
+  CheckCircle2, AlertTriangle, Database, Sun, Moon, Monitor,
 } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { exportAllData, downloadJSON } from '@/lib/exportData';
 import { track } from '@/lib/analytics';
+import { useTheme, type Theme } from '@/components/ThemeProvider';
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <div className="px-4 pb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+      <div className="px-4 pb-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
         {title}
       </div>
-      <div className="mx-3 bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5">
+      <div className="mx-3 bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 dark:ring-white/10">
         {children}
       </div>
     </div>
@@ -48,8 +49,8 @@ function Row({
   return (
     <button
       className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors
-        ${onClick ? 'active:bg-gray-50 hover:bg-gray-50/70 cursor-pointer' : 'cursor-default'}
-        not-first:border-t not-first:border-gray-100`}
+        ${onClick ? 'active:bg-gray-50 dark:active:bg-gray-800 hover:bg-gray-50/70 dark:hover:bg-gray-800/50 cursor-pointer' : 'cursor-default'}
+        not-first:border-t not-first:border-gray-100 dark:not-first:border-gray-700`}
       onClick={onClick}
       type="button"
     >
@@ -57,11 +58,11 @@ function Row({
         <Icon size={18} className={iconColor} strokeWidth={2} />
       </span>
       <span className="flex-1 min-w-0">
-        <span className={`block text-[15px] font-medium ${danger ? 'text-red-600' : 'text-gray-900'}`}>
+        <span className={`block text-[15px] font-medium ${danger ? 'text-red-600' : 'text-gray-900 dark:text-gray-100'}`}>
           {label}
         </span>
         {sublabel && (
-          <span className="block text-xs text-gray-400 mt-0.5 leading-snug">{sublabel}</span>
+          <span className="block text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{sublabel}</span>
         )}
       </span>
       {right && <span className="text-sm text-gray-400 flex-shrink-0">{right}</span>}
@@ -124,15 +125,54 @@ function ExportRow() {
   );
 }
 
+// ─── Theme toggle ─────────────────────────────────────────────────────────────
+
+const THEME_OPTIONS: { value: Theme; label: string; icon: React.ElementType }[] = [
+  { value: 'light',  label: 'Light',  icon: Sun     },
+  { value: 'dark',   label: 'Dark',   icon: Moon    },
+  { value: 'system', label: 'System', icon: Monitor },
+];
+
+function ThemeRow() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="px-4 py-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-700">
+      <span className="text-[15px] font-medium text-gray-900 dark:text-gray-100">Appearance</span>
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+        {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTheme(value)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
+              ${theme === value
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+          >
+            <Icon size={13} />
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   return (
-    <main className="min-h-screen bg-gray-50 pb-24 pt-0">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24 pt-0">
       {/* Header */}
-      <div className="bg-white pt-safe-14 pb-5 px-4 mb-5 shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
+      <div className="bg-white dark:bg-gray-900 pt-safe-14 pb-5 px-4 mb-5 shadow-sm">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Settings</h1>
       </div>
+
+      {/* Appearance */}
+      <Section title="Appearance">
+        <ThemeRow />
+      </Section>
 
       {/* Data section */}
       <Section title="Your Data">

@@ -256,7 +256,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Preserve scroll position on back-navigation using `sessionStorage`
 
 ### C7 — Dark Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users overwhelmingly use Dark Mode at night. The current white UI is jarring. No `dark:` classes exist anywhere.  
 **Files**: `app/globals.css`, `app/layout.tsx`, `tailwind.config.js`, all major components  
 **What to do**:

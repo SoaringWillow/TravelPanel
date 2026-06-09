@@ -57,7 +57,7 @@ export default function BoardCard({ board, itemCount, onClick, onDelete, onRenam
       whileHover={renaming ? {} : { scale: 1.02 }}
       whileTap={renaming ? {} : { scale: 0.98 }}
       onClick={renaming ? undefined : onClick}
-      className={`relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden
+      className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden
         min-h-[160px] flex flex-col transition-all duration-150
         ${renaming ? 'cursor-default ring-2 ring-indigo-400' : 'cursor-pointer hover:border-l-[3px] hover:border-l-indigo-500'}`}
     >
@@ -81,16 +81,16 @@ export default function BoardCard({ board, itemCount, onClick, onDelete, onRenam
             onChange={e => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             onClick={e => e.stopPropagation()}
-            className="font-bold text-gray-800 text-sm w-full border-b-2 border-indigo-400 outline-none bg-transparent pb-0.5 mb-1"
+            className="font-bold text-gray-800 dark:text-gray-100 text-sm w-full border-b-2 border-indigo-400 outline-none bg-transparent pb-0.5 mb-1"
             maxLength={60}
           />
         ) : (
-          <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
+          <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-1 mb-1">
             {board.name}
           </h3>
         )}
 
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-400 dark:text-gray-500">
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
