@@ -228,7 +228,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No-op gracefully if denied
 
 ### D4 — App Icon & Splash Screen Generation
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done — public/icon-source.svg (indigo gradient + paper plane + globe grid); scripts/generate-app-icons.js generates all PWA (192, 512) and iOS sizes (18 variants); Contents.json updated; icons generated  
 **Why**: `icon-192.png` and `icon-512.png` referenced by the PWA manifest don't exist. The iOS Xcode project needs proper icon assets. Without these, the app shows a blank icon.  
 **Files**: `public/`, `ios/App/App/Assets.xcassets/AppIcon.appiconset/`  
 **What to do**:  
