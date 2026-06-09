@@ -225,7 +225,7 @@ AI to cluster saves into boards automatically.
 ## PHASE G — Growth & Virality
 
 ### G1 — Trip Highlights Reel (shareable social card)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Post-trip, users want to share "I visited X places in Y days" — this drives
 organic acquisition when shared to Instagram Stories / WeChat Moments.
 **Files to change**: new `app/trip-recap/[boardId]/page.tsx`, new `lib/generateRecap.ts`

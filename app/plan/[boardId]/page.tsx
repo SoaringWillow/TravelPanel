@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation2, Sparkles } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, markItemVisited } from '@/lib/db';
+import { buildRecapData, RECAP_STORAGE_KEY } from '@/lib/generateRecap';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -221,6 +222,13 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  const handleCreateRecap = useCallback(() => {
+    if (!planIsComplete(plan) || !board) return;
+    const recapData = buildRecapData(board, boardItems, plan);
+    localStorage.setItem(RECAP_STORAGE_KEY(boardId), JSON.stringify(recapData));
+    router.push(`/trip-recap?boardId=${boardId}`);
+  }, [plan, board, boardItems, boardId, router]);
 
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
@@ -559,39 +567,50 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
-                  {/* On-Trip GPS mode toggle */}
-                  <button
-                    onClick={() => {
-                      setTripMode((v) => !v);
-                      if (tripMode) setUserLocation(undefined);
-                      track('trip_mode_toggled', { active: !tripMode });
-                    }}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] ${
-                      tripMode
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'border border-indigo-300 text-indigo-600 hover:bg-indigo-50'
-                    }`}
-                  >
-                    <Navigation2 size={14} />
-                    {tripMode ? 'Live' : 'Go Live'}
-                  </button>
+                <>
+                  <div className="flex gap-2">
+                    {/* On-Trip GPS mode toggle */}
+                    <button
+                      onClick={() => {
+                        setTripMode((v) => !v);
+                        if (tripMode) setUserLocation(undefined);
+                        track('trip_mode_toggled', { active: !tripMode });
+                      }}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] ${
+                        tripMode
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'border border-indigo-300 text-indigo-600 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <Navigation2 size={14} />
+                      {tripMode ? 'Live' : 'Go Live'}
+                    </button>
 
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
+
+                  {/* Recap card */}
                   <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    onClick={handleCreateRecap}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold py-3 rounded-2xl shadow-sm hover:from-indigo-700 hover:to-purple-700 active:scale-[0.98] transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Sparkles size={16} />
+                    Create Trip Recap
                   </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
-                </div>
+                </>
               )}
 
               {/* Saved plan versions */}
