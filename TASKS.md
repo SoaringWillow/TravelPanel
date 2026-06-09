@@ -7,17 +7,15 @@
 
 ---
 
-## ⭐ Recommended Execution Order (revised 2026-05-31)
+## ⭐ Recommended Execution Order (updated 2026-06-09)
 
-The moat is **Substance over Spots**. A1 made the app *extract* substance, but it's
-currently invisible (only a count badge) and the trip planner throws it away. The two
-highest-value tasks are surfacing substance (A11) and threading it into plans (A12) —
-do these before clustering/search polish.
+Phase A + B2/B3/B5 complete. B4 blocked on Supabase keys. Phase C tasks expanded below.
 
-`A11 → A12 → A3 → A7 → A8 → A6 → A9 → A10`
+**Path to a beautiful, fully-functional iOS app:**
 
-(A3 is NOT blocked — it no-ops without a key. Build it now; it just stays dormant
-until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
+`D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → E1 → E2 → E3 → E4 → E5 → F1 → F2 → F3`
+
+Skip D7 (dark mode) if timeline is tight — it's the most work for least conversion impact.
 
 ---
 
@@ -179,19 +177,231 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Native Feel & UI Polish
+
+### D1 — Haptic Feedback
+**Status**: `[ ]` Not started  
+**Why**: Every clip save, plan start, and board creation should feel tactile. Missing haptics make the app feel like a website, not a native app. Haptics are a 0-cost conversion boost.  
+**Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Install `@capacitor/haptics` (`npm i @capacitor/haptics`)
+- Create `lib/haptics.ts` with `light()`, `medium()`, `heavy()`, `error()` — each calls `Haptics.impact()` / `Haptics.notification()` with the right style and no-ops if not in native context
+- `light()` — chip taps, nav taps, board selection
+- `medium()` — clip saved successfully, board created
+- `heavy()` — trip plan generation complete
+- `error()` — enrichment failed after all retries
+- Wire: share page `handleSave` → `medium()` on success; plan view on plan ready → `heavy()`
+
+### D2 — Pull-to-Refresh
+**Status**: `[ ]` Not started  
+**Why**: Standard iOS interaction. Users expect to pull down to see new clips and re-trigger pending enrichment.  
+**Files**: new `lib/usePullToRefresh.ts`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create `lib/usePullToRefresh.ts` — a hook that listens to `touchstart`/`touchmove`/`touchend` on a ref element, calculates pull distance, and calls a callback when pulled ≥ 64px
+- Shows a spinning indicator when pulling (use `@capacitor/haptics` `selectionChanged` for the tick feel)
+- On release: re-loads items from IndexedDB + triggers retry for any `status: 'failed'` items with `retryCount < 3`
+- Wire into inbox page and boards page
+
+### D3 — Swipe to Delete Clips
+**Status**: `[ ]` Not started  
+**Why**: Currently no way to remove a clip. Users who clip by mistake or want to declutter are stuck. Delete is a core CRUD operation.  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/[id]/page.tsx`  
+**What to do**:
+- Add swipe-left gesture on InboxCard (touch/pointer events, no library needed) that reveals a red "Delete" action
+- On confirm-delete: call `deleteItem(id)`, animate card out with height collapse (framer-motion `AnimatePresence`)
+- Undo toast: use a simple fixed-bottom toast with 5 s countdown; on "Undo" re-insert the item with `saveItem`
+- Haptic: `light()` on swipe start, `error()` on delete confirm
+- Track `clip_deleted` in analytics
+
+### D4 — Clip Edit Modal
+**Status**: `[ ]` Not started  
+**Why**: Auto-extracted titles are sometimes wrong, users want to add notes, and reassigning clips to different boards requires re-saving. No edit path exists today.  
+**Files**: new `components/EditClipModal.tsx`, `components/LocationDetailCard.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Create `components/EditClipModal.tsx` — a Drawer (vaul) sheet with fields: Title (input), Notes (textarea, multiline), Board assignment (select from boards list)
+- Open from the "…" overflow menu on `LocationDetailCard` and via a long-press on `InboxCard`
+- Save button calls `saveItem({ ...item, title, notes, boardId })` + `addItemToBoard` if board changed
+- Track `clip_edited`
+
+### D5 — Empty State Illustrations
+**Status**: `[ ]` Not started  
+**Why**: Empty map, empty inbox, and empty boards list all show a blank white screen — looks broken. Welcoming empty states guide new users and make the first-run experience feel polished.  
+**Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create three inline SVG components (`EmptyMap`, `EmptyInbox`, `EmptyBoards`) — simple, single-color travel illustrations (compass, envelope, world map pin)
+- Each empty state has: illustration (80px), headline, 1-line description, one CTA button
+- Map empty: "Your saved places will appear here" + "Share your first clip" button
+- Inbox empty: "Clip travel posts from Instagram, YouTube, and more" + "How to clip" (opens share page directly with example URL)
+- Boards empty: "Organise clips into trip collections" + "Create your first board" (opens create modal)
+
+### D6 — Loading Skeletons
+**Status**: `[ ]` Not started  
+**Why**: IndexedDB loads are fast but not instant. The current blank-then-populated flash looks like a bug. Skeletons show structure while data loads.  
+**Files**: new `components/SkeletonCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Create `components/SkeletonCard.tsx` — a grey shimmer card with animated gradient sweep (`animate-pulse` + custom gradient). Should match InboxCard proportions: thumbnail block (h-40) + two text lines
+- Show 3 `SkeletonCard` components while `isLoading === true` (add `isLoading` state, set false after first `getAllItems()` resolves)
+- Boards page: similar skeleton for `BoardCard` (h-32 + two text lines)
+- Fade out skeletons and fade in real cards (framer-motion opacity transition)
+
+### D7 — Dark Mode
+**Status**: `[ ]` Not started  
+**Why**: iOS respects system appearance. An app that ignores dark mode feels unfinished in 2026. Many users run iOS dark mode full-time.  
+**Files**: `tailwind.config.js`, `app/globals.css`, `app/layout.tsx`, all major components  
+**What to do**:
+- Set `darkMode: 'media'` in `tailwind.config.js`
+- Add `dark:` variants to every `bg-white`, `bg-gray-50`, `text-gray-900`, `border-gray-100` in the major components (NavBar, InboxCard, BoardCard, LocationDetailCard, share page, plan page)
+- Map: detect `prefers-color-scheme: dark`, switch MapLibre style to a dark base style (e.g. `maptiler/streets-v2-dark`)
+- Add a manual override toggle (Light / Dark / System) in `app/settings/page.tsx`, persist in localStorage
+- Test: all 4 pages + share page in dark mode
+
+### D8 — Beautiful Board Cards with Cover Images
+**Status**: `[ ]` Not started  
+**Why**: The boards list is the app's "home base" for planning. Currently text-only emoji tiles. Cover images make it feel like a real travel app.  
+**Files**: `components/BoardCard.tsx`  
+**What to do**:
+- Show `board.coverThumbnail` as a full-bleed background image behind the card (already stored, just not rendered)
+- Dark gradient overlay (`from-black/0 via-black/20 to-black/70`) for text legibility
+- Bottom: emoji + board name (white, shadow) + clip count chip + "X clips"
+- If no cover image: use a gradient background seeded from the board's emoji (deterministic color from hash)
+- Animate card entry with stagger (framer-motion `variants` + `staggerChildren: 0.06`)
+
+---
+
+## PHASE E — Feature Completeness
+
+### E1 — Inline Clip Notes
+**Status**: `[ ]` Not started  
+**Why**: `SavedItem.notes` already exists in the type but is never rendered or editable. Users want to annotate clips ("booked for March", "skip unless kid-friendly", "ask about local guide").  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- Add a "Notes" section below the Wisdom section in `LocationDetailCard`
+- Tap-to-edit: shows a textarea on tap, auto-focus
+- Auto-saves on blur via `saveItem({ ...item, notes })`
+- Placeholder: "Add a personal note…" (light gray, italic)
+- Show notes as plain text when not editing (truncated to 3 lines with "more")
+
+### E2 — Plan Image Export (Social Sharing)
+**Status**: `[ ]` Not started  
+**Why**: When users share their plan as an image, it markets the app organically. Current exports (PDF, ICS) are for planning tools, not social. Image sharing drives top-of-funnel.  
+**Files**: `app/plan/[boardId]/page.tsx`, new `lib/sharePlanImage.ts`  
+**Needs**: `npm i html2canvas`  
+**What to do**:
+- "Share as image" button in the completed plan view (share icon, near the PDF export button)
+- Use `html2canvas` to screenshot the first DayStripCard + overview header
+- Composit a TravelPanel watermark (logo + "Made with TravelPanel") at the bottom
+- Call `navigator.share({ files: [imageFile] })` for native iOS share sheet, fallback to download link
+- Track `plan_shared`
+
+### E3 — Import Backup
+**Status**: `[ ]` Not started  
+**Why**: B5 added export but not import. Data portability requires round-trip. Also useful for device migration.  
+**Files**: `app/settings/page.tsx`, new `lib/importData.ts`  
+**What to do**:
+- File input (`<input type="file" accept=".json">`) in Settings → Data & Backup section
+- Parse the JSON, validate it matches `TravelPanelBackup` shape (check `version === '1.0'`, check `items`/`boards`/`trips` arrays)
+- Merge strategy: skip any item/board/trip whose `id` already exists in the local DB (safe idempotent import)
+- Show import summary: "✓ Imported 42 clips, 5 boards, 3 itineraries (12 already existed)"
+- Track `backup_imported`
+
+### E4 — Board Sorting & Filtering
+**Status**: `[ ]` Not started  
+**Why**: With 10+ boards, users need to find their "Tokyo 2024" board fast. Current sort (creation date, newest first) becomes unhelpful as the collection grows.  
+**Files**: `app/boards/page.tsx`  
+**What to do**:
+- Sort dropdown/segmented control: "Recent" (default, by `updatedAt`), "A–Z", "Most clips", "Date created"
+- Filter chips row: "All" (default), "Has plan", "No plan yet"
+- Persist sort preference in `localStorage` key `boards_sort`
+
+### E5 — Itinerary Route Visible on Map
+**Status**: `[ ]` Not started  
+**Why**: The RouteMapView component exists but the plan view doesn't link back to the main map with the route visible. Seeing the physical journey on the map is the "wow moment" that turns a list into a trip.  
+**Files**: `app/plan/[boardId]/page.tsx`, `app/page.tsx`, `components/RouteMapView.tsx`  
+**What to do**:
+- "View route on map" button in the completed plan view — navigates to `/?boardId=<id>&showRoute=1`
+- In `app/page.tsx`, read `boardId` + `showRoute` from URL search params
+- When `showRoute=1`, load the latest trip for `boardId`, pass day-plan locations to `RouteMapView`
+- Animate camera to fit all route points on mount (use MapLibre `fitBounds`)
+
+---
+
+## PHASE F — Performance & Reliability
+
+### F1 — Enrichment Retry UI
+**Status**: `[ ]` Not started  
+**Why**: Failed enrichments silently sit. Users see a card title but no locations or wisdom, with no indication it failed or that they can retry.  
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Add a subtle "Extraction failed · Tap to retry" state on cards with `enrichmentStatus === 'failed'` and `retryCount >= 3`
+- Tap calls `enrichItem(id, url)` immediately (bypasses the automatic retry queue)
+- Show spinner while retrying, success/fail state after
+- Track `clip_manual_retry`
+
+### F2 — Clip Deduplication
+**Status**: `[ ]` Not started  
+**Why**: Users accidentally share the same URL twice and see duplicate cards with no warning. Duplicates pollute boards and waste AI credits.  
+**Files**: `app/share/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Add `getItemByUrl(url)` function to `lib/db.ts` (scan `items` store for matching `url` field)
+- In `app/share/page.tsx`, before the board picker shows, call `getItemByUrl(rawUrl)`
+- If duplicate found: show "You've already saved this" with the clip's title + board name + a "View it" button and a secondary "Save again anyway" option
+- No duplicate check for blank URLs
+
+### F3 — Background Enrichment Status Bar
+**Status**: `[ ]` Not started  
+**Why**: When the app opens and 5 clips are processing, users have no idea. A subtle top-of-screen bar shows the AI is working and builds trust.  
+**Files**: `app/inbox/page.tsx`, new `components/EnrichmentStatusBar.tsx`  
+**What to do**:
+- Create `components/EnrichmentStatusBar.tsx` — a slim (h-8) animated bar that slides down from under the nav when items are processing
+- Text: "✨ AI is reading 3 clips…" with a progress-style pulse animation
+- Disappears automatically when no items have `enrichmentStatus: 'pending' | 'processing'`
+- Poll every 3 seconds via `useEffect` + `setInterval`
+- No bar when everything is `done` or `failed`
+
+---
+
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: Once the user is on their trip, the app should switch from planning mode to navigation mode — showing nearby saved spots with distance and walking direction.  
+**Files**: new `app/trip/page.tsx`, `components/MapView.tsx`  
+**What to do**:
+- "Start trip" button in the plan view activates On-Trip mode
+- Map shows user's live GPS location (Geolocation API or `@capacitor/geolocation`)
+- Nearby pins from the current board pulse with distance label ("8 min walk")
+- Next activity in the day plan is highlighted with a blue arrow
+- "Mark as visited" button on each pin — checked off with haptic
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: After a trip, users want to review what they did, rediscover which clips matched reality, and easily share a trip recap.  
+**Files**: new `app/recap/[boardId]/page.tsx`  
+**What to do**:
+- Chronological timeline view of all clips in a board, sorted by when items were visited
+- Photo grid of thumbnails
+- "Write a note" prompt per day
+- Export as a travel journal PDF
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Needs**: Supabase (B1) activated  
+**Why**: Friends plan trips together. Sharing a board link is a growth lever — every shared board is a new user acquisition opportunity.  
+**Files**: new `app/boards/[id]/share/page.tsx`, `lib/cloudSync.ts`, Supabase `boards` table  
+**What to do**:
+- "Share board" button generates a public read-only link (`/boards/[id]/share`)
+- Public page shows board clips + map (no edit, no auth required)
+- Share via iOS native share sheet (`navigator.share`)
+- Click-to-clone: "Save to my TravelPanel" button on the public view
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[ ]` Not started  
+**Why**: The North Star is weekly clips per active user. Resurfacing old clips ("You saved 12 Tokyo clips 3 months ago — planning to go?") re-activates dormant users.  
+**Files**: new `app/api/remind/route.ts`, `lib/supabase.ts`, push notification setup  
+**What to do**:
+- Weekly cron (Vercel cron or Supabase edge function): find users with 5+ clips but no trip plan
+- Send a "Reminder: your [City] trip is waiting to be planned" push notification via Supabase Edge + APNs
+- Deep-link to the board planner
 
 ---
 
