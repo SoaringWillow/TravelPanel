@@ -6,6 +6,7 @@ import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import BoardCard from '@/components/BoardCard';
+import SkeletonCard from '@/components/SkeletonCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
@@ -30,13 +31,13 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pb-4 z-10" style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid className="text-indigo-600" size={22} />
-            <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">My Boards</h1>
           </div>
           <button
             type="button"
@@ -55,8 +56,10 @@ export default function BoardsPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">

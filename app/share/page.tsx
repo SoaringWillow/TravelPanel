@@ -1,12 +1,15 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
-import { enrichItem } from '@/lib/enrichItem';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
+import { enrichItemWithResult } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { impact, notify } from '@/lib/haptics';
+import { recordClip } from '@/lib/streak';
+import { isOnline } from '@/lib/network';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -18,8 +21,10 @@ type Stage = 'picking' | 'saving' | 'done';
 
 function SharePageInner() {
   const searchParams    = useSearchParams();
+  const router          = useRouter();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const preselectedBoardId = searchParams.get('boardId') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,12 +34,38 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [enrichmentError, setEnrichmentError] = useState('');
+  const [shareImageBase64, setShareImageBase64] = useState<string>('');
+  const [duplicateItem, setDuplicateItem] = useState<SavedItem | null>(null);
+  const pendingSaveRef = useRef<{ boardId?: string; boardName?: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Grab image thumbnail written to sessionStorage by CapacitorBridge
   useEffect(() => {
-    getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    try {
+      const img = sessionStorage.getItem('pendingShareImage') || '';
+      if (img) {
+        setShareImageBase64(img);
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage not available (e.g. private mode)
+    }
+  }, []);
+
+  // Load boards on mount; auto-save if boardId was passed (e.g. from browser extension)
+  useEffect(() => {
+    getAllBoards().then((b) => {
+      setBoards(b);
+      if (preselectedBoardId && rawUrl) {
+        const board = b.find((brd) => brd.id === preselectedBoardId);
+        if (board) {
+          handleSave(board.id, `${board.emoji} ${board.name}`);
+        }
+      }
+    }).catch(() => setBoards([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-dismiss when done
@@ -60,7 +91,40 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDuplicateCheck = false) {
+    void impact('medium');
+
+    // Offline check — save clip locally, skip enrichment attempt
+    if (!isOnline()) {
+      setStage('saving');
+      const itemId = crypto.randomUUID();
+      const item: SavedItem = {
+        id: itemId, url: rawUrl, title: sharedTitle, platform,
+        description: '', thumbnail: undefined, locations: [],
+        activities: [], tags: [], substance: [], savedAt: Date.now(),
+        enrichmentStatus: 'pending', retryCount: 0, boardId: selectedBoardId,
+      };
+      await saveItem(item);
+      if (selectedBoardId) await addItemToBoard(selectedBoardId, itemId);
+      const { newStreak, hitMilestone } = recordClip();
+      window.dispatchEvent(new CustomEvent('streak:updated', { detail: { streak: newStreak, milestone: hitMilestone !== null } }));
+      setEnrichmentError('📡 Offline — clip saved! Will enrich when connection returns.');
+      void notify('success');
+      setSavedToName(boardDisplayName ?? 'Inbox');
+      setStage('done');
+      return;
+    }
+
+    // Duplicate URL check
+    if (!skipDuplicateCheck && rawUrl) {
+      const existing = await getItemByUrl(rawUrl);
+      if (existing) {
+        setDuplicateItem(existing);
+        pendingSaveRef.current = { boardId: selectedBoardId, boardName: boardDisplayName };
+        return;
+      }
+    }
+
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -83,16 +147,18 @@ function SharePageInner() {
 
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    const { newStreak, hitMilestone } = recordClip();
+    window.dispatchEvent(new CustomEvent('streak:updated', { detail: { streak: newStreak, milestone: hitMilestone !== null } }));
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image when available (e.g. Xiaohongshu)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
-      .then(async (success) => {
-        if (success) {
+    enrichItemWithResult(itemId, rawUrl, shareImageBase64 || undefined)
+      .then(async (result) => {
+        if (result.ok) {
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
@@ -108,10 +174,13 @@ function SharePageInner() {
               substance: updated.substance,
             } as ImportResult);
           }
+        } else if (!result.ok && result.reason === 'rate_limited') {
+          setEnrichmentError(`Enrichment paused (10/hour limit). Clip saved! Retries in ${result.resetsInLabel}.`);
         }
         setEnrichmentLoading(false);
       });
 
+    void notify('success');
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
   }
@@ -141,6 +210,46 @@ function SharePageInner() {
 
   // ── Stage: picking ────────────────────────────────────────────────────────
 
+  if (duplicateItem) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col justify-center p-6 safe-top safe-bottom gap-6">
+        <div className="text-center space-y-2">
+          <div className="text-4xl mb-3">🔁</div>
+          <h2 className="text-xl font-bold text-gray-800">Already saved</h2>
+          <p className="text-sm text-gray-500 max-w-xs mx-auto">
+            This URL is already in your library as <span className="font-medium text-gray-700">"{duplicateItem.title || 'Untitled'}"</span>
+          </p>
+        </div>
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              router.push(`/?itemId=${duplicateItem.id}`);
+            }}
+            className="w-full bg-indigo-600 text-white font-semibold text-sm py-3.5 rounded-2xl"
+          >
+            View existing clip
+          </button>
+          <button
+            onClick={() => {
+              const p = pendingSaveRef.current;
+              setDuplicateItem(null);
+              void handleSave(p?.boardId, p?.boardName, true);
+            }}
+            className="w-full border border-gray-200 text-gray-700 font-medium text-sm py-3.5 rounded-2xl"
+          >
+            Save again anyway
+          </button>
+          <button
+            onClick={() => window.history.back()}
+            className="w-full text-gray-400 text-sm py-2"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (stage === 'picking' || stage === 'saving') {
     return (
       <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
@@ -164,6 +273,18 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Shared image thumbnail (e.g. from Xiaohongshu) */}
+          {shareImageBase64 && (
+            <div className="mt-3 rounded-xl overflow-hidden border border-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`data:image/jpeg;base64,${shareImageBase64}`}
+                alt="Shared post preview"
+                className="w-full max-h-48 object-cover"
+              />
+            </div>
           )}
         </div>
 
@@ -293,7 +414,11 @@ function SharePageInner() {
           transition={{ delay: 0.35 }}
           className="w-full"
         >
-          {enrichmentLoading && !enrichedData ? (
+          {enrichmentError ? (
+            <div className="bg-amber-50 rounded-2xl px-4 py-3">
+              <p className="text-sm text-amber-700">⏳ {enrichmentError}</p>
+            </div>
+          ) : enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
               <span className="text-sm animate-pulse">🔍 Finding locations…</span>
             </div>

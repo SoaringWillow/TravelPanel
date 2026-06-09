@@ -3,6 +3,8 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { getRelevantFestivals, formatFestivalContext } from '@/lib/festivalData';
+import { getRelevantWeatherWindows, formatWeatherContext } from '@/lib/weatherWindows';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -49,9 +51,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, startDateISO: string | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, startDate: startDateISO } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -117,6 +119,36 @@ export async function POST(req: NextRequest) {
 
         step('routing', 'Building optimised route…');
 
+        // ── Festival & events context ─────────────────────────────────────
+        const startDate = startDateISO ? new Date(startDateISO) : new Date();
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + days);
+
+        const relevantFestivals = getRelevantFestivals(resolvedLocs.locations, startDate, endDate);
+        const festivalContext = formatFestivalContext(relevantFestivals);
+
+        if (relevantFestivals.length > 0) {
+          step('found', `Detected ${relevantFestivals.length} event${relevantFestivals.length !== 1 ? 's' : ''} during your trip dates`);
+        }
+
+        // ── Weather suitability context ───────────────────────────────────
+        const travelMonths: number[] = [];
+        for (let d = new Date(startDate); d <= endDate; d.setMonth(d.getMonth() + 1)) {
+          if (!travelMonths.includes(d.getMonth())) travelMonths.push(d.getMonth());
+        }
+        const locationNames = resolvedLocs.locations.map((l) => l.name);
+        const relevantWeather = getRelevantWeatherWindows(locationNames, travelMonths);
+        const weatherContext = formatWeatherContext(relevantWeather);
+
+        if (relevantWeather.length > 0) {
+          const avoidCount = relevantWeather.filter((w) => w.isAvoid).length;
+          if (avoidCount > 0) {
+            step('found', `Weather advisory: ${avoidCount} destination${avoidCount !== 1 ? 's' : ''} have weather concerns for these dates`);
+          } else {
+            step('found', `Weather check: good timing for ${relevantWeather.length} destination${relevantWeather.length !== 1 ? 's' : ''}`);
+          }
+        }
+
         // ── Step 3: Stream full itinerary ────────────────────────────────
         // Include substance (the wisdom layer) so the plan can cite the user's
         // own clips inline — this is the sourced-itinerary moat.
@@ -141,7 +173,7 @@ export async function POST(req: NextRequest) {
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
-User preferences: ${preferences || 'None specified'}
+User preferences: ${preferences || 'None specified'}${festivalContext}${weatherContext}
 
 Rules:
 - 2-4 activities per day with realistic timing

@@ -6,12 +6,18 @@ import { getAllItems, saveItem, deleteItem, getItemById } from '@/lib/db';
 export function useSavedItems() {
   const [items, setItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [storageError, setStorageError] = useState(false);
 
   useEffect(() => {
-    getAllItems().then((fetchedItems) => {
-      setItems(fetchedItems.sort((a, b) => b.savedAt - a.savedAt));
-      setLoading(false);
-    });
+    getAllItems()
+      .then((fetchedItems) => {
+        setItems(fetchedItems.sort((a, b) => b.savedAt - a.savedAt));
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+        setStorageError(true);
+      });
   }, []);
 
   const addItem = useCallback(async (item: SavedItem) => {
@@ -33,9 +39,9 @@ export function useSavedItems() {
 
   // Re-read all items from DB — used after bulk operations
   const refresh = useCallback(async () => {
-    const fetchedItems = await getAllItems();
+    const fetchedItems = await getAllItems().catch(() => [] as SavedItem[]);
     setItems(fetchedItems.sort((a, b) => b.savedAt - a.savedAt));
   }, []);
 
-  return { items, loading, addItem, removeItem, refreshItem, refresh };
+  return { items, loading, storageError, addItem, removeItem, refreshItem, refresh };
 }

@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, Share2, CheckCircle2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { buildShareUrl, estimatePayloadKB } from '@/lib/shareBoard';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -23,6 +24,7 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -88,7 +90,7 @@ export default function BoardDetailPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white shadow-sm px-4 pb-4 z-10" style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -110,6 +112,40 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {/* Share board */}
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              title={estimatePayloadKB(board, boardItems) > 500 ? 'Board is too large to share via link' : 'Share board link'}
+              disabled={estimatePayloadKB(board, boardItems) > 500}
+              onClick={async () => {
+                const url = buildShareUrl(board, boardItems);
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ title: `${board.emoji} ${board.name}`, url });
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                    setShareState('copied');
+                    setTimeout(() => setShareState('idle'), 2500);
+                  }
+                } catch {
+                  // User cancelled share or clipboard blocked — no-op
+                }
+              }}
+              className={`p-2 rounded-xl transition-colors flex-shrink-0 ${
+                shareState === 'copied'
+                  ? 'bg-green-100 text-green-600'
+                  : 'text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'
+              } disabled:opacity-30`}
+              aria-label="Share board"
+            >
+              {shareState === 'copied'
+                ? <CheckCircle2 size={18} />
+                : <Share2 size={18} />
+              }
+            </button>
+          )}
         </div>
       </div>
 

@@ -3,6 +3,14 @@ import './globals.css';
 import { CapacitorBridge } from '@/components/CapacitorBridge';
 import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import OfflineBanner from '@/components/OfflineBanner';
+import { ToastProvider } from '@/components/Toast';
+import { OnboardingGuard } from '@/components/OnboardingGuard';
+import { SwipeBackGesture } from '@/components/SwipeBackGesture';
+import { PageTransition } from '@/components/PageTransition';
+import AnalyticsConsentBanner from '@/components/AnalyticsConsentBanner';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -15,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6366f1" />
@@ -24,12 +32,22 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body>
-        <CapacitorBridge />
-        <AnalyticsProvider />
-        <ResourceBanner />
-        <div className="min-h-screen">
-          {children}
-        </div>
+        <ThemeProvider>
+          <ToastProvider>
+            <ErrorBoundary>
+              <OnboardingGuard />
+              <SwipeBackGesture />
+              <OfflineBanner />
+              <CapacitorBridge />
+              <AnalyticsProvider />
+              <ResourceBanner />
+              <AnalyticsConsentBanner />
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </ErrorBoundary>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

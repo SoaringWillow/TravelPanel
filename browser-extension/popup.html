@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      min-height: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fff;
+      color: #111827;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #6366f1;
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-logo {
+      font-size: 18px;
+      line-height: 1;
+    }
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.2px;
+    }
+    .header-sub {
+      font-size: 11px;
+      color: #c7d2fe;
+      margin-left: auto;
+    }
+
+    /* ── Body ── */
+    .body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Page preview card ── */
+    .page-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .page-platform {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      color: #fff;
+      background: #6366f1;
+      border-radius: 99px;
+      padding: 2px 8px;
+      margin-bottom: 5px;
+    }
+    .page-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 3px;
+    }
+    .page-url {
+      font-size: 11px;
+      color: #9ca3af;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Board selector ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .board-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .board-btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 99px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .board-btn:active { transform: scale(0.96); }
+    .board-btn.inbox {
+      background: #eef2ff;
+      color: #4338ca;
+    }
+    .board-btn.inbox:hover { background: #e0e7ff; }
+    .board-btn.recent {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .board-btn.recent:hover { background: #e5e7eb; }
+
+    /* ── Primary save button ── */
+    .save-btn {
+      width: 100%;
+      padding: 11px;
+      background: #6366f1;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .save-btn:hover { background: #4f46e5; }
+    .save-btn:active { transform: scale(0.98); }
+    .save-btn:disabled { opacity: 0.5; cursor: default; }
+
+    /* ── States ── */
+    #state-loading,
+    #state-no-url,
+    #state-success,
+    #state-no-config {
+      display: none;
+    }
+    #state-loading.visible,
+    #state-no-url.visible,
+    #state-success.visible,
+    #state-no-config.visible {
+      display: flex;
+    }
+
+    .loading-state {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      gap: 8px;
+    }
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #e0e7ff;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .success-state {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 16px;
+      gap: 6px;
+      text-align: center;
+    }
+    .success-icon { font-size: 40px; margin-bottom: 4px; }
+    .success-title { font-size: 15px; font-weight: 700; color: #111827; }
+    .success-sub { font-size: 12px; color: #6b7280; }
+
+    .warning-state {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 16px;
+      gap: 8px;
+      text-align: center;
+    }
+    .warning-icon { font-size: 32px; }
+    .warning-title { font-size: 13px; font-weight: 600; color: #374151; }
+    .warning-sub { font-size: 12px; color: #9ca3af; line-height: 1.4; }
+    .setup-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: #6366f1;
+      text-decoration: none;
+      padding: 8px 16px;
+      background: #eef2ff;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+    }
+    .setup-link:hover { background: #e0e7ff; }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 8px 16px 10px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .footer-link {
+      font-size: 11px;
+      color: #9ca3af;
+      text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    .footer-link:hover { color: #6366f1; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <span class="header-logo">✈️</span>
+    <span class="header-title">TravelPanel</span>
+    <span class="header-sub">Clipper</span>
+  </div>
+
+  <!-- Loading state -->
+  <div id="state-loading" class="loading-state">
+    <div class="spinner"></div>
+    <span style="font-size:13px;color:#9ca3af">Loading…</span>
+  </div>
+
+  <!-- No URL state (non-web page) -->
+  <div id="state-no-url" class="warning-state">
+    <div class="warning-icon">🌐</div>
+    <div class="warning-title">No page to clip</div>
+    <div class="warning-sub">Navigate to a travel website, blog, or social post to save it to TravelPanel.</div>
+  </div>
+
+  <!-- Not configured state -->
+  <div id="state-no-config" class="warning-state">
+    <div class="warning-icon">⚙️</div>
+    <div class="warning-title">Setup required</div>
+    <div class="warning-sub">Enter your TravelPanel URL in settings to start clipping.</div>
+    <button class="setup-link" id="btn-open-options">Open Settings →</button>
+  </div>
+
+  <!-- Success state -->
+  <div id="state-success" class="success-state">
+    <div class="success-icon">✅</div>
+    <div class="success-title" id="success-title">Saved to Inbox!</div>
+    <div class="success-sub" id="success-sub">Opening TravelPanel…</div>
+  </div>
+
+  <!-- Main UI -->
+  <div id="state-main">
+    <div class="body">
+
+      <!-- Page preview -->
+      <div class="page-card">
+        <div class="page-platform" id="platform-badge">Web</div>
+        <div class="page-title" id="page-title">Loading…</div>
+        <div class="page-url" id="page-url"></div>
+      </div>
+
+      <!-- Recent boards -->
+      <div id="boards-section" style="display:none">
+        <div class="section-label" style="margin-bottom:7px">Save to</div>
+        <div class="board-row" id="board-row">
+          <button class="board-btn inbox" data-board-id="" data-board-name="Inbox">📥 Inbox</button>
+        </div>
+      </div>
+
+      <!-- Save button -->
+      <button class="save-btn" id="btn-save">
+        <span>📌</span> Save to TravelPanel
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button class="footer-link" id="btn-settings">⚙ Settings</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

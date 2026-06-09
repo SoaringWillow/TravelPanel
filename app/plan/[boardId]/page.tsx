@@ -3,16 +3,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation2, Sparkles, Pencil, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
-import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, markItemVisited } from '@/lib/db';
+import { buildRecapData, RECAP_STORAGE_KEY } from '@/lib/generateRecap';
+import { isOnline } from '@/lib/network';
+import { incrementPlansGenerated, maybeRequestReview } from '@/lib/reviewPrompt';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { impact, notify } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
 import PlanVersionBar from '@/components/PlanVersionBar';
+import TripNavigator, { TripStop } from '@/components/TripNavigator';
+import { AnimatePresence } from 'framer-motion';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -30,6 +36,11 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
   const [steps, setSteps] = useState<AgentStep[]>([]);
@@ -38,6 +49,12 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [tripMode, setTripMode] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | undefined>();
+  const [festivalWarnings, setFestivalWarnings] = useState<string[]>([]);
+  const [weatherWarnings, setWeatherWarnings] = useState<string[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedPlan, setEditedPlan] = useState<TripPlan | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -64,6 +81,18 @@ export default function PlanPage() {
   const itemsWithLocations = boardItems.filter((item) => item.locations.length > 0);
   const hasLocations = itemsWithLocations.length > 0;
 
+  // All real GPS stops for the trip navigator — one entry per location per clip
+  const tripStops: TripStop[] = itemsWithLocations.flatMap((item) =>
+    item.locations.map((loc) => ({
+      name: loc.name,
+      lat: loc.lat,
+      lng: loc.lng,
+      itemTitle: item.title,
+      itemId: item.id,
+      tags: item.tags,
+    }))
+  );
+
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
     const limit = checkPlanLimit();
@@ -73,13 +102,22 @@ export default function PlanPage() {
         `Unlimited plans coming in Pro — stay tuned!`
       );
       track('plan_limit_hit', { boardId });
+      void notify('warning');
       return;
     }
 
+    if (!isOnline()) {
+      setPlanLimitError('📡 No connection — connect to generate a plan.');
+      return;
+    }
+
+    void impact('medium');
     setStage('generating');
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    setFestivalWarnings([]);
+    setWeatherWarnings([]);
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
@@ -89,6 +127,7 @@ export default function PlanPage() {
       body: JSON.stringify({
         items: boardItems,
         days,
+        startDate,
         preferences: [
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
@@ -125,6 +164,19 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') {
+                void notify('success');
+                incrementPlansGenerated();
+                void maybeRequestReview();
+              }
+            }
+            // Capture festival warning steps
+            if (msg.step.type === 'found' && msg.step.message.includes('event')) {
+              setFestivalWarnings((prev) => [...prev, msg.step.message]);
+            }
+            // Capture weather advisory steps
+            if (msg.step.type === 'found' && msg.step.message.includes('Weather')) {
+              setWeatherWarnings((prev) => [...prev, msg.step.message]);
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -184,6 +236,64 @@ export default function PlanPage() {
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 
+  const handleCreateRecap = useCallback(() => {
+    if (!planIsComplete(plan) || !board) return;
+    const recapData = buildRecapData(board, boardItems, plan);
+    localStorage.setItem(RECAP_STORAGE_KEY(boardId), JSON.stringify(recapData));
+    router.push(`/trip-recap?boardId=${boardId}`);
+  }, [plan, board, boardItems, boardId, router]);
+
+  // ── Plan editing helpers ──────────────────────────────────────────────────
+
+  const EDIT_KEY = `plan_edits_${boardId}`;
+
+  function getDisplayPlan(): TripPlan | null {
+    if (!planIsComplete(plan)) return null;
+    return editedPlan ?? plan;
+  }
+
+  function startEdit() {
+    if (!planIsComplete(plan)) return;
+    const saved = localStorage.getItem(EDIT_KEY);
+    setEditedPlan(saved ? (JSON.parse(saved) as TripPlan) : JSON.parse(JSON.stringify(plan)));
+    setIsEditMode(true);
+  }
+
+  function saveEdit(updated: TripPlan) {
+    setEditedPlan(updated);
+    localStorage.setItem(EDIT_KEY, JSON.stringify(updated));
+  }
+
+  function resetEdit() {
+    if (!planIsComplete(plan)) return;
+    setEditedPlan(JSON.parse(JSON.stringify(plan)));
+    localStorage.removeItem(EDIT_KEY);
+  }
+
+  function moveDay(fromIdx: number, toIdx: number) {
+    const base = getDisplayPlan();
+    if (!base) return;
+    const days = [...base.days];
+    const [moved] = days.splice(fromIdx, 1);
+    days.splice(toIdx, 0, moved);
+    const renumbered = days.map((d, i) => ({ ...d, day: i + 1 }));
+    saveEdit({ ...base, days: renumbered });
+    setActiveDayIndex(toIdx);
+  }
+
+  function moveStop(dayIdx: number, fromStop: number, toStop: number) {
+    const base = getDisplayPlan();
+    if (!base) return;
+    const days = base.days.map((d, i) => {
+      if (i !== dayIdx) return d;
+      const acts = [...d.activities];
+      const [moved] = acts.splice(fromStop, 1);
+      acts.splice(toStop, 0, moved);
+      return { ...d, activities: acts };
+    });
+    saveEdit({ ...base, days });
+  }
+
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
     if (!trip.plan) return;
@@ -233,7 +343,8 @@ export default function PlanPage() {
     { label: 'Interests', chips: ['📸 Photography', '🏛 Culture', '🌿 Nature', '🛍 Shopping', '🎨 Art', '🌃 Nightlife', '🏖 Beach'] },
   ];
 
-  const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
+  const displayPlan = getDisplayPlan();
+  const activeDayPlan = displayPlan?.days?.[activeDayIndex] ?? null;
 
   if (loadingBoard) {
     return (
@@ -265,7 +376,7 @@ export default function PlanPage() {
         style={{ height: stage === 'idle' ? '45vh' : '45vh' }}
       >
         {stage === 'idle' ? (
-          <MapView items={boardItems} onPinClick={() => {}} />
+          <MapView items={boardItems} onPinClick={() => {}} userLocation={userLocation} />
         ) : (
           <RouteMapView
             items={boardItems}
@@ -273,6 +384,21 @@ export default function PlanPage() {
             activeDayIndex={activeDayIndex}
           />
         )}
+
+        {/* On-Trip GPS Navigator overlay */}
+        <AnimatePresence>
+          {tripMode && (
+            <TripNavigator
+              stops={tripStops}
+              onLocationChange={(lat, lng) => setUserLocation({ lat, lng })}
+              onMarkVisited={(itemId) => {
+                markItemVisited(itemId).catch(() => {});
+                track('stop_marked_visited', { boardId });
+              }}
+              onClose={() => { setTripMode(false); setUserLocation(undefined); }}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Bottom scrollable panel */}
@@ -296,6 +422,20 @@ export default function PlanPage() {
                 <span className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
                   {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 </span>
+              </div>
+
+              {/* Start date */}
+              <div className="flex items-center justify-between gap-4">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5 flex-shrink-0">
+                  <Calendar size={15} className="text-indigo-500" />
+                  Start date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
               </div>
 
               {/* Days slider */}
@@ -436,6 +576,38 @@ export default function PlanPage() {
                 <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
               )}
 
+              {/* Festival callouts */}
+              {festivalWarnings.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 space-y-1">
+                  <p className="text-xs font-bold text-amber-700 flex items-center gap-1">
+                    🎉 Events during your trip
+                  </p>
+                  {festivalWarnings.map((w, i) => (
+                    <p key={i} className="text-xs text-amber-700">{w}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Weather callouts */}
+              {weatherWarnings.length > 0 && (
+                <div className={`rounded-2xl p-3 space-y-1 border ${
+                  weatherWarnings.some((w) => w.includes('concern'))
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'bg-sky-50 border-sky-200'
+                }`}>
+                  <p className={`text-xs font-bold flex items-center gap-1 ${
+                    weatherWarnings.some((w) => w.includes('concern')) ? 'text-blue-700' : 'text-sky-700'
+                  }`}>
+                    {weatherWarnings.some((w) => w.includes('concern')) ? '⛈' : '🌤'} Weather suitability
+                  </p>
+                  {weatherWarnings.map((w, i) => (
+                    <p key={i} className={`text-xs ${
+                      weatherWarnings.some((w) => w.includes('concern')) ? 'text-blue-700' : 'text-sky-700'
+                    }`}>{w}</p>
+                  ))}
+                </div>
+              )}
+
               {/* Summary chips */}
               <div className="flex flex-wrap gap-2">
                 {plan.days && (
@@ -460,22 +632,79 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
+                <>
+                  <div className="flex gap-2">
+                    {/* On-Trip GPS mode toggle */}
+                    <button
+                      onClick={() => {
+                        setTripMode((v) => !v);
+                        if (tripMode) setUserLocation(undefined);
+                        track('trip_mode_toggled', { active: !tripMode });
+                      }}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] ${
+                        tripMode
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'border border-indigo-300 text-indigo-600 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <Navigation2 size={14} />
+                      {tripMode ? 'Live' : 'Go Live'}
+                    </button>
+
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Add to Calendar
+                    </button>
+                  </div>
+
+                  {/* Recap card */}
                   <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    onClick={handleCreateRecap}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold py-3 rounded-2xl shadow-sm hover:from-indigo-700 hover:to-purple-700 active:scale-[0.98] transition-all"
                   >
-                    <Download size={14} />
-                    Export PDF
+                    <Sparkles size={16} />
+                    Create Trip Recap
                   </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
-                </div>
+
+                  {/* Edit mode toggle */}
+                  {!isEditMode ? (
+                    <button
+                      onClick={startEdit}
+                      aria-label="Edit itinerary"
+                      className="w-full flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium py-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
+                    >
+                      <Pencil size={14} />
+                      Edit itinerary
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setIsEditMode(false); }}
+                        className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-2xl active:scale-[0.98] transition-all"
+                      >
+                        <Check size={14} />
+                        Done
+                      </button>
+                      <button
+                        onClick={() => { resetEdit(); setIsEditMode(false); }}
+                        className="px-4 flex items-center justify-center gap-1 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium py-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
+                      >
+                        <RotateCcw size={13} />
+                        Reset
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Saved plan versions */}
@@ -489,17 +718,40 @@ export default function PlanPage() {
               />
 
               {/* Day strip */}
-              {plan.days && plan.days.length > 0 && (
+              {displayPlan?.days && displayPlan.days.length > 0 && (
                 <div className="overflow-x-auto pb-2 -mx-4 px-4">
                   <div className="flex gap-3" style={{ width: 'max-content' }}>
-                    {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
+                    {displayPlan.days.map((day, idx) => (
+                      <div key={`${day.day}-${idx}`} className="relative flex flex-col items-center gap-1">
+                        {isEditMode && (
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              aria-label={`Move day ${idx + 1} earlier`}
+                              disabled={idx === 0}
+                              onClick={() => moveDay(idx, idx - 1)}
+                              className="w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 disabled:opacity-30"
+                            >
+                              <ChevronUp size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Move day ${idx + 1} later`}
+                              disabled={idx === displayPlan.days.length - 1}
+                              onClick={() => moveDay(idx, idx + 1)}
+                              className="w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 disabled:opacity-30"
+                            >
+                              <ChevronDown size={12} />
+                            </button>
+                          </div>
+                        )}
+                        <DayStripCard
+                          day={day}
+                          index={idx}
+                          isActive={activeDayIndex === idx}
+                          onSelect={() => setActiveDayIndex(idx)}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -515,10 +767,33 @@ export default function PlanPage() {
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className="bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 space-y-1"
                     >
                       <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        {/* Reorder arrows in edit mode */}
+                        {isEditMode && (
+                          <div className="flex flex-col gap-0.5 flex-shrink-0 mt-0.5">
+                            <button
+                              type="button"
+                              aria-label="Move stop up"
+                              disabled={aIdx === 0}
+                              onClick={() => moveStop(activeDayIndex, aIdx, aIdx - 1)}
+                              className="w-5 h-5 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 disabled:opacity-30"
+                            >
+                              <ChevronUp size={11} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Move stop down"
+                              disabled={aIdx === activeDayPlan.activities.length - 1}
+                              onClick={() => moveStop(activeDayIndex, aIdx, aIdx + 1)}
+                              className="w-5 h-5 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 disabled:opacity-30"
+                            >
+                              <ChevronDown size={11} />
+                            </button>
+                          </div>
+                        )}
+                        <span className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.time}
                         </span>
                         <div className="flex-1 min-w-0">
@@ -579,6 +854,14 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Timeline link */}
+              <button
+                onClick={() => router.push('/timeline')}
+                className="flex items-center justify-center gap-2 w-full bg-indigo-50 text-indigo-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+              >
+                🗺 View Trip Timeline
+              </button>
 
               {/* Start Over */}
               <button

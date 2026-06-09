@@ -85,27 +85,43 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let mimeType = 'image/jpeg';
+
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url ?? '';
+    imageBase64 = body.imageBase64 || undefined;
+    if (body.mimeType) mimeType = body.mimeType;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  // Require at least a URL or an image
+  if ((!url || typeof url !== 'string') && !imageBase64) {
+    return NextResponse.json({ error: 'url or imageBase64 required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const platform = url ? detectPlatform(url) : 'xiaohongshu';
+  // Fetch page text when a URL is available; for image-only shares (Xiaohongshu
+  // where anti-scraping returns nothing) we skip the fetch entirely.
+  const page = url ? await fetchPageData(url) : null;
+
+  const textContext = imageBase64
+    ? `The user shared an image from their device (typical for Xiaohongshu / WeChat posts that block URL scraping).
+The image IS the travel post — read text, locations, and advice directly from it.
+${url ? `Post URL (for reference only, page content may be blocked): ${url}` : '(No URL — image-only share)'}
+${page?.title ? `Page title hint: ${page.title}` : ''}`
+    : `URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}`;
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${textContext}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -133,7 +149,23 @@ Never return an empty substance array for a real travel post.`;
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      ...(imageBase64
+        ? {
+            messages: [
+              {
+                role: 'user' as const,
+                content: [
+                  {
+                    type: 'image' as const,
+                    image: imageBase64,
+                    mediaType: mimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+                  },
+                  { type: 'text' as const, text: prompt },
+                ],
+              },
+            ],
+          }
+        : { prompt }),
     });
     claudeResult = object;
   } catch {

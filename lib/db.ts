@@ -76,6 +76,12 @@ export async function getItemById(id: string): Promise<SavedItem | undefined> {
   return db.get('items', id);
 }
 
+export async function getItemByUrl(url: string): Promise<SavedItem | undefined> {
+  const db = await getDB();
+  const all = await db.getAll('items');
+  return all.find((i) => i.url === url);
+}
+
 export async function saveItem(item: SavedItem): Promise<void> {
   const db = await getDB();
   await db.put('items', item);
@@ -84,6 +90,19 @@ export async function saveItem(item: SavedItem): Promise<void> {
 export async function deleteItem(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('items', id);
+}
+
+export async function markItemVisited(id: string): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (item) {
+    await db.put('items', { ...item, visitedAt: Date.now() });
+  }
+}
+
+export async function getVisitedItems(): Promise<SavedItem[]> {
+  const all = await getAllItems();
+  return all.filter((i) => i.visitedAt != null).sort((a, b) => (a.visitedAt ?? 0) - (b.visitedAt ?? 0));
 }
 
 export async function getItemsByPlatform(platform: string): Promise<SavedItem[]> {
