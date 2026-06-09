@@ -105,3 +105,34 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-09 14:40 | 234b0d3 | feat(C3): inline board rename in BoardCard
 2026-06-09 14:42 | c356867 | feat(C4): iOS safe areas, haptics, pull-to-refresh
 2026-06-09 14:45 | a1f85ca | feat(C6): virtual 2-column grid in inbox for scroll performance
+2026-06-09 14:51 | 52c1924 | feat(C7): add full dark mode with ThemeProvider and system preference
+2026-06-09 14:52 | b3a5414 | feat(C8): offline clip queue with auto-retry on reconnect
+2026-06-09 14:55 | 457bcf7 | feat(D3): batch import — paste multiple URLs in inbox bulk import sheet
+2026-06-09 14:57 | 4b29809 | feat(D5): GPS nearby mode — find and navigate to saved clips on-trip
+2026-06-09 14:59 | 0e469ef | feat(E1,E2): post-trip timeline view + proximity resurfacing toast
+2026-06-09 15:01 | 75bdd4a | feat(E3): AI similar places suggestions based on saved clip taste profile
+2026-06-09 15:02 | b7eb4df | chore: add Phase F iOS polish tasks to TASKS.md
+2026-06-09 15:03 | a7b14b5 | feat(F1): PWA icons and iOS apple-touch-icon metadata
+2026-06-09 15:04 | 362e8e2 | feat(F2): full emoji picker for board creation
+2026-06-09 15:05 | f5a62f5 | feat(F3): swipe-to-delete gesture on inbox cards (iOS-native UX)
+2026-06-09 15:07 | 460d12f | feat(F4): board detail sort options (newest/oldest/most pins/A-Z)
+2026-06-09 15:08 | 7e110fd | feat(F5): share plan button with Web Share API + clipboard fallback
+2026-06-09 15:09 | e6a5a6e | feat(F6): iOS build polish — GPS permissions, splash config, release docs
+2026-06-09 15:10 | 0059e48 | fix: remove unsupported minVersion from capacitor iOS config
+2026-06-09 15:10 | 8003389 | chore: add Phase G intelligence & delight tasks to TASKS.md
+2026-06-09 15:12 | fa1fdd3 | feat(G1,G6): smart title cleanup + expanded haptic feedback
+2026-06-09 15:13 | 9a184f4 | feat(G5): map city search with Nominatim geocoding (jump to any city)
+2026-06-09 15:14 | 5f59d87 | feat(G4): inspiration digest page — resurface forgotten saved clips
+2026-06-09 15:20 | 1b97e5a | feat(map): deduplicate pins within 50m with multi-clip count badge and popup
+2026-06-09 15:22 | cb95110 | feat(ios): save 200x200 thumbnail from Share Extension as clip cover photo
+2026-06-09 15:25 | ccdd452 | feat(boards): read-only board preview page + share button
+2026-06-09 15:28 | 3aaedf3 | feat(phase-h): Phase H task list + H1 rate limit user feedback in share page
+2026-06-09 15:29 | 56296e6 | feat(H2): React error boundary for crash recovery
+2026-06-09 15:30 | 5179796 | feat(H4): board cover photo derived from most recent clip thumbnail
+2026-06-09 15:31 | 5e6f07b | feat(H5): quick note textarea in share/import flow
+2026-06-09 15:32 | 0752b4b | feat(H6): inline mini-map in clip detail card
+2026-06-09 15:33 | 94752ba | feat(H7): travel month context in trip planner
+2026-06-09 15:34 | 945d1dd | feat(H8): accessibility improvements for VoiceOver and screen readers
+2026-06-09 15:35 | afdbc50 | feat(H10): comprehensive App Store submission checklist
+2026-06-09 15:37 | dcaf2a0 | feat(H9): inbox multi-select for batch move and delete
+2026-06-09 15:38 | 8433ae9 | feat(H3): in-app review prompt after 5th clip saved
