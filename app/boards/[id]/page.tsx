@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Rocket, MapPin, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import LongPressDeleteCard from '@/components/LongPressDeleteCard';
+import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import { buildShareUrl } from '@/lib/shareBoard';
 
@@ -22,10 +24,11 @@ export default function BoardDetailPage() {
   const router = useRouter();
 
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
-  const { items, loading: itemsLoading, removeItem } = useSavedItems();
+  const { items, loading: itemsLoading, removeItem, refreshItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
+  const [detailItem, setDetailItem] = useState<SavedItem | null>(null);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -215,6 +218,7 @@ export default function BoardDetailPage() {
                     item={item}
                     onDelete={handleDelete}
                     onViewOnMap={handleViewOnMap}
+                    onTap={item.enrichmentStatus === 'done' ? setDetailItem : undefined}
                   />
                 </LongPressDeleteCard>
               ))}
@@ -222,6 +226,20 @@ export default function BoardDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Clip detail sheet */}
+      <AnimatePresence>
+        {detailItem && (
+          <LocationDetailCard
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
+            onUpdated={(updated) => {
+              setDetailItem(updated);
+              refreshItem(updated.id);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <NavBar active="boards" />
     </div>

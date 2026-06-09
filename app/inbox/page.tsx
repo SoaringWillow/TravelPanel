@@ -8,7 +8,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
@@ -19,6 +19,7 @@ import LongPressDeleteCard from '@/components/LongPressDeleteCard';
 import { PullRefreshIndicator } from '@/components/PullRefreshIndicator';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import LocationDetailCard from '@/components/LocationDetailCard';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [detailItem, setDetailItem] = useState<SavedItem | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -210,6 +212,7 @@ export default function InboxPage() {
                           onViewOnMap={handleViewOnMap}
                           onMoveToBoard={handleMoveToBoard}
                           onRetry={retryItem}
+                          onTap={left.enrichmentStatus === 'done' ? setDetailItem : undefined}
                         />
                       </LongPressDeleteCard>
                     )}
@@ -221,6 +224,7 @@ export default function InboxPage() {
                           onViewOnMap={handleViewOnMap}
                           onMoveToBoard={handleMoveToBoard}
                           onRetry={retryItem}
+                          onTap={right.enrichmentStatus === 'done' ? setDetailItem : undefined}
                         />
                       </LongPressDeleteCard>
                     )}
@@ -309,6 +313,20 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Clip detail sheet */}
+      <AnimatePresence>
+        {detailItem && (
+          <LocationDetailCard
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
+            onUpdated={(updated) => {
+              setDetailItem(updated);
+              refreshItem(updated.id);
+            }}
+          />
         )}
       </AnimatePresence>
 
