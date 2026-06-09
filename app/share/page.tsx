@@ -21,6 +21,8 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  // boardId from extension popup: non-null means auto-save skipping the picker
+  const extensionBoardId = searchParams.get('boardId');
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -36,6 +38,19 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Auto-save when extension passes boardId (user already made selection in popup)
+  useEffect(() => {
+    if (extensionBoardId !== null && rawUrl && stage === 'picking') {
+      const boardId = extensionBoardId || undefined;
+      getAllBoards().then((allBoards) => {
+        const board = allBoards.find((b) => b.id === boardId);
+        const displayName = board ? `${board.emoji} ${board.name}` : 'Inbox';
+        handleSave(boardId, displayName);
+      }).catch(() => handleSave(boardId, 'Inbox'));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extensionBoardId, rawUrl]);
 
   // Auto-dismiss when done
   useEffect(() => {
