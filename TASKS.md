@@ -452,6 +452,125 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE H — App Store Quality & Final Polish
+
+> All planned features are implemented. Phase H makes the app App Store-ready:
+> crash-proof, accessible, fast, and delightful on iPhone. Goal: pass App Store
+> review on the first submission and achieve ≥4.5 star rating from day one.
+>
+> Recommended order: `H1 → H2 → H3 → H4 → H5 → H6 → H7 → H8 → H9 → H10`
+
+### H1 — Rate Limit User Feedback
+**Status**: `[x]` Done
+**Why**: When the enrichment or plan rate limit is hit, the user sees nothing — clips silently fail to enrich. This is a confusing UX gap identified in the audit.
+**Files**: `lib/enrichItem.ts`, `app/share/page.tsx`, `lib/rateLimits.ts`
+**What to do**:
+- Expose rate limit status from `checkEnrichmentLimit()` to the share page
+- In `app/share/page.tsx`, detect when enrichment is rate-limited and show a banner: "You've reached today's clip limit (10/hr). Your clip is saved and will be analysed in X minutes."
+- Show when the limit resets (time remaining in human-readable format: "resets in 45 min")
+- Same for plan generation limit: surface in `app/plan/[boardId]/page.tsx`
+- Soft-block: clip is always saved; only enrichment is deferred
+
+### H2 — React Error Boundary
+**Status**: `[ ]` Not started
+**Why**: Any unhandled JS error currently crashes the entire app with a white screen. This guarantees a 1-star review if it happens to a user.
+**Files**: new `components/ErrorBoundary.tsx`, `app/layout.tsx`
+**What to do**:
+- Create `ErrorBoundary` class component that renders a friendly recovery screen: emoji, "Something went wrong", "Reload TravelPanel" button that calls `window.location.reload()`
+- Wrap the entire app tree in layout.tsx with `<ErrorBoundary>`
+- Also wrap individual high-risk subtrees: `MapView` (WebGL crashes), `plan/[boardId]` (streaming errors)
+- In dev mode, re-throw to preserve React dev overlay
+
+### H3 — In-App Review Prompt
+**Status**: `[ ]` Not started
+**Why**: App Store ranking is directly correlated with review volume. Prompting users at the right moment (after their 5th saved clip, when they're happy) converts satisfied users into reviews.
+**Files**: new `lib/reviewPrompt.ts`, `app/share/page.tsx`
+**What to do**:
+- Install `@capacitor-community/app-review` (or use the Capacitor API directly if available)
+- Track clip save count in localStorage
+- After the 5th clip saved AND `stage === 'done'`, wait 1.5s then show the native review prompt
+- Gate: only prompt once (use `localStorage` flag `tp_review_prompted`); never in web/browser context (check Capacitor platform)
+- Don't prompt if the user just hit a rate limit error
+
+### H4 — Board Cover Photo from Clip Thumbnails
+**Status**: `[ ]` Not started
+**Why**: The boards list shows emoji icons only. Using the newest clip's thumbnail as a board cover photo makes the board list visually rich and more scannable.
+**Files**: `app/boards/page.tsx`, `components/BoardCard.tsx` (if exists), `lib/db.ts`
+**What to do**:
+- In the boards list, for each board, find the most recently saved clip with a thumbnail
+- Show it as a background image in the board card (blurred, with the emoji overlaid in the centre)
+- If no thumbnails exist for the board, fall back to the solid gradient background (current behaviour)
+- No DB changes needed — derive at render time from the items already loaded
+
+### H5 — Quick Notes in Import/Share Flow
+**Status**: `[ ]` Not started
+**Why**: When clipping a URL, users often want to add a quick personal note ("great for anniversary trip", "friend recommended") before saving. Currently, notes can only be added via the full edit mode in the detail card.
+**Files**: `app/share/page.tsx`, `lib/db.ts`
+**What to do**:
+- Add an optional `<textarea>` labelled "Quick note (optional)" below the board picker in the share page
+- Max 280 chars, subtle placeholder: "Why are you saving this? (optional)"
+- If filled, set `item.notes` before calling `saveItem()`
+- Keep it fully optional — empty notes don't affect the save flow
+- `SavedItem.notes` field already exists in the type
+
+### H6 — Clip Detail Inline Map
+**Status**: `[ ]` Not started
+**Why**: The LocationDetailCard shows extracted locations as a text list, but users can't see WHERE they are spatially without going back to the full map. An inline mini-map in the detail card creates the "wow" moment.
+**Files**: `components/LocationDetailCard.tsx`
+**What to do**:
+- In the detail card, if `item.locations.length > 0`, show a small map (height: 140px) below the title section
+- Use the existing `MapView` component (dynamically imported, SSR disabled)
+- Pre-fly to `item.locations[0]` at zoom 12; pan to reveal all locations if there are several
+- Tapping the mini-map navigates to the home map page with `?flyTo=lat,lng&itemId=id` query params (already supported in page.tsx)
+- Keep map read-only: no pin interaction beyond the tap-through
+
+### H7 — Travel Date Context in Trip Planner
+**Status**: `[ ]` Not started
+**Why**: The current planner prompt has no knowledge of *when* the user wants to travel. "Cherry blossom season", "avoid typhoon season", and "Golden Week crowds" are date-dependent. Adding a date picker surfaces dramatically better plans.
+**Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`
+**What to do**:
+- Add a "When are you travelling?" date picker (month + year, not exact dates) above the Generate button
+- Pass `travelMonth` (e.g. "March 2027") to the plan API as part of the request body
+- Include in the system prompt: "The user plans to travel in {travelMonth}. Factor in seasonal considerations: weather, festivals, crowds, and availability."
+- Store the selected month in sessionStorage per board
+- Optional, not required — if skipped, planner works exactly as before
+
+### H8 — Accessibility Improvements
+**Status**: `[ ]` Not started
+**Why**: App Store review team checks for basic accessibility. VoiceOver support is required for App Store compliance on iOS.
+**Files**: Multiple components
+**What to do**:
+- Audit all interactive elements for missing `aria-label` attributes: buttons without text, icon-only buttons, toggle controls
+- Add `role="list"` and `role="listitem"` to all clip grid/list containers
+- Ensure all images have meaningful `alt` text (or `alt=""` for decorative images)
+- Verify that the map's NavigationControl has aria labels
+- Add `aria-live="polite"` to dynamic status areas (enrichment loading, plan generation status)
+- Test with iOS VoiceOver: navigate through the share flow, inbox, and board detail
+
+### H9 — Inbox Multi-Select (Batch Operations)
+**Status**: `[ ]` Not started
+**Why**: Power users with 50+ clips need to bulk-manage clips: move 10 clips to a board at once, or delete a batch of irrelevant clips. One-at-a-time is painfully slow.
+**Files**: `app/inbox/page.tsx`, `lib/db.ts`
+**What to do**:
+- Long-press (or a "Select" button in the header) enters multi-select mode
+- Each card shows a checkbox indicator; tapped cards join the selection set
+- Bottom action bar appears with: "Move to board" (opens board picker) and "Delete X clips" (confirmation required)
+- Exit multi-select: tap "Cancel" or finish the action
+- Selection state in component `useState<Set<string>>`
+- Don't virtualize during multi-select (or preserve virtualizer with checkbox overlay)
+
+### H10 — App Store Submission Checklist
+**Status**: `[ ]` Not started
+**Why**: App Store submission requires specific assets and configurations that are easy to miss. A tracked checklist prevents rejection.
+**Files**: new `ios/App/APP_STORE_CHECKLIST.md`
+**What to do**:
+- Create a detailed checklist covering: app icons (all sizes), launch screen, required capabilities (Location When In Use), privacy manifests (required by Apple for API usage), App Privacy labels, age rating, screenshots (6.7", 6.1", 5.5", 12.9" iPad), App Store description (4000 chars max), subtitle (30 chars max), keywords (100 chars total)
+- Include the exact Xcode settings needed: signing team, bundle ID, version + build number
+- Note which items are already done vs still needed
+- Include `NSPrivacyAccessedAPITypes` entries for UserDefaults access (required by Apple since iOS 17)
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*

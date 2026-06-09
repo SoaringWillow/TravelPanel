@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
+import { checkEnrichmentLimit, formatResetsIn } from '@/lib/rateLimits';
 import { track } from '@/lib/analytics';
 import { hapticSuccess } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -57,6 +58,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [enrichLimitResetAt, setEnrichLimitResetAt] = useState<number | null>(null);
   const pendingImageRef     = useRef<string | null>(null);
   const pendingThumbnailRef = useRef<string | null>(null);
 
@@ -126,29 +128,34 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment — pass Vision image for scraping-resistant platforms
-    setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl, pendingImageRef.current ?? undefined)
-      .then(async (success) => {
-        if (success) {
-          // Read back the enriched data to show location count in the done UI
-          const { getItemById } = await import('@/lib/db');
-          const updated = await getItemById(itemId);
-          if (updated) {
-            setEnrichedData({
-              platform: updated.platform,
-              title: updated.title,
-              description: updated.description,
-              thumbnail: updated.thumbnail,
-              locations: updated.locations,
-              activities: updated.activities,
-              tags: updated.tags,
-              substance: updated.substance,
-            } as ImportResult);
+    // Background enrichment — check rate limit first to give user feedback
+    const limitCheck = checkEnrichmentLimit();
+    if (!limitCheck.allowed) {
+      setEnrichLimitResetAt(limitCheck.resetsAt);
+    } else {
+      setEnrichmentLoading(true);
+      enrichItem(itemId, rawUrl, pendingImageRef.current ?? undefined)
+        .then(async (success) => {
+          if (success) {
+            // Read back the enriched data to show location count in the done UI
+            const { getItemById } = await import('@/lib/db');
+            const updated = await getItemById(itemId);
+            if (updated) {
+              setEnrichedData({
+                platform: updated.platform,
+                title: updated.title,
+                description: updated.description,
+                thumbnail: updated.thumbnail,
+                locations: updated.locations,
+                activities: updated.activities,
+                tags: updated.tags,
+                substance: updated.substance,
+              } as ImportResult);
+            }
           }
-        }
-        setEnrichmentLoading(false);
-      });
+          setEnrichmentLoading(false);
+        });
+    }
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
@@ -331,7 +338,14 @@ function SharePageInner() {
           transition={{ delay: 0.35 }}
           className="w-full"
         >
-          {enrichmentLoading && !enrichedData ? (
+          {enrichLimitResetAt ? (
+            <div className="bg-amber-50 rounded-2xl px-4 py-3">
+              <p className="text-sm font-semibold text-amber-700">⏱ Analysis queued</p>
+              <p className="text-xs text-amber-600 mt-0.5 leading-snug">
+                Hourly limit reached — your clip is saved and will be analysed in {formatResetsIn(enrichLimitResetAt)}.
+              </p>
+            </div>
+          ) : enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
               <span className="text-sm animate-pulse">🔍 Finding locations…</span>
             </div>
