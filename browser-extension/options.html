@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
+          <circle cx="12" cy="12" r="10" fill="#6366f1" opacity="0.15"/>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#6366f1"/>
+        </svg>
+        <div>
+          <div class="logo-title">TravelPanel Clipper</div>
+          <div class="logo-sub">Settings</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="card">
+        <h2 class="section-title">TravelPanel URL</h2>
+        <p class="section-desc">
+          Your deployed TravelPanel app URL. The extension opens your share page to save clips.
+        </p>
+        <div class="field">
+          <label class="label" for="appUrlInput">App URL</label>
+          <input
+            type="url"
+            id="appUrlInput"
+            class="input"
+            placeholder="https://your-app.vercel.app"
+            autocomplete="off"
+            spellcheck="false"
+          >
+        </div>
+        <div class="actions">
+          <button id="saveBtn" class="btn btn-primary" disabled>Save</button>
+          <span id="statusMsg" class="status-msg" aria-live="polite"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">How it works</h2>
+        <ol class="how-list">
+          <li>
+            <span class="step-num">1</span>
+            <div>
+              <strong>Browse any travel page</strong> — Instagram, YouTube, a travel blog, Xiaohongshu, anywhere.
+            </div>
+          </li>
+          <li>
+            <span class="step-num">2</span>
+            <div>
+              <strong>Click the extension icon</strong> or right-click → "Save to TravelPanel ✈️".
+            </div>
+          </li>
+          <li>
+            <span class="step-num">3</span>
+            <div>
+              <strong>TravelPanel extracts the substance</strong> — locations, tips, warnings, and local wisdom — and saves it to your chosen board.
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card card-subtle">
+        <p class="version-text">TravelPanel Clipper v1.0.0</p>
+      </section>
+    </main>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

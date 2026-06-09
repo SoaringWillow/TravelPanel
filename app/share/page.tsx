@@ -37,11 +37,16 @@ function SharePageInner() {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
-  // Auto-dismiss when done
+  // Auto-dismiss when done — handles both iOS back-nav and browser-extension new tab
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (window.history.length <= 1) {
+          // Opened as a new tab (e.g. browser extension) — close it
+          window.close();
+        } else {
+          window.history.back();
+        }
       }, 3000);
     }
     return () => {
@@ -330,7 +335,8 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (window.history.length <= 1) window.close();
+          else window.history.back();
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
