@@ -357,7 +357,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Preserve the existing delete button as fallback
 
 ### F4 — Board Detail Sort & Filter
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: With 20+ clips in a board, finding specific places is hard. Sorting by date or location count helps.
 **Files**: `app/boards/[id]/page.tsx`
 **What to do**:

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, Globe } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ChevronDown } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -111,11 +111,28 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [view, setView] = useState<'grid' | 'timeline'>('grid');
+  type SortMode = 'newest' | 'oldest' | 'locations' | 'alpha';
+  const [sort, setSort] = useState<SortMode>(() => {
+    if (typeof window === 'undefined') return 'newest';
+    return (sessionStorage.getItem(`tp_board_sort_${boardId}`) as SortMode) ?? 'newest';
+  });
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
     ? items.filter((item) => board.itemIds.includes(item.id))
     : [];
+
+  const sortedBoardItems = [...boardItems].sort((a, b) => {
+    if (sort === 'oldest') return a.savedAt - b.savedAt;
+    if (sort === 'locations') return b.locations.length - a.locations.length;
+    if (sort === 'alpha') return a.title.localeCompare(b.title);
+    return b.savedAt - a.savedAt; // newest
+  });
+
+  function handleSort(s: SortMode) {
+    setSort(s);
+    sessionStorage.setItem(`tp_board_sort_${boardId}`, s);
+  }
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
 
@@ -200,25 +217,41 @@ export default function BoardDetailPage() {
           </span>
         </div>
 
-        {/* View toggle */}
+        {/* View toggle + sort */}
         {boardItems.length > 0 && (
-          <div className="flex mt-3 gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => setView('grid')}
-              className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all
-                ${view === 'grid' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
-            >
-              Grid
-            </button>
-            <button
-              type="button"
-              onClick={() => setView('timeline')}
-              className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all
-                ${view === 'timeline' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
-            >
-              Timeline
-            </button>
+          <div className="flex mt-3 gap-2">
+            <div className="flex flex-1 gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setView('grid')}
+                className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all
+                  ${view === 'grid' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+              >
+                Grid
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('timeline')}
+                className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all
+                  ${view === 'timeline' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+              >
+                Timeline
+              </button>
+            </div>
+            <div className="relative">
+              <select
+                value={sort}
+                onChange={e => handleSort(e.target.value as SortMode)}
+                className="appearance-none bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300
+                  rounded-xl px-3 py-2 pr-7 border-0 focus:outline-none focus:ring-2 focus:ring-indigo-400 h-full"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="locations">Most Pins</option>
+                <option value="alpha">A–Z</option>
+              </select>
+              <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
           </div>
         )}
       </div>
@@ -226,13 +259,13 @@ export default function BoardDetailPage() {
       {/* Scrollable content below header */}
       <div className="flex-1 overflow-y-auto pb-24">
         {/* Map section */}
-        {boardItems.length > 0 && (
+        {sortedBoardItems.length > 0 && (
           <div
             className="relative w-full bg-gray-200"
             style={{ height: 'min(240px, 35vh)' }}
           >
             <MapView
-              items={boardItems}
+              items={sortedBoardItems}
               onPinClick={(item) => {
                 if (item.locations.length > 0) setFlyTo(item.locations[0]);
               }}
@@ -275,7 +308,7 @@ export default function BoardDetailPage() {
           </div>
 
           {/* Items — grid or timeline */}
-          {boardItems.length === 0 ? (
+          {sortedBoardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <MapPin className="text-gray-300 mb-3" size={40} />
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -286,10 +319,10 @@ export default function BoardDetailPage() {
               </p>
             </div>
           ) : view === 'timeline' ? (
-            <TimelineView items={boardItems} />
+            <TimelineView items={sortedBoardItems} />
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {boardItems.map((item) => (
+              {sortedBoardItems.map((item) => (
                 <InboxCard
                   key={item.id}
                   item={item}
