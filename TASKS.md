@@ -366,7 +366,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Persist sort preference in sessionStorage per board
 
 ### F5 — Plan View Improvements (Day Notes + Share)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The plan view generates well but users can't annotate it or share it with travel companions.
 **Files**: `app/plan/[boardId]/page.tsx`
 **What to do**:

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2, Check } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -183,6 +183,32 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const handleSharePlan = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const text = [
+      `${board.emoji} ${board.name} — Trip Plan`,
+      '',
+      ...plan.days.map((day) => [
+        `Day ${day.day}: ${day.theme}`,
+        ...day.activities.map((a) => `  • ${a.time} ${a.name} @ ${a.location.name}`),
+      ].join('\n')),
+    ].join('\n');
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: `${board.emoji} ${board.name} Trip Plan`, text });
+        return;
+      } catch { /* user cancelled or share failed — fall through to clipboard */ }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch { /* noop */ }
+  }, [plan, board]);
 
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
@@ -466,14 +492,25 @@ export default function PlanPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleSharePlan}
+                    className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-xl active:scale-[0.98] transition-all
+                      ${shareCopied
+                        ? 'bg-emerald-50 border border-emerald-300 text-emerald-700'
+                        : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                      }`}
+                  >
+                    {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+                    {shareCopied ? 'Copied!' : 'Share'}
                   </button>
                 </div>
               )}
