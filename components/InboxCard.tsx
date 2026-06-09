@@ -12,6 +12,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  readOnly?: boolean;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +39,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  readOnly = false,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -288,7 +290,7 @@ export default function InboxCard({
             </a>
 
             {/* Move to board */}
-            {onMoveToBoard && (
+            {!readOnly && onMoveToBoard && (
               <button
                 type="button"
                 onClick={() => onMoveToBoard(item.id)}
@@ -300,14 +302,16 @@ export default function InboxCard({
             )}
 
             {/* Delete */}
-            <button
-              type="button"
-              onClick={() => onDelete(item.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-              aria-label="Delete"
-            >
-              <Trash2 size={13} />
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                aria-label="Delete"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
         </div>
       </div>
