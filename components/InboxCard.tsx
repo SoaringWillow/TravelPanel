@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import SwipeToDelete from './SwipeToDelete';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -50,63 +51,67 @@ export default function InboxCard({
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
-          <div className="w-full h-32 bg-gray-200" />
-          <div className="p-4 space-y-3">
-            <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
-            <div className="h-3 bg-gray-200 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+        <SwipeToDelete onDelete={() => onDelete(item.id)}>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+            <div className="w-full h-32 bg-gray-200" />
+            <div className="p-4 space-y-3">
+              <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
+              <div className="h-3 bg-gray-200 rounded-full w-3/5" />
+              <div className="flex items-center gap-2 pt-1">
+                <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
+                <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+              </div>
             </div>
           </div>
-        </div>
+        </SwipeToDelete>
       );
     }
 
     // Partial card — title is known, enrichment still running
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
-            >
-              {PLATFORM_LABELS[item.platform]}
-            </span>
-          </div>
-
-          <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">
-            {item.title}
-          </h3>
-
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-1.5">
-              <Loader2 size={12} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+      <SwipeToDelete onDelete={() => onDelete(item.id)}>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-4 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
+              >
+                {PLATFORM_LABELS[item.platform]}
+              </span>
             </div>
-            <div className="flex items-center gap-1">
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
-                aria-label="Open original"
-              >
-                <ExternalLink size={13} />
-              </a>
-              <button
-                type="button"
-                onClick={() => onDelete(item.id)}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                aria-label="Delete"
-              >
-                <Trash2 size={13} />
-              </button>
+
+            <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">
+              {item.title}
+            </h3>
+
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-1.5">
+                <Loader2 size={12} className="text-indigo-400 animate-spin flex-shrink-0" />
+                <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                  aria-label="Open original"
+                >
+                  <ExternalLink size={13} />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => onDelete(item.id)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  aria-label="Delete"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </SwipeToDelete>
     );
   }
 
@@ -116,6 +121,7 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
+      <SwipeToDelete onDelete={() => onDelete(item.id)}>
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
@@ -178,6 +184,7 @@ export default function InboxCard({
           </div>
         </div>
       </div>
+      </SwipeToDelete>
     );
   }
 
@@ -189,6 +196,7 @@ export default function InboxCard({
   });
 
   return (
+    <SwipeToDelete onDelete={() => onDelete(item.id)}>
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
@@ -312,5 +320,6 @@ export default function InboxCard({
         </div>
       </div>
     </div>
+    </SwipeToDelete>
   );
 }

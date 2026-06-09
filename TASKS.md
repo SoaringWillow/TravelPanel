@@ -203,7 +203,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Wire into inbox page and boards page
 
 ### D3 — Swipe to Delete Clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Currently no way to remove a clip. Users who clip by mistake or want to declutter are stuck. Delete is a core CRUD operation.  
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/[id]/page.tsx`  
 **What to do**:

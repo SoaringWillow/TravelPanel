@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -13,9 +13,11 @@ import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
+import { SavedItem } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import UndoToast from '@/components/UndoToast';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -30,7 +32,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh, addItem } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -39,6 +41,29 @@ export default function InboxPage() {
   const { containerRef, isRefreshing, progress } = usePullToRefresh({
     onRefresh: refresh,
   });
+
+  // Undo-delete state
+  const [undoItem, setUndoItem] = useState<SavedItem | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDeleteWithUndo = useCallback(
+    (id: string) => {
+      const item = items.find((i) => i.id === id);
+      removeItem(id);
+      if (!item) return;
+      setUndoItem(item);
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => setUndoItem(null), 5000);
+    },
+    [items, removeItem]
+  );
+
+  const handleUndo = useCallback(async () => {
+    if (!undoItem) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    await addItem(undoItem);
+    setUndoItem(null);
+  }, [undoItem, addItem]);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -195,7 +220,7 @@ export default function InboxPage() {
                 >
                   <InboxCard
                     item={item}
-                    onDelete={removeItem}
+                    onDelete={handleDeleteWithUndo}
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
@@ -283,6 +308,18 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Undo toast */}
+      <AnimatePresence>
+        {undoItem && (
+          <UndoToast
+            key={undoItem.id}
+            label="Clip deleted"
+            onUndo={handleUndo}
+            onDismiss={() => setUndoItem(null)}
+          />
         )}
       </AnimatePresence>
 
