@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4338ca"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background fill (iOS masks to rounded square shape) -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Globe outer circle -->
+  <circle cx="512" cy="512" r="300" fill="none" stroke="white" stroke-width="52" opacity="0.95"/>
+
+  <!-- Equator line -->
+  <line x1="212" y1="512" x2="812" y2="512" stroke="white" stroke-width="36" opacity="0.75"/>
+
+  <!-- Vertical meridian -->
+  <line x1="512" y1="212" x2="512" y2="812" stroke="white" stroke-width="36" opacity="0.75"/>
+
+  <!-- Upper arc (latitude line) -->
+  <path d="M 268 384 Q 512 290 756 384" fill="none" stroke="white" stroke-width="28" opacity="0.55"/>
+
+  <!-- Lower arc (latitude line) -->
+  <path d="M 268 640 Q 512 734 756 640" fill="none" stroke="white" stroke-width="28" opacity="0.55"/>
+
+  <!-- Center dot -->
+  <circle cx="512" cy="512" r="56" fill="white"/>
+
+  <!-- North pointer tip -->
+  <polygon points="512,172 487,248 512,228 537,248" fill="white" opacity="0.95"/>
+</svg>

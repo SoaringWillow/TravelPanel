@@ -381,7 +381,7 @@ connections the inbox stalls on image loading instead of showing cards.
 ## PHASE G — App Store Preparation
 
 ### G1 — iOS App Icon (All Required Sizes)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The current app icon is the default Capacitor/Ionic icon. This is the first thing
 App Store reviewers and users see. A beautiful icon is not optional for launch.
 **Files**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json` and all PNG files,
