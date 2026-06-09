@@ -182,8 +182,9 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
-**What to do**: "Download all my data" as JSON from the account settings page
+**Status**: `[x]` Done  
+**What to do**: "Download all my data" as JSON from the account settings page  
+**Implemented**: `app/settings/page.tsx` — full Settings page with Download backup (all items + boards + trips → JSON file) and Restore from backup (JSON file picker, merges into IndexedDB with progress feedback). Added `getAllTrips()` to `lib/db.ts`. Added Settings tab to `NavBar` (4th item, Settings icon, `/settings` route).
 
 ---
 
