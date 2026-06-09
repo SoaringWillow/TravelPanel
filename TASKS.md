@@ -128,7 +128,7 @@ wrong tags. There is currently no edit flow — it's save-only.
   the item in local state without a full reload
 
 ### D6 — Pull-to-Refresh on Inbox and Boards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Standard iOS gesture. Users pull down to trigger a refresh — checking for failed
 enrichments, re-running retries, re-syncing from cloud when B1 is active.
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`

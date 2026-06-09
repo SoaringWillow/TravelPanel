@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
@@ -14,6 +15,7 @@ import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import LongPressDeleteCard from '@/components/LongPressDeleteCard';
+import { PullRefreshIndicator } from '@/components/PullRefreshIndicator';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
@@ -30,11 +32,14 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
+
+  const { scrollRef, pullDistance, refreshing, onTouchStart, onTouchMove, onTouchEnd } =
+    usePullToRefresh({ onRefresh: refresh });
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -140,7 +145,15 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <PullRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
+        <div className="py-4">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -184,6 +197,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
+        </div>
       </div>
 
       {/* Board selector bottom sheet */}

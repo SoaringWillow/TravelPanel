@@ -1,20 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
+import { PullRefreshIndicator } from '@/components/PullRefreshIndicator';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
-  const { items } = useSavedItems();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
+  const { items, refresh: refreshItems } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refreshBoards(), refreshItems()]);
+  }, [refreshBoards, refreshItems]);
+
+  const { scrollRef, pullDistance, refreshing, onTouchStart, onTouchMove, onTouchEnd } =
+    usePullToRefresh({ onRefresh: handleRefresh });
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -53,7 +62,15 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <PullRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
+        <div className="py-4">
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -87,6 +104,7 @@ export default function BoardsPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Create board modal */}
