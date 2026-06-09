@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- Airplane / paper plane silhouette -->
+  <g transform="translate(64,64)" fill="white">
+    <!-- Body -->
+    <polygon points="0,-32 32,16 0,4 -32,16" opacity="1"/>
+    <!-- Wing underside -->
+    <polygon points="0,4 32,16 0,28" opacity="0.6"/>
+    <!-- Left wing underside -->
+    <polygon points="0,4 -32,16 0,28" opacity="0.4"/>
+  </g>
+</svg>
