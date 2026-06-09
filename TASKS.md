@@ -336,7 +336,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `<meta name="apple-mobile-web-app-title" content="TravelPanel">` to layout.tsx
 
 ### F2 — Emoji Picker for Boards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Boards default to 🗺 emoji, which makes all boards look the same. Users should be able to personalize with a travel emoji.
 **Files**: `components/EmojiPicker.tsx` (new), `app/boards/page.tsx` (new board dialog), `app/share/page.tsx` (new board flow)
 **What to do**:

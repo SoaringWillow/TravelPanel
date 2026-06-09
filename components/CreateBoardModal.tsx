@@ -9,8 +9,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-
-const EMOJI_PRESETS = ['🗺', '🏖', '🏔', '🌸', '🍜', '🏛', '🎭', '🌿'];
+import EmojiPicker from '@/components/EmojiPicker';
 
 interface CreateBoardModalProps {
   open: boolean;
@@ -45,44 +44,33 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
           <DialogTitle>New Board</DialogTitle>
         </DialogHeader>
 
-        {/* Emoji picker */}
-        <div className="grid grid-cols-4 gap-2 py-1">
-          {EMOJI_PRESETS.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              onClick={() => setSelectedEmoji(emoji)}
-              className={`text-2xl h-12 rounded-xl flex items-center justify-center transition-all ${
-                selectedEmoji === emoji
-                  ? 'bg-indigo-100 ring-2 ring-indigo-500'
-                  : 'bg-gray-50 hover:bg-gray-100'
-              }`}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
+        {/* Selected emoji preview + picker */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
+              {selectedEmoji}
+            </div>
+            <div className="flex-1">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Japan Trip, Weekend Eats…"
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+                autoFocus
+              />
+            </div>
+          </div>
 
-        {/* Name input */}
-        <div className="py-1">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Japan Trip, Weekend Eats…"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate();
-            }}
-            autoFocus
-          />
+          <EmojiPicker selected={selectedEmoji} onSelect={setSelectedEmoji} />
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
           <DialogClose asChild>
             <button
               type="button"
-              className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
             >
               Cancel
             </button>
