@@ -1,6 +1,7 @@
 'use client';
 
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import SafeImage from '@/components/SafeImage';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { impact } from '@/lib/haptics';
@@ -194,20 +195,12 @@ export default function InboxCard({
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
       {/* Thumbnail or placeholder */}
-      {item.thumbnail ? (
-        <img
-          src={item.thumbnail}
-          alt={item.title}
-          className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-24 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300 dark:text-gray-600" />
-        </div>
-      )}
+      <SafeImage
+        src={item.thumbnail}
+        alt={item.title}
+        fallbackText={item.title}
+        className="w-full h-32 object-cover"
+      />
 
       <div className="p-4">
         {/* Platform badge */}

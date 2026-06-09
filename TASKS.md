@@ -321,7 +321,7 @@ clipping habitual — same psychology as Duolingo's streak.
 ## PHASE I — iOS Experience Polish
 
 ### I1 — Safe Image Component
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: Broken thumbnail images (dead links, CORS failures, anti-scraping) cause layout shifts and broken cards across the app. No consistent fallback handling.
 **Files to change**: new `components/SafeImage.tsx`, `components/InboxCard.tsx`, `components/ResurfaceCarousel.tsx`, `app/trip-recap/page.tsx`
 **What to do**:

@@ -6,6 +6,7 @@ import { Sparkles, MapPin, Lightbulb } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { getResurfaceItems, ResurfaceItem } from '@/lib/resurfaceItems';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
+import SafeImage from '@/components/SafeImage';
 
 interface ResurfaceCarouselProps {
   items: SavedItem[];
@@ -94,23 +95,12 @@ export default function ResurfaceCarousel({ items, onItemClick }: ResurfaceCarou
                 </span>
 
                 {/* Thumbnail */}
-                {item.thumbnail ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.thumbnail}
-                    alt={item.title}
-                    className="w-full h-20 object-cover rounded-lg mb-1.5"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                ) : (
-                  <div
-                    className="w-full h-20 rounded-lg mb-1.5 flex items-center justify-center"
-                    style={{ background: `${platformColor}22` }}
-                  >
-                    <MapPin size={20} style={{ color: platformColor }} />
-                  </div>
-                )}
-
+                <SafeImage
+                  src={item.thumbnail}
+                  alt={item.title}
+                  fallbackText={item.title}
+                  className="w-full h-20 object-cover rounded-lg mb-1.5"
+                />
                 {/* Title */}
                 <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 leading-snug mb-1">
                   {item.title}

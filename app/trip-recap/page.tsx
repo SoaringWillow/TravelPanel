@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Share2, Download, ArrowLeft } from 'lucide-react';
 import { RecapData, RECAP_STORAGE_KEY } from '@/lib/generateRecap';
+import SafeImage from '@/components/SafeImage';
 
 type ExportFormat = 'stories' | 'square';
 
@@ -148,8 +149,7 @@ export default function TripRecapPage() {
               <div className="grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden">
                 {recap.thumbnails.slice(0, 6).map((url, i) => (
                   <div key={i} className="aspect-square bg-white/10 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    <SafeImage src={url} alt="" className="w-full h-full object-cover" loading="eager" />
                   </div>
                 ))}
               </div>
