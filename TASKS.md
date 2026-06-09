@@ -277,7 +277,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Set `enrichmentStatus: 'pending'` (not 'processing') when offline — the retry queue handles it
 
 ### D9 — Board Cover Image Auto-Update
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done — coverThumbnail set in addItemToBoard (db.ts) and updateItemEnrichment; BoardCard uses dark gradient overlay for legible text on cover photos; fallback indigo gradient when no cover  
 **Why**: Board cards show a grey gradient instead of a cover photo because `coverThumbnail` is never updated when items are added.  
 **Files**: `lib/db.ts`, `app/share/page.tsx`  
 **What to do**:  
