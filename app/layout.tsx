@@ -5,6 +5,7 @@ import { ResourceBanner } from '@/components/ResourceBanner';
 import { AnalyticsProvider } from '@/components/AnalyticsProvider';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import OfflineHandler from '@/components/OfflineHandler';
+import ProximityToast from '@/components/ProximityToast';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -33,6 +34,7 @@ export default function RootLayout({
           <AnalyticsProvider />
           <ResourceBanner />
           <OfflineHandler />
+          <ProximityToast />
           <div className="min-h-screen">
             {children}
           </div>

@@ -307,10 +307,10 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — Social + AI (Future)
 
 ### E1 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### E2 — Proactive Resurfacing ("you're near a saved spot")
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### E3 — AI Similar Places Suggestions
 **Status**: `[ ]` Not started
