@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
@@ -16,6 +16,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import BatchImportSheet from '@/components/BatchImportSheet';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ export default function InboxPage() {
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [batchOpen, setBatchOpen] = useState(false);
   const [query, setQuery] = useState('');
 
   // ── Pull-to-refresh ──────────────────────────────────────────────────────
@@ -69,6 +71,21 @@ export default function InboxPage() {
     }
   }
 
+  const handleSearch = useCallback((q: string) => {
+    setQuery(q);
+    if (q.trim()) track('search_performed', { length: q.trim().length });
+  }, []);
+
+  // Only unassigned items (boardId === undefined)
+  const inboxItems = items.filter((i) => i.boardId === undefined);
+
+  const platformFiltered =
+    activePlatform === 'all'
+      ? inboxItems
+      : inboxItems.filter((i) => i.platform === activePlatform);
+
+  const filtered = searchItems(platformFiltered, query);
+
   // ── Virtualizer ──────────────────────────────────────────────────────────
   // Group filtered items into 2-column rows for the virtual grid
   const virtualRows = useMemo(() => {
@@ -98,21 +115,6 @@ export default function InboxPage() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleSearch = useCallback((q: string) => {
-    setQuery(q);
-    if (q.trim()) track('search_performed', { length: q.trim().length });
-  }, []);
-
-  // Only unassigned items (boardId === undefined)
-  const inboxItems = items.filter((i) => i.boardId === undefined);
-
-  const platformFiltered =
-    activePlatform === 'all'
-      ? inboxItems
-      : inboxItems.filter((i) => i.platform === activePlatform);
-
-  const filtered = searchItems(platformFiltered, query);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -166,6 +168,14 @@ export default function InboxPage() {
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
+          <button
+            type="button"
+            onClick={() => setBatchOpen(true)}
+            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+            aria-label="Bulk import URLs"
+          >
+            <Plus size={20} />
+          </button>
         </div>
 
         {/* Search */}
@@ -351,6 +361,12 @@ export default function InboxPage() {
           </>
         )}
       </AnimatePresence>
+
+      <BatchImportSheet
+        open={batchOpen}
+        onClose={() => setBatchOpen(false)}
+        onDone={() => { refresh(); setBatchOpen(false); }}
+      />
 
       <NavBar active="inbox" />
     </div>

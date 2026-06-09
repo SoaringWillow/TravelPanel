@@ -291,7 +291,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: "Share board" generates a read-only `/boards/[id]/preview` page or a Supabase-hosted snapshot with clips + map
 
 ### D3 — Batch Import
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**: Accept multiple URLs (newline-separated) in the import sheet; queue them as sequential enrichments
 
 ### D4 — Embedding/Vibe Search  
