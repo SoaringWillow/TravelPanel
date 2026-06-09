@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -29,7 +29,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -38,6 +38,35 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // ── Pull-to-refresh ──────────────────────────────────────────────────────
+  const scrollRef               = useRef<HTMLDivElement>(null);
+  const touchStartY             = useRef(0);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (isRefreshing) return;
+    if ((scrollRef.current?.scrollTop ?? 0) > 2) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) setPullDistance(Math.min(dy * 0.45, 72));
+    else setPullDistance(0);
+  }
+
+  async function onTouchEnd() {
+    if (pullDistance > 52) {
+      setIsRefreshing(true);
+      setPullDistance(0);
+      await refresh();
+      setIsRefreshing(false);
+    } else {
+      setPullDistance(0);
+    }
+  }
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -99,7 +128,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white shadow-sm px-4 pt-safe-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -138,8 +167,28 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      {/* Content — pull-to-refresh enabled */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 pb-safe-nav"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Pull indicator */}
+        {(pullDistance > 0 || isRefreshing) && (
+          <div
+            className="flex items-center justify-center overflow-hidden transition-[height] duration-150"
+            style={{ height: isRefreshing ? 48 : pullDistance }}
+          >
+            <div
+              className={`w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent
+                ${isRefreshing ? 'animate-spin' : ''}`}
+              style={isRefreshing ? {} : { transform: `rotate(${pullDistance * 5}deg)` }}
+            />
+          </div>
+        )}
+        <div className="py-4">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
@@ -181,6 +230,7 @@ export default function InboxPage() {
             </AnimatePresence>
           </div>
         )}
+        </div>{/* /py-4 */}
       </div>
 
       {/* Board selector bottom sheet */}

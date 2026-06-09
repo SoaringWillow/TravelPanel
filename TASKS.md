@@ -224,7 +224,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add optional `updatedAt` field update: `saveBoard({ ...board, name, updatedAt: Date.now() })`
 
 ### C4 — iOS Safe Areas, Haptics, and Pull-to-Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: On iPhone with a notch/Dynamic Island, content clips under the status bar and above the home indicator. No haptic feedback means saves feel unconfirmed.  
 **Files**: `app/layout.tsx`, `app/globals.css`, `app/inbox/page.tsx`, `app/share/page.tsx`, `components/CapacitorBridge.tsx`  
 **What to do**:

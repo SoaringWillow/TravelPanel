@@ -130,7 +130,7 @@ export default function SettingsPage() {
   return (
     <main className="min-h-screen bg-gray-50 pb-24 pt-0">
       {/* Header */}
-      <div className="bg-white pt-14 pb-5 px-4 mb-5 shadow-sm">
+      <div className="bg-white pt-safe-14 pb-5 px-4 mb-5 shadow-sm">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
       </div>
 
