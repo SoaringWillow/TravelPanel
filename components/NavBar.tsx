@@ -17,16 +17,20 @@ const NAV_ITEMS = [
 export default function NavBar({ active }: NavBarProps) {
   return (
     <nav
+      aria-label="Main navigation"
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md nav-safe-bottom"
       style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
     >
-      <div className="flex items-stretch">
+      <div className="flex items-stretch" role="list">
         {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {
           const isActive = active === key;
           return (
             <Link
               key={key}
               href={href}
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={label}
+              role="listitem"
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
                 isActive ? 'text-indigo-500 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}

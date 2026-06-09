@@ -145,6 +145,8 @@ function ThemeRow() {
             key={value}
             type="button"
             onClick={() => setTheme(value)}
+            aria-pressed={theme === value}
+            aria-label={`${label} theme`}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
               ${theme === value
                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'

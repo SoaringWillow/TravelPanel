@@ -536,7 +536,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Optional, not required — if skipped, planner works exactly as before
 
 ### H8 — Accessibility Improvements
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: App Store review team checks for basic accessibility. VoiceOver support is required for App Store compliance on iOS.
 **Files**: Multiple components
 **What to do**:

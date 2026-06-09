@@ -352,15 +352,16 @@ function SharePageInner() {
           transition={{ delay: 0.35 }}
           className="w-full"
         >
+          <div aria-live="polite" aria-atomic="true">
           {enrichLimitResetAt ? (
-            <div className="bg-amber-50 rounded-2xl px-4 py-3">
+            <div className="bg-amber-50 rounded-2xl px-4 py-3" role="status">
               <p className="text-sm font-semibold text-amber-700">⏱ Analysis queued</p>
               <p className="text-xs text-amber-600 mt-0.5 leading-snug">
                 Hourly limit reached — your clip is saved and will be analysed in {formatResetsIn(enrichLimitResetAt)}.
               </p>
             </div>
           ) : enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
+            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2" role="status" aria-label="Finding locations">
               <span className="text-sm animate-pulse">🔍 Finding locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
@@ -379,6 +380,7 @@ function SharePageInner() {
               <p className="text-sm text-gray-500">No specific locations detected</p>
             </div>
           ) : null}
+          </div>
         </motion.div>
 
         <motion.p
