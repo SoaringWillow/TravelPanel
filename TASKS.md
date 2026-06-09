@@ -387,6 +387,71 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE G — Intelligence & Delight
+
+> App is feature-complete and iOS-ready. This phase adds AI superpowers,
+> power-user workflow features, and subtle delightful touches that separate
+> TravelPanel from competitors.
+
+### G1 — Smart Clip Title Cleanup
+**Status**: `[ ]` Not started
+**Why**: Claude often extracts noisy titles like "Watch this video!" or "你一定不知道的10个旅行技巧" that don't tell the user where the clip is about. A cleanup pass would produce concise English destination-first titles.
+**Files**: `app/api/import/route.ts`
+**What to do**:
+- Add a `cleanTitle` post-processing step in the import route: if the extracted title is >60 chars, starts with a non-destination word, or is in a non-English language, run a secondary Haiku call to produce a concise English title (e.g. "Nishiki Market, Kyoto — street food guide")
+- Keep the original as `originalTitle` in the ImportResult (not stored in DB, just used for logging)
+- Test case: Xiaohongshu title "去日本一定要打卡的50个地方！" should become "50 Must-Visit Places in Japan"
+
+### G2 — Location Deduplication on Board
+**Status**: `[ ]` Not started
+**Why**: When multiple clips reference the same restaurant/temple/beach, the map shows duplicate overlapping pins. The trip planner also generates duplicate activities.
+**Files**: `components/MapView.tsx`, `app/api/plan/route.ts`
+**What to do**:
+- In MapView, merge pins that are within 50m of each other: show the pin once with a count badge (e.g. "3 clips")
+- On click, show a mini-list of the clips that mention this location
+- In the plan route, deduplicate locations in `contentSummary` before sending to Claude
+
+### G3 — Clip Cover Photo from Share Extension
+**Status**: `[ ]` Not started
+**Why**: iOS clips have no thumbnail for scraping-resistant platforms. The Share Extension receives the screenshot from iOS (the preview image), but currently only passes it to Claude for text extraction and discards it.
+**Files**: `ios/App/ShareExtension/ShareViewController.swift`, `app/share/page.tsx`, `lib/db.ts`
+**What to do**:
+- In the Share Extension, after saving `pendingShareImage` for Claude Vision, also save a 200×200px thumbnail version as `pendingShareThumbnail`
+- In `app/share/page.tsx`, read `pendingShareThumbnail` via Capacitor Preferences and save it as the item's `thumbnail` field (base64 data URL)
+- This gives Xiaohongshu and WeChat clips a cover photo sourced from the iOS screenshot
+
+### G4 — Weekly Inspiration Digest
+**Status**: `[ ]` Not started
+**Why**: Users forget about clips they saved weeks ago. A weekly "This week in your collection" reminder keeps the app top-of-mind.
+**Files**: new `app/digest/page.tsx`, `lib/db.ts`
+**What to do**:
+- Create `/digest` page: shows 5 random clips the user saved more than 2 weeks ago ("Remember this? You saved it X weeks ago")
+- Each clip shows thumbnail + title + first location + substance tip count
+- "Plan a trip" CTA links to the board or creates a new one
+- Add a "Digest" deep link from the home screen (PWA shortcut in manifest.json)
+
+### G5 — Map Search + Location Jump
+**Status**: `[ ]` Not started
+**Why**: When a user wants to find their clips in a specific city, they have to manually pan. A "Jump to city" search would fix this.
+**Files**: `app/page.tsx`, `components/MapView.tsx`
+**What to do**:
+- Add a location search bar to the map top bar (shows when the user taps a search icon)
+- Use the free Nominatim API (OpenStreetMap geocoding) to resolve city/place names to coordinates
+- On select, flyTo those coordinates at zoom 12
+- Debounced (400ms), show up to 5 suggestions with country name disambiguation
+
+### G6 — Haptic Feedback on Key Interactions
+**Status**: `[ ]` Not started
+**Why**: Current haptics are limited to clip save. More haptic moments make the app feel premium on iPhone.
+**Files**: `lib/haptics.ts`, multiple components
+**What to do**:
+- Add `hapticLight()` on: board card tap, pin tap on map, tag toggle in edit mode, swipe-to-delete snap point
+- Add `hapticMedium()` on: swipe-to-delete confirmation, plan generated, batch import complete
+- Add `hapticError()` pattern (double short buzz) on: enrichment failure, copy/share fail
+- New `hapticError()` in `lib/haptics.ts`: `navigator.vibrate([30, 50, 30])`
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
