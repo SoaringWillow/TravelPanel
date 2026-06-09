@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+
+    <div class="header">
+      <div class="logo">
+        <span class="logo-icon">✈</span>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="icon-btn" id="openSettings" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="viewMain">
+      <div class="page-card" id="pageCard">
+        <div class="favicon-wrap">
+          <img id="pageFavicon" src="" alt="" width="20" height="20">
+          <span id="pageFaviconFallback" class="favicon-fallback">🌐</span>
+        </div>
+        <div class="page-meta">
+          <div class="page-title" id="pageTitle">Loading…</div>
+          <div class="page-url" id="pageUrl">—</div>
+        </div>
+      </div>
+
+      <div class="platform-badge" id="platformBadge" style="display:none">
+        <span id="platformLabel"></span>
+      </div>
+
+      <button class="clip-btn" id="clipBtn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        Clip to TravelPanel
+      </button>
+
+      <div class="warning-bar" id="warningBar" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>App URL not configured. <a href="#" id="configureLink">Set it here →</a></span>
+      </div>
+    </div>
+
+    <div id="viewSuccess" style="display:none">
+      <div class="success-state">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Opening TravelPanel…</div>
+        <div class="success-sub">Select a board to save your clip</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Clips the URL so TravelPanel can extract locations &amp; tips
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
