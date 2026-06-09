@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { motion, useMotionValue, useTransform, useAnimationControls, PanInfo } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
+import { hapticMedium, hapticLight } from '@/lib/haptics';
 
 const DELETE_THRESHOLD = -80;
 
@@ -20,16 +21,29 @@ export default function SwipeToDelete({ onDelete, children, disabled }: SwipeToD
   const revealWidth = useTransform(x, [DELETE_THRESHOLD, 0], [80, 0]);
   const revealOpacity = useTransform(x, [DELETE_THRESHOLD, DELETE_THRESHOLD / 2, 0], [1, 0.6, 0]);
 
+  const pastThreshold = useRef(false);
+
   async function handlePanEnd(_: unknown, info: PanInfo) {
     if (disabled || deleting.current) return;
     if (info.offset.x < DELETE_THRESHOLD) {
       deleting.current = true;
-      // Fly out to left, then call onDelete
+      hapticMedium();
       await controls.start({ x: -400, opacity: 0, transition: { duration: 0.25, ease: 'easeIn' } });
       onDelete();
     } else {
-      // Snap back
+      pastThreshold.current = false;
       controls.start({ x: 0, transition: { type: 'spring', stiffness: 500, damping: 40 } });
+    }
+  }
+
+  function handlePan(_: unknown, info: PanInfo) {
+    if (disabled) return;
+    const crossed = info.offset.x < DELETE_THRESHOLD;
+    if (crossed && !pastThreshold.current) {
+      pastThreshold.current = true;
+      hapticLight();
+    } else if (!crossed && pastThreshold.current) {
+      pastThreshold.current = false;
     }
   }
 
@@ -52,6 +66,7 @@ export default function SwipeToDelete({ onDelete, children, disabled }: SwipeToD
         drag="x"
         dragConstraints={{ left: DELETE_THRESHOLD * 1.2, right: 0 }}
         dragElastic={{ left: 0.15, right: 0 }}
+        onPan={handlePan}
         onPanEnd={handlePanEnd}
         className="relative z-10"
       >

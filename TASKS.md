@@ -394,7 +394,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > TravelPanel from competitors.
 
 ### G1 — Smart Clip Title Cleanup
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Claude often extracts noisy titles like "Watch this video!" or "你一定不知道的10个旅行技巧" that don't tell the user where the clip is about. A cleanup pass would produce concise English destination-first titles.
 **Files**: `app/api/import/route.ts`
 **What to do**:
@@ -441,7 +441,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Debounced (400ms), show up to 5 suggestions with country name disambiguation
 
 ### G6 — Haptic Feedback on Key Interactions
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Current haptics are limited to clip save. More haptic moments make the app feel premium on iPhone.
 **Files**: `lib/haptics.ts`, multiple components
 **What to do**:

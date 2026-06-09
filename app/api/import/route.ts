@@ -171,9 +171,34 @@ Never return an empty substance array for a real travel post.`;
     // Fall through to defaults
   }
 
+  let title = (claudeResult?.title || page?.title || url).slice(0, 200);
+
+  // Smart title cleanup: if title is long, non-English, or noisy, run a Haiku cleanup pass
+  if (title && title.length > 60 && claudeResult?.locations?.length) {
+    try {
+      const { object: cleaned } = await generateObject({
+        model: models.enrichment,
+        schema: z.object({
+          title: z.string().describe('Concise English destination-first title, max 60 chars'),
+        }),
+        prompt: `Rewrite this travel clip title to be concise, in English, and destination-first (e.g. "Nishiki Market, Kyoto — street food guide"). Max 60 characters. Keep specific place names.
+
+Original title: ${title}
+Locations found: ${claudeResult.locations.map(l => l.name).join(', ')}
+
+Output only the cleaned title.`,
+      });
+      if (cleaned.title && cleaned.title.length < title.length) {
+        title = cleaned.title;
+      }
+    } catch {
+      // Keep original title if cleanup fails
+    }
+  }
+
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
+    title: title.slice(0, 200),
     description: (claudeResult?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],

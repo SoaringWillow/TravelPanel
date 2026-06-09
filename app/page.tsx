@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus, Locate } from 'lucide-react';
+import { hapticLight } from '@/lib/haptics';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location, Board } from '@/lib/types';
 import { getAllBoards } from '@/lib/db';
@@ -108,7 +109,7 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={visibleItems} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={visibleItems} onPinClick={(item) => { hapticLight(); setSelectedItem(item); }} flyTo={flyTo} />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pb-2 space-y-2">

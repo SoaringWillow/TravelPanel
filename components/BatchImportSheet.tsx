@@ -8,6 +8,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { detectPlatform } from '@/lib/parse-url';
 import { SavedItem } from '@/lib/types';
 import { track } from '@/lib/analytics';
+import { hapticSuccess } from '@/lib/haptics';
 
 interface BatchImportSheetProps {
   open: boolean;
@@ -64,6 +65,7 @@ export default function BatchImportSheet({ open, onClose, onDone }: BatchImportS
     }
 
     track('batch_import', { count: urls.length });
+    hapticSuccess();
     onDone(); // refresh inbox immediately so items appear
 
     // Enrich sequentially with 500ms stagger

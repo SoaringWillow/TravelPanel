@@ -21,3 +21,15 @@ export function hapticSuccess() {
     navigator.vibrate([10, 30, 10]);
   }
 }
+
+export function hapticError() {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([30, 50, 30]);
+  }
+}
+
+export function hapticSelect() {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(6);
+  }
+}
