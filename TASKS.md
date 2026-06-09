@@ -42,7 +42,7 @@ reviewers and real users notice.
 - Test mentally: iPhone 15 Pro has ~59px Dynamic Island; iPhone SE has ~20px status bar
 
 ### D2 — Swipe-to-Delete on Inbox Cards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Swipe left to delete is a universal iOS gesture. Users expect it on every list item.
 Without it, the delete button buried in the card footer is hard to discover.
 **Files to change**: new `components/SwipeableCard.tsx`, `app/inbox/page.tsx`,

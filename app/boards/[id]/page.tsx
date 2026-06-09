@@ -8,6 +8,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import LongPressDeleteCard from '@/components/LongPressDeleteCard';
 import NavBar from '@/components/NavBar';
 import { buildShareUrl } from '@/lib/shareBoard';
 
@@ -209,12 +210,13 @@ export default function BoardDetailPage() {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
-                />
+                <LongPressDeleteCard key={item.id} onDelete={() => handleDelete(item.id)}>
+                  <InboxCard
+                    item={item}
+                    onDelete={handleDelete}
+                    onViewOnMap={handleViewOnMap}
+                  />
+                </LongPressDeleteCard>
               ))}
             </div>
           )}
