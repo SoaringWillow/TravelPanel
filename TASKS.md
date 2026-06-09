@@ -184,7 +184,7 @@ Without it the app is harsh at night and looks unfinished.
 ## PHASE E — UX Deepening
 
 ### E1 — Auto-Board Suggestion on Save
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: When users save a clip, they have to manually choose a board from a list. The app
 should infer the right board from the content and offer a single-tap confirm.
 **Files**: new `lib/boardSuggestion.ts`, `app/share/page.tsx`
@@ -472,7 +472,7 @@ one command.
 ## PHASE H — Enrichment & Intelligence
 
 ### H1 — On-Device TF-IDF Search Improvement
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The current `searchItems` function does simple substring matching. At 200+ clips
 it misses plural/singular variations, returns noisy results, and has no relevance ranking.
 TF-IDF with stemming produces dramatically better results without any server calls.

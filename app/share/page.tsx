@@ -8,6 +8,7 @@ import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { hapticNotification } from '@/lib/haptics';
+import { suggestBoard } from '@/lib/boardSuggestion';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -31,6 +32,9 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [dupeItem, setDupeItem]               = useState<SavedItem | null>(null);
+  const [boardSuggestion, setBoardSuggestion] = useState<Board | null>(null);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+  const savedItemIdRef = useRef<string | undefined>(undefined);
   const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,6 +92,7 @@ function SharePageInner() {
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    savedItemIdRef.current = itemId;
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
@@ -132,6 +137,12 @@ function SharePageInner() {
               tags: updated.tags,
               substance: updated.substance,
             } as ImportResult);
+
+            // Auto-suggest a board if item was saved to Inbox
+            if (!selectedBoardId && updated.locations.length > 0) {
+              const suggestion = suggestBoard(updated, boards, []);
+              if (suggestion) setBoardSuggestion(suggestion);
+            }
           }
         }
         setEnrichmentLoading(false);
@@ -363,6 +374,41 @@ function SharePageInner() {
             </div>
           ) : null}
         </motion.div>
+
+        {/* Board suggestion */}
+        {boardSuggestion && !suggestionDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+            className="w-full bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3"
+          >
+            <p className="text-xs text-indigo-600 font-semibold mb-2">
+              Add to a collection?
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!savedItemIdRef.current) return;
+                  await addItemToBoard(boardSuggestion.id, savedItemIdRef.current);
+                  setSuggestionDismissed(true);
+                  hapticNotification('success');
+                }}
+                className="flex-1 bg-indigo-600 text-white text-sm font-semibold px-3 py-2 rounded-xl active:scale-95 transition-all"
+              >
+                {boardSuggestion.emoji} {boardSuggestion.name} ✓
+              </button>
+              <button
+                type="button"
+                onClick={() => setSuggestionDismissed(true)}
+                className="text-xs text-indigo-400 px-2 py-2"
+              >
+                Skip
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         <motion.p
           initial={{ opacity: 0 }}
