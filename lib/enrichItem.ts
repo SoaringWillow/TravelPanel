@@ -4,6 +4,7 @@ import { updateItemEnrichment } from './db';
 import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
+import { notifyEnrichmentDone } from './notify';
 
 export interface EnrichOptions {
   imageBase64?: string;
@@ -50,6 +51,7 @@ export async function enrichItem(id: string, url: string, opts: EnrichOptions = 
       substanceCount: data.substance?.length ?? 0,
       visionUsed: !!opts.imageBase64,
     });
+    notifyEnrichmentDone(data.title, data.locations.length, data.substance?.length ?? 0);
     return true;
   } catch {
     await updateItemEnrichment(id, 'failed');

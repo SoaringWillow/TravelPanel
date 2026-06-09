@@ -217,7 +217,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fall back gracefully if clipboard permission is denied
 
 ### D3 — Local Notifications for Enrichment Completion
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done — lib/notify.ts tries @capacitor/local-notifications then Web Notifications API, no-ops gracefully; notifyEnrichmentDone fires from enrichItem on success  
 **Why**: Currently enrichment runs silently. Users close the share sheet without knowing if it succeeded. A local notification "Your Tokyo café clip is ready — 3 locations found" closes the loop.  
 **Files**: new `lib/notify.ts`, `lib/enrichItem.ts`  
 **What to do**:  
