@@ -81,31 +81,21 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompt builder ──────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildPrompt(
+  platform: string,
+  url: string,
+  page: Awaited<ReturnType<typeof fetchPageData>>,
+) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
+Title: ${page?.title ?? '(unavailable — anti-scraping platform)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — use the attached screenshot if provided)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -127,15 +117,71 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+// Platforms that block HTTP scraping — we skip web fetch when an image is available.
+const ANTI_SCRAPING_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let image: string | undefined; // base64 JPEG from iOS Share Extension screenshot
+  try {
+    const body = await req.json();
+    url = body.url;
+    image = typeof body.image === 'string' ? body.image : undefined;
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // Skip web scraping for anti-scraping platforms when an image is available —
+  // Claude Vision will read the screenshot directly instead.
+  const skipScraping = image && ANTI_SCRAPING_PLATFORMS.has(platform);
+  const page = skipScraping ? null : await fetchPageData(url);
+
+  const promptText = buildPrompt(platform, url, page);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (image) {
+      // Vision path: analyze the screenshot alongside text.
+      // Takes priority for anti-scraping platforms (Xiaohongshu, WeChat).
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: Buffer.from(image, 'base64'),
+                mimeType: 'image/jpeg',
+              },
+              {
+                type: 'text',
+                text: promptText + '\n\nIMPORTANT: The screenshot of the original post is attached above. Extract information from the visible text and images in the screenshot — this is your primary source for platforms like Xiaohongshu and WeChat that block scraping.',
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: promptText,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

@@ -109,6 +109,26 @@ export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedI
   }
 }
 
+function normalizeUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.hostname.toLowerCase()}${u.pathname.replace(/\/$/, '')}${u.search}`;
+  } catch {
+    return url.toLowerCase().replace(/\/$/, '');
+  }
+}
+
+export async function getItemByUrl(url: string): Promise<SavedItem | undefined> {
+  try {
+    const db = await getDB();
+    const all = await db.getAll('items');
+    const normalized = normalizeUrl(url);
+    return all.find((item) => normalizeUrl(item.url) === normalized);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,

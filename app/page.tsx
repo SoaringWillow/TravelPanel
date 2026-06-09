@@ -1,14 +1,16 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Navigation } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import NearMeSheet from '@/components/NearMeSheet';
+import TodayBanner from '@/components/TodayBanner';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -22,6 +24,9 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [showNearMe, setShowNearMe]     = useState(false);
+  const [showBanner, setShowBanner]     = useState(true);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -68,10 +73,20 @@ function HomePageInner() {
     setPrefilledUrl('');
   }
 
+  const handleUserLocation = useCallback((lat: number, lng: number) => {
+    setUserLocation({ lat, lng });
+    setShowNearMe(true);
+  }, []);
+
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView
+        items={items}
+        onPinClick={setSelectedItem}
+        flyTo={flyTo}
+        onUserLocation={handleUserLocation}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -94,15 +109,44 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
-      {/* Import FAB */}
+      {/* Today's picks banner — proactive resurfacing */}
+      <AnimatePresence>
+        {!selectedItem && !showImport && showBanner && items.length > 0 && (
+          <div className="absolute bottom-20 left-0 right-0 z-[999]">
+            <TodayBanner
+              items={items}
+              onItemClick={(item, location) => {
+                setSelectedItem(item);
+                if (location) setFlyTo(location);
+                setShowBanner(false);
+              }}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* FABs */}
       {!selectedItem && (
-        <button
-          onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          aria-label="Clip inspiration"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="absolute bottom-24 right-4 z-[1000] flex flex-col gap-3">
+          {/* Near Me button — shows when user has been geolocated */}
+          {userLocation && (
+            <button
+              onClick={() => setShowNearMe(true)}
+              className="bg-white text-indigo-600 rounded-full p-3.5 shadow-xl border border-indigo-100 hover:bg-indigo-50 active:scale-95 transition-all"
+              aria-label="Near me"
+            >
+              <Navigation size={22} />
+            </button>
+          )}
+          {/* Import FAB */}
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            aria-label="Clip inspiration"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       )}
 
       {/* Import Sheet */}
@@ -112,6 +156,21 @@ function HomePageInner() {
         onSaved={handleItemSaved}
         initialUrl={prefilledUrl}
       />
+
+      {/* Near Me Sheet */}
+      {userLocation && (
+        <NearMeSheet
+          open={showNearMe}
+          onOpenChange={setShowNearMe}
+          items={items}
+          userLat={userLocation.lat}
+          userLng={userLocation.lng}
+          onItemClick={(item, location) => {
+            setSelectedItem(item);
+            setFlyTo(location);
+          }}
+        />
+      )}
 
       <NavBar active="home" />
     </main>
