@@ -158,7 +158,7 @@ the mystery and sets correct expectations.
 - Add `<OfflineBanner />` to `app/layout.tsx` above the children
 
 ### D8 — Dark Mode Support
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: iOS users expect dark mode to be respected. Half of iPhone users use dark mode.
 Without it the app is harsh at night and looks unfinished.
 **Files**: `app/globals.css`, `app/layout.tsx`, `components/NavBar.tsx`,

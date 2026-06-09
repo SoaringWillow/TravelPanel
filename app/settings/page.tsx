@@ -117,9 +117,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-5 header-safe pb-4">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-5 header-safe pb-4">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
       </div>
 
@@ -222,7 +222,7 @@ export default function SettingsPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
       <div className="px-4 pt-4 pb-2">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</p>
       </div>
