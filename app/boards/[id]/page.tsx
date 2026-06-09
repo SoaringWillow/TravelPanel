@@ -88,8 +88,8 @@ export default function BoardDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50">
-        <div className="bg-white shadow-sm px-4 pt-12 pb-4 h-24" />
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
+        <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-12 pb-4 h-24" />
         <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
           <div className="h-10 w-full rounded-xl bg-indigo-50 mb-4 skeleton-shimmer" />
           <SkeletonGrid count={6} />
@@ -101,11 +101,11 @@ export default function BoardDetailPage() {
 
   if (!board) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
         <div className="flex flex-col items-center justify-center flex-1 text-center px-6">
           <div className="text-5xl mb-4">🗺</div>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">Board not found</h2>
-          <p className="text-sm text-gray-500 mb-6">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Board not found</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             This board may have been deleted or does not exist.
           </p>
           <button
@@ -123,14 +123,14 @@ export default function BoardDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm dark:border-b dark:border-gray-800 px-4 pt-12 pb-4 z-10">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors -ml-1"
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors -ml-1"
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
@@ -139,12 +139,12 @@ export default function BoardDetailPage() {
           <span className="text-2xl leading-none">{board.emoji}</span>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-gray-800 leading-tight truncate">
+            <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight truncate">
               {board.name}
             </h1>
           </div>
 
-          <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
+          <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
 
@@ -153,7 +153,7 @@ export default function BoardDetailPage() {
             type="button"
             onClick={handleShare}
             title={shared ? 'Copied!' : 'Share board'}
-            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0"
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 rounded-xl transition-colors flex-shrink-0"
           >
             {shared ? <span className="text-xs font-semibold text-green-600">✓</span> : <Share2 size={18} />}
           </button>
@@ -168,7 +168,7 @@ export default function BoardDetailPage() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 viewMode === 'grid'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-500 hover:bg-gray-100'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               <LayoutGrid size={13} /> Grid
@@ -179,7 +179,7 @@ export default function BoardDetailPage() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 viewMode === 'timeline'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-500 hover:bg-gray-100'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               <BookOpen size={13} /> Journal
@@ -242,11 +242,11 @@ export default function BoardDetailPage() {
           {/* Items — grid or timeline */}
           {boardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
+              <MapPin className="text-gray-300 dark:text-gray-600 mb-3" size={40} />
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
                 No places saved to this board yet.
               </p>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-400 dark:text-gray-500">
                 Go to Inbox to add items.
               </p>
             </div>

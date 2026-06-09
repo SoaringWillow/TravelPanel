@@ -37,7 +37,7 @@ Goal: **beautiful, fully-functional native iOS app** that wins on capture ease +
 - Wire pull-to-refresh to `useSavedItems` to re-read IndexedDB (mostly instant but reassures user)
 
 ### D2 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect dark mode. Currently the app is hardcoded light-only.  
 **Files to change**: `app/layout.tsx`, `app/globals.css`, most components  
 **What to do**:
