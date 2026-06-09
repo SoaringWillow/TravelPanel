@@ -137,3 +137,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-09 15:37 | dcaf2a0 | feat(H9): inbox multi-select for batch move and delete
 2026-06-09 15:38 | 8433ae9 | feat(H3): in-app review prompt after 5th clip saved
 2026-06-09 15:41 | 9cc3c31 | chore: update SESSIONS.md with Phase H completion log
+2026-06-09 15:48 | 8fb7982 | feat(I1-I4,I8): onboarding, empty states, context menu, visit status

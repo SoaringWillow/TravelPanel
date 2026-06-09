@@ -37,6 +37,8 @@ const dayPlanSchema = z.object({
   theme: z.string(),
   locations: z.array(locationSchema),
   activities: z.array(activitySchema),
+  estimatedCostUsd: z.object({ min: z.number(), max: z.number() }).optional()
+    .describe('Rough daily cost in USD (accommodation + food + activities). Only include when a budget tier was specified.'),
 });
 
 const tripPlanSchema = z.object({
@@ -50,9 +52,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string, travelMonth: string | undefined;
+  let items: SavedItem[], days: number, preferences: string, travelMonth: string | undefined, budgetTier: 'budget' | 'mid' | 'luxury' | undefined;
   try {
-    ({ items, days, preferences, travelMonth } = await req.json());
+    ({ items, days, preferences, travelMonth, budgetTier } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -150,6 +152,7 @@ Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
 ${travelMonth ? `Travel dates: ${new Date(travelMonth + '-01').toLocaleDateString('en', { month: 'long', year: 'numeric' })}` : ''}
+${budgetTier ? `Budget tier: ${budgetTier === 'budget' ? 'Budget (hostels, street food, free attractions) — include rough daily cost estimate in USD' : budgetTier === 'mid' ? 'Mid-range (3-star hotels, local restaurants) — include rough daily cost estimate in USD' : 'Luxury (5-star, fine dining, private tours) — include rough daily cost estimate in USD'}` : ''}
 
 Rules:
 - 2-4 activities per day with realistic timing

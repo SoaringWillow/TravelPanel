@@ -86,6 +86,17 @@ export function CapacitorBridge() {
         // Check for a pending share written by the Share Extension via App Group
         // fallback (fires when the URL scheme open wasn't available).
         checkPendingAppGroupShare(router);
+
+        // Local notification tap → navigate to digest
+        try {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+            const route = action.notification.extra?.route;
+            if (route) router.push(route);
+          });
+        } catch {
+          // local-notifications not available in web
+        }
       } catch {
         // Not a Capacitor context (running in a standard browser) — no-op
       }

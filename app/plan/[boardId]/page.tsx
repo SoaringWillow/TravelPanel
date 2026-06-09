@@ -36,6 +36,7 @@ export default function PlanPage() {
   });
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
+  const [budgetTier, setBudgetTier] = useState<'budget' | 'mid' | 'luxury' | null>(null);
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
@@ -94,6 +95,7 @@ export default function PlanPage() {
         items: boardItems,
         days,
         travelMonth: travelMonth || undefined,
+        budgetTier: budgetTier ?? undefined,
         preferences: [
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
@@ -158,7 +160,7 @@ export default function PlanPage() {
         }
       }
     }
-  }, [boardItems, days, travelMonth, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, travelMonth, budgetTier, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -371,6 +373,34 @@ export default function PlanPage() {
                 />
               </div>
 
+              {/* Budget tier */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">
+                  Budget tier <span className="text-xs font-normal text-gray-400">(optional)</span>
+                </label>
+                <div className="flex gap-2">
+                  {([
+                    { key: 'budget', label: '💰 Budget', hint: 'hostels, street food' },
+                    { key: 'mid', label: '💳 Mid-range', hint: '3★ hotels, restaurants' },
+                    { key: 'luxury', label: '💎 Luxury', hint: '5★, fine dining' },
+                  ] as const).map(({ key, label, hint }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setBudgetTier(budgetTier === key ? null : key)}
+                      title={hint}
+                      className={`flex-1 text-xs font-semibold py-2 px-2 rounded-xl transition-all active:scale-95 ${
+                        budgetTier === key
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-indigo-50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Preference chips */}
               <div className="space-y-3">
                 <label className="text-sm font-semibold text-gray-700">Travel style</label>
@@ -569,58 +599,100 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
-
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                  {/* Day header */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-baseline gap-2 flex-1">
+                      <span className="text-3xl font-black text-gray-100 dark:text-gray-800 leading-none">
+                        {activeDayIndex + 1}
+                      </span>
+                      <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">
+                        {activeDayPlan.theme}
+                      </h2>
                     </div>
-                  ))}
+                    {activeDayPlan.estimatedCostUsd && (
+                      <span className="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+                        ~${activeDayPlan.estimatedCostUsd.min}–${activeDayPlan.estimatedCostUsd.max}/day
+                      </span>
+                    )}
+                  </div>
+
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    // Pick icon from activity name keywords
+                    const name = (activity.name + activity.location.name).toLowerCase();
+                    const icon =
+                      name.includes('food') || name.includes('eat') || name.includes('restaurant') || name.includes('cafe') || name.includes('market') ? '🍜'
+                      : name.includes('museum') || name.includes('temple') || name.includes('shrine') || name.includes('culture') || name.includes('histor') ? '🏛'
+                      : name.includes('nature') || name.includes('park') || name.includes('garden') || name.includes('hike') || name.includes('forest') ? '🌿'
+                      : name.includes('shop') || name.includes('market') || name.includes('store') ? '🛍'
+                      : name.includes('beach') || name.includes('coast') || name.includes('sea') ? '🏖'
+                      : name.includes('hotel') || name.includes('stay') || name.includes('checkin') || name.includes('accomm') ? '🏨'
+                      : '✨';
+
+                    return (
+                      <div
+                        key={aIdx}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+                      >
+                        {/* Left accent stripe */}
+                        <div className="flex">
+                          <div className="w-1 bg-indigo-500 flex-shrink-0 rounded-l-2xl" />
+                          <div className="flex-1 p-3.5 space-y-2">
+                            {/* Header row */}
+                            <div className="flex items-start gap-2.5">
+                              <span className="text-2xl flex-shrink-0 mt-0.5">{icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                    {activity.time}
+                                  </span>
+                                  <span className="bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                                    {activity.duration}
+                                  </span>
+                                </div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white mt-1 leading-snug">
+                                  {activity.name}
+                                </p>
+                                <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium truncate">
+                                  📍 {activity.location.name}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Generic tips */}
+                            {activity.tips.length > 0 && (
+                              <ul className="space-y-1">
+                                {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                                  <li key={tIdx} className="text-xs text-gray-500 dark:text-gray-400 leading-snug flex items-start gap-1.5">
+                                    <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
+                                    <span>{tip}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+
+                            {/* Sourced tips — wisdom from user's own clips */}
+                            {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                              <div className="space-y-1.5">
+                                {activity.sourcedTips.map((st, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    className="bg-emerald-50 dark:bg-emerald-950 rounded-xl px-3 py-2 border-l-3 border-emerald-400"
+                                  >
+                                    <p className="text-xs text-emerald-800 dark:text-emerald-200 leading-snug font-medium">
+                                      💡 {st.content}
+                                    </p>
+                                    <p className="text-[10px] text-emerald-500 dark:text-emerald-400 mt-0.5 truncate">
+                                      from your clip: <span className="italic">{st.sourceTitle}</span>
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

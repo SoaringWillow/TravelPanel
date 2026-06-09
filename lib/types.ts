@@ -105,6 +105,7 @@ export interface DayPlan {
   theme: string;
   locations: Location[];
   activities: Activity[];
+  estimatedCostUsd?: { min: number; max: number };
 }
 
 export interface TripPlan {

@@ -1,15 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Download, Trash2, Info, ExternalLink,
-  CheckCircle2, AlertTriangle, Database, Sun, Moon, Monitor, Sparkles,
+  CheckCircle2, AlertTriangle, Database, Sun, Moon, Monitor, Sparkles, Bell,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import { exportAllData, downloadJSON } from '@/lib/exportData';
 import { track } from '@/lib/analytics';
 import { useTheme, type Theme } from '@/components/ThemeProvider';
+import {
+  requestNotificationPermission,
+  scheduleWeeklyDigest,
+  cancelDigestNotification,
+  isDigestNotifEnabled,
+  setDigestNotifEnabled,
+} from '@/lib/localNotifications';
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -162,6 +169,64 @@ function ThemeRow() {
   );
 }
 
+// ─── Notifications toggle ────────────────────────────────────────────────────
+
+function NotificationsRow() {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    setEnabled(isDigestNotifEnabled());
+  }, []);
+
+  async function handleToggle() {
+    if (enabled) {
+      await cancelDigestNotification();
+      setDigestNotifEnabled(false);
+      setEnabled(false);
+    } else {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        await scheduleWeeklyDigest(0);
+        setDigestNotifEnabled(true);
+        setEnabled(true);
+      } else {
+        alert('Please enable notifications in your device settings to receive weekly reminders.');
+      }
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3.5 px-4 py-3.5">
+      <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-violet-50">
+        <Bell size={18} className="text-violet-600" strokeWidth={2} />
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[15px] font-medium text-gray-900 dark:text-gray-100">
+          Weekly Digest Reminder
+        </span>
+        <span className="block text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">
+          {enabled ? "You'll get a weekly nudge every Monday" : 'A weekly reminder to revisit saved spots'}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={handleToggle}
+        aria-pressed={enabled}
+        aria-label={enabled ? 'Disable weekly digest notifications' : 'Enable weekly digest notifications'}
+        className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+          enabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+            enabled ? 'translate-x-6' : 'translate-x-0.5'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -203,7 +268,7 @@ export default function SettingsPage() {
         />
       </Section>
 
-      {/* Discover */}
+      {/* Discover + Notifications */}
       <Section title="Discover">
         <Row
           icon={Sparkles}
@@ -214,6 +279,7 @@ export default function SettingsPage() {
           right="›"
           onClick={() => router.push('/digest')}
         />
+        <NotificationsRow />
       </Section>
 
       {/* About */}

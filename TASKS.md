@@ -620,7 +620,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
   - Small "Add a clip" button that links to /inbox
 
 ### I3 — iOS Local Notifications for Weekly Digest
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The app has no re-engagement mechanism. Push notifications are the #1 driver of D30 retention in travel apps. The digest page exists but no one sees it.
 **Files**: `lib/localNotifications.ts` (new), `app/settings/page.tsx`, `components/CapacitorBridge.tsx`
 **What to do**:
@@ -651,7 +651,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Dismiss swipe-to-delete during context menu open
 
 ### I5 — Trip Plan Visual Redesign
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The current plan view renders as a raw list of activity cards. It's functional but not shareable. A beautiful plan view is a viral moment: users screenshot and post it.
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`
 **What to do**:
@@ -665,7 +665,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
   - Copy-to-clipboard or Web Share with the story text
 
 ### I6 — Board Templates for New Boards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Creating a board from scratch requires users to think. Pre-made templates reduce the blank-page problem and seed the app with structured trip types.
 **Files**: `lib/boardTemplates.ts` (new), `components/CreateBoardModal.tsx` (or `app/boards/page.tsx`)
 **What to do**:
@@ -705,7 +705,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - In `/digest` page: only resurface unvisited clips (filter `visitStatus !== 'visited'`)
 
 ### I9 — AI Trip Budget Estimate in Plans
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: "How much will this trip cost?" is the #2 question after "where should I go?". A rough budget estimate per day makes TravelPanel the complete trip planning tool, not just an itinerary generator.
 **Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`, `lib/types.ts`
 **What to do**:

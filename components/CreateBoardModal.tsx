@@ -10,6 +10,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import EmojiPicker from '@/components/EmojiPicker';
+import { BOARD_TEMPLATES } from '@/lib/boardTemplates';
 
 interface CreateBoardModalProps {
   open: boolean;
@@ -20,12 +21,22 @@ interface CreateBoardModalProps {
 export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoardModalProps) {
   const [name, setName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🗺');
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+  function applyTemplate(templateName: string) {
+    const t = BOARD_TEMPLATES.find((t) => t.name === templateName);
+    if (!t) return;
+    setName(t.name);
+    setSelectedEmoji(t.emoji);
+    setSelectedTemplate(templateName);
+  }
 
   function handleCreate() {
     if (!name.trim()) return;
     onCreate(name.trim(), selectedEmoji);
     setName('');
     setSelectedEmoji('🗺');
+    setSelectedTemplate(null);
     onClose();
   }
 
@@ -33,6 +44,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
     if (!isOpen) {
       setName('');
       setSelectedEmoji('🗺');
+      setSelectedTemplate(null);
       onClose();
     }
   }
@@ -44,8 +56,38 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
           <DialogTitle>New Board</DialogTitle>
         </DialogHeader>
 
-        {/* Selected emoji preview + picker */}
+        {/* Templates */}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            Start from template
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+            {BOARD_TEMPLATES.map((t) => (
+              <button
+                key={t.name}
+                type="button"
+                onClick={() => applyTemplate(t.name)}
+                className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2.5 rounded-2xl border-2 transition-all text-left ${
+                  selectedTemplate === t.name
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950'
+                    : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:border-indigo-200'
+                }`}
+                style={{ minWidth: 80 }}
+              >
+                <span className="text-2xl">{t.emoji}</span>
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 text-center leading-tight" style={{ maxWidth: 72 }}>
+                  {t.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Custom name + emoji */}
         <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            Or create your own
+          </p>
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
               {selectedEmoji}
@@ -54,7 +96,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); setSelectedTemplate(null); }}
                 placeholder="e.g. Japan Trip, Weekend Eats…"
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
                 onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
@@ -63,7 +105,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
             </div>
           </div>
 
-          <EmojiPicker selected={selectedEmoji} onSelect={setSelectedEmoji} />
+          <EmojiPicker selected={selectedEmoji} onSelect={(e) => { setSelectedEmoji(e); setSelectedTemplate(null); }} />
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
