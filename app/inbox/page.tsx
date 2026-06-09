@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, LayoutGrid, Clock } from 'lucide-react';
+import { X, LayoutGrid, Clock, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform, SavedItem } from '@/lib/types';
@@ -151,7 +151,8 @@ export default function InboxPage() {
   const { boards } = useBoards();
   const router = useRouter();
 
-  const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { retryItem, retryAll } = useEnrichmentRetry(refreshItem);
+  const [retryingAll, setRetryingAll] = useState(false);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -162,6 +163,16 @@ export default function InboxPage() {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
+
+  // Failed items across all (not just inbox unassigned)
+  const failedItems = items.filter((i) => i.enrichmentStatus === 'failed');
+
+  async function handleRetryAll() {
+    if (retryingAll || failedItems.length === 0) return;
+    setRetryingAll(true);
+    await retryAll(failedItems.map((i) => ({ id: i.id, url: i.url })));
+    setRetryingAll(false);
+  }
 
   // Build board name lookup for the timeline
   const boardMap = new Map(boards.map((b) => [b.id, `${b.emoji} ${b.name}`]));
@@ -231,6 +242,19 @@ export default function InboxPage() {
             <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
               {inboxItems.length} unsorted
             </span>
+          )}
+
+          {/* Retry all failed */}
+          {failedItems.length > 0 && viewMode === 'inbox' && (
+            <button
+              type="button"
+              onClick={handleRetryAll}
+              disabled={retryingAll}
+              className="flex items-center gap-1 bg-red-50 text-red-600 text-xs font-semibold px-2.5 py-1 rounded-full hover:bg-red-100 active:scale-95 transition-all disabled:opacity-60"
+            >
+              <RefreshCw size={11} className={retryingAll ? 'animate-spin' : ''} />
+              {failedItems.length} failed · Retry
+            </button>
           )}
 
           {/* View toggle */}

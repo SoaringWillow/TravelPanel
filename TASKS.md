@@ -248,7 +248,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Or use `@capacitor/haptics` to give a light haptic click on refresh
 
 ### D6 — Enrichment Failure "Retry All" Button
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done — "N failed · Retry" badge in inbox header; retryAll() runs all failed items in parallel; spinner during retry  
 **Why**: The retry queue retries automatically, but after 3 failures items are stuck. Users deserve a manual "Retry all failed" button in the inbox header.  
 **Files**: `app/inbox/page.tsx`, `hooks/useEnrichmentRetry.ts`  
 **What to do**:  
@@ -268,7 +268,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fire `impact('medium')` on swipe-delete
 
 ### D8 — Offline Indicator & Graceful Degradation
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done — useOnlineStatus hook (navigator.onLine + events); amber offline banner on share page; enrichment skipped when offline, done stage shows "will enrich when reconnected"  
 **Why**: The app silently fails enrichment when offline. Users don't know if their clip saved or failed.  
 **Files**: new `hooks/useOnlineStatus.ts`, `app/share/page.tsx`  
 **What to do**:  
