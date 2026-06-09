@@ -29,12 +29,34 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Check for a screenshot written to App Group by the iOS Share Extension.
+  // Only consumed once; stale data (>30 s old) is discarded.
+  useEffect(() => {
+    const checkPendingImage = async () => {
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const [{ value: imageBase64 }, { value: dateStr }] = await Promise.all([
+          Preferences.get({ key: 'pendingShareImageBase64' }),
+          Preferences.get({ key: 'pendingShareDate' }),
+        ]);
+        await Preferences.remove({ key: 'pendingShareImageBase64' });
+        if (!imageBase64 || !dateStr) return;
+        const ageMs = Date.now() - new Date(dateStr).getTime();
+        if (ageMs < 30_000) setPendingImageBase64(imageBase64);
+      } catch {
+        // Not in Capacitor context — no-op
+      }
+    };
+    checkPendingImage();
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +110,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (Xiaohongshu / anti-scrape fallback)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
