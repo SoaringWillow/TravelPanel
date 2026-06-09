@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, ClipboardPaste } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -31,27 +31,67 @@ const ALL_PLATFORMS = ['wechat', 'xiaohongshu', 'douyin', 'bilibili', 'other'] a
 
 const IMPORT_TIMEOUT_MS = 25_000;
 
+function isValidUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function getDomain(value: string): string | null {
+  try {
+    return new URL(value).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]               = useState(initialUrl);
+  const [notes, setNotes]           = useState('');
+  const [stage, setStage]           = useState<Stage>('idle');
+  const [preview, setPreview]       = useState<ImportResult | null>(null);
+  const [error, setError]           = useState('');
+  const [clipboardUrl, setClipboardUrl] = useState<string | null>(null);
+  const abortRef                    = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
 
+  const readClipboard = useCallback(async () => {
+    if (!navigator?.clipboard?.readText) return;
+    try {
+      const text = await navigator.clipboard.readText();
+      const trimmed = text.trim();
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        setClipboardUrl(trimmed);
+      } else {
+        setClipboardUrl(null);
+      }
+    } catch {
+      setClipboardUrl(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) readClipboard();
+    else setClipboardUrl(null);
+  }, [open, readClipboard]);
+
   const trimmedUrl       = url.trim();
-  const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
+  const urlValid         = isValidUrl(trimmedUrl);
+  const detectedPlatform = urlValid ? detectPlatform(trimmedUrl) : null;
+  const domain           = urlValid ? getDomain(trimmedUrl) : null;
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
   async function handleImport() {
-    if (!trimmedUrl) return;
+    if (!urlValid) return;
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -141,6 +181,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setClipboardUrl(null);
   }
 
   function handleClose() {
@@ -207,12 +248,44 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
             />
           </div>
 
+          {/* ── URL domain preview chip ─────────────────────────────────── */}
+          {trimmedUrl && !urlValid && (
+            <p className="text-xs text-red-400 -mt-1 pl-1">Enter a valid http/https URL</p>
+          )}
+          {urlValid && domain && detectedPlatform && (
+            <div className="flex items-center gap-1.5 -mt-1 pl-1">
+              <span
+                className="text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: PLATFORM_COLORS[detectedPlatform] }}
+              >
+                {PLATFORM_LABELS[detectedPlatform]}
+              </span>
+              <span className="text-xs text-gray-400 truncate">{domain}</span>
+            </div>
+          )}
+
+          {/* ── Paste from clipboard ─────────────────────────────────────── */}
+          {clipboardUrl && !url && stage === 'idle' && (
+            <button
+              type="button"
+              onClick={() => {
+                setUrl(clipboardUrl);
+                setClipboardUrl(null);
+              }}
+              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm hover:bg-indigo-100 active:scale-[0.98] transition-all"
+            >
+              <ClipboardPaste size={14} className="shrink-0" />
+              <span className="truncate flex-1 text-left">{clipboardUrl}</span>
+              <span className="text-xs font-semibold shrink-0">Paste</span>
+            </button>
+          )}
+
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (
             <button
               type="button"
               onClick={handleImport}
-              disabled={!trimmedUrl || stage === 'loading'}
+              disabled={!urlValid || stage === 'loading'}
               className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
               {stage === 'loading' ? (
@@ -230,7 +303,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           {error && (
             <div className="space-y-2">
               <p className="text-sm text-red-500">{error}</p>
-              {trimmedUrl && (
+              {urlValid && (
                 <button
                   type="button"
                   onClick={handleSaveUrlAnyway}
