@@ -412,7 +412,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - In the plan route, deduplicate locations in `contentSummary` before sending to Claude
 
 ### G3 — Clip Cover Photo from Share Extension
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: iOS clips have no thumbnail for scraping-resistant platforms. The Share Extension receives the screenshot from iOS (the preview image), but currently only passes it to Claude for text extraction and discards it.
 **Files**: `ios/App/ShareExtension/ShareViewController.swift`, `app/share/page.tsx`, `lib/db.ts`
 **What to do**:

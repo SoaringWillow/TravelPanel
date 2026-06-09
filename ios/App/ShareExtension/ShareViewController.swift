@@ -116,6 +116,7 @@ class ShareViewController: UIViewController {
 
             if let img = image {
                 self.capturedImageBase64 = self.compressImage(img)
+                self.saveThumbnail(img)
             }
 
             self.openAppOrFinish()
@@ -204,6 +205,35 @@ class ShareViewController: UIViewController {
     private func savePendingImage(_ base64: String) {
         guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
         defaults.set(base64, forKey: "pendingShareImage")
+        defaults.synchronize()
+    }
+
+    // Saves a 200×200 square-cropped JPEG thumbnail for use as the clip cover photo.
+    // Stored separately from pendingShareImage (which is the full 480px version for Claude Vision).
+    private func saveThumbnail(_ image: UIImage) {
+        let side = min(image.size.width, image.size.height)
+        let xOrigin = (image.size.width - side) / 2
+        let yOrigin = (image.size.height - side) / 2
+        let scale = image.scale
+        let cropRect = CGRect(
+            x: xOrigin * scale, y: yOrigin * scale,
+            width: side * scale, height: side * scale
+        )
+
+        guard let cgImage = image.cgImage?.cropping(to: cropRect) else { return }
+        let cropped = UIImage(cgImage: cgImage, scale: scale, orientation: image.imageOrientation)
+
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: 200, height: 200), false, 1.0)
+        cropped.draw(in: CGRect(origin: .zero, size: CGSize(width: 200, height: 200)))
+        let thumb = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        guard let thumb,
+              let jpegData = thumb.jpegData(compressionQuality: 0.7),
+              jpegData.count < 100_000 else { return }
+
+        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+        defaults.set(jpegData.base64EncodedString(), forKey: "pendingShareThumbnail")
         defaults.synchronize()
     }
 

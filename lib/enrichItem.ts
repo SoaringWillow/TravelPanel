@@ -1,7 +1,7 @@
 'use client';
 
 import { updateItemEnrichment } from './db';
-import { ImportResult } from './types';
+import { ImportResult, SavedItem } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
@@ -29,16 +29,18 @@ export async function enrichItem(id: string, url: string, imageBase64?: string):
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as ImportResult;
-    await updateItemEnrichment(id, 'done', {
+    const enrichFields: Partial<SavedItem> = {
       title: data.title,
       description: data.description,
-      thumbnail: data.thumbnail,
       locations: data.locations,
       activities: data.activities,
       tags: data.tags,
       substance: data.substance,
       platform: data.platform,
-    });
+    };
+    // Only overwrite thumbnail if the API returned one — preserve any Share Extension thumbnail
+    if (data.thumbnail) enrichFields.thumbnail = data.thumbnail;
+    await updateItemEnrichment(id, 'done', enrichFields);
     track('clip_enriched', {
       platform: data.platform,
       locationCount: data.locations.length,

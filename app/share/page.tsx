@@ -17,8 +17,6 @@ type Stage = 'picking' | 'saving' | 'done';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
-// Reads and clears the pending share image stored by the iOS Share Extension.
-// Returns a base64 JPEG string, or null if none is present.
 async function consumePendingShareImage(): Promise<string | null> {
   try {
     const { Preferences } = await import('@capacitor/preferences');
@@ -26,6 +24,20 @@ async function consumePendingShareImage(): Promise<string | null> {
     if (!value) return null;
     await Preferences.remove({ key: 'pendingShareImage' });
     return value;
+  } catch {
+    return null;
+  }
+}
+
+// Reads and clears the 200×200 thumbnail saved by the Share Extension.
+// Returns a data URL suitable for use as SavedItem.thumbnail.
+async function consumePendingShareThumbnail(): Promise<string | null> {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value } = await Preferences.get({ key: 'pendingShareThumbnail' });
+    if (!value) return null;
+    await Preferences.remove({ key: 'pendingShareThumbnail' });
+    return `data:image/jpeg;base64,${value}`;
   } catch {
     return null;
   }
@@ -45,17 +57,16 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
-  const pendingImageRef = useRef<string | null>(null);
+  const pendingImageRef     = useRef<string | null>(null);
+  const pendingThumbnailRef = useRef<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // If the iOS Share Extension signalled hasImage, read the image eagerly so
-  // it's ready by the time the user taps Save.
+  // Eagerly read both image payloads from Share Extension so they're ready when the user taps Save.
   useEffect(() => {
     if (!hasImage) return;
-    consumePendingShareImage().then(img => {
-      pendingImageRef.current = img;
-    });
+    consumePendingShareImage().then(img => { pendingImageRef.current = img; });
+    consumePendingShareThumbnail().then(thumb => { pendingThumbnailRef.current = thumb; });
   }, [hasImage]);
 
   // Load boards on mount — no heavy work, just IndexedDB
@@ -96,7 +107,7 @@ function SharePageInner() {
       title: sharedTitle,
       platform,
       description: '',
-      thumbnail: undefined,
+      thumbnail: pendingThumbnailRef.current ?? undefined,
       locations: [],
       activities: [],
       tags: [],
