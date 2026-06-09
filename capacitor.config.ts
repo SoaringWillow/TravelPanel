@@ -17,16 +17,20 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: 'automatic',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#6366f1',
     scrollEnabled: true,
     limitsNavigationsToAppBoundDomains: false,
+    minVersion: '15.0',
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 800,
-      backgroundColor: '#f9fafb',
+      launchShowDuration: 1000,
+      backgroundColor: '#6366f1',
       showSpinner: false,
-      launchAutoHide: false,
+      launchAutoHide: true,
+      androidSplashResourceName: 'splash',
+      splashFullScreen: true,
+      splashImmersive: true,
     },
     StatusBar: {
       style: 'Default',

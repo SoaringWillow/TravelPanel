@@ -63,5 +63,13 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TravelPanel uses your location to find nearby saved places and show walking distances on the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TravelPanel uses your location to notify you when you are near a saved travel destination.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>TravelPanel can use the camera to capture inspiration directly in the app.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TravelPanel uses your photo library to extract travel inspiration from saved images.</string>
 </dict>
 </plist>

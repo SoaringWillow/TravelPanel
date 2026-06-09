@@ -375,7 +375,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Graceful fallback: if Web Share not available, copy to clipboard with a toast confirmation
 
 ### F6 — Capacitor iOS Build Improvements
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The iOS build workflow has friction. `capacitor.config.ts` and the iOS project need production polish for App Store submission.
 **Files**: `ios/App/capacitor.config.ts`, `ios/App/App/Info.plist`
 **What to do**:
