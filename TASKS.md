@@ -324,7 +324,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > iOS-native gestures, PWA quality, and board management UX.
 
 ### F1 — PWA Manifest & iOS App Icons
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The app lacks proper icons for "Add to Home Screen" on iOS. `manifest.json` has placeholder sizes. Without real icons, the app looks unfinished when installed.
 **Files**: `public/manifest.json`, `public/icons/` (new), `app/layout.tsx`
 **What to do**:
