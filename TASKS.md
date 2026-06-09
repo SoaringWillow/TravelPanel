@@ -64,7 +64,7 @@ Goal: **beautiful, fully-functional native iOS app** that wins on capture ease +
 - Trigger `notification('error')` on: enrichment failed state
 
 ### D4 — Offline Mode Banner + Graceful Degradation
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app stores data locally (IndexedDB) but silently fails API calls offline. Users don't know if their clip is being processed.  
 **Files to change**: `app/layout.tsx`, new `components/OfflineBanner.tsx`, `app/share/page.tsx`  
 **What to do**:
