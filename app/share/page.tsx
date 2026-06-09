@@ -16,10 +16,25 @@ type Stage = 'picking' | 'saving' | 'done';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
+// Reads and clears the pending share image stored by the iOS Share Extension.
+// Returns a base64 JPEG string, or null if none is present.
+async function consumePendingShareImage(): Promise<string | null> {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value } = await Preferences.get({ key: 'pendingShareImage' });
+    if (!value) return null;
+    await Preferences.remove({ key: 'pendingShareImage' });
+    return value;
+  } catch {
+    return null;
+  }
+}
+
 function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,8 +44,18 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const pendingImageRef = useRef<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // If the iOS Share Extension signalled hasImage, read the image eagerly so
+  // it's ready by the time the user taps Save.
+  useEffect(() => {
+    if (!hasImage) return;
+    consumePendingShareImage().then(img => {
+      pendingImageRef.current = img;
+    });
+  }, [hasImage]);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
@@ -88,9 +113,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass Vision image for scraping-resistant platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
