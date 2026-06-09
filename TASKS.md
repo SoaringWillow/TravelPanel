@@ -431,7 +431,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a "Digest" deep link from the home screen (PWA shortcut in manifest.json)
 
 ### G5 — Map Search + Location Jump
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: When a user wants to find their clips in a specific city, they have to manually pan. A "Jump to city" search would fix this.
 **Files**: `app/page.tsx`, `components/MapView.tsx`
 **What to do**:

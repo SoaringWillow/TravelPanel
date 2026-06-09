@@ -13,6 +13,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import BoardFilterBar from '@/components/BoardFilterBar';
 import NearbyClipsSheet from '@/components/NearbyClipsSheet';
+import MapSearchBar from '@/components/MapSearchBar';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -114,10 +115,13 @@ function HomePageInner() {
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pb-2 space-y-2">
         <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <Globe2 className="text-indigo-500" size={22} />
-          <span className="font-bold text-gray-800 dark:text-white text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
-            {loading ? 'Loading…' : `${visibleItems.length} place${visibleItems.length !== 1 ? 's' : ''}`}
+          <Globe2 className="text-indigo-500 flex-shrink-0" size={22} />
+          <span className="font-bold text-gray-800 dark:text-white text-lg flex-shrink-0">TravelPanel</span>
+          <div className="flex-1 flex items-center justify-end gap-1">
+            <MapSearchBar onSelect={(lat, lng, name) => setFlyTo({ lat, lng, name })} />
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
+              {loading ? 'Loading…' : `${visibleItems.length} place${visibleItems.length !== 1 ? 's' : ''}`}
+            </div>
           </div>
         </div>
         {/* Board filter pills — only shown when at least one board exists */}
