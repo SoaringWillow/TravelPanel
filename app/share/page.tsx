@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { impact, notification } from '@/lib/haptics';
@@ -13,7 +13,7 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Stage = 'picking' | 'saving' | 'done';
+type Stage = 'picking' | 'saving' | 'done' | 'duplicate';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -33,13 +33,22 @@ function SharePageInner() {
   // base64 JPEG injected by AppDelegate from the iOS Share Extension screenshot.
   // Used by Claude Vision for anti-scraping platforms (Xiaohongshu, WeChat).
   const [pendingImage, setPendingImage]       = useState<string | undefined>(undefined);
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards and check for duplicates on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
-  }, []);
+    if (rawUrl) {
+      getItemByUrl(rawUrl).then((existing) => {
+        if (existing) {
+          setDuplicateItem(existing);
+          setStage('duplicate');
+        }
+      }).catch(() => {});
+    }
+  }, [rawUrl]);
 
   // Read the screenshot image injected by AppDelegate via localStorage.
   // AppDelegate stores it as 'pendingShareImage' right before opening the URL scheme.
@@ -162,6 +171,41 @@ function SharePageInner() {
     setNewBoardName('');
     setShowNewBoardInput(false);
     await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
+  }
+
+  // ── Stage: duplicate ─────────────────────────────────────────────────────
+
+  if (stage === 'duplicate' && duplicateItem) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+        <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12 text-center">
+          <div className="text-5xl">🔖</div>
+          <div className="space-y-1">
+            <p className="text-xl font-bold text-gray-900">Already saved!</p>
+            <p className="text-sm text-gray-500 line-clamp-2">{duplicateItem.title}</p>
+          </div>
+          <div className="flex flex-col gap-2 w-full max-w-xs">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length <= 1) window.close();
+                else window.history.back();
+              }}
+              className="w-full bg-indigo-600 text-white text-sm font-semibold py-3 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+              View existing clip
+            </button>
+            <button
+              type="button"
+              onClick={() => setStage('picking')}
+              className="w-full bg-gray-100 text-gray-700 text-sm font-medium py-3 rounded-xl hover:bg-gray-200 active:scale-95 transition-all"
+            >
+              Save anyway
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── Stage: picking ────────────────────────────────────────────────────────

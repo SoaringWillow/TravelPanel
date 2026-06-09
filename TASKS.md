@@ -75,7 +75,7 @@ Goal: **beautiful, fully-functional native iOS app** that wins on capture ease +
 - In `lib/enrichItem.ts`: check online status before calling API; queue for retry if offline (write a `retryEnrichment()` that fires on the `online` event)
 
 ### D5 — Duplicate URL Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users forget they already saved a URL. The share flow should detect duplicates and offer to view the existing clip.  
 **Files to change**: `app/share/page.tsx`, `lib/db.ts`  
 **What to do**:
