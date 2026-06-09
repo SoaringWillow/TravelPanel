@@ -96,3 +96,16 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-09 01:30 | 667dc06 | feat(B2): browser extension — Chrome/Safari MV3 clipper
+2026-06-09 01:38 | 8a65f32 | feat(B3): Xiaohongshu/WeChat Vision extraction via iOS screenshot
+2026-06-09 01:40 | 4349c84 | feat(B5): settings page with data export (JSON backup)
+2026-06-09 01:44 | 11376ee | feat(C1): On-Trip GPS mode — Near Me sheet with distance-sorted clips
+2026-06-09 01:46 | cd40c4d | feat(C2+C3): board journal timeline + share-board feature
+2026-06-09 01:48 | 7f1aeae | feat(C4): proactive resurfacing — seasonal picks banner on home screen
+2026-06-09 01:49 | e45e47e | docs: new TASKS.md — Phase D-G roadmap for iOS native excellence
+2026-06-09 01:51 | f6360a2 | feat(D1): skeleton loading cards + pull-to-refresh on inbox
+2026-06-09 01:59 | b2cb977 | feat(D2): full dark mode support across all screens
+2026-06-09 02:01 | 61e4088 | feat(D3): haptic feedback on key iOS interactions
+2026-06-09 02:03 | 5d8136d | feat(D4): offline mode banner and graceful degradation
+2026-06-09 02:04 | 789753f | feat(D5): duplicate URL detection in share flow
+2026-06-09 02:05 | 1e03d38 | feat(E1): editable notes on clip detail card
