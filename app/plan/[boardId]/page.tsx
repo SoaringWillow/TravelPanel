@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation2, Sparkles } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation2, Sparkles, Pencil, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, markItemVisited } from '@/lib/db';
 import { buildRecapData, RECAP_STORAGE_KEY } from '@/lib/generateRecap';
 import { isOnline } from '@/lib/network';
+import { incrementPlansGenerated, maybeRequestReview } from '@/lib/reviewPrompt';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -52,6 +53,8 @@ export default function PlanPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | undefined>();
   const [festivalWarnings, setFestivalWarnings] = useState<string[]>([]);
   const [weatherWarnings, setWeatherWarnings] = useState<string[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedPlan, setEditedPlan] = useState<TripPlan | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -161,7 +164,11 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
-              if (msg.step.type === 'done') void notify('success');
+              if (msg.step.type === 'done') {
+                void notify('success');
+                incrementPlansGenerated();
+                void maybeRequestReview();
+              }
             }
             // Capture festival warning steps
             if (msg.step.type === 'found' && msg.step.message.includes('event')) {
@@ -236,6 +243,57 @@ export default function PlanPage() {
     router.push(`/trip-recap?boardId=${boardId}`);
   }, [plan, board, boardItems, boardId, router]);
 
+  // ── Plan editing helpers ──────────────────────────────────────────────────
+
+  const EDIT_KEY = `plan_edits_${boardId}`;
+
+  function getDisplayPlan(): TripPlan | null {
+    if (!planIsComplete(plan)) return null;
+    return editedPlan ?? plan;
+  }
+
+  function startEdit() {
+    if (!planIsComplete(plan)) return;
+    const saved = localStorage.getItem(EDIT_KEY);
+    setEditedPlan(saved ? (JSON.parse(saved) as TripPlan) : JSON.parse(JSON.stringify(plan)));
+    setIsEditMode(true);
+  }
+
+  function saveEdit(updated: TripPlan) {
+    setEditedPlan(updated);
+    localStorage.setItem(EDIT_KEY, JSON.stringify(updated));
+  }
+
+  function resetEdit() {
+    if (!planIsComplete(plan)) return;
+    setEditedPlan(JSON.parse(JSON.stringify(plan)));
+    localStorage.removeItem(EDIT_KEY);
+  }
+
+  function moveDay(fromIdx: number, toIdx: number) {
+    const base = getDisplayPlan();
+    if (!base) return;
+    const days = [...base.days];
+    const [moved] = days.splice(fromIdx, 1);
+    days.splice(toIdx, 0, moved);
+    const renumbered = days.map((d, i) => ({ ...d, day: i + 1 }));
+    saveEdit({ ...base, days: renumbered });
+    setActiveDayIndex(toIdx);
+  }
+
+  function moveStop(dayIdx: number, fromStop: number, toStop: number) {
+    const base = getDisplayPlan();
+    if (!base) return;
+    const days = base.days.map((d, i) => {
+      if (i !== dayIdx) return d;
+      const acts = [...d.activities];
+      const [moved] = acts.splice(fromStop, 1);
+      acts.splice(toStop, 0, moved);
+      return { ...d, activities: acts };
+    });
+    saveEdit({ ...base, days });
+  }
+
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
     if (!trip.plan) return;
@@ -285,7 +343,8 @@ export default function PlanPage() {
     { label: 'Interests', chips: ['📸 Photography', '🏛 Culture', '🌿 Nature', '🛍 Shopping', '🎨 Art', '🌃 Nightlife', '🏖 Beach'] },
   ];
 
-  const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
+  const displayPlan = getDisplayPlan();
+  const activeDayPlan = displayPlan?.days?.[activeDayIndex] ?? null;
 
   if (loadingBoard) {
     return (
@@ -616,6 +675,35 @@ export default function PlanPage() {
                     <Sparkles size={16} />
                     Create Trip Recap
                   </button>
+
+                  {/* Edit mode toggle */}
+                  {!isEditMode ? (
+                    <button
+                      onClick={startEdit}
+                      aria-label="Edit itinerary"
+                      className="w-full flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium py-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
+                    >
+                      <Pencil size={14} />
+                      Edit itinerary
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setIsEditMode(false); }}
+                        className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-2xl active:scale-[0.98] transition-all"
+                      >
+                        <Check size={14} />
+                        Done
+                      </button>
+                      <button
+                        onClick={() => { resetEdit(); setIsEditMode(false); }}
+                        className="px-4 flex items-center justify-center gap-1 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium py-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all"
+                      >
+                        <RotateCcw size={13} />
+                        Reset
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -630,17 +718,40 @@ export default function PlanPage() {
               />
 
               {/* Day strip */}
-              {plan.days && plan.days.length > 0 && (
+              {displayPlan?.days && displayPlan.days.length > 0 && (
                 <div className="overflow-x-auto pb-2 -mx-4 px-4">
                   <div className="flex gap-3" style={{ width: 'max-content' }}>
-                    {plan.days.map((day, idx) => (
-                      <DayStripCard
-                        key={day.day}
-                        day={day}
-                        index={idx}
-                        isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
-                      />
+                    {displayPlan.days.map((day, idx) => (
+                      <div key={`${day.day}-${idx}`} className="relative flex flex-col items-center gap-1">
+                        {isEditMode && (
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              aria-label={`Move day ${idx + 1} earlier`}
+                              disabled={idx === 0}
+                              onClick={() => moveDay(idx, idx - 1)}
+                              className="w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 disabled:opacity-30"
+                            >
+                              <ChevronUp size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Move day ${idx + 1} later`}
+                              disabled={idx === displayPlan.days.length - 1}
+                              onClick={() => moveDay(idx, idx + 1)}
+                              className="w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 disabled:opacity-30"
+                            >
+                              <ChevronDown size={12} />
+                            </button>
+                          </div>
+                        )}
+                        <DayStripCard
+                          day={day}
+                          index={idx}
+                          isActive={activeDayIndex === idx}
+                          onSelect={() => setActiveDayIndex(idx)}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -656,10 +767,33 @@ export default function PlanPage() {
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className="bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 space-y-1"
                     >
                       <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        {/* Reorder arrows in edit mode */}
+                        {isEditMode && (
+                          <div className="flex flex-col gap-0.5 flex-shrink-0 mt-0.5">
+                            <button
+                              type="button"
+                              aria-label="Move stop up"
+                              disabled={aIdx === 0}
+                              onClick={() => moveStop(activeDayIndex, aIdx, aIdx - 1)}
+                              className="w-5 h-5 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 disabled:opacity-30"
+                            >
+                              <ChevronUp size={11} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Move stop down"
+                              disabled={aIdx === activeDayPlan.activities.length - 1}
+                              onClick={() => moveStop(activeDayIndex, aIdx, aIdx + 1)}
+                              className="w-5 h-5 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 disabled:opacity-30"
+                            >
+                              <ChevronDown size={11} />
+                            </button>
+                          </div>
+                        )}
+                        <span className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.time}
                         </span>
                         <div className="flex-1 min-w-0">

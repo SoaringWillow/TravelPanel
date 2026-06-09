@@ -208,12 +208,15 @@ export default function SettingsPage() {
           </div>
           <button
             type="button"
+            role="switch"
+            aria-checked={notificationsEnabled}
+            aria-label="Weekly planning reminder"
             onClick={handleNotificationToggle}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
               notificationsEnabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
             }`}
           >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+            <span aria-hidden="true" className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
               notificationsEnabled ? 'translate-x-6' : 'translate-x-1'
             }`} />
           </button>
@@ -228,6 +231,9 @@ export default function SettingsPage() {
           </div>
           <button
             type="button"
+            role="switch"
+            aria-checked={analyticsConsent === 'yes'}
+            aria-label="Share usage analytics"
             onClick={() => {
               const next = analyticsConsent === 'yes' ? 'no' : 'yes';
               setAnalyticsConsent(next);
@@ -237,7 +243,7 @@ export default function SettingsPage() {
               analyticsConsent === 'yes' ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
             }`}
           >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+            <span aria-hidden="true" className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
               analyticsConsent === 'yes' ? 'translate-x-6' : 'translate-x-1'
             }`} />
           </button>

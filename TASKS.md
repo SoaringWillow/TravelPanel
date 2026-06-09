@@ -367,6 +367,116 @@ clipping habitual — same psychology as Duolingo's streak.
 
 ---
 
+## PHASE J — App Store Submission Blockers + Polish
+
+### J1 — PrivacyInfo.xcprivacy (iOS 17 Requirement)
+**Status**: `[x]` Complete
+**Why**: Apple requires a `PrivacyInfo.xcprivacy` manifest in every iOS app since spring 2024.
+Without it, App Store Connect will reject the build. It must declare which "required reason APIs"
+the app uses and what data types are collected.
+**Files to change**: new `ios/App/App/PrivacyInfo.xcprivacy`
+**What to do**:
+- Create `ios/App/App/PrivacyInfo.xcprivacy` as a proper plist declaring:
+  - `NSPrivacyAccessedAPITypes`: list of required-reason APIs used:
+    - `NSPrivacyAccessedAPICategoryUserDefaults` (reason: `CA92.1` — store user preferences)
+    - `NSPrivacyAccessedAPICategoryFileTimestamp` (reason: `C617.1` — app's own files only)
+  - `NSPrivacyCollectedDataTypes`: declare analytics data (if PostHog enabled):
+    - Type `NSPrivacyCollectedDataTypeOtherDiagnosticData`, not linked to identity, not used for tracking
+  - `NSPrivacyTracking`: `false` (we don't do cross-app tracking)
+  - `NSPrivacyTrackingDomains`: empty array
+
+### J2 — Share Extension Image Activation Fix
+**Status**: `[x]` Complete
+**Why**: `ShareExtension/Info.plist` activation rules don't include image support.
+The Swift code in `ShareViewController.swift` already handles `UTType.image`, but the
+extension won't appear in the Share Sheet when the user tries to share an image
+(e.g. a Xiaohongshu screenshot). This kills the Xiaohongshu image-to-clip flow.
+**Files to change**: `ios/App/ShareExtension/Info.plist`
+**What to do**:
+- Add `NSExtensionActivationSupportsImageWithMaxCount: 1` to the `NSExtensionActivationRule` dict
+- This makes the Share Sheet show "Save to TravelPanel" when sharing from Photos or
+  when an app shares an image attachment (Instagram, Xiaohongshu screenshots)
+
+### J3 — Restrict NSAppTransportSecurity
+**Status**: `[x]` Complete
+**Why**: `Info.plist` currently sets `NSAllowsArbitraryLoads: true` which is a security
+red flag that App Store review may question. It also exposes the app to MITM on any domain.
+**Files to change**: `ios/App/App/Info.plist`
+**What to do**:
+- Replace the broad `NSAllowsArbitraryLoads: true` with domain-specific exceptions:
+  - `api.anthropic.com` — Claude API (NSExceptionAllowsInsecureHTTPLoads: false — HTTPS only)
+  - `tiles.openfreemap.org` — Map tiles (HTTPS only)
+  - `eu.posthog.com` and `app.posthog.com` — Analytics (HTTPS only)
+  - Keep `NSAllowsLocalNetworking: true` for dev server
+  - Keep `NSAllowsArbitraryLoads: false` as the base
+- Also add `NSAllowsLocalNetworking: true` so dev hot-reload still works
+- Note: The Capacitor web view loads from Vercel (HTTPS), so no exception needed for the main app URL
+
+### J4 — Accessibility Pass (VoiceOver + Dynamic Type)
+**Status**: `[x]` Complete
+**Why**: App Store review guidelines require accessibility. VoiceOver users can't use the
+app, and Dynamic Type (large text) breaks layouts. This also affects App Store ratings.
+**Files to change**: `components/InboxCard.tsx`, `components/MapView.tsx`,
+`components/NavBar.tsx`, `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`
+**What to do**:
+- All icon-only buttons need `aria-label` (many currently lack them)
+- All images need descriptive `alt` text (not just empty `alt=""`)
+- `InboxCard.tsx`: add `role="article"` and `aria-label="Clip: {item.title}"`
+- `NavBar.tsx`: ensure nav items have `aria-label` and `aria-current="page"` on active item
+- `MapView.tsx`: cluster buttons need `aria-label="X places, tap to zoom in"`
+- `app/share/page.tsx`: loading state needs `aria-live="polite"` for VoiceOver to announce
+- Use Tailwind's `text-base` or larger as minimum font size (no `text-xs` on critical info)
+- Wrap the settings toggles with proper `role="switch"` and `aria-checked`
+
+### J5 — App Store Review Rating Prompt
+**Status**: `[x]` Complete
+**Why**: Apps that prompt for reviews at the right moment consistently get 4.5+ star ratings.
+The best moment is after a successful positive action — after a user creates their first trip plan.
+**Files to change**: `app/plan/[boardId]/page.tsx`, new `lib/reviewPrompt.ts`
+**What to do**:
+- Create `lib/reviewPrompt.ts`:
+  - `maybeRequestReview()` — checks `localStorage` for `reviewRequested` and `plansGenerated` count
+  - If `plansGenerated >= 2` and `reviewRequested` is not set: fire the prompt
+  - Uses `@capacitor/rate-app` (install it): `RateApp.requestReview()` — native iOS prompt
+  - Mark `reviewRequested: true` after firing so it never repeats
+  - No-op in browser
+- In `app/plan/[boardId]/page.tsx`, after plan generation completes successfully:
+  - Increment `plansGenerated` in localStorage
+  - Call `maybeRequestReview()`
+
+### J6 — Clip Detail Substance View Enhancement
+**Status**: `[x]` Complete
+**Why**: The "wisdom" (substance) extracted from each clip — tips, warnings, local secrets — is
+the product moat. But the current clip detail view doesn't highlight this substance prominently.
+The card shows title + location but buries substance items below the fold.
+**Files to change**: `components/InboxCard.tsx`, new `app/clip/[id]/page.tsx`
+**What to do**:
+- Create `app/clip/[id]/page.tsx`: a dedicated clip detail page with:
+  - Full-width header image (SafeImage with skeleton loading)
+  - Location name + platform badge
+  - Substance items displayed as a scannable list: each item has an icon based on type
+    (💡 tip, ⚠️ warning, 🌟 highlight, 💰 price, ⏰ timing)
+  - "Plan a trip here" CTA button that navigates to `/plan?locations=${location.name}`
+  - Back swipe gesture support
+- In `InboxCard.tsx`: make the card tappable, navigating to `/clip/${item.id}`
+
+### J7 — Itinerary Day Reordering
+**Status**: `[x]` Complete
+**Why**: After AI generates a plan, users want to manually reorder days or move stops between
+days. Currently the plan is read-only — any change requires regenerating the whole plan.
+**Files to change**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`
+**What to do**:
+- Add a "Edit plan" mode toggle (pencil icon) in the plan header
+- In edit mode: each stop gets up/down arrow buttons to move within its day
+- Each day header gets up/down arrows to reorder days
+- Add a drag-and-drop option using HTML5 drag API (not Framer Motion — too heavy):
+  - `draggable="true"` on stop rows, `onDragOver`/`onDrop` on target rows
+  - Visual drag indicator: opacity 0.5 on dragged item, blue border on drop target
+- Save edits to localStorage under `plan_edits_${boardId}` and merge on load
+- "Reset to AI plan" button clears edits
+
+---
+
 ## Completed Tasks
 
 ### Phase A — Bug-Free MVP

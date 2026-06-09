@@ -48,6 +48,7 @@ export default function NavBar({ active }: NavBarProps) {
 
   return (
     <nav
+      aria-label="Main navigation"
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
       style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
@@ -59,20 +60,26 @@ export default function NavBar({ active }: NavBarProps) {
             <Link
               key={key}
               href={href}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
                 isActive ? 'text-indigo-500 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >
               <div className="relative">
-                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} aria-hidden="true" />
                 {/* Sync status dot on settings icon when cloud is enabled */}
                 {isSettings && cloudEnabled && (
-                  <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${SYNC_DOT_COLORS[syncDot]} border border-white dark:border-gray-900`} />
+                  <span
+                    className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${SYNC_DOT_COLORS[syncDot]} border border-white dark:border-gray-900`}
+                    aria-label={`Cloud sync: ${syncDot === 'green' ? 'synced' : syncDot === 'orange' ? 'syncing' : syncDot === 'red' ? 'error' : 'not signed in'}`}
+                  />
                 )}
               </div>
-              <span className="text-xs mt-0.5 font-medium">{label}</span>
+              <span className="text-xs mt-0.5 font-medium" aria-hidden="true">{label}</span>
               {/* Active indicator dot */}
               <span
+                aria-hidden="true"
                 className={`mt-0.5 rounded-full transition-all duration-200 ${
                   isActive ? 'w-1 h-1 bg-indigo-600' : 'w-0 h-1 bg-transparent'
                 }`}

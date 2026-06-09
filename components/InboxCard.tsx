@@ -1,6 +1,7 @@
 'use client';
 
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import SafeImage from '@/components/SafeImage';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
@@ -54,13 +55,18 @@ export default function InboxCard({
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
       return (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden animate-pulse">
+        <div
+          role="article"
+          aria-label="Clip loading"
+          aria-busy="true"
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden animate-pulse"
+        >
           <div className="w-full h-32 bg-gray-200 dark:bg-gray-700" />
           <div className="p-4 space-y-3">
             <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded-full w-4/5" />
             <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
+            <div className="flex items-center gap-2 pt-1" aria-live="polite">
+              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" aria-hidden="true" />
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
             </div>
           </div>
@@ -193,14 +199,19 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-      {/* Thumbnail or placeholder */}
-      <SafeImage
-        src={item.thumbnail}
-        alt={item.title}
-        fallbackText={item.title}
-        className="w-full h-32 object-cover"
-      />
+    <article
+      aria-label={`Clip: ${item.title}`}
+      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden"
+    >
+      {/* Tappable area → clip detail */}
+      <Link href={`/clip/${item.id}`} className="block" tabIndex={-1} aria-hidden="true">
+        <SafeImage
+          src={item.thumbnail}
+          alt={item.title}
+          fallbackText={item.title}
+          className="w-full h-32 object-cover"
+        />
+      </Link>
 
       <div className="p-4">
         {/* Platform badge */}
@@ -210,10 +221,12 @@ export default function InboxCard({
           {PLATFORM_LABELS[item.platform]}
         </span>
 
-        {/* Title */}
-        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
-          {item.title}
-        </h3>
+        {/* Title — links to detail */}
+        <Link href={`/clip/${item.id}`}>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+            {item.title}
+          </h3>
+        </Link>
 
         {/* Description */}
         {item.description && (
@@ -267,6 +280,7 @@ export default function InboxCard({
             <button
               type="button"
               onClick={() => onViewOnMap(item.id)}
+              aria-label="View on map"
               className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1"
             >
               Map
@@ -309,6 +323,6 @@ export default function InboxCard({
           </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

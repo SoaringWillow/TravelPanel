@@ -31,6 +31,9 @@
                 <integer>1</integer>
                 <key>NSExtensionActivationSupportsText</key>
                 <true/>
+                <!-- Accept images — enables sharing screenshots from Photos, Xiaohongshu, etc. -->
+                <key>NSExtensionActivationSupportsImageWithMaxCount</key>
+                <integer>1</integer>
             </dict>
         </dict>
         <key>NSExtensionPointIdentifier</key>
