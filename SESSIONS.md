@@ -96,3 +96,9 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-09 15:24 | c2ca884 | feat(B2): add Chrome/Edge browser extension for one-click clipping
+2026-06-09 15:30 | 30b8191 | feat(B3): Claude Vision extraction for Xiaohongshu + scraping-blocked platforms
+2026-06-09 15:34 | 7834dea | feat(B5): settings page with JSON backup export and restore
+2026-06-09 15:37 | 8413c41 | feat(D1+D2+D5): LocationDetailCard — navigate, drag-to-dismiss, share
+2026-06-09 15:41 | 5964ce3 | feat(D3+D4): swipe-to-delete on InboxCard + skeleton loading grids
+2026-06-09 15:42 | add353a | feat(D6): map Locate Me button + pulsing user location dot

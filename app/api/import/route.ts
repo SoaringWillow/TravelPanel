@@ -175,7 +175,8 @@ Never return an empty substance array for a real travel post.`;
             content: [
               {
                 type: 'image',
-                image: Buffer.from(base64Data, 'base64'),
+                // Pass as plain base64 string — the AI SDK converts it to the provider format
+                image: base64Data,
                 mimeType,
               },
               {
