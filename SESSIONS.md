@@ -105,3 +105,24 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-09 17:42 | 7b2cb25 | feat(C3): shared boards v1 — URL-encoded board sharing (no server needed)
 2026-06-09 17:44 | 216e892 | feat(C4): proactive resurfacing — smart 'Rediscover' carousel on home screen
 2026-06-09 17:52 | 884c705 | feat(D1): loading skeletons, pull-to-refresh, safe-area insets
+2026-06-09 17:56 | 852ee74 | feat(D2): dark mode support with System/Light/Dark toggle
+2026-06-09 17:58 | be4ad84 | feat(D3): haptic feedback on key interactions
+2026-06-09 18:00 | 021ee16 | feat(D4): error boundaries, offline banner, toast system
+2026-06-09 18:02 | 1c9fcd3 | feat(D5): onboarding flow for first-time users
+2026-06-09 18:03 | 3b9289a | feat(D6): iOS native navigation patterns
+2026-06-09 18:04 | 0d7755b | feat(D7): App Store metadata, privacy policy, Info.plist permissions
+2026-06-09 18:07 | 32a75e1 | feat(E1): Supabase auth UI + sync indicator
+2026-06-09 18:10 | f741897 | feat(F1): festival & events calendar wired into trip planner
+2026-06-09 18:15 | 67f656f | feat(F2): weather suitability window — inject seasonal context into plans
+2026-06-09 18:17 | e08c7c0 | feat(F3): smart board auto-organization with AI clustering
+2026-06-09 18:20 | d205d47 | feat(G1): trip highlights reel — shareable social card with QR code
+2026-06-09 18:22 | 7b38dbc | feat(G2): clip streak + habit nudge for weekly engagement
+2026-06-09 18:25 | 5f198f6 | chore: add Phase H+I tasks — robustness, data safety, iOS polish
+2026-06-09 18:26 | fd3f047 | feat(H1): duplicate URL detection before clip save
+2026-06-09 18:28 | fae1a6c | feat(H2): analytics consent gate — GDPR/CCPA compliance
+2026-06-09 18:29 | cfe23dd | feat(H3): enrichment rate limit user feedback in share flow
+2026-06-09 18:31 | bd11649 | feat(H4): offline-aware API calls across key flows
+2026-06-09 18:32 | ad03179 | fix(H5): resolve all TypeScript errors across codebase
+2026-06-09 18:33 | 06a9aa1 | feat(I1): SafeImage component with gradient fallback
+2026-06-09 18:36 | 07c75b3 | feat(I3+I4): map cluster visual polish + local push notifications
+2026-06-09 18:48 | bea9405 | feat: Phase J — App Store submission blockers + UX polish
