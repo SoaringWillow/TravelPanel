@@ -9,6 +9,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import ResurfaceCarousel from '@/components/ResurfaceCarousel';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -83,6 +84,17 @@ function HomePageInner() {
           </div>
         </div>
       </div>
+
+      {/* Proactive resurfacing carousel — shown when no detail card is open */}
+      {!selectedItem && !showImport && (
+        <ResurfaceCarousel
+          items={items}
+          onItemClick={(item) => {
+            setSelectedItem(item);
+            if (item.locations.length > 0) setFlyTo(item.locations[0]);
+          }}
+        />
+      )}
 
       {/* Selected item detail card */}
       <AnimatePresence>
