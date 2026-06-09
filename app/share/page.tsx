@@ -8,6 +8,7 @@ import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { impact, notify } from '@/lib/haptics';
+import { recordClip } from '@/lib/streak';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -109,6 +110,8 @@ function SharePageInner() {
 
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    const { newStreak, hitMilestone } = recordClip();
+    window.dispatchEvent(new CustomEvent('streak:updated', { detail: { streak: newStreak, milestone: hitMilestone !== null } }));
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);

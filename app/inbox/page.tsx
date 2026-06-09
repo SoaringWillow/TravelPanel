@@ -9,6 +9,7 @@ import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, saveBoard } from '@/lib/db';
+import { getDaysSinceLastClip } from '@/lib/streak';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems, rankItems, VibeQuery } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
@@ -331,17 +332,23 @@ export default function InboxPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() || vibeResults ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
+            <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">
               {query.trim() || vibeResults ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
                 : vibeResults
                 ? 'No clips match that vibe. Try different words.'
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
+                : activePlatform !== 'all'
+                ? `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`
+                : (() => {
+                    const days = getDaysSinceLastClip();
+                    if (days >= 3 && days !== Infinity) {
+                      return `You haven't saved anything in ${days} day${days !== 1 ? 's' : ''}. What are you dreaming about?`;
+                    }
+                    return 'Share content from social apps to get started!';
+                  })()}
             </p>
           </div>
         ) : (

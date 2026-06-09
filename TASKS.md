@@ -241,7 +241,7 @@ organic acquisition when shared to Instagram Stories / WeChat Moments.
 - Include a QR code linking to the shared board (from C3)
 
 ### G2 — Clip Streak + Habit Nudge
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: North Star metric is weekly clips per active user. A streak mechanic makes
 clipping habitual — same psychology as Duolingo's streak.
 **Files to change**: new `lib/streak.ts`, new `components/StreakBadge.tsx`,
