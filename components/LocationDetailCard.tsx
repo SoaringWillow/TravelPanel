@@ -1,10 +1,14 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { saveItem } from '@/lib/db';
 import SubstanceList from './SubstanceList';
+
+const MAX_NOTES = 500;
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -12,6 +16,29 @@ interface LocationDetailCardProps {
 }
 
 export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+  const [notes, setNotes]         = useState(item.notes ?? '');
+  const [editingNotes, setEditing] = useState(false);
+  const debounceRef               = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textareaRef               = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (editingNotes && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      textareaRef.current.focus();
+    }
+  }, [editingNotes, notes]);
+
+  function handleNotesChange(value: string) {
+    if (value.length > MAX_NOTES) return;
+    setNotes(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      saveItem({ ...item, notes: value }).catch(() => {});
+    }, 500);
+  }
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -127,13 +154,51 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
-              </div>
-            )}
+            {/* Notes — editable */}
+            <div>
+              {editingNotes ? (
+                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Notes</p>
+                    {notes.length >= 400 && (
+                      <span className={`text-xs ${notes.length >= MAX_NOTES ? 'text-red-500' : 'text-amber-600'}`}>
+                        {notes.length}/{MAX_NOTES}
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    ref={textareaRef}
+                    value={notes}
+                    onChange={(e) => handleNotesChange(e.target.value)}
+                    onBlur={() => setEditing(false)}
+                    placeholder="Add a personal note…"
+                    rows={2}
+                    className="w-full bg-transparent text-sm text-amber-800 dark:text-amber-300 leading-relaxed resize-none focus:outline-none placeholder:text-amber-400"
+                  />
+                </div>
+              ) : notes ? (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="w-full text-left bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 group"
+                >
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Notes</p>
+                    <Pencil size={11} className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">{notes}</p>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="w-full text-left text-xs text-gray-400 dark:text-gray-600 flex items-center gap-1.5 py-1 hover:text-gray-500 transition-colors"
+                >
+                  <Pencil size={12} />
+                  Add a note…
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

@@ -89,7 +89,7 @@ Goal: **beautiful, fully-functional native iOS app** that wins on capture ease +
 ## PHASE E — Capture UX Excellence
 
 ### E1 — Rich Clip Notes (User Annotations)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users often want to add personal notes to a clip ("my friend said the best dish is X", "going here in March"). Currently there's a `notes` field on `SavedItem` but nothing renders or edits it.  
 **Files to change**: `components/LocationDetailCard.tsx`, `lib/db.ts`, `lib/types.ts`  
 **What to do**:
