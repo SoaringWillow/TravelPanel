@@ -5,6 +5,7 @@ import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { Locate } from 'lucide-react';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
@@ -237,6 +238,33 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating,     setLocating]     = useState(false);
+  const [locateError,  setLocateError]  = useState<string | null>(null);
+
+  function handleLocateMe() {
+    if (!navigator.geolocation) {
+      setLocateError('Location not supported in this browser');
+      setTimeout(() => setLocateError(null), 3000);
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        mapInstanceRef.current?.flyTo({ center: [longitude, latitude], zoom: 14, duration: 1200 });
+        setLocating(false);
+      },
+      () => {
+        setLocateError('Enable location permission to use this feature');
+        setTimeout(() => setLocateError(null), 3500);
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  }
+
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
     (m, c) => (c.properties.cluster ? Math.max(m, (c.properties.point_count as number) || 0) : m),
@@ -269,6 +297,53 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {/* Locate Me FAB — sits on top of the map in the bottom-right corner */}
+      <div style={{ position: 'absolute', bottom: 104, right: 12, zIndex: 500 }}>
+        <button
+          type="button"
+          onClick={handleLocateMe}
+          disabled={locating}
+          aria-label="Locate me"
+          style={{
+            width:           40,
+            height:          40,
+            borderRadius:    '50%',
+            backgroundColor: 'white',
+            border:          'none',
+            boxShadow:       '0 2px 10px rgba(0,0,0,0.22)',
+            display:         'flex',
+            alignItems:      'center',
+            justifyContent:  'center',
+            cursor:          locating ? 'not-allowed' : 'pointer',
+            opacity:         locating ? 0.7 : 1,
+            transition:      'opacity 0.15s',
+          }}
+        >
+          <Locate size={18} color={userLocation ? '#3b82f6' : '#374151'} />
+        </button>
+      </div>
+
+      {/* Error toast */}
+      {locateError && (
+        <div style={{
+          position:        'absolute',
+          bottom:          152,
+          left:            '50%',
+          transform:       'translateX(-50%)',
+          zIndex:          600,
+          backgroundColor: '#1f2937',
+          color:           'white',
+          fontSize:        12,
+          fontWeight:      500,
+          padding:         '6px 14px',
+          borderRadius:    20,
+          whiteSpace:      'nowrap',
+          boxShadow:       '0 2px 8px rgba(0,0,0,0.25)',
+        }}>
+          {locateError}
+        </div>
+      )}
+
       <Map
         id="main-map"
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
@@ -348,6 +423,36 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               </p>
             </div>
           </Popup>
+        )}
+
+        {/* User location blue dot */}
+        {userLocation && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <div style={{ position: 'relative', width: 14, height: 14 }}>
+              {/* Pulsing ring */}
+              <div
+                className="animate-ping"
+                style={{
+                  position:        'absolute',
+                  inset:           -5,
+                  borderRadius:    '50%',
+                  backgroundColor: 'rgba(59,130,246,0.25)',
+                  pointerEvents:   'none',
+                }}
+              />
+              {/* Solid dot */}
+              <div
+                style={{
+                  width:           14,
+                  height:          14,
+                  borderRadius:    '50%',
+                  backgroundColor: '#3b82f6',
+                  border:          '2.5px solid white',
+                  boxShadow:       '0 2px 6px rgba(0,0,0,0.28)',
+                }}
+              />
+            </div>
+          </Marker>
         )}
       </Map>
     </div>
