@@ -296,7 +296,7 @@ clipping habitual — same psychology as Duolingo's streak.
 - In `components/InboxCard.tsx`, if `item.enrichmentStatus === 'pending'` and item is older than 5 minutes, show a subtle subtitle: "⏳ Enrichment queued — retries when limit resets"
 
 ### H4 — Offline-Aware API Calls
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: On a plane or with spotty signal, API calls silently timeout after 25+ seconds. Users assume the app is broken, not offline.
 **Files to change**: `app/share/page.tsx`, `app/inbox/page.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:

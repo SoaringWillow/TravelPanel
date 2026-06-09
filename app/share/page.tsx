@@ -9,6 +9,7 @@ import { enrichItemWithResult } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { impact, notify } from '@/lib/haptics';
 import { recordClip } from '@/lib/streak';
+import { isOnline } from '@/lib/network';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -92,6 +93,27 @@ function SharePageInner() {
 
   async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDuplicateCheck = false) {
     void impact('medium');
+
+    // Offline check — save clip locally, skip enrichment attempt
+    if (!isOnline()) {
+      setStage('saving');
+      const itemId = crypto.randomUUID();
+      const item: SavedItem = {
+        id: itemId, url: rawUrl, title: sharedTitle, platform,
+        description: '', thumbnail: undefined, locations: [],
+        activities: [], tags: [], substance: [], savedAt: Date.now(),
+        enrichmentStatus: 'pending', retryCount: 0, boardId: selectedBoardId,
+      };
+      await saveItem(item);
+      if (selectedBoardId) await addItemToBoard(selectedBoardId, itemId);
+      const { newStreak, hitMilestone } = recordClip();
+      window.dispatchEvent(new CustomEvent('streak:updated', { detail: { streak: newStreak, milestone: hitMilestone !== null } }));
+      setEnrichmentError('📡 Offline — clip saved! Will enrich when connection returns.');
+      void notify('success');
+      setSavedToName(boardDisplayName ?? 'Inbox');
+      setStage('done');
+      return;
+    }
 
     // Duplicate URL check
     if (!skipDuplicateCheck && rawUrl) {

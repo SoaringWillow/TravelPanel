@@ -10,6 +10,7 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, saveBoard } from '@/lib/db';
 import { getDaysSinceLastClip } from '@/lib/streak';
+import { isOnline } from '@/lib/network';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems, rankItems, VibeQuery } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
@@ -102,6 +103,11 @@ export default function InboxPage() {
   }, []);
 
   const handleVibeSearch = useCallback(async (q: string) => {
+    if (!isOnline()) {
+      showToast('📡 Offline — using keyword search', 'info');
+      handleSearch(q);
+      return;
+    }
     track('vibe_search_performed', { length: q.trim().length });
     try {
       const res = await fetch('/api/search', {

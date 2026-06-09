@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, 
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, markItemVisited } from '@/lib/db';
 import { buildRecapData, RECAP_STORAGE_KEY } from '@/lib/generateRecap';
+import { isOnline } from '@/lib/network';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -99,6 +100,11 @@ export default function PlanPage() {
       );
       track('plan_limit_hit', { boardId });
       void notify('warning');
+      return;
+    }
+
+    if (!isOnline()) {
+      setPlanLimitError('📡 No connection — connect to generate a plan.');
       return;
     }
 
