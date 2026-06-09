@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --indigo:      #6366f1;
+      --indigo-dark: #4f46e5;
+      --indigo-100:  #e0e7ff;
+      --gray-900:    #111827;
+      --gray-600:    #4b5563;
+      --gray-400:    #9ca3af;
+      --gray-200:    #e5e7eb;
+      --gray-100:    #f3f4f6;
+      --green:       #10b981;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-900);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      padding: 32px 36px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--indigo);
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    .logo svg { width: 26px; height: 26px; }
+
+    .header-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .header-text p {
+      font-size: 13px;
+      color: var(--gray-400);
+      margin-top: 2px;
+    }
+
+    .field { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-600);
+      margin-bottom: 6px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid var(--gray-200);
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--gray-900);
+      transition: border-color 0.15s;
+      outline: none;
+      background: white;
+    }
+
+    input:focus { border-color: var(--indigo); }
+
+    .hint {
+      font-size: 12px;
+      color: var(--gray-400);
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    .hint code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: var(--gray-100);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .btn-save {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 22px;
+      background: var(--indigo);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(99,102,241,.3);
+    }
+
+    .btn-save:hover  { background: var(--indigo-dark); }
+    .btn-save:active { transform: scale(0.98); }
+
+    .toast {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .toast.visible { opacity: 1; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--gray-200);
+      margin: 24px 0;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .tip-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .tip-list li {
+      font-size: 13px;
+      color: var(--gray-600);
+      display: flex;
+      gap: 8px;
+      line-height: 1.45;
+    }
+
+    .tip-list li::before {
+      content: attr(data-icon);
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.7 2 6 4.7 6 8c0 5.2 6 14 6 14s6-8.8 6-14c0-3.3-2.7-6-6-6z" fill="white"/>
+          <circle cx="12" cy="8" r="2.5" fill="#6366f1"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>TravelPanel Clipper</h1>
+        <p>Extension settings</p>
+      </div>
+    </div>
+
+    <!-- TravelPanel URL -->
+    <div class="field">
+      <label for="tpUrl">TravelPanel URL</label>
+      <input
+        type="url"
+        id="tpUrl"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <p class="hint">
+        Your deployed TravelPanel URL. If you run it locally, use
+        <code>http://localhost:3000</code>.
+      </p>
+    </div>
+
+    <div style="display:flex;align-items:center;">
+      <button class="btn-save" id="saveBtn">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+        Save
+      </button>
+      <span class="toast" id="toast">✓ Saved!</span>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Usage tips -->
+    <p class="section-title">How to use</p>
+    <ul class="tip-list">
+      <li data-icon="📌">Click the extension icon on any travel blog, YouTube video, or social post to clip it to TravelPanel.</li>
+      <li data-icon="🖱️">Right-click any page or link and choose <strong>Save to TravelPanel</strong> for quick access.</li>
+      <li data-icon="✨">After clipping, TravelPanel automatically extracts locations and wisdom from the page with AI.</li>
+      <li data-icon="📱">Works alongside the iOS Share Extension — clips appear across all your devices when cloud sync is enabled.</li>
+    </ul>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
