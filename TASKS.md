@@ -63,7 +63,7 @@ Without it, the delete button buried in the card footer is hard to discover.
   if it fires, show an overlay delete button on that card
 
 ### D3 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Native iOS apps use haptics to confirm actions. Without them the app feels like
 a website. Haptics are free — no UI needed, pure feel improvement.
 **Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `app/inbox/page.tsx`,
@@ -217,7 +217,7 @@ should infer the right board from the content and offer a single-tap confirm.
 - On drag end, call `reorderBoards` with the new order and update local state optimistically
 
 ### E3 — Richer Plan Streaming (Visible Reasoning)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: 圆周旅记's biggest UX win is streaming agent reasoning that makes users feel like
 an intelligent friend is thinking for them. Our plan generation emits generic step types
 but the messages are terse. Richer, context-specific messages build trust.
@@ -254,7 +254,7 @@ interaction, and it's what separates a planning tool from a one-shot generator.
   30 chars), using the existing multi-version support from A10
 
 ### E5 — Real-World Enrichment Signals (Festivals + Weather)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The strategic moat over all AI travel chatbots is that we can say "Golden Week
 overlaps with YOUR specific saves." A static dataset covers 80% of cases in 1–2h of work.
 **Files**: new `lib/enrichmentSignals.ts`, `app/api/plan/route.ts`
@@ -286,7 +286,7 @@ overlaps with YOUR specific saves." A static dataset covers 80% of cases in 1–
   view can render a collapsible "Heads-up" section at the top
 
 ### E6 — Inline Note from Detail Card
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Users think of a note while looking at a clip detail ("check if cash-only first").
 Having to go through an edit flow to add a note is friction. Inline note editing removes
 one step from a common action.
@@ -437,7 +437,7 @@ are rejected. The policy must accurately describe what data is collected.
 - Style as a clean document page with the app header and back navigation
 
 ### G4 — TestFlight Distribution Guide + Build Script
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Without a documented build+distribute process, deploying updates to TestFlight
 requires remembering a multi-step manual process every time. A script reduces this to
 one command.

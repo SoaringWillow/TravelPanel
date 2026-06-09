@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { hapticNotification } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -106,6 +107,7 @@ function SharePageInner() {
 
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    hapticNotification('success');
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);

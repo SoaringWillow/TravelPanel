@@ -11,13 +11,15 @@
     "ios:build": "next build && npx cap sync ios",
     "ios:open": "npx cap open ios",
     "ios:sync": "npx cap sync ios",
-    "ios:run": "npx cap run ios"
+    "ios:run": "npx cap run ios",
+    "build:ios": "bash scripts/build-ios.sh"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.76",
     "@capacitor/app": "^8.1.0",
     "@capacitor/cli": "^8.3.3",
     "@capacitor/core": "^8.3.3",
+    "@capacitor/haptics": "^8.0.1",
     "@capacitor/ios": "^8.3.3",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",

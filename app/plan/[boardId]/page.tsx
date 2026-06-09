@@ -11,6 +11,7 @@ import { nearestDistanceKm, formatDistance } from '@/lib/geoUtils';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { hapticNotification, hapticImpact } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -147,6 +148,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              hapticNotification(msg.step.type === 'done' ? 'success' : 'error');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
