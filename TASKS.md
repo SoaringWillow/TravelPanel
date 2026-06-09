@@ -114,7 +114,7 @@ but has no swipe gesture support, making it feel like a web app, not a native on
   replace with `env(safe-area-inset-top)`)
 
 ### D7 — App Store Metadata + Assets
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: The Xcode project needs a proper app icon, launch screen, and privacy
 manifest before App Store submission.
 **Files to change**: `ios/App/App/Assets.xcassets`, `ios/App/App/Info.plist`,

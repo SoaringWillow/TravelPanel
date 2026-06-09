@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Download, CloudOff, Trash2, ChevronRight, CheckCircle2, Moon, Sun, Monitor } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, CloudOff, Trash2, ChevronRight, CheckCircle2, Moon, Sun, Monitor, Cloud, User } from 'lucide-react';
 import { getAllItems, getAllBoards, getTripsForBoard } from '@/lib/db';
 import NavBar from '@/components/NavBar';
 import { useTheme, ThemeMode } from '@/components/ThemeProvider';
+import { cloudEnabled, getSession, onAuthChange } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import type { Session } from '@supabase/supabase-js';
 
 // ─── Data export ──────────────────────────────────────────────────────────────
 
@@ -128,6 +131,16 @@ function ThemeToggle() {
 export default function SettingsPage() {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [exportError, setExportError] = useState('');
+  const [cloudSession, setCloudSession] = useState<Session | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!cloudEnabled) return;
+    getSession().then(setCloudSession);
+    let unsub = () => {};
+    onAuthChange(setCloudSession).then((fn) => { unsub = fn; });
+    return () => unsub();
+  }, []);
 
   async function handleExportJSON() {
     setExportState('loading');
@@ -180,15 +193,21 @@ export default function SettingsPage() {
 
       {/* Cloud section */}
       <SectionHeader
-        title="Cloud Sync"
-        subtitle="Sign in to sync your clips across devices. Coming soon."
+        title="Account & Cloud Sync"
+        subtitle={cloudEnabled ? 'Sync your clips across devices' : undefined}
       />
       <div className="mx-4 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
         <SettingsRow
-          icon={<CloudOff size={20} />}
-          label="Cloud sync"
-          sublabel="Currently stored on-device only"
-          onClick={() => {}}
+          icon={cloudEnabled ? (cloudSession ? <User size={20} /> : <Cloud size={20} />) : <CloudOff size={20} />}
+          label={cloudSession ? 'Signed in' : cloudEnabled ? 'Sign in to sync' : 'Cloud sync'}
+          sublabel={
+            cloudSession
+              ? cloudSession.user.email ?? 'Manage account'
+              : cloudEnabled
+              ? 'Back up and sync across devices'
+              : 'Add Supabase keys to enable'
+          }
+          onClick={() => router.push('/account')}
         />
       </div>
 
