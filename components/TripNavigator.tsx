@@ -202,7 +202,7 @@ export default function TripNavigator({ stops, onLocationChange, onMarkVisited, 
                               type="button"
                               onClick={() => {
                                 if (!stop.itemId) return;
-                                setVisitedIds((prev) => new Set([...prev, stop.itemId!]));
+                                setVisitedIds((prev) => { const s = new Set(Array.from(prev)); s.add(stop.itemId!); return s; });
                                 void notify('success');
                                 onMarkVisited?.(stop.itemId, stop.name);
                               }}

@@ -306,7 +306,7 @@ clipping habitual — same psychology as Duolingo's streak.
 - In `app/inbox/page.tsx` `handleVibeSearch()`: if offline, skip the API call and fall back to keyword search with toast: "📡 Offline — using keyword search."
 
 ### H5 — Fix Xiaohongshu Image Extraction TypeScript Error
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: `app/api/import/route.ts` has a pre-existing TS2345 error because the `mimeType` field isn't in `ImagePart` for the current @ai-sdk version. This breaks CI and means image extraction for Xiaohongshu is silently skipped.
 **Files to change**: `app/api/import/route.ts`
 **What to do**:

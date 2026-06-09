@@ -158,7 +158,7 @@ Never return an empty substance array for a real travel post.`;
                   {
                     type: 'image' as const,
                     image: imageBase64,
-                    mimeType: mimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+                    mediaType: mimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
                   },
                   { type: 'text' as const, text: prompt },
                 ],
