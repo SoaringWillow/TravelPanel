@@ -401,7 +401,7 @@ new `scripts/generate-icons.js`
 - Also generate `public/icon-192.png` and `public/icon-512.png` for the PWA manifest
 
 ### G2 — Launch Screen (Splash Screen)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The current Capacitor splash screen is the default. On launch, iOS shows the
 launch screen for ~300ms. A branded splash screen makes the first impression premium.
 **Files**: `ios/App/App/Base.lproj/LaunchScreen.storyboard`,
