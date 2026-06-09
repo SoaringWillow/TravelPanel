@@ -214,7 +214,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keyboard avoidance: scroll the card up when a keyboard appears (CSS `scroll-margin-bottom`)
 
 ### C3 — Board Rename
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users can delete boards but not rename them. Board names are permanent typos.  
 **Files**: `app/boards/page.tsx`, `components/BoardCard.tsx` (check if exists), `lib/db.ts`  
 **What to do**:

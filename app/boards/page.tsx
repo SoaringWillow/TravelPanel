@@ -11,7 +11,7 @@ import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, renameBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -83,6 +83,7 @@ export default function BoardsPage() {
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
+                onRename={(name) => renameBoard(board.id, name)}
               />
             ))}
           </div>

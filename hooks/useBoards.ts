@@ -42,6 +42,14 @@ export function useBoards() {
     setBoards((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
+  const renameBoard = useCallback(async (id: string, name: string): Promise<void> => {
+    const board = (await getAllBoards()).find(b => b.id === id);
+    if (!board) return;
+    const updated = { ...board, name, updatedAt: Date.now() };
+    await saveBoard(updated);
+    setBoards(prev => prev.map(b => b.id === id ? { ...b, name } : b));
+  }, []);
+
   const moveItemToBoard = useCallback(async (boardId: string, itemId: string): Promise<void> => {
     await dbAddItemToBoard(boardId, itemId);
   }, []);
@@ -50,5 +58,5 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  return { boards, loading, createBoard, removeBoard, renameBoard, moveItemToBoard, removeItemFromBoard };
 }
