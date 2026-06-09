@@ -214,7 +214,11 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - `app/import/page.tsx`: decodes `?b=` param, shows board preview (emoji, name, clip count, location count, first 4 clip cards), "Add to my collections" imports all items + board into IndexedDB, shows success screen with link to new board
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Implemented**:
+- `lib/getDailyPick.ts`: selects one enriched, substance-rich, ≥7-day-old clip per calendar day using a deterministic day-of-year index; `isDismissedToday()`/`dismissToday()` persist dismiss state in localStorage per day
+- `components/ResurfaceCard.tsx`: floating card above NavBar on the home map; shows clip title, location, and a tip quote; "Revisit inspiration →" opens the clip detail card and flies the map to its location; × dismisses for the day; animates in/out with spring
+- `app/page.tsx`: renders ResurfaceCard with the daily pick when no item is selected
 
 ---
 

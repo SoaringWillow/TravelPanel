@@ -11,7 +11,9 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { ResurfaceCard } from '@/components/ResurfaceCard';
 import { nearestDistanceKm } from '@/lib/geoUtils';
+import { getDailyPick } from '@/lib/getDailyPick';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -26,6 +28,9 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [nearMeActive, setNearMeActive] = useState(false);
+
+  // Compute daily pick only once items are loaded (useMemo recalcs when items change)
+  const dailyPick = useMemo(() => (items.length > 0 ? getDailyPick(items) : null), [items]);
 
   const NEAR_ME_RADIUS_KM = 50;
 
@@ -151,6 +156,17 @@ function HomePageInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Daily resurface card — shows a clip saved 7+ days ago */}
+      {!selectedItem && !showImport && dailyPick && (
+        <ResurfaceCard
+          item={dailyPick}
+          onView={(item) => {
+            setSelectedItem(item);
+            if (item.locations.length > 0) setFlyTo(item.locations[0]);
+          }}
+        />
+      )}
 
       {/* Import FAB */}
       {!selectedItem && (
