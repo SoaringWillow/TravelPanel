@@ -317,6 +317,76 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE F — iOS Polish & Production Readiness
+
+> All major features are implemented. This phase makes the app feel native,
+> professional, and ready for App Store submission. Focus: visual polish,
+> iOS-native gestures, PWA quality, and board management UX.
+
+### F1 — PWA Manifest & iOS App Icons
+**Status**: `[ ]` Not started
+**Why**: The app lacks proper icons for "Add to Home Screen" on iOS. `manifest.json` has placeholder sizes. Without real icons, the app looks unfinished when installed.
+**Files**: `public/manifest.json`, `public/icons/` (new), `app/layout.tsx`
+**What to do**:
+- Generate a proper icon set for the app (PNG) using the existing pure-Node PNG generator pattern from `browser-extension/scripts/generate-icons.js`
+- Required sizes: 192×192 (Android/PWA), 512×512 (PWA splash), 180×180 (apple-touch-icon), 167×167 (iPad), 152×152, 120×120
+- Icon design: indigo-to-violet gradient background + white map pin emoji or custom TravelPanel icon
+- Update `public/manifest.json` with correct icon entries
+- Add `<link rel="apple-touch-icon" href="/icons/icon-180.png">` to layout.tsx
+- Add `<meta name="apple-mobile-web-app-title" content="TravelPanel">` to layout.tsx
+
+### F2 — Emoji Picker for Boards
+**Status**: `[ ]` Not started
+**Why**: Boards default to 🗺 emoji, which makes all boards look the same. Users should be able to personalize with a travel emoji.
+**Files**: `components/EmojiPicker.tsx` (new), `app/boards/page.tsx` (new board dialog), `app/share/page.tsx` (new board flow)
+**What to do**:
+- Create `EmojiPicker` component: a small grid (4 columns) of travel-relevant emojis
+- Categories: Destinations (🗼🏯🗽🎡🏝🏔🌋🏕), Food (🍜🍣🍕🥘🍷🧋🥐), Activity (🎨🛍🧗🏄🚂✈️🚢🎭), Nature (🌊🌸🍁🌅🌃🌄)
+- Tap to select; show in board card and rename input
+- Wire into new board creation dialog in boards page and share page
+
+### F3 — Swipe-to-Delete on Inbox Cards
+**Status**: `[ ]` Not started
+**Why**: iOS users expect swipe-left to reveal delete. Tap-the-trash is slower and less discoverable.
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`
+**What to do**:
+- Wrap each InboxCard in a swipeable container using framer-motion drag
+- Swipe left beyond 80px threshold reveals a red delete button underneath
+- Spring-snap back to center if not committed; animate out on confirm
+- Only in the 'done' state cards (skeleton/failed cards use their own delete)
+- Preserve the existing delete button as fallback
+
+### F4 — Board Detail Sort & Filter
+**Status**: `[ ]` Not started
+**Why**: With 20+ clips in a board, finding specific places is hard. Sorting by date or location count helps.
+**Files**: `app/boards/[id]/page.tsx`
+**What to do**:
+- Add a sort button (or dropdown) to the board detail header: "Newest first", "Oldest first", "Most locations", "Alphabetical"
+- Apply sort to `boardItems` before rendering (both grid and timeline views)
+- Persist sort preference in sessionStorage per board
+
+### F5 — Plan View Improvements (Day Notes + Share)
+**Status**: `[ ]` Not started
+**Why**: The plan view generates well but users can't annotate it or share it with travel companions.
+**Files**: `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Add a per-day "Notes" expandable field (text area, stored in the Trip object in IndexedDB)
+- Add a "Share Plan" button that uses the Web Share API (`navigator.share`) to share the plan as plain text (day-by-day summary)
+- Graceful fallback: if Web Share not available, copy to clipboard with a toast confirmation
+
+### F6 — Capacitor iOS Build Improvements
+**Status**: `[ ]` Not started
+**Why**: The iOS build workflow has friction. `capacitor.config.ts` and the iOS project need production polish for App Store submission.
+**Files**: `ios/App/capacitor.config.ts`, `ios/App/App/Info.plist`
+**What to do**:
+- Verify `capacitor.config.ts` has correct `appId: 'com.soaringwillow.travelpanel'` and `appName: 'TravelPanel'`
+- Add NSLocationWhenInUseUsageDescription to Info.plist (required for GPS mode)
+- Add NSLocationAlwaysAndWhenInUseUsageDescription to Info.plist
+- Update `capacitor.config.ts` to set `backgroundColor: '#6366f1'` for splash screen
+- Document the production build steps in `ios/App/RELEASE.md`
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
