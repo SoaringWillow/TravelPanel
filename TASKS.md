@@ -493,7 +493,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Don't prompt if the user just hit a rate limit error
 
 ### H4 — Board Cover Photo from Clip Thumbnails
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The boards list shows emoji icons only. Using the newest clip's thumbnail as a board cover photo makes the board list visually rich and more scannable.
 **Files**: `app/boards/page.tsx`, `components/BoardCard.tsx` (if exists), `lib/db.ts`
 **What to do**:

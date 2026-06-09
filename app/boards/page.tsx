@@ -21,6 +21,14 @@ export default function BoardsPage() {
     return board ? board.itemIds.length : 0;
   }
 
+  // Derive cover thumbnail: most recently saved clip in this board that has a thumbnail
+  function getBoardCover(board: (typeof boards)[0]): string | undefined {
+    const idSet = new Set(board.itemIds);
+    return items
+      .filter((i) => idSet.has(i.id) && i.thumbnail)
+      .sort((a, b) => b.savedAt - a.savedAt)[0]?.thumbnail;
+  }
+
   async function handleCreate(name: string, emoji: string) {
     await createBoard(name, emoji);
   }
@@ -79,7 +87,7 @@ export default function BoardsPage() {
             {boards.map((board) => (
               <BoardCard
                 key={board.id}
-                board={board}
+                board={{ ...board, coverThumbnail: getBoardCover(board) }}
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
