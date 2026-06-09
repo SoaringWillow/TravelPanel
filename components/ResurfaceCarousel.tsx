@@ -56,12 +56,12 @@ export default function ResurfaceCarousel({ items, onItemClick }: ResurfaceCarou
       animate={{ opacity: 1, y: 0 }}
       className="absolute top-[76px] left-0 right-0 z-[999] px-4"
     >
-      <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100">
+        <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-1.5">
             <Sparkles size={13} className="text-indigo-500" />
-            <span className="text-xs font-bold text-gray-700">Revisit your inspiration</span>
+            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Revisit your inspiration</span>
           </div>
           <button
             type="button"
@@ -86,7 +86,7 @@ export default function ResurfaceCarousel({ items, onItemClick }: ResurfaceCarou
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => onItemClick(item)}
-                className="flex-shrink-0 w-44 bg-gray-50 hover:bg-indigo-50 rounded-xl p-2.5 text-left active:scale-95 transition-all border border-gray-100"
+                className="flex-shrink-0 w-44 bg-gray-50 dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl p-2.5 text-left active:scale-95 transition-all border border-gray-100 dark:border-gray-700"
               >
                 {/* Reason badge */}
                 <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full mb-1.5 ${REASON_COLOR[reason]}`}>
@@ -112,7 +112,7 @@ export default function ResurfaceCarousel({ items, onItemClick }: ResurfaceCarou
                 )}
 
                 {/* Title */}
-                <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug mb-1">
+                <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 leading-snug mb-1">
                   {item.title}
                 </p>
 
@@ -126,7 +126,7 @@ export default function ResurfaceCarousel({ items, onItemClick }: ResurfaceCarou
 
                 {/* Top tip teaser */}
                 {topSubstance && (
-                  <p className="text-[10px] text-gray-500 flex items-start gap-0.5 mt-1 line-clamp-2">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 flex items-start gap-0.5 mt-1 line-clamp-2">
                     <Lightbulb size={9} className="flex-shrink-0 mt-0.5" />
                     {topSubstance.content}
                   </p>

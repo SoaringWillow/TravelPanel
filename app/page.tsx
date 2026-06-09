@@ -76,10 +76,10 @@ function HomePageInner() {
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
+          <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">TravelPanel</span>
+          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
             {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
           </div>
         </div>

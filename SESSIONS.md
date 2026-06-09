@@ -96,3 +96,12 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-09 17:24 | 384a93d | feat(B2): add Chrome/Safari browser extension for one-click clipping
+2026-06-09 17:30 | bb80883 | feat(B3): Xiaohongshu fix — Claude Vision for image-based share extraction
+2026-06-09 17:33 | 6104ec7 | feat(B4): vibe search — Claude query expansion + ranked results
+2026-06-09 17:34 | 98df458 | feat(B5): settings page + JSON data export
+2026-06-09 17:37 | 0172942 | feat(C1): on-trip GPS mode with proximity-aware stop navigator
+2026-06-09 17:40 | 8ffd5c6 | feat(C2): post-trip timeline — mark visited stops + chronological journal
+2026-06-09 17:42 | 7b2cb25 | feat(C3): shared boards v1 — URL-encoded board sharing (no server needed)
+2026-06-09 17:44 | 216e892 | feat(C4): proactive resurfacing — smart 'Rediscover' carousel on home screen
+2026-06-09 17:52 | 884c705 | feat(D1): loading skeletons, pull-to-refresh, safe-area insets
