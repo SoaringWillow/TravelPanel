@@ -96,3 +96,10 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-09 23:29 | a53ef55 | feat(B2): add TravelPanel Clipper browser extension (Chrome/Safari MV3)
+2026-06-09 23:36 | 3f6c595 | feat(B3): Claude Vision fallback for Xiaohongshu + image-blocked posts
+2026-06-09 23:37 | b98fa68 | feat(B5): cloud backup export — Settings page + full JSON download
+2026-06-09 23:40 | f765e40 | chore: expand TASKS.md with Phase D/E/F roadmap to beautiful iOS app
+2026-06-09 23:42 | 1afe50e | feat(D1): haptic feedback via @capacitor/haptics
+2026-06-09 23:44 | cee2024 | feat(D2): pull-to-refresh on inbox and boards pages
+2026-06-09 23:48 | 7773e65 | feat(D3): swipe-to-delete with undo toast on InboxCard
