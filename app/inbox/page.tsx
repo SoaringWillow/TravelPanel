@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -13,8 +13,10 @@ import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import { SkeletonGrid } from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,7 +31,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -38,6 +40,12 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { pullDistance, isRefreshing } = usePullToRefresh({
+    scrollRef: scrollRef as React.RefObject<HTMLElement | null>,
+    onRefresh: refresh,
+  });
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -139,11 +147,24 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
-        {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24 relative">
+        {/* Pull-to-refresh indicator */}
+        {(pullDistance > 0 || isRefreshing) && (
+          <div
+            className="flex items-center justify-center mb-2 transition-all"
+            style={{ height: Math.min(pullDistance, 52) }}
+          >
+            <div
+              className={`w-7 h-7 border-2 border-indigo-300 border-t-indigo-600 rounded-full ${
+                isRefreshing ? 'animate-spin' : ''
+              }`}
+              style={{ transform: `rotate(${pullDistance * 3}deg)` }}
+            />
           </div>
+        )}
+
+        {loading ? (
+          <SkeletonGrid count={6} />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>

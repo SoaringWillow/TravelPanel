@@ -27,7 +27,7 @@ Goal: **beautiful, fully-functional native iOS app** that wins on capture ease +
 ## PHASE D — iOS Native Polish & Visual Excellence
 
 ### D1 — Skeleton Loading States + Pull-to-Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The clip grid currently shows empty space while loading. Skeletons feel instant and premium. Pull-to-refresh is the standard iOS refresh pattern.  
 **Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/[id]/page.tsx`  
 **What to do**:
