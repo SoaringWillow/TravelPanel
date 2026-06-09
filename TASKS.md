@@ -313,7 +313,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Status**: `[x]` Done
 
 ### E3 — AI Similar Places Suggestions
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ---
 

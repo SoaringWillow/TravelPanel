@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Sparkles } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
@@ -17,6 +17,7 @@ import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import BatchImportSheet from '@/components/BatchImportSheet';
+import SimilarPlacesSheet from '@/components/SimilarPlacesSheet';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [query, setQuery] = useState('');
 
   // ── Pull-to-refresh ──────────────────────────────────────────────────────
@@ -168,6 +170,14 @@ export default function InboxPage() {
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
+          <button
+            type="button"
+            onClick={() => setSuggestOpen(true)}
+            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors"
+            aria-label="AI place suggestions"
+          >
+            <Sparkles size={18} />
+          </button>
           <button
             type="button"
             onClick={() => setBatchOpen(true)}
@@ -359,6 +369,15 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {suggestOpen && (
+          <SimilarPlacesSheet
+            items={items}
+            onClose={() => setSuggestOpen(false)}
+          />
         )}
       </AnimatePresence>
 
