@@ -3,12 +3,12 @@
 import { useState, useCallback, useRef, TouchEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RefreshCw, Sparkles, Check } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem, saveBoard } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems, rankItems, VibeQuery } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
@@ -44,6 +44,12 @@ export default function InboxPage() {
   const [vibeResults, setVibeResults] = useState<ReturnType<typeof rankItems> | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+
+  // Auto-organize state
+  type SuggestedBoard = { name: string; emoji: string; itemIds: string[]; reason: string };
+  const [isOrganizing, setIsOrganizing] = useState(false);
+  const [organizeSuggestions, setOrganizeSuggestions] = useState<SuggestedBoard[] | null>(null);
+  const [selectedBoardIds, setSelectedBoardIds] = useState<Set<number>>(new Set());
 
   const touchStartY = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -124,6 +130,53 @@ export default function InboxPage() {
     ? vibeResults.filter((i) => activePlatform === 'all' || i.platform === activePlatform)
     : searchItems(platformFiltered, query);
 
+  const handleAutoOrganize = useCallback(async () => {
+    if (inboxItems.length < 2) {
+      showToast('Add at least 2 items to auto-organize', 'info');
+      return;
+    }
+    setIsOrganizing(true);
+    try {
+      const res = await fetch('/api/auto-organize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: inboxItems }),
+      });
+      if (!res.ok) throw new Error('organize failed');
+      const data = await res.json();
+      setOrganizeSuggestions(data.suggestedBoards ?? []);
+      setSelectedBoardIds(new Set((data.suggestedBoards ?? []).map((_: SuggestedBoard, i: number) => i)));
+    } catch {
+      showToast('Auto-organize failed — try again', 'error');
+    } finally {
+      setIsOrganizing(false);
+    }
+  }, [inboxItems, showToast]);
+
+  const handleCreateBoards = useCallback(async () => {
+    if (!organizeSuggestions) return;
+    const toCreate = organizeSuggestions.filter((_, i) => selectedBoardIds.has(i));
+    let created = 0;
+    for (const suggestion of toCreate) {
+      const boardId = crypto.randomUUID();
+      await saveBoard({
+        id: boardId,
+        name: suggestion.name,
+        emoji: suggestion.emoji,
+        itemIds: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      for (const itemId of suggestion.itemIds) {
+        await addItemToBoard(boardId, itemId);
+      }
+      created++;
+    }
+    setOrganizeSuggestions(null);
+    showToast(`Created ${created} board${created !== 1 ? 's' : ''}`, 'success');
+    router.refresh();
+  }, [organizeSuggestions, selectedBoardIds, router, showToast]);
+
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
     if (item && item.locations.length > 0) {
@@ -176,6 +229,19 @@ export default function InboxPage() {
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
+          <button
+            type="button"
+            onClick={handleAutoOrganize}
+            disabled={isOrganizing || inboxItems.length < 2}
+            className="flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40"
+          >
+            {isOrganizing ? (
+              <RefreshCw size={13} className="animate-spin" />
+            ) : (
+              <Sparkles size={13} />
+            )}
+            {isOrganizing ? 'Thinking…' : 'Auto-organize'}
+          </button>
         </div>
 
         {/* Search */}
@@ -376,6 +442,99 @@ export default function InboxPage() {
                     </p>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Auto-organize preview modal */}
+      <AnimatePresence>
+        {organizeSuggestions && (
+          <>
+            <motion.div
+              key="org-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[2001] bg-black/50"
+              onClick={() => setOrganizeSuggestions(null)}
+            />
+            <motion.div
+              key="org-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[2002] bg-white dark:bg-gray-900 rounded-t-3xl"
+              style={{ maxHeight: '80vh' }}
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full" />
+              </div>
+
+              <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <Sparkles size={16} className="text-indigo-500" />
+                    AI found {organizeSuggestions.length} group{organizeSuggestions.length !== 1 ? 's' : ''}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Select which boards to create</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOrganizeSuggestions(null)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto px-5 py-3 space-y-2" style={{ maxHeight: 'calc(80vh - 160px)' }}>
+                {organizeSuggestions.map((board, i) => {
+                  const selected = selectedBoardIds.has(i);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setSelectedBoardIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(i)) next.delete(i);
+                          else next.add(i);
+                          return next;
+                        });
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-left transition-all ${
+                        selected
+                          ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
+                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
+                      }`}
+                    >
+                      <span className="text-2xl flex-shrink-0">{board.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{board.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{board.itemIds.length} item{board.itemIds.length !== 1 ? 's' : ''} — {board.reason}</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all ${
+                        selected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 dark:border-gray-600'
+                      }`}>
+                        {selected && <Check size={12} className="text-white" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="px-5 pb-8 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={handleCreateBoards}
+                  disabled={selectedBoardIds.size === 0}
+                  className="w-full bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40"
+                >
+                  Create {selectedBoardIds.size} board{selectedBoardIds.size !== 1 ? 's' : ''}
+                </button>
               </div>
             </motion.div>
           </>

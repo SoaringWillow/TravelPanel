@@ -206,7 +206,7 @@ in December has 5 hours of daylight.
   with a 🌤 / ⛈ icon
 
 ### F3 — Smart Board Auto-Organization
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: After 50+ saves, the Inbox is a mess. The ambient organization promise requires
 AI to cluster saves into boards automatically.
 **Files to change**: new `app/api/auto-organize/route.ts`, `app/inbox/page.tsx`
