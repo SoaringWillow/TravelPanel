@@ -50,9 +50,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, travelMonth: string | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, travelMonth } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -149,6 +149,7 @@ Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
+${travelMonth ? `Travel dates: ${new Date(travelMonth + '-01').toLocaleDateString('en', { month: 'long', year: 'numeric' })}` : ''}
 
 Rules:
 - 2-4 activities per day with realistic timing
@@ -160,7 +161,7 @@ Rules:
   activity, surface it in that activity's "sourcedTips" with the exact clip title
   as sourceTitle. This makes the plan reflect the user's curated knowledge, not
   generic advice. ${hasSubstance ? 'The clips DO contain substance — use it.' : 'If no substance is present, return an empty sourcedTips array.'}
-  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.`,
+  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.${travelMonth ? '\n- Factor in seasonal context: weather, festivals, crowds, closures, and best experiences for that month.' : ''}`,
         });
 
         for await (const partial of planStream.partialObjectStream) {

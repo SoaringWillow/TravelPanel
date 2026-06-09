@@ -30,6 +30,10 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
+  const [travelMonth, setTravelMonth] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return sessionStorage.getItem(`tp_plan_month_${boardId}`) ?? '';
+  });
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
   const [steps, setSteps] = useState<AgentStep[]>([]);
@@ -89,6 +93,7 @@ export default function PlanPage() {
       body: JSON.stringify({
         items: boardItems,
         days,
+        travelMonth: travelMonth || undefined,
         preferences: [
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
@@ -153,7 +158,7 @@ export default function PlanPage() {
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, travelMonth, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -345,6 +350,25 @@ export default function PlanPage() {
                   <span>1 day</span>
                   <span>14 days</span>
                 </div>
+              </div>
+
+              {/* Travel month picker */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Calendar size={15} className="text-indigo-500" />
+                  When are you travelling?
+                  <span className="text-xs font-normal text-gray-400">(optional)</span>
+                </label>
+                <input
+                  type="month"
+                  value={travelMonth}
+                  onChange={e => {
+                    setTravelMonth(e.target.value);
+                    sessionStorage.setItem(`tp_plan_month_${boardId}`, e.target.value);
+                  }}
+                  min={new Date().toISOString().slice(0, 7)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                />
               </div>
 
               {/* Preference chips */}

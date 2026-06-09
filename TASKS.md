@@ -525,7 +525,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep map read-only: no pin interaction beyond the tap-through
 
 ### H7 — Travel Date Context in Trip Planner
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The current planner prompt has no knowledge of *when* the user wants to travel. "Cherry blossom season", "avoid typhoon season", and "Golden Week crowds" are date-dependent. Adding a date picker surfaces dramatically better plans.
 **Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`
 **What to do**:
