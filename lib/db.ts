@@ -214,3 +214,10 @@ export async function getAllTrips(): Promise<Trip[]> {
   const db = await getDB();
   return db.getAll('trips');
 }
+
+export async function patchItem(id: string, fields: Partial<SavedItem>): Promise<void> {
+  const db = await getDB();
+  const existing = await db.get('items', id);
+  if (!existing) return;
+  await db.put('items', { ...existing, ...fields });
+}

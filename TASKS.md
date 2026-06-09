@@ -201,7 +201,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Animate pill selection with a subtle spring (framer-motion)
 
 ### C2 — Clip Edit Mode (title, notes, tags)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users can't correct a wrong extracted title or add personal notes. `SavedItem.notes` exists in the type but is never editable.  
 **Files**: `components/LocationDetailCard.tsx`, `lib/db.ts` (update function already exists: `updateItemEnrichment`)  
 **What to do**:

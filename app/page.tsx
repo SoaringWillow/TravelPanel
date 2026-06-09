@@ -21,7 +21,7 @@ const FILTER_KEY = 'tp_map_board_filter';
 
 function HomePageInner() {
   const searchParams = useSearchParams();
-  const { items, loading, addItem } = useSavedItems();
+  const { items, loading, addItem, refreshItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
@@ -133,6 +133,10 @@ function HomePageInner() {
           <LocationDetailCard
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            onUpdate={(updated) => {
+              setSelectedItem(updated);
+              refreshItem(updated.id);
+            }}
           />
         )}
       </AnimatePresence>
