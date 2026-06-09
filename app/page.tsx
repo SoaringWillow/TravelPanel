@@ -36,19 +36,41 @@ function HomePageInner() {
     if (typeof window === 'undefined') return null;
     return sessionStorage.getItem(FILTER_KEY) || null;
   });
+  const [filteredCountry, setFilteredCountry] = useState<string | null>(null);
 
   useEffect(() => {
     getAllBoards().then(setBoards).catch(() => {});
   }, []);
 
-  // Filtered items: when a board is selected use board.itemIds as the source of truth
+  // Unique countries derived from item locations (last segment of address)
+  const availableCountries = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      for (const loc of item.locations) {
+        const country = loc.address?.split(',').at(-1)?.trim();
+        if (country && country.length > 1) set.add(country);
+      }
+    }
+    return Array.from(set).sort();
+  }, [items]);
+
+  // Filtered items: board filter AND country filter (AND logic)
   const visibleItems = useMemo(() => {
-    if (!filteredBoardId) return items;
-    const board = boards.find(b => b.id === filteredBoardId);
-    if (!board) return items;
-    const idSet = new Set(board.itemIds);
-    return items.filter(i => idSet.has(i.id));
-  }, [items, boards, filteredBoardId]);
+    let result = items;
+    if (filteredBoardId) {
+      const board = boards.find(b => b.id === filteredBoardId);
+      if (board) {
+        const idSet = new Set(board.itemIds);
+        result = result.filter(i => idSet.has(i.id));
+      }
+    }
+    if (filteredCountry) {
+      result = result.filter(i =>
+        i.locations.some(loc => loc.address?.split(',').at(-1)?.trim() === filteredCountry)
+      );
+    }
+    return result;
+  }, [items, boards, filteredBoardId, filteredCountry]);
 
   function handleFilterSelect(boardId: string | null) {
     setFilteredBoardId(boardId);
@@ -60,6 +82,16 @@ function HomePageInner() {
       if (board && !board.itemIds.includes(selectedItem.id)) {
         setSelectedItem(null);
       }
+    }
+  }
+
+  function handleCountryFilter(country: string | null) {
+    setFilteredCountry(country);
+    if (selectedItem && country) {
+      const stillVisible = selectedItem.locations.some(
+        loc => loc.address?.split(',').at(-1)?.trim() === country
+      );
+      if (!stillVisible) setSelectedItem(null);
     }
   }
 
@@ -141,6 +173,36 @@ function HomePageInner() {
             selected={filteredBoardId}
             onSelect={handleFilterSelect}
           />
+        )}
+        {/* Country / region filter — shown when clips span 2+ countries */}
+        {availableCountries.length >= 2 && (
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+            <button
+              type="button"
+              onClick={() => handleCountryFilter(null)}
+              className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                !filteredCountry
+                  ? 'bg-white dark:bg-gray-900 text-indigo-600 shadow-sm'
+                  : 'bg-white/60 dark:bg-gray-900/60 text-gray-500'
+              }`}
+            >
+              🌍 All regions
+            </button>
+            {availableCountries.map((country) => (
+              <button
+                key={country}
+                type="button"
+                onClick={() => handleCountryFilter(filteredCountry === country ? null : country)}
+                className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${
+                  filteredCountry === country
+                    ? 'bg-white dark:bg-gray-900 text-indigo-600 shadow-sm'
+                    : 'bg-white/60 dark:bg-gray-900/60 text-gray-500'
+                }`}
+              >
+                {country}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 

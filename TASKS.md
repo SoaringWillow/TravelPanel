@@ -682,7 +682,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - `Board` type update: add optional `defaultTags?: string[]` (used to pre-filter board view)
 
 ### I7 — Keyboard Avoidance Across All Forms
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: On iPhone, the software keyboard covers the lower 40% of the screen. Forms in the share flow, edit mode, and plan notes are partially hidden when the keyboard opens, making them hard to use.
 **Files**: `app/share/page.tsx`, `components/LocationDetailCard.tsx`, `app/plan/[boardId]/page.tsx`, new `hooks/useKeyboardAvoid.ts`
 **What to do**:
@@ -717,7 +717,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep optional — if no tier selected, cost estimate is omitted from prompt and type
 
 ### I10 — Destination Country / Region Filter on Map
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: A user with 200 clips across 15 countries sees a cluttered world map. A country/region filter (beyond the existing board filter) lets them focus on "just my Japan clips" or "just Europe".
 **Files**: `app/page.tsx`, `components/MapView.tsx`, `lib/types.ts`
 **What to do**:

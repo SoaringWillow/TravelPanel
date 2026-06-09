@@ -13,6 +13,7 @@ import { hapticSuccess } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 import ReviewPromptModal from '@/components/ReviewPromptModal';
+import { useKeyboardAvoid } from '@/hooks/useKeyboardAvoid';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ function SharePageInner() {
   const [showReview, setShowReview] = useState(false);
   const pendingImageRef     = useRef<string | null>(null);
   const pendingThumbnailRef = useRef<string | null>(null);
+  const keyboardHeight = useKeyboardAvoid();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -199,7 +201,10 @@ function SharePageInner() {
 
   if (stage === 'picking' || stage === 'saving') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      <div
+        className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top"
+        style={{ paddingBottom: Math.max(24, keyboardHeight + 16) }}
+      >
         {/* Top section */}
         <div className="space-y-2 pt-4">
           {/* Platform chip */}
@@ -268,10 +273,12 @@ function SharePageInner() {
             <textarea
               value={quickNote}
               onChange={e => setQuickNote(e.target.value)}
+              onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)}
               placeholder="Quick note (optional) — why are you saving this?"
               maxLength={280}
               rows={2}
               className="w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm text-gray-700 placeholder-gray-300 focus:border-indigo-300 focus:outline-none resize-none transition-colors bg-gray-50"
+              style={{ scrollMarginBottom: 120 }}
             />
           </div>
 
