@@ -191,7 +191,14 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Implemented**:
+- `lib/geoUtils.ts`: Haversine `distanceKm` + `formatDistance` + `nearestDistanceKm` utilities
+- `hooks/useGeolocation.ts`: `useGeolocation()` hook wrapping `navigator.geolocation.getCurrentPosition`
+- `components/MapView.tsx`: added `GeolocateControl` (locate-me button on map, shows blue user dot)
+- `app/page.tsx`: "Near Me" pill button in top bar — activates GPS, flies map to user, filters clips to within 50 km radius; pill shows active state + dismiss X
+- `components/DayStripCard.tsx`: optional `distanceFromHere?: string` prop renders a `📍 X km` badge
+- `app/plan/[boardId]/page.tsx`: silently requests GPS on mount; computes nearest distance from user to each day's activity locations; passes formatted distance to DayStripCards
 
 ### C2 — Post-Trip Timeline
 **Status**: `[ ]` Not started

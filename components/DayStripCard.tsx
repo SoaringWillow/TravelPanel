@@ -8,9 +8,10 @@ interface DayStripCardProps {
   index: number;
   isActive: boolean;
   onSelect: () => void;
+  distanceFromHere?: string; // e.g. "3.2 km" — shown when GPS is available
 }
 
-export default function DayStripCard({ day, index, isActive, onSelect }: DayStripCardProps) {
+export default function DayStripCard({ day, index, isActive, onSelect, distanceFromHere }: DayStripCardProps) {
   const stopCount = day.activities.length;
 
   return (
@@ -43,6 +44,13 @@ export default function DayStripCard({ day, index, isActive, onSelect }: DayStri
       <p className="text-xs text-gray-400 mt-1">
         {stopCount} stop{stopCount !== 1 ? 's' : ''}
       </p>
+
+      {distanceFromHere && (
+        <p className="text-xs text-indigo-500 font-medium mt-1 flex items-center gap-0.5">
+          <span>📍</span>
+          {distanceFromHere}
+        </p>
+      )}
     </motion.div>
   );
 }

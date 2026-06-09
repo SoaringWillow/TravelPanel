@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { nearestDistanceKm, formatDistance } from '@/lib/geoUtils';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -38,6 +40,25 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+
+  // Passive GPS — silently request on mount; used for "X km from here" badges on day cards
+  const { position: geoPos, request: requestGeo } = useGeolocation();
+  useEffect(() => { requestGeo(); }, [requestGeo]);
+
+  // Pre-compute nearest distance from user to each day's first activity location
+  const dayDistances = useMemo(() => {
+    if (!geoPos || !plan?.days) return null;
+    return plan.days.map((day) => {
+      const locs = day.activities.flatMap((a) =>
+        Number.isFinite(a.location?.lat) && Number.isFinite(a.location?.lng)
+          ? [{ lat: a.location.lat, lng: a.location.lng }]
+          : [],
+      );
+      if (locs.length === 0) return undefined;
+      const km = nearestDistanceKm(geoPos.lat, geoPos.lng, locs);
+      return isFinite(km) ? formatDistance(km) : undefined;
+    });
+  }, [geoPos, plan?.days]);
 
   useEffect(() => {
     async function load() {
@@ -499,6 +520,7 @@ export default function PlanPage() {
                         index={idx}
                         isActive={activeDayIndex === idx}
                         onSelect={() => setActiveDayIndex(idx)}
+                        distanceFromHere={dayDistances?.[idx]}
                       />
                     ))}
                   </div>

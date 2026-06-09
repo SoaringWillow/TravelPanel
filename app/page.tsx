@@ -1,15 +1,17 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, MapPin, X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { nearestDistanceKm } from '@/lib/geoUtils';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -18,10 +20,40 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
+  const { position: geoPos, loading: geoLoading, request: requestGeo, clear: clearGeo } = useGeolocation();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [nearMeActive, setNearMeActive] = useState(false);
+
+  const NEAR_ME_RADIUS_KM = 50;
+
+  // Items visible on map — filtered to nearby ones when Near Me is active
+  const visibleItems = useMemo(() => {
+    if (!nearMeActive || !geoPos) return items;
+    return items.filter((item) => {
+      if (item.locations.length === 0) return false;
+      return nearestDistanceKm(geoPos.lat, geoPos.lng, item.locations) <= NEAR_ME_RADIUS_KM;
+    });
+  }, [items, nearMeActive, geoPos]);
+
+  function handleNearMeToggle() {
+    if (nearMeActive) {
+      setNearMeActive(false);
+      clearGeo();
+      return;
+    }
+    requestGeo();
+    setNearMeActive(true);
+  }
+
+  // Fly to user location when GPS position is acquired via Near Me
+  useEffect(() => {
+    if (nearMeActive && geoPos) {
+      setFlyTo({ lat: geoPos.lat, lng: geoPos.lng, name: 'My Location' });
+    }
+  }, [nearMeActive, geoPos]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,16 +103,42 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={visibleItems} onPinClick={setSelectedItem} flyTo={flyTo} />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 space-y-2">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
           <div className="ml-auto text-sm text-gray-500">
             {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
           </div>
+        </div>
+
+        {/* Near Me pill */}
+        <div className="flex justify-end">
+          <button
+            onClick={handleNearMeToggle}
+            disabled={geoLoading}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-md transition-all active:scale-95 disabled:opacity-60 ${
+              nearMeActive
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white/90 backdrop-blur-md text-gray-700 hover:bg-white'
+            }`}
+          >
+            {nearMeActive ? (
+              <>
+                <MapPin size={12} />
+                {geoPos ? `Near me · ${NEAR_ME_RADIUS_KM}km` : 'Locating…'}
+                <X size={11} className="ml-0.5 opacity-70" />
+              </>
+            ) : (
+              <>
+                <MapPin size={12} className="text-indigo-500" />
+                {geoLoading ? 'Locating…' : 'Near me'}
+              </>
+            )}
+          </button>
         </div>
       </div>
 
