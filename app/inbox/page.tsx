@@ -19,6 +19,9 @@ import NavBar from '@/components/NavBar';
 import BatchImportSheet from '@/components/BatchImportSheet';
 import SwipeToDelete from '@/components/SwipeToDelete';
 import SimilarPlacesSheet from '@/components/SimilarPlacesSheet';
+import EmptyState from '@/components/EmptyState';
+import ClipContextMenu from '@/components/ClipContextMenu';
+import { SavedItem } from '@/lib/types';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -46,6 +49,8 @@ export default function InboxPage() {
   const [query, setQuery] = useState('');
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [contextItem, setContextItem] = useState<SavedItem | null>(null);
+  const [visitFilter, setVisitFilter] = useState<'all' | 'want' | 'visited'>('all');
 
   // ── Pull-to-refresh ──────────────────────────────────────────────────────
   const scrollRef               = useRef<HTMLDivElement>(null);
@@ -84,10 +89,17 @@ export default function InboxPage() {
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
 
+  const visitFiltered =
+    visitFilter === 'all'
+      ? inboxItems
+      : visitFilter === 'visited'
+      ? inboxItems.filter((i) => i.visitStatus === 'visited')
+      : inboxItems.filter((i) => i.visitStatus !== 'visited'); // 'want' or undefined
+
   const platformFiltered =
     activePlatform === 'all'
-      ? inboxItems
-      : inboxItems.filter((i) => i.platform === activePlatform);
+      ? visitFiltered
+      : visitFiltered.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
 
@@ -133,6 +145,27 @@ export default function InboxPage() {
 
   function handleMoveToBoard(id: string) {
     setMovingItemId(id);
+  }
+
+  async function toggleVisitStatus(id: string) {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    const next = item.visitStatus === 'visited' ? 'want' : 'visited';
+    await saveItem({ ...item, visitStatus: next });
+    refreshItem(id);
+  }
+
+  async function handleShareClip(item: SavedItem) {
+    if (!item.url) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: item.title, url: item.url });
+        return;
+      }
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return;
+    }
+    await navigator.clipboard.writeText(item.url).catch(() => {});
   }
 
   function toggleSelectMode() {
@@ -233,6 +266,30 @@ export default function InboxPage() {
           <SearchBar onSearch={handleSearch} />
         </div>
 
+        {/* Visit status tabs */}
+        <div className="flex gap-1.5 mb-2.5">
+          {([
+            { key: 'all', label: 'All' },
+            { key: 'want', label: '→ Want to go' },
+            { key: 'visited', label: '✓ Visited' },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setVisitFilter(key)}
+              className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                visitFilter === key
+                  ? key === 'visited'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
           {PLATFORM_FILTERS.map((p) => {
@@ -285,19 +342,26 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          query.trim() ? (
+            <EmptyState
+              emoji="🔍"
+              title="No matches found"
+              subtitle={`No clips match "${query.trim()}". Try a different search or clear the filter.`}
+            />
+          ) : activePlatform !== 'all' ? (
+            <EmptyState
+              emoji={activePlatform === 'wechat' ? '💬' : activePlatform === 'xiaohongshu' ? '📕' : '📱'}
+              title={`No ${PLATFORM_LABELS[activePlatform as Platform]} clips`}
+              subtitle="Share content from this platform using the iOS Share Sheet to clip it here."
+            />
+          ) : (
+            <EmptyState
+              emoji="📱"
+              title="No clips yet"
+              subtitle="Share any travel post from Instagram, YouTube, or TikTok using the iOS Share Sheet. Your clips appear here."
+              action={{ label: 'How it works →', onClick: () => setBatchOpen(true) }}
+            />
+          )
         ) : (
           // Virtual 2-column grid — renders only visible rows
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
@@ -316,7 +380,11 @@ export default function InboxPage() {
               >
                 <div className="grid grid-cols-2 gap-3 pb-3">
                   {virtualRows[vRow.index].map((item) => (
-                    <div key={item.id} className="relative">
+                    <div
+                      key={item.id}
+                      className="relative"
+                      onContextMenu={(e) => { e.preventDefault(); setContextItem(item); }}
+                    >
                       <SwipeToDelete
                         onDelete={() => removeItem(item.id)}
                         disabled={selectMode || item.enrichmentStatus !== 'done'}
@@ -327,6 +395,7 @@ export default function InboxPage() {
                           onViewOnMap={handleViewOnMap}
                           onMoveToBoard={handleMoveToBoard}
                           onRetry={retryItem}
+                          onToggleVisit={toggleVisitStatus}
                         />
                       </SwipeToDelete>
                       {/* Multi-select checkbox overlay */}
@@ -480,6 +549,18 @@ export default function InboxPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Long-press context menu */}
+      {contextItem && (
+        <ClipContextMenu
+          item={contextItem}
+          onClose={() => setContextItem(null)}
+          onViewOnMap={(id) => { setContextItem(null); handleViewOnMap(id); }}
+          onMoveToBoard={(id) => { setContextItem(null); handleMoveToBoard(id); }}
+          onShare={handleShareClip}
+          onDelete={async (id) => { setContextItem(null); await removeItem(id); }}
+        />
+      )}
 
       <NavBar active="inbox" />
     </div>

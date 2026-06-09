@@ -12,6 +12,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  onToggleVisit?: (id: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +39,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  onToggleVisit,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -207,12 +209,28 @@ export default function InboxCard({
       )}
 
       <div className="p-4">
-        {/* Platform badge */}
-        <span
-          className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full inline-block mb-2`}
-        >
-          {PLATFORM_LABELS[item.platform]}
-        </span>
+        {/* Platform badge + visit status */}
+        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          <span
+            className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full`}
+          >
+            {PLATFORM_LABELS[item.platform]}
+          </span>
+          {onToggleVisit && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggleVisit(item.id); }}
+              aria-label={item.visitStatus === 'visited' ? 'Mark as want to visit' : 'Mark as visited'}
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                item.visitStatus === 'visited'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                  : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 hover:bg-indigo-50 hover:text-indigo-500'
+              }`}
+            >
+              {item.visitStatus === 'visited' ? '✓' : '→'}
+            </button>
+          )}
+        </div>
 
         {/* Title */}
         <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">

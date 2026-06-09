@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import OfflineHandler from '@/components/OfflineHandler';
 import ProximityToast from '@/components/ProximityToast';
+import OnboardingController from '@/components/OnboardingController';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -42,6 +43,7 @@ export default function RootLayout({
             <ResourceBanner />
             <OfflineHandler />
             <ProximityToast />
+            <OnboardingController />
             <div className="min-h-screen">
               {children}
             </div>

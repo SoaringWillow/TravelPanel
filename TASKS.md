@@ -571,6 +571,164 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE I — Beautiful, Shippable, Habit-Forming
+
+> All planned features are implemented and App Store checklist is drafted. Phase I is about
+> **first impressions**, **habit loops**, and **visual excellence** — the three things that
+> turn a good app into a 4.8-star App Store hit.
+>
+> North Star: weekly clips per active user. Every task below directly affects new-user
+> retention (onboarding, empty states), re-engagement (notifications, digest), or perceived
+> quality (plan polish, dark map, budget estimates).
+>
+> Recommended order: `I1 → I2 → I3 → I4 → I5 → I6 → I7 → I8 → I9 → I10`
+
+### I1 — First-Launch Onboarding Carousel
+**Status**: `[x]` Done
+**Why**: New users don't know what to do. Churn happens in the first 60 seconds if the value prop isn't clear. A 3-screen carousel on first launch converts confused visitors into clippers.
+**Files**: new `components/OnboardingModal.tsx`, `app/layout.tsx`
+**What to do**:
+- Create `OnboardingModal` that shows on first launch (flag: `localStorage.getItem('tp_onboarded')`)
+- 3 screens with full-screen illustrations (emoji-based, no external assets):
+  1. "Save travel inspo from anywhere" — big share-sheet icon + social logos
+  2. "AI extracts the spots and tips" — map pin + wisdom bubble mock
+  3. "Plan your trip with one tap" — stylized day-plan card
+- Each screen has title (24px bold), subtitle (15px gray), illustration area (200px)
+- Bottom: dot progress indicator + "Next" / "Get Started" button
+- spring animation between screens (framer-motion x-slide)
+- "Skip" link in top-right on screens 1–2
+- On close: `localStorage.setItem('tp_onboarded', '1')`, navigate to `/inbox` if user has 0 clips
+
+### I2 — Illustrated Empty States
+**Status**: `[x]` Done
+**Why**: Empty inbox / empty boards list / empty map show nothing — users don't know what to do next. Illustrated empty states with a clear CTA convert blank screens into onboarding moments.
+**Files**: new `components/EmptyState.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/page.tsx`
+**What to do**:
+- Create reusable `EmptyState` component: large emoji illustration (120px text), title, subtitle, optional CTA button
+- `app/inbox/page.tsx`: when 0 items and not loading → show `EmptyState` with:
+  - Illustration: "📱" emoji stack
+  - Title: "No clips yet"
+  - Subtitle: "Share any travel post from Instagram, YouTube, or TikTok using the iOS Share Sheet"
+  - CTA: "See how it works →" (opens onboarding modal)
+- `app/boards/page.tsx`: when 0 boards → show:
+  - Illustration: "🗺"
+  - Title: "No boards yet"
+  - Subtitle: "Boards let you organise clips by trip, destination, or vibe"
+  - CTA: "Create your first board"
+- `app/page.tsx` (map): when 0 items → show overlay card:
+  - "No pins on your map yet. Save clips to start building your travel map."
+  - Small "Add a clip" button that links to /inbox
+
+### I3 — iOS Local Notifications for Weekly Digest
+**Status**: `[ ]` Not started
+**Why**: The app has no re-engagement mechanism. Push notifications are the #1 driver of D30 retention in travel apps. The digest page exists but no one sees it.
+**Files**: `lib/localNotifications.ts` (new), `app/settings/page.tsx`, `components/CapacitorBridge.tsx`
+**What to do**:
+- Install `@capacitor/local-notifications` if not present (check `package.json` first)
+- Create `lib/localNotifications.ts` with:
+  - `requestPermission()` — calls `LocalNotifications.requestPermissions()`; returns true/false
+  - `schedulWeeklyDigest()` — schedules a recurring weekly notification: "🗺 You have X unvisited spots saved. Plan your next trip →"
+  - `cancelDigestNotification()` — cancels by ID
+- In `app/settings/page.tsx`: add "Weekly Digest Reminder" toggle:
+  - Default off; when toggled on, call `requestPermission()` then `scheduleWeeklyDigest()`
+  - Store preference in localStorage: `tp_digest_notif_enabled`
+  - Show toggle state from localStorage
+- In `components/CapacitorBridge.tsx`: add `LocalNotifications.addListener('localNotificationActionPerformed', ...)` to navigate to `/digest` when notification is tapped
+
+### I4 — Long-Press Context Menu on Clip Cards
+**Status**: `[x]` Done
+**Why**: iOS users expect long-press to reveal actions. Currently, all clip management requires navigating into the detail card. A context menu surface reduces friction for power users.
+**Files**: `components/InboxCard.tsx`, new `components/ClipContextMenu.tsx`, `app/inbox/page.tsx`
+**What to do**:
+- Create `ClipContextMenu` component: a spring-animated bottom sheet / popover with 4 actions:
+  - "📍 View on Map" — navigates to `/?flyTo=lat,lng&itemId=id`
+  - "📋 Move to Board" — fires the existing `onMoveToBoard(id)` callback
+  - "🔗 Share Link" — calls `navigator.share({ url: item.url })` or clipboard copy
+  - "🗑 Delete" — fires `onDelete(id)` with confirmation
+- In `InboxCard`, add `onLongPress` handler (pointer events: pointerdown + 500ms timeout → contextmenu, cancel on pointerup/pointermove)
+- Show `ClipContextMenu` as a sibling sheet rendered in a portal (or parent-level state in `app/inbox/page.tsx`)
+- Close on backdrop tap or action selection
+- Dismiss swipe-to-delete during context menu open
+
+### I5 — Trip Plan Visual Redesign
+**Status**: `[ ]` Not started
+**Why**: The current plan view renders as a raw list of activity cards. It's functional but not shareable. A beautiful plan view is a viral moment: users screenshot and post it.
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx`
+**What to do**:
+- Redesign `DayStripCard` with a more visual layout:
+  - Day header: large day number (e.g. "Day 1"), date if travelMonth is set, destination city in subtitle
+  - Each activity gets a left border stripe in the board's theme color (indigo default)
+  - Activity icon based on type: 🍜 food, 🏛 culture, 🌿 nature, 🛍 shopping, 🎭 experience (map from activity name keywords)
+  - Source tips render with a subtle left-indent and italics: _"Great for sunsets" — from Tokyo Street Food_
+- Add a "Share Plan" visual: a single scrollable "story card" at the top that summarises the plan
+  - Shows: board name, emoji, travel month, # days, # locations, "Planned with TravelPanel"
+  - Copy-to-clipboard or Web Share with the story text
+
+### I6 — Board Templates for New Boards
+**Status**: `[ ]` Not started
+**Why**: Creating a board from scratch requires users to think. Pre-made templates reduce the blank-page problem and seed the app with structured trip types.
+**Files**: `lib/boardTemplates.ts` (new), `components/CreateBoardModal.tsx` (or `app/boards/page.tsx`)
+**What to do**:
+- Create `lib/boardTemplates.ts` with 5 templates:
+  - `{ name: 'Beach Holiday', emoji: '🏝', tags: ['beach', 'resort', 'snorkeling'] }`
+  - `{ name: 'City Break', emoji: '🏙', tags: ['urban', 'museums', 'cafes', 'street-food'] }`
+  - `{ name: 'Road Trip', emoji: '🚗', tags: ['scenic', 'stops', 'camping', 'drives'] }`
+  - `{ name: 'Food Tour', emoji: '🍜', tags: ['restaurant', 'street-food', 'market', 'michelin'] }`
+  - `{ name: 'Cultural Immersion', emoji: '🏛', tags: ['temples', 'museums', 'history', 'art'] }`
+- In the new-board creation flow (CreateBoardModal or inline in boards page):
+  - Show a "Start from template" horizontal scroll above the name input
+  - Tapping a template pre-fills `name`, `emoji`, and adds the tags to the new board's `defaultTags` field
+  - Custom input still available below
+- `Board` type update: add optional `defaultTags?: string[]` (used to pre-filter board view)
+
+### I7 — Keyboard Avoidance Across All Forms
+**Status**: `[ ]` Not started
+**Why**: On iPhone, the software keyboard covers the lower 40% of the screen. Forms in the share flow, edit mode, and plan notes are partially hidden when the keyboard opens, making them hard to use.
+**Files**: `app/share/page.tsx`, `components/LocationDetailCard.tsx`, `app/plan/[boardId]/page.tsx`, new `hooks/useKeyboardAvoid.ts`
+**What to do**:
+- Create `hooks/useKeyboardAvoid.ts`: listens for `window.visualViewport.resize` events; returns `keyboardHeight` (px from bottom)
+- In `app/share/page.tsx`: apply `paddingBottom: keyboardHeight + 24` to the bottom section when keyboard is open, with a smooth transition
+- In `components/LocationDetailCard.tsx`: when edit mode is active, add `scroll-margin-bottom: 200px` on the focused input and call `element.scrollIntoView({ behavior: 'smooth', block: 'nearest' })`
+- In `app/plan/[boardId]/page.tsx` (day notes textarea): same scroll-into-view on focus
+- Fallback for web (no Capacitor): `window.innerHeight - document.documentElement.clientHeight` approximation
+
+### I8 — Clip Status Toggle ("Want to Visit" vs "Visited")
+**Status**: `[x]` Done
+**Why**: Users save clips for future trips AND for trips they've already done. A simple "visited" toggle lets users track what they've done, creating a personal travel diary alongside the planning function.
+**Files**: `lib/types.ts`, `lib/db.ts`, `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`, `app/inbox/page.tsx`
+**What to do**:
+- Add `visitStatus?: 'want' | 'visited'` to `SavedItem` type (default: undefined = "want")
+- Add filter tabs to `app/inbox/page.tsx`: "All", "Want to visit", "Visited" — filter `allItems` based on `visitStatus`
+- In `InboxCard`, show a small "✓ Visited" green badge or "→ Want to go" ghost badge on the bottom-right
+- Tapping the badge toggles `visitStatus` (via `db.updateItemField(id, { visitStatus: 'visited' })`)
+- In `LocationDetailCard` edit mode, show a "Mark as Visited" toggle button
+- In `/digest` page: only resurface unvisited clips (filter `visitStatus !== 'visited'`)
+
+### I9 — AI Trip Budget Estimate in Plans
+**Status**: `[ ]` Not started
+**Why**: "How much will this trip cost?" is the #2 question after "where should I go?". A rough budget estimate per day makes TravelPanel the complete trip planning tool, not just an itinerary generator.
+**Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`, `lib/types.ts`
+**What to do**:
+- Add `budgetTier?: 'budget' | 'mid' | 'luxury'` selector to the plan generation UI (pill buttons: 💰 Budget / 💳 Mid-range / 💎 Luxury)
+- Pass `budgetTier` in the API request body
+- In `api/plan/route.ts`, include in the planner prompt: "Budget tier: {tier}. For each day, provide a rough total cost estimate in USD (accommodation + food + activities) labelled clearly."
+- Add `estimatedCostUsd?: { min: number; max: number }` to the `DayPlan` type
+- Render as a subtle cost badge under each day header: "~$80–120/day"
+- Keep optional — if no tier selected, cost estimate is omitted from prompt and type
+
+### I10 — Destination Country / Region Filter on Map
+**Status**: `[ ]` Not started
+**Why**: A user with 200 clips across 15 countries sees a cluttered world map. A country/region filter (beyond the existing board filter) lets them focus on "just my Japan clips" or "just Europe".
+**Files**: `app/page.tsx`, `components/MapView.tsx`, `lib/types.ts`
+**What to do**:
+- Extract country from `item.locations[0].address` or add a `country?: string` field derived during enrichment
+- In `app/api/import/route.ts`, extract country from the location address string (last comma-separated segment)
+- Add a "Region" filter select above the board filter bar on the map page: "All regions" (default) + unique countries from saved clips
+- When a country is selected, filter the items passed to MapView AND the board filter bar respects it (AND logic: board filter + country filter)
+- Auto-detect unique countries from `allItems.flatMap(i => i.locations).map(l => l.address?.split(',').at(-1)?.trim())`
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
