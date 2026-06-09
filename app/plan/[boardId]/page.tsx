@@ -49,6 +49,7 @@ export default function PlanPage() {
   const [tripMode, setTripMode] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | undefined>();
   const [festivalWarnings, setFestivalWarnings] = useState<string[]>([]);
+  const [weatherWarnings, setWeatherWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -106,6 +107,7 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     setFestivalWarnings([]);
+    setWeatherWarnings([]);
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
@@ -157,6 +159,10 @@ export default function PlanPage() {
             // Capture festival warning steps
             if (msg.step.type === 'found' && msg.step.message.includes('event')) {
               setFestivalWarnings((prev) => [...prev, msg.step.message]);
+            }
+            // Capture weather advisory steps
+            if (msg.step.type === 'found' && msg.step.message.includes('Weather')) {
+              setWeatherWarnings((prev) => [...prev, msg.step.message]);
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -505,6 +511,26 @@ export default function PlanPage() {
                   </p>
                   {festivalWarnings.map((w, i) => (
                     <p key={i} className="text-xs text-amber-700">{w}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Weather callouts */}
+              {weatherWarnings.length > 0 && (
+                <div className={`rounded-2xl p-3 space-y-1 border ${
+                  weatherWarnings.some((w) => w.includes('concern'))
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'bg-sky-50 border-sky-200'
+                }`}>
+                  <p className={`text-xs font-bold flex items-center gap-1 ${
+                    weatherWarnings.some((w) => w.includes('concern')) ? 'text-blue-700' : 'text-sky-700'
+                  }`}>
+                    {weatherWarnings.some((w) => w.includes('concern')) ? '⛈' : '🌤'} Weather suitability
+                  </p>
+                  {weatherWarnings.map((w, i) => (
+                    <p key={i} className={`text-xs ${
+                      weatherWarnings.some((w) => w.includes('concern')) ? 'text-blue-700' : 'text-sky-700'
+                    }`}>{w}</p>
                   ))}
                 </div>
               )}

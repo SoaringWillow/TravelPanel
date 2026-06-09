@@ -175,7 +175,7 @@ sign-in UI. Cloud sync activates the moment keys are added + this UI is wired.
 ## PHASE F — Real-World Enrichment
 
 ### F1 — Festival & Events Calendar
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Plans generated for Kyoto in late March don't mention cherry blossom season.
 The moat is "your saves + real-world context."
 **Files to change**: new `app/api/enrich/festivals/route.ts`, `app/api/plan/route.ts`
@@ -193,7 +193,7 @@ The moat is "your saves + real-world context."
 - Show festival callouts in the plan UI with a 🎉 icon and a dismissible banner
 
 ### F2 — Weather Suitability Window
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Why**: Plans don't mention that July in Okinawa is typhoon season, or that Iceland
 in December has 5 hours of daylight.
 **Files to change**: new `lib/weatherWindows.ts`, `app/api/plan/route.ts`
