@@ -191,7 +191,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Status**: `[ ]` Not started
 
 ### C4 — Proactive Resurfacing
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done — Daily Discovery widget on Boards page; resurfaces clips ≥7 days old using daily-seeded shuffle, dismissible per-day, shows substance teaser
 
 ---
 

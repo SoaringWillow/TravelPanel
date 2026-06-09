@@ -100,3 +100,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-09 22:34 | b68e408 | feat(B3): Xiaohongshu fix — Claude Vision pipeline for screenshot-based extraction
 2026-06-09 22:36 | abbcf53 | feat(B5): cloud backup export — Settings page with full JSON download
 2026-06-09 22:38 | 7be7cc2 | feat(C1): on-trip GPS mode — GeolocateControl + nearby clips panel
+2026-06-09 22:41 | 9829e1b | feat(C2): post-trip timeline view in Inspiration/Inbox page
