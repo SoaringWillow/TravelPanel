@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share written by the iOS Share Extension via App Groups.
+// Also reads a pending screenshot (base64) if the extension captured one.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
@@ -12,8 +12,19 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const { value: imageBase64 } = await Preferences.get({ key: 'pendingShareImage' });
+    const { value: imageMimeType } = await Preferences.get({ key: 'pendingShareImageMime' });
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    await Preferences.remove({ key: 'pendingShareImage' });
+    await Preferences.remove({ key: 'pendingShareImageMime' });
+
+    // Stash image in sessionStorage so the share page can read it without a query param
+    if (imageBase64) {
+      sessionStorage.setItem('pendingShareImage', imageBase64);
+      sessionStorage.setItem('pendingShareImageMime', imageMimeType ?? 'image/jpeg');
+    }
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
@@ -24,8 +35,8 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
 }
 
 // Initializes Capacitor plugins and handles deep links from the native Share Extension.
-// The iOS Share Extension opens travelpanel://share?url=...&title=... which triggers
-// the appUrlOpen event here, routing into the web share capture flow.
+// Primary path: travelpanel://share?url=...&title=...&image=<base64>&imageMime=image/jpeg
+// Fallback path: App Group UserDefaults → read on next app open
 export function CapacitorBridge() {
   const router = useRouter();
 
@@ -44,19 +55,26 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>&image=<base64>&imageMime=<mime>
         const listener = await App.addListener('appUrlOpen', ({ url }) => {
           try {
-            // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
-            const shareUrl = parsed.searchParams.get('url');
+            const shareUrl   = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const image      = parsed.searchParams.get('image');
+            const imageMime  = parsed.searchParams.get('imageMime');
 
-            if (shareUrl) {
-              const qs = new URLSearchParams({ url: shareUrl });
-              if (shareTitle) qs.set('title', shareTitle);
-              router.push(`/share?${qs.toString()}`);
+            if (!shareUrl) return;
+
+            // Stash image in sessionStorage so the share page can read it
+            if (image) {
+              sessionStorage.setItem('pendingShareImage', image);
+              sessionStorage.setItem('pendingShareImageMime', imageMime ?? 'image/jpeg');
             }
+
+            const qs = new URLSearchParams({ url: shareUrl });
+            if (shareTitle) qs.set('title', shareTitle);
+            router.push(`/share?${qs.toString()}`);
           } catch {
             // Malformed URL — ignore
           }
@@ -64,7 +82,6 @@ export function CapacitorBridge() {
 
         cleanup = () => listener.remove();
 
-        // Status bar styling
         try {
           await StatusBar.setStyle({ style: Style.Default });
           await StatusBar.setBackgroundColor({ color: '#6366f1' });
@@ -74,11 +91,10 @@ export function CapacitorBridge() {
 
         await SplashScreen.hide({ fadeOutDuration: 300 });
 
-        // Check for a pending share written by the Share Extension via App Group
-        // fallback (fires when the URL scheme open wasn't available).
+        // Check for a pending share written by the Share Extension via App Group fallback
         checkPendingAppGroupShare(router);
       } catch {
-        // Not a Capacitor context (running in a standard browser) — no-op
+        // Not a Capacitor context — no-op
       }
     };
 

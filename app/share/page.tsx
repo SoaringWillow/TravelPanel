@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
-import { enrichItem } from '@/lib/enrichItem';
+import { enrichItem, EnrichOptions } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -29,12 +29,27 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [enrichOpts, setEnrichOpts]           = useState<EnrichOptions>({});
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards on mount and read any pending screenshot from the native side
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Read image stored by CapacitorBridge (from iOS Share Extension screenshot)
+    try {
+      const image = sessionStorage.getItem('pendingShareImage');
+      const mime  = sessionStorage.getItem('pendingShareImageMime');
+      if (image) {
+        const mimeType = (mime ?? 'image/jpeg') as EnrichOptions['imageMimeType'];
+        setEnrichOpts({ imageBase64: image, imageMimeType: mimeType });
+        sessionStorage.removeItem('pendingShareImage');
+        sessionStorage.removeItem('pendingShareImageMime');
+      }
+    } catch {
+      // sessionStorage not available (SSR safety)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +103,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (Xiaohongshu vision path)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, enrichOpts)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
