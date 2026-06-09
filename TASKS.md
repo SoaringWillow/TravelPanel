@@ -9,13 +9,16 @@
 
 ## ⭐ Updated Execution Order (2026-06-09)
 
-All Phase A–C tasks are complete. The app has extraction, planning, on-trip GPS,
-post-trip timeline, vibe search, browser extension, and shared boards.
+All Phase A–G tasks are complete (E2 skipped — requires Apple Developer account).
+The app has: extraction, planning, on-trip GPS, post-trip timeline, vibe search,
+browser extension, shared boards, dark mode, haptics, onboarding, festivals,
+weather windows, auto-organization, trip recap cards, and clip streak.
 
-The next focus: **App Store quality** before user growth. A beautiful, polished iOS
-experience that handles the full INSPIRATION → SAVE → PLAN → EXECUTE → REMEMBER loop.
+The next focus: **robustness + retention polish** before App Store submission.
+Core gaps: duplicate detection, offline handling, analytics consent, data safety,
+and UX improvements that prevent drop-off.
 
-`D1 → D2 → D3 → D4 → D5 → D6 → E1 → E2 → F1 → F2 → F3 → G1 → G2`
+`H1 → H2 → H3 → H4 → H5 → I1 → I2 → I3 → I4`
 
 ---
 
@@ -254,6 +257,113 @@ clipping habitual — same psychology as Duolingo's streak.
 - On 3/7/30 day milestones: show a confetti animation + haptic success feedback
 - When streak breaks (no clip yesterday): subtle nudge in the Inbox empty state:
   "You haven't saved anything in 3 days. What are you dreaming about?"
+
+---
+
+## PHASE H — Robustness + Data Safety
+
+### H1 — Duplicate URL Detection
+**Status**: `[ ]` Not started
+**Why**: Users save the same URL twice (e.g. tapping Share on the same post twice). This clogs the inbox with duplicate cards and wastes enrichment quota.
+**Files to change**: `lib/db.ts`, `app/share/page.tsx`
+**What to do**:
+- Add `getItemByUrl(url: string): Promise<SavedItem | undefined>` to `lib/db.ts` — query the `items` store, filter by `url` field, return first match
+- In `app/share/page.tsx`, before `saveItem(item)`, call `getItemByUrl(url)`. If found:
+  - Show a toast: "Already saved — [View clip] or [Save again]"
+  - Default action: close the sheet (don't save). The toast has two action buttons
+  - "View clip": navigate to `/?itemId=${existing.id}` and close the sheet
+  - "Save again": proceed with the save (duplicates are allowed when intentional)
+- Add `url` field to the IndexedDB `items` store index for fast lookups (add to db.ts schema if not present)
+
+### H2 — Analytics Consent Gate
+**Status**: `[ ]` Not started
+**Why**: PostHog fires without user consent — a regulatory requirement for GDPR/CCPA, and an App Store review concern. Must be opt-in.
+**Files to change**: `lib/analytics.ts`, `app/settings/page.tsx`, `app/layout.tsx`
+**What to do**:
+- In `lib/analytics.ts`, add a `isAnalyticsEnabled()` check at the top of `track()`: reads `localStorage.getItem('analyticsConsent')`. If not `'yes'`, no-op the track call and don't init PostHog
+- In `app/layout.tsx`, add a one-time `<AnalyticsConsentBanner>` component (new file `components/AnalyticsConsentBanner.tsx`): shows only if `analyticsConsent` is not set. Show on first launch after onboarding: "📊 Help improve TravelPanel? We collect anonymous usage data. [Yes, that's fine] [No thanks]"
+  - "Yes": sets `analyticsConsent: 'yes'`, inits PostHog
+  - "No": sets `analyticsConsent: 'no'`, PostHog never inits
+- In `app/settings/page.tsx`, add a "Share usage analytics" toggle row (reads/writes `analyticsConsent`)
+
+### H3 — Enrichment Rate Limit User Feedback
+**Status**: `[ ]` Not started
+**Why**: When users clip their 11th item in an hour, it silently enters a "pending" state with no explanation. Users think the app is broken.
+**Files to change**: `lib/enrichItem.ts`, `hooks/useSavedItems.ts`, `components/InboxCard.tsx`
+**What to do**:
+- In `lib/enrichItem.ts`, when `checkEnrichmentLimit()` returns `{ allowed: false }`, return early with a structured error: `{ status: 'rate_limited', resetsAt: limit.resetsAt }` — don't silently no-op
+- In `useSavedItems.ts` / share page: when enrichment is rate-limited, call `showToast()`: "Enrichment paused (10/hour limit). Resumes in X minutes — your clip is saved!"
+- In `components/InboxCard.tsx`, if `item.enrichmentStatus === 'pending'` and item is older than 5 minutes, show a subtle subtitle: "⏳ Enrichment queued — retries when limit resets"
+
+### H4 — Offline-Aware API Calls
+**Status**: `[ ]` Not started
+**Why**: On a plane or with spotty signal, API calls silently timeout after 25+ seconds. Users assume the app is broken, not offline.
+**Files to change**: `app/share/page.tsx`, `app/inbox/page.tsx`, `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Create `lib/network.ts` with `isOnline(): boolean` (checks `navigator.onLine`) and `waitForOnline(): Promise<void>` (resolves when `window.online` fires)
+- In `app/share/page.tsx` `handleSave()`: check `isOnline()` before fetching. If offline, save item with `enrichmentStatus: 'pending'`, show toast: "📡 Offline — clip saved! Will enrich when connection returns."
+- In `app/plan/[boardId]/page.tsx` `generatePlan()`: if offline, show immediate error: "📡 No connection — connect to generate a plan."
+- In `app/inbox/page.tsx` `handleVibeSearch()`: if offline, skip the API call and fall back to keyword search with toast: "📡 Offline — using keyword search."
+
+### H5 — Fix Xiaohongshu Image Extraction TypeScript Error
+**Status**: `[ ]` Not started
+**Why**: `app/api/import/route.ts` has a pre-existing TS2345 error because the `mimeType` field isn't in `ImagePart` for the current @ai-sdk version. This breaks CI and means image extraction for Xiaohongshu is silently skipped.
+**Files to change**: `app/api/import/route.ts`
+**What to do**:
+- Read the current `@ai-sdk/anthropic` ImagePart type definition to understand the correct field names
+- Replace `mimeType: "image/jpeg" | "image/png"...` with the correct property name from the SDK (likely `mediaType` or remove it since it may be inferred)
+- Run `npx tsc --noEmit` and confirm the error is resolved
+- Test that the image branch still reaches `generateObject` with the correct payload shape
+- If the SDK doesn't support inline base64 images in the current version, update `@ai-sdk/anthropic` to the latest version that does
+
+---
+
+## PHASE I — iOS Experience Polish
+
+### I1 — Safe Image Component
+**Status**: `[ ]` Not started
+**Why**: Broken thumbnail images (dead links, CORS failures, anti-scraping) cause layout shifts and broken cards across the app. No consistent fallback handling.
+**Files to change**: new `components/SafeImage.tsx`, `components/InboxCard.tsx`, `components/ResurfaceCarousel.tsx`, `app/trip-recap/page.tsx`
+**What to do**:
+- Create `components/SafeImage.tsx`: a Next.js `<img>` wrapper with `onError` fallback to a gradient placeholder (use the item emoji or destination initial as text inside a colored div). Props: `src?, alt, fallbackEmoji?, className`
+- Replace all raw `<img>` tags with thumbnail URLs across: InboxCard, ResurfaceCarousel, trip-recap page, DayStripCard
+- Add `loading="lazy"` to all thumbnail images
+- The fallback should be visually consistent: a soft gradient div with the first letter of the item title
+
+### I2 — Onboarding Demo Data Banner
+**Status**: `[ ]` Not started
+**Why**: New users see pre-populated demo boards and don't understand they're examples. Without a clear "this is a demo" indicator, users may not understand the app's purpose.
+**Files to change**: `app/boards/page.tsx`, `lib/db.ts`
+**What to do**:
+- In `lib/db.ts`, add `hasDemoData(): Promise<boolean>` — returns true if any board or item has `isDemo: true`
+- In `app/boards/page.tsx`, check `hasDemoData()` on load. If true, show a dismissible banner at the top of the boards list:
+  "🎯 These are example boards to help you get started. [Clear demo data] [Keep exploring]"
+- "Clear demo data": calls `clearDemoData()` (already in lib/db.ts if it exists, or create it to delete all items/boards with `isDemo: true`)
+- Store dismissal in localStorage (`demoBannerDismissed`) so it only shows once per device
+
+### I3 — Map Clustering Polish
+**Status**: `[ ]` Not started
+**Why**: At low zoom with 50+ pins, clusters exist but the cluster bubbles lack click-to-expand behavior — tapping a cluster should zoom in, not open a detail card.
+**Files to change**: `components/MapView.tsx`
+**What to do**:
+- In `MapView.tsx`, find the cluster layer click handler. Currently clusters and individual pins may share the same handler
+- Add a check: if the clicked feature is a cluster (`feature.properties.cluster === true`), call `map.flyTo({ center: coordinates, zoom: map.getZoom() + 2 })` instead of showing a detail card
+- Show cluster count badge in a ring: white circle with dark number, indigo ring border — matching the app's design language
+- Individual pins should keep their current behavior (open detail card)
+- Add a subtle animation when zooming into a cluster (Framer Motion won't work here — use MapLibre's built-in flyTo easing)
+
+### I4 — Local Push Notifications (Resurfacing Reminder)
+**Status**: `[ ]` Not started
+**Why**: The North Star metric is weekly clips per active user. The best re-engagement trigger is a scheduled local notification on iOS: "You have 12 saved places you haven't visited yet — ready to plan?"
+**Files to change**: `lib/notifications.ts` (new), `app/settings/page.tsx`, `ios/App/App/Info.plist`
+**What to do**:
+- Install `@capacitor/local-notifications`
+- Create `lib/notifications.ts` with: `requestPermission()`, `scheduleWeeklyReminder()` (schedules a Monday 9am notification), `cancelReminders()`, `isPermissionGranted()`
+- In `app/settings/page.tsx`, add a "Weekly planning reminder" toggle row. On enable: call `requestPermission()`, then `scheduleWeeklyReminder()`. On disable: `cancelReminders()`
+- The notification body: "You have {N} saved places ready to plan. Open TravelPanel →"
+- Count N by reading unsorted inbox items count from db at schedule time
+- Gracefully no-op in browser (check `Capacitor.isNativePlatform()` before calling)
+- Add `NSUserNotificationsUsageDescription` to `Info.plist`
 
 ---
 
