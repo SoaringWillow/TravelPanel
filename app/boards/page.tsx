@@ -5,16 +5,19 @@ import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, reload } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  const { containerRef, isRefreshing, progress } = usePullToRefresh({ onRefresh: reload });
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -52,8 +55,27 @@ export default function BoardsPage() {
       {/* First-launch demo seed banner */}
       <OnboardingSeed />
 
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="overflow-hidden transition-all"
+        style={{ height: progress > 0 ? Math.max(progress * 44, 0) : 0 }}
+      >
+        <div className="flex items-center justify-center py-2">
+          <div
+            className={`rounded-full border-2 border-indigo-400 border-t-transparent transition-all ${
+              isRefreshing ? 'animate-spin' : ''
+            }`}
+            style={{
+              width:   Math.max(progress * 24, 8),
+              height:  Math.max(progress * 24, 8),
+              opacity: progress,
+            }}
+          />
+        </div>
+      </div>
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {boardsLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

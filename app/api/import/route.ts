@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,14 +99,18 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
+  const hasImage = typeof imageBase64 === 'string' && imageBase64.length > 0;
+  const pageBlocked = !page?.title && !page?.textContent;
+
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${hasImage && pageBlocked
+    ? '[NOTE: Page could not be scraped (anti-scraping). Extract everything from the attached screenshot.]'
+    : `Page content:\n${page?.textContent ?? '(could not fetch page)'}`}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -133,7 +138,23 @@ Never return an empty substance array for a real travel post.`;
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      ...(hasImage
+        ? {
+            messages: [
+              {
+                role: 'user' as const,
+                content: [
+                  {
+                    type: 'image' as const,
+                    image: Buffer.from(imageBase64!, 'base64'),
+                    mimeType: 'image/jpeg' as const,
+                  },
+                  { type: 'text' as const, text: prompt },
+                ],
+              },
+            ],
+          }
+        : { prompt }),
     });
     claudeResult = object;
   } catch {

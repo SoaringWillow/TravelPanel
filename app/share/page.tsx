@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { hapticsMedium, hapticsError, hapticsLight } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -29,12 +30,34 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Check for a screenshot written to App Group by the iOS Share Extension.
+  // Only consumed once; stale data (>30 s old) is discarded.
+  useEffect(() => {
+    const checkPendingImage = async () => {
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const [{ value: imageBase64 }, { value: dateStr }] = await Promise.all([
+          Preferences.get({ key: 'pendingShareImageBase64' }),
+          Preferences.get({ key: 'pendingShareDate' }),
+        ]);
+        await Preferences.remove({ key: 'pendingShareImageBase64' });
+        if (!imageBase64 || !dateStr) return;
+        const ageMs = Date.now() - new Date(dateStr).getTime();
+        if (ageMs < 30_000) setPendingImageBase64(imageBase64);
+      } catch {
+        // Not in Capacitor context — no-op
+      }
+    };
+    checkPendingImage();
   }, []);
 
   // Auto-dismiss when done
@@ -82,15 +105,16 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    hapticsMedium();
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (Xiaohongshu / anti-scrape fallback)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -177,7 +201,7 @@ function SharePageInner() {
             <button
               type="button"
               disabled={stage === 'saving'}
-              onClick={() => handleSave(undefined, 'Inbox')}
+              onClick={() => { hapticsLight(); handleSave(undefined, 'Inbox'); }}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox
@@ -189,7 +213,7 @@ function SharePageInner() {
                 key={board.id}
                 type="button"
                 disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                onClick={() => { hapticsLight(); handleSave(board.id, `${board.emoji} ${board.name}`); }}
                 className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}
