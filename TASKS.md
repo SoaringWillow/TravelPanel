@@ -65,7 +65,7 @@ at night and feels unpolished.
 - Add `impact('heavy')` on: delete clip confirmation
 
 ### D4 — Error Boundaries + Offline State
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: Unhandled React errors crash the whole app with a white screen. Users on planes
 need a graceful "you're offline" experience.
 **Files to change**: `app/layout.tsx`, new `components/ErrorBoundary.tsx`,

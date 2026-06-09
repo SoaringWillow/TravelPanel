@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import OfflineBanner from '@/components/OfflineBanner';
 import { ToastProvider } from '@/components/Toast';
+import { OnboardingGuard } from '@/components/OnboardingGuard';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -31,6 +32,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ToastProvider>
             <ErrorBoundary>
+              <OnboardingGuard />
               <OfflineBanner />
               <CapacitorBridge />
               <AnalyticsProvider />
