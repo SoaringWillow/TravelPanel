@@ -17,6 +17,7 @@ import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import BatchImportSheet from '@/components/BatchImportSheet';
+import SwipeToDelete from '@/components/SwipeToDelete';
 import SimilarPlacesSheet from '@/components/SimilarPlacesSheet';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
@@ -276,14 +277,19 @@ export default function InboxPage() {
               >
                 <div className="grid grid-cols-2 gap-3 pb-3">
                   {virtualRows[vRow.index].map((item) => (
-                    <InboxCard
+                    <SwipeToDelete
                       key={item.id}
-                      item={item}
-                      onDelete={removeItem}
-                      onViewOnMap={handleViewOnMap}
-                      onMoveToBoard={handleMoveToBoard}
-                      onRetry={retryItem}
-                    />
+                      onDelete={() => removeItem(item.id)}
+                      disabled={item.enrichmentStatus !== 'done'}
+                    >
+                      <InboxCard
+                        item={item}
+                        onDelete={removeItem}
+                        onViewOnMap={handleViewOnMap}
+                        onMoveToBoard={handleMoveToBoard}
+                        onRetry={retryItem}
+                      />
+                    </SwipeToDelete>
                   ))}
                 </div>
               </div>

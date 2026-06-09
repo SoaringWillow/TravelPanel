@@ -346,7 +346,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Wire into new board creation dialog in boards page and share page
 
 ### F3 — Swipe-to-Delete on Inbox Cards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: iOS users expect swipe-left to reveal delete. Tap-the-trash is slower and less discoverable.
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`
 **What to do**:
