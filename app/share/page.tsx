@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
-import { enrichItem } from '@/lib/enrichItem';
+import { enrichItemWithResult } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { impact, notify } from '@/lib/haptics';
 import { recordClip } from '@/lib/streak';
@@ -33,6 +33,7 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [enrichmentError, setEnrichmentError] = useState('');
   const [shareImageBase64, setShareImageBase64] = useState<string>('');
   const [duplicateItem, setDuplicateItem] = useState<SavedItem | null>(null);
   const pendingSaveRef = useRef<{ boardId?: string; boardName?: string } | null>(null);
@@ -133,9 +134,9 @@ function SharePageInner() {
 
     // Background enrichment — pass image when available (e.g. Xiaohongshu)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl, shareImageBase64 || undefined)
-      .then(async (success) => {
-        if (success) {
+    enrichItemWithResult(itemId, rawUrl, shareImageBase64 || undefined)
+      .then(async (result) => {
+        if (result.ok) {
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
@@ -151,6 +152,8 @@ function SharePageInner() {
               substance: updated.substance,
             } as ImportResult);
           }
+        } else if (!result.ok && result.reason === 'rate_limited') {
+          setEnrichmentError(`Enrichment paused (10/hour limit). Clip saved! Retries in ${result.resetsInLabel}.`);
         }
         setEnrichmentLoading(false);
       });
@@ -389,7 +392,11 @@ function SharePageInner() {
           transition={{ delay: 0.35 }}
           className="w-full"
         >
-          {enrichmentLoading && !enrichedData ? (
+          {enrichmentError ? (
+            <div className="bg-amber-50 rounded-2xl px-4 py-3">
+              <p className="text-sm text-amber-700">⏳ {enrichmentError}</p>
+            </div>
+          ) : enrichmentLoading && !enrichedData ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
               <span className="text-sm animate-pulse">🔍 Finding locations…</span>
             </div>

@@ -287,7 +287,7 @@ clipping habitual — same psychology as Duolingo's streak.
 - In `app/settings/page.tsx`, add a "Share usage analytics" toggle row (reads/writes `analyticsConsent`)
 
 ### H3 — Enrichment Rate Limit User Feedback
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: When users clip their 11th item in an hour, it silently enters a "pending" state with no explanation. Users think the app is broken.
 **Files to change**: `lib/enrichItem.ts`, `hooks/useSavedItems.ts`, `components/InboxCard.tsx`
 **What to do**:

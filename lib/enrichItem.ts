@@ -2,19 +2,15 @@
 
 import { updateItemEnrichment } from './db';
 import { ImportResult } from './types';
-import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
+import { checkEnrichmentLimit, recordEnrichment, formatResetsIn } from './rateLimits';
 import { track } from './analytics';
 
-export async function enrichItem(id: string, url: string, imageBase64?: string): Promise<boolean> {
-  const limit = checkEnrichmentLimit();
-  if (!limit.allowed) {
-    // Don't mark as failed — leave as pending so retry queue picks it up later
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`[TravelPanel] Enrichment rate limit hit. Resets in ${Math.ceil((limit.resetsAt - Date.now()) / 60000)}m`);
-    }
-    return false;
-  }
+export type EnrichResult =
+  | { ok: true }
+  | { ok: false; reason: 'rate_limited'; resetsAt: number; resetsInLabel: string }
+  | { ok: false; reason: 'failed' };
 
+async function doEnrich(id: string, url: string, imageBase64?: string): Promise<EnrichResult> {
   await updateItemEnrichment(id, 'processing');
   recordEnrichment();
   try {
@@ -44,10 +40,32 @@ export async function enrichItem(id: string, url: string, imageBase64?: string):
       locationCount: data.locations.length,
       substanceCount: data.substance?.length ?? 0,
     });
-    return true;
+    return { ok: true };
   } catch {
     await updateItemEnrichment(id, 'failed');
     track('clip_enrich_failed', { url });
+    return { ok: false, reason: 'failed' };
+  }
+}
+
+// Legacy boolean interface — kept for backward compat with retry queue.
+export async function enrichItem(id: string, url: string, imageBase64?: string): Promise<boolean> {
+  const limit = checkEnrichmentLimit();
+  if (!limit.allowed) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[TravelPanel] Enrichment rate limit hit. Resets in ${Math.ceil((limit.resetsAt - Date.now()) / 60000)}m`);
+    }
     return false;
   }
+  const result = await doEnrich(id, url, imageBase64);
+  return result.ok;
+}
+
+// Richer interface used by share page to give user feedback.
+export async function enrichItemWithResult(id: string, url: string, imageBase64?: string): Promise<EnrichResult> {
+  const limit = checkEnrichmentLimit();
+  if (!limit.allowed) {
+    return { ok: false, reason: 'rate_limited', resetsAt: limit.resetsAt, resetsInLabel: formatResetsIn(limit.resetsAt) };
+  }
+  return doEnrich(id, url, imageBase64);
 }
