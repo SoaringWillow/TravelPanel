@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F9FAFB;
+      color: #111;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .header-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+    }
+    .header-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #111;
+    }
+    .header-sub {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .section {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid #E5E7EB;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 14px;
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      border: 2px solid #E5E7EB;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+      color: #111;
+      background: #fff;
+    }
+    .field input:focus { border-color: #6366F1; }
+    .field .hint {
+      font-size: 11px;
+      color: #9CA3AF;
+      margin-top: 5px;
+    }
+
+    .save-btn {
+      width: 100%;
+      background: #4F46E5;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 4px;
+    }
+    .save-btn:hover { background: #4338CA; }
+
+    .status {
+      text-align: center;
+      font-size: 13px;
+      margin-top: 12px;
+      height: 20px;
+      transition: opacity 0.3s;
+    }
+    .status.success { color: #16A34A; }
+    .status.error { color: #DC2626; }
+    .status.hidden { opacity: 0; }
+
+    .section-info {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .section-info strong { color: #111; }
+
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .preset {
+      background: #EEF2FF;
+      color: #4338CA;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .preset:hover { background: #E0E7FF; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img class="header-logo" src="icons/icon48.png" alt="" />
+      <div>
+        <div class="header-title">TravelPanel</div>
+        <div class="header-sub">Extension Settings</div>
+      </div>
+    </div>
+
+    <!-- App URL section -->
+    <div class="section">
+      <div class="section-title">App URL</div>
+      <div class="field">
+        <label for="input-app-url">Your TravelPanel URL</label>
+        <input type="url" id="input-app-url" placeholder="https://your-app.vercel.app" />
+        <div class="hint">The URL where your TravelPanel app is deployed.</div>
+        <div class="presets">
+          <button class="preset" data-url="http://localhost:3000">localhost:3000</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="section">
+      <div class="section-title">How it works</div>
+      <div class="section-info">
+        Click the <strong>TravelPanel</strong> icon while browsing any travel post, video, or article.
+        The extension opens your TravelPanel share page with the URL pre-filled — Claude automatically
+        extracts <strong>locations</strong> and <strong>tips</strong> from the page.<br /><br />
+        Works with Instagram, YouTube, Xiaohongshu, Douyin, Bilibili, travel blogs, and more.
+      </div>
+    </div>
+
+    <button class="save-btn" id="btn-save">Save Settings</button>
+    <div class="status hidden" id="status-msg"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
