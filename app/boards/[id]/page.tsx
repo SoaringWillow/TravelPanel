@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ChevronDown, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -111,6 +111,7 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [view, setView] = useState<'grid' | 'timeline'>('grid');
+  const [shareCopied, setShareCopied] = useState(false);
   type SortMode = 'newest' | 'oldest' | 'locations' | 'alpha';
   const [sort, setSort] = useState<SortMode>(() => {
     if (typeof window === 'undefined') return 'newest';
@@ -155,6 +156,30 @@ export default function BoardDetailPage() {
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
   }
+
+  const handleShare = useCallback(async () => {
+    if (!board) return;
+    const previewUrl = `${window.location.origin}/boards/${boardId}/preview`;
+    const shareData = {
+      title: `${board.emoji} ${board.name} — TravelPanel`,
+      text: `Check out my travel board "${board.name}" with ${boardItems.length} saved place${boardItems.length !== 1 ? 's' : ''}!`,
+      url: previewUrl,
+    };
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return;
+    }
+    // Fallback: copy link
+    try {
+      await navigator.clipboard.writeText(previewUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {}
+  }, [board, boardId, boardItems.length]);
 
   if (loading) {
     return (
@@ -212,9 +237,18 @@ export default function BoardDetailPage() {
             </h1>
           </div>
 
-          <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
+          <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            aria-label="Share board"
+            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors flex-shrink-0"
+          >
+            {shareCopied ? <Check size={18} className="text-emerald-600" /> : <Share2 size={18} />}
+          </button>
         </div>
 
         {/* View toggle + sort */}

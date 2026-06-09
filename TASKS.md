@@ -286,7 +286,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 *(Merged into C1)*
 
 ### D2 — Shared Boards (Read-Only Link)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (local-first; cross-device requires cloud sync activation)
 **Needs**: A short-link or Supabase storage for the board snapshot  
 **What to do**: "Share board" generates a read-only `/boards/[id]/preview` page or a Supabase-hosted snapshot with clips + map
 
