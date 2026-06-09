@@ -15,6 +15,7 @@ import BoardFilterBar from '@/components/BoardFilterBar';
 import NearbyClipsSheet from '@/components/NearbyClipsSheet';
 import MapSearchBar from '@/components/MapSearchBar';
 import NavBar from '@/components/NavBar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -110,7 +111,16 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={visibleItems} onPinClick={(item) => { hapticLight(); setSelectedItem(item); }} flyTo={flyTo} />
+      <ErrorBoundary fallback={
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <div className="text-center px-6">
+            <div className="text-4xl mb-3">🗺</div>
+            <p className="text-sm font-medium text-gray-600">Map unavailable — please reload</p>
+          </div>
+        </div>
+      }>
+        <MapView items={visibleItems} onPinClick={(item) => { hapticLight(); setSelectedItem(item); }} flyTo={flyTo} />
+      </ErrorBoundary>
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pb-2 space-y-2">

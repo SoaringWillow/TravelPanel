@@ -472,7 +472,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Soft-block: clip is always saved; only enrichment is deferred
 
 ### H2 — React Error Boundary
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Any unhandled JS error currently crashes the entire app with a white screen. This guarantees a 1-star review if it happens to a user.
 **Files**: new `components/ErrorBoundary.tsx`, `app/layout.tsx`
 **What to do**:
