@@ -201,7 +201,10 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - `app/plan/[boardId]/page.tsx`: silently requests GPS on mount; computes nearest distance from user to each day's activity locations; passes formatted distance to DayStripCards
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Implemented**:
+- `lib/types.ts`: `Trip.completedActivities?: string[]` — keys `"d{dayIdx}a{actIdx}"` stored per trip
+- `app/plan/[boardId]/page.tsx`: `toggleActivity(dayIdx, actIdx)` persists check state to IndexedDB immediately; `loadTrip` restores check state from saved Trip; activity cards show green border + strikethrough + `CheckCircle2` when done, `Circle` when not; "My Journey" section appears as a vertical timeline when ≥1 activity is checked, showing all checked activities across all days with day/time/location/name and an uncheck X button
 
 ### C3 — Shared Boards v1
 **Status**: `[ ]` Not started

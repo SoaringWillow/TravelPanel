@@ -124,6 +124,8 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  // Post-trip: activities the user has checked off. Key format: "d{dayIndex}a{activityIndex}"
+  completedActivities?: string[];
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────
