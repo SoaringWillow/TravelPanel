@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { impact } from '@/lib/haptics';
 import { Drawer } from 'vaul';
 import { MapPin, Navigation } from 'lucide-react';
 import { SavedItem, Location } from '@/lib/types';
@@ -126,6 +127,7 @@ export default function NearMeSheet({
                     key={`${item.id}-${nearestLocation.lat}`}
                     type="button"
                     onClick={() => {
+                      impact('light');
                       onItemClick(item, nearestLocation);
                       onOpenChange(false);
                     }}

@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { impact, notification } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -137,6 +138,7 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    notification('success');
   }
 
   // ── Create new board + save ───────────────────────────────────────────────

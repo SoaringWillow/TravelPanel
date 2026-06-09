@@ -52,7 +52,7 @@ Goal: **beautiful, fully-functional native iOS app** that wins on capture ease +
 - Persist preference in localStorage
 
 ### D3 — Haptic Feedback on Key Interactions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Haptics are the signature of premium iOS apps. Every key action should have the right feedback.  
 **Files to change**: `app/share/page.tsx`, `components/InboxCard.tsx`, `components/NearMeSheet.tsx`  
 **What to do**:

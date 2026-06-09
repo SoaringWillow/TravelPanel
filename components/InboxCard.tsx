@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { impact, notification } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -291,7 +292,7 @@ export default function InboxCard({
             {onMoveToBoard && (
               <button
                 type="button"
-                onClick={() => onMoveToBoard(item.id)}
+                onClick={() => { impact('medium'); onMoveToBoard(item.id); }}
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 aria-label="Move to collection"
               >
@@ -302,7 +303,7 @@ export default function InboxCard({
             {/* Delete */}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              onClick={() => { notification('warning'); onDelete(item.id); }}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               aria-label="Delete"
             >

@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import { impact } from '@/lib/haptics';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -332,6 +333,7 @@ export default function MapView({ items, onPinClick, flyTo, onUserLocation }: Ma
                 item={item}
                 locName={location.name}
                 onClick={() => {
+                  impact('light');
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);
                 }}
