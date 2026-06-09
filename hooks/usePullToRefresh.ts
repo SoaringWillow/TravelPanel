@@ -1,14 +1,16 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, RefObject } from 'react';
 
 interface Options {
   onRefresh: () => Promise<void>;
   threshold?: number;
+  externalRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function usePullToRefresh({ onRefresh, threshold = 64 }: Options) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+export function usePullToRefresh({ onRefresh, threshold = 64, externalRef }: Options) {
+  const internalRef = useRef<HTMLDivElement>(null);
+  const scrollRef = externalRef ?? internalRef;
   const touchStartY = useRef(0);
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);

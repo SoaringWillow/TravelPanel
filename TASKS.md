@@ -307,7 +307,7 @@ one step from a common action.
 ## PHASE F — Performance & Quality
 
 ### F1 — Virtual Scrolling for Inbox (200+ items)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: At 200+ clips the 2-column grid renders all DOM nodes at once. On older iPhones
 this causes visible jank on scroll. Virtual scrolling renders only visible items.
 **Files**: `app/inbox/page.tsx`
@@ -493,7 +493,7 @@ TF-IDF with stemming produces dramatically better results without any server cal
 - Update `app/inbox/page.tsx` and `app/boards/[id]/page.tsx` to use the new scored results
 
 ### H2 — Enrichment Signals: Festival & Weather Dataset
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done (implemented as part of E5 in previous session)
 **Why**: This is the strategic differentiator over all AI travel chatbots per PRODUCT_STRATEGY.md.
 A static dataset covers 80% of real trips in ~200 lines of data.
 **Files**: new `lib/enrichmentData.ts`, `app/api/plan/route.ts`, `lib/types.ts`
