@@ -59,6 +59,7 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [enrichLimitResetAt, setEnrichLimitResetAt] = useState<number | null>(null);
+  const [quickNote, setQuickNote] = useState('');
   const pendingImageRef     = useRef<string | null>(null);
   const pendingThumbnailRef = useRef<string | null>(null);
 
@@ -114,6 +115,7 @@ function SharePageInner() {
       activities: [],
       tags: [],
       substance: [],
+      notes: quickNote.trim() || undefined,
       savedAt: Date.now(),
       enrichmentStatus: 'pending',
       retryCount: 0,
@@ -250,6 +252,18 @@ function SharePageInner() {
             >
               + New
             </button>
+          </div>
+
+          {/* Quick note */}
+          <div className="mt-4">
+            <textarea
+              value={quickNote}
+              onChange={e => setQuickNote(e.target.value)}
+              placeholder="Quick note (optional) — why are you saving this?"
+              maxLength={280}
+              rows={2}
+              className="w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm text-gray-700 placeholder-gray-300 focus:border-indigo-300 focus:outline-none resize-none transition-colors bg-gray-50"
+            />
           </div>
 
           {/* New board input */}

@@ -503,7 +503,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No DB changes needed — derive at render time from the items already loaded
 
 ### H5 — Quick Notes in Import/Share Flow
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: When clipping a URL, users often want to add a quick personal note ("great for anniversary trip", "friend recommended") before saving. Currently, notes can only be added via the full edit mode in the detail card.
 **Files**: `app/share/page.tsx`, `lib/db.ts`
 **What to do**:
