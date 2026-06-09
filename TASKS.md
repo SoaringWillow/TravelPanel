@@ -560,7 +560,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Don't virtualize during multi-select (or preserve virtualizer with checkbox overlay)
 
 ### H10 — App Store Submission Checklist
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: App Store submission requires specific assets and configurations that are easy to miss. A tracked checklist prevents rejection.
 **Files**: new `ios/App/APP_STORE_CHECKLIST.md`
 **What to do**:
