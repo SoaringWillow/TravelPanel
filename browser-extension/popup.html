@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: white;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.2px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .settings-btn {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: white;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .settings-btn:hover { background: rgba(255,255,255,0.28); }
+
+    /* ── Body ── */
+    .body {
+      padding: 14px 16px 0;
+    }
+
+    /* ── Platform chip ── */
+    .platform-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* ── Page card ── */
+    .page-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .page-thumb {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      display: none;
+    }
+    .page-thumb.visible { display: block; }
+
+    .page-info {
+      padding: 12px 14px;
+    }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+      line-height: 1.45;
+      margin-bottom: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .fav-icon {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-right: 4px;
+      display: none;
+    }
+    .fav-icon.visible { display: inline-block; }
+
+    /* ── Skeleton ── */
+    @keyframes shimmer {
+      0%   { background-position: -360px 0; }
+      100% { background-position:  360px 0; }
+    }
+    .skel {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 720px 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 5px;
+    }
+    .skel-line { height: 13px; margin-bottom: 7px; }
+    .skel-line.narrow { width: 55%; }
+    .skel-line.shorter { width: 40%; margin-bottom: 0; }
+
+    /* ── Restricted page ── */
+    .restricted {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #9a3412;
+    }
+    .restricted .icon { font-size: 20px; }
+
+    /* ── Not configured warning ── */
+    .not-configured {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .not-configured .nc-icon { font-size: 24px; }
+    .not-configured p { font-size: 13px; color: #78350f; line-height: 1.45; }
+    .nc-btn {
+      display: inline-block;
+      padding: 7px 16px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .nc-btn:hover { opacity: 0.88; }
+
+    /* ── Clip button ── */
+    .clip-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      border-radius: 13px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      letter-spacing: -0.1px;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-bottom: 12px;
+    }
+    .clip-btn:hover:not(:disabled) { opacity: 0.9; }
+    .clip-btn:active:not(:disabled) { transform: scale(0.98); }
+    .clip-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .clip-btn .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Success ── */
+    .success-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 0 4px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .success-ring {
+      width: 52px;
+      height: 52px;
+      background: #dcfce7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+    .success-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #15803d;
+      margin-bottom: 3px;
+    }
+    .success-sub { font-size: 12px; color: #6b7280; }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 0 16px 12px;
+      display: flex;
+      justify-content: center;
+    }
+    .open-app-link {
+      font-size: 11px;
+      color: #94a3b8;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .open-app-link:hover { color: #6366f1; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">🗺️</div>
+      TravelPanel
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings">⚙️</button>
+  </div>
+
+  <div class="body">
+
+    <div id="platformChip" class="platform-chip" style="display:none"></div>
+
+    <!-- Not configured -->
+    <div id="notConfigured" class="not-configured">
+      <span class="nc-icon">⚙️</span>
+      <p>Set your TravelPanel URL to start clipping travel inspiration.</p>
+      <button class="nc-btn" id="goToSettings">Configure URL</button>
+    </div>
+
+    <!-- Restricted page (chrome://, etc.) -->
+    <div id="restricted" class="restricted">
+      <span class="icon">🚫</span>
+      <span>This page can't be clipped. Navigate to a travel website first.</span>
+    </div>
+
+    <!-- Page card -->
+    <div id="pageCard" class="page-card">
+      <img id="thumbnail" class="page-thumb" alt="">
+      <div class="page-info" id="pageInfo">
+        <!-- Skeleton -->
+        <div id="skelTitle" class="skel skel-line"></div>
+        <div id="skelUrl" class="skel skel-line shorter"></div>
+        <!-- Content -->
+        <div id="pageTitle" class="page-title" style="display:none"></div>
+        <div id="pageUrl" class="page-url" style="display:none">
+          <img id="favIcon" class="fav-icon" alt="">
+          <span id="pageUrlText"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success -->
+    <div id="successState" class="success-state">
+      <div class="success-ring">✅</div>
+      <div class="success-title">Clipped!</div>
+      <div class="success-sub">Opening TravelPanel to select a board…</div>
+    </div>
+
+    <!-- Clip button -->
+    <button id="clipBtn" class="clip-btn" disabled>
+      <span id="btnSpinner" class="spinner"></span>
+      <span id="btnPin">📌</span>
+      <span id="btnText">Clip to TravelPanel</span>
+    </button>
+
+  </div>
+
+  <div class="footer">
+    <button class="open-app-link" id="openApp">Open TravelPanel ↗</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

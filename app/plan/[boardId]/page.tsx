@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, CheckCircle2, Circle, Send } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { nearestDistanceKm, formatDistance } from '@/lib/geoUtils';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { hapticNotification, hapticImpact } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -38,6 +41,29 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [completedActivities, setCompletedActivities] = useState<Set<string>>(new Set());
+  const [refinementText, setRefinementText] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineSteps, setRefineSteps] = useState<AgentStep[]>([]);
+
+  // Passive GPS — silently request on mount; used for "X km from here" badges on day cards
+  const { position: geoPos, request: requestGeo } = useGeolocation();
+  useEffect(() => { requestGeo(); }, [requestGeo]);
+
+  // Pre-compute nearest distance from user to each day's first activity location
+  const dayDistances = useMemo(() => {
+    if (!geoPos || !plan?.days) return null;
+    return plan.days.map((day) => {
+      const locs = day.activities.flatMap((a) =>
+        Number.isFinite(a.location?.lat) && Number.isFinite(a.location?.lng)
+          ? [{ lat: a.location.lat, lng: a.location.lng }]
+          : [],
+      );
+      if (locs.length === 0) return undefined;
+      const km = nearestDistanceKm(geoPos.lat, geoPos.lng, locs);
+      return isFinite(km) ? formatDistance(km) : undefined;
+    });
+  }, [geoPos, plan?.days]);
 
   useEffect(() => {
     async function load() {
@@ -125,6 +151,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              hapticNotification(msg.step.type === 'done' ? 'success' : 'error');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -192,8 +219,31 @@ export default function PlanPage() {
     setDays(trip.days);
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
+    setCompletedActivities(new Set(trip.completedActivities ?? []));
     setStage('complete');
   }, []);
+
+  // Toggle an activity as done/undone; persists immediately to IndexedDB.
+  const toggleActivity = useCallback(async (dayIdx: number, actIdx: number) => {
+    const key = `d${dayIdx}a${actIdx}`;
+    setCompletedActivities((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+    // Persist: find the current trip and update its completedActivities
+    const tripId = currentTripId;
+    if (!tripId) return;
+    setSavedTrips((prev) => {
+      const trip = prev.find((t) => t.id === tripId);
+      if (!trip) return prev;
+      const keys = new Set(trip.completedActivities ?? []);
+      if (keys.has(key)) keys.delete(key); else keys.add(key);
+      const updated = { ...trip, completedActivities: [...keys] };
+      saveTrip(updated);
+      return prev.map((t) => (t.id === tripId ? updated : t));
+    });
+  }, [currentTripId]);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
     const trip = savedTrips.find((t) => t.id === tripId);
@@ -216,6 +266,80 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setCurrentTripId(null);
   }, []);
+
+  const handleRefine = useCallback(async () => {
+    if (!refinementText.trim() || !planIsComplete(plan)) return;
+
+    setIsRefining(true);
+    setRefineSteps([]);
+    const note = refinementText.trim();
+
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: boardItems,
+        days,
+        preferences: note,
+        refinementNote: note,
+        existingPlan: plan,
+      }),
+    });
+
+    if (!res.ok || !res.body) {
+      setIsRefining(false);
+      return;
+    }
+
+    const reader = res.body.getReader();
+    let buf = '';
+    let latestPlan: Partial<TripPlan> | null = null;
+    const collectedSteps: AgentStep[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += new TextDecoder().decode(value);
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line) as PlanStreamMessage;
+          if (msg.t === 'step') {
+            collectedSteps.push(msg.step);
+            setRefineSteps((s) => [...s, msg.step]);
+            if (msg.step.type === 'done') {
+              hapticNotification('success');
+              if (latestPlan?.days?.length) {
+                const trip: Trip = {
+                  id: crypto.randomUUID(),
+                  boardId,
+                  boardName: board?.name ?? '',
+                  name: note.slice(0, 30),
+                  days,
+                  preferences: note,
+                  agentSteps: collectedSteps,
+                  plan: latestPlan as TripPlan,
+                  createdAt: Date.now(),
+                };
+                await saveTrip(trip);
+                setSavedTrips((prev) => [...prev, trip]);
+                setCurrentTripId(trip.id);
+              }
+            }
+          }
+          if (msg.t === 'plan') {
+            latestPlan = msg.plan as Partial<TripPlan>;
+            setPlan(latestPlan);
+          }
+        } catch { /* skip bad lines */ }
+      }
+    }
+
+    setIsRefining(false);
+    setRefinementText('');
+  }, [refinementText, plan, boardItems, days, board, boardId, savedTrips.length]);
 
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
@@ -499,6 +623,7 @@ export default function PlanPage() {
                         index={idx}
                         isActive={activeDayIndex === idx}
                         onSelect={() => setActiveDayIndex(idx)}
+                        distanceFromHere={dayDistances?.[idx]}
                       />
                     ))}
                   </div>
@@ -512,24 +637,39 @@ export default function PlanPage() {
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const actKey = `d${activeDayIndex}a${aIdx}`;
+                    const isDone = completedActivities.has(actKey);
+                    return (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className={`bg-white rounded-2xl p-3 shadow-sm border space-y-1 transition-colors ${
+                        isDone ? 'border-green-200 bg-green-50/40' : 'border-gray-100'
+                      }`}
                     >
                       <div className="flex items-start gap-2">
                         <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.time}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
+                          <p className={`text-sm font-medium truncate ${isDone ? 'text-green-700 line-through' : 'text-indigo-600'}`}>
                             {activity.location.name}
                           </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                          <p className={`text-sm ${isDone ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{activity.name}</p>
                         </div>
                         <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
                           {activity.duration}
                         </span>
+                        {/* Done button */}
+                        <button
+                          onClick={() => toggleActivity(activeDayIndex, aIdx)}
+                          className="flex-shrink-0 ml-1"
+                          aria-label={isDone ? 'Mark not done' : 'Mark done'}
+                        >
+                          {isDone
+                            ? <CheckCircle2 size={20} className="text-green-500" />
+                            : <Circle size={20} className="text-gray-300" />}
+                        </button>
                       </div>
 
                       {activity.tips.length > 0 && (
@@ -559,7 +699,51 @@ export default function PlanPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  ); })}
+                </div>
+              )}
+
+              {/* Journey timeline — shows checked activities across all days */}
+              {completedActivities.size > 0 && plan.days && (
+                <div className="bg-white rounded-2xl border border-green-200 overflow-hidden">
+                  <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-green-500" />
+                    <span className="text-sm font-bold text-gray-800">My Journey</span>
+                    <span className="ml-auto text-xs text-green-600 font-semibold">
+                      {completedActivities.size} done
+                    </span>
+                  </div>
+                  <div className="px-4 pb-4 space-y-0">
+                    {plan.days.flatMap((day, dIdx) =>
+                      day.activities
+                        .map((act, aIdx) => ({ act, dIdx, aIdx, key: `d${dIdx}a${aIdx}` }))
+                        .filter(({ key }) => completedActivities.has(key))
+                    ).map(({ act, dIdx, aIdx, key }, i, arr) => (
+                      <div key={key} className="flex gap-3 py-2 relative">
+                        {/* Timeline line */}
+                        {i < arr.length - 1 && (
+                          <div className="absolute left-[9px] top-7 bottom-0 w-0.5 bg-green-100" />
+                        )}
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-400">
+                            Day {dIdx + 1} · {act.time}
+                          </p>
+                          <p className="text-sm font-medium text-gray-800 truncate">{act.location.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{act.name}</p>
+                        </div>
+                        <button
+                          onClick={() => toggleActivity(dIdx, aIdx)}
+                          className="flex-shrink-0 text-gray-300 hover:text-red-400 transition-colors mt-0.5"
+                          aria-label="Uncheck"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -579,6 +763,34 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Refinement input */}
+              <div className="space-y-2">
+                {isRefining && (
+                  <PlannerAgent steps={refineSteps} isRunning={isRefining} />
+                )}
+                <div className="flex gap-2">
+                  <input
+                    value={refinementText}
+                    onChange={(e) => setRefinementText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && refinementText.trim() && !isRefining) handleRefine();
+                    }}
+                    placeholder="Refine this plan…"
+                    disabled={isRefining}
+                    className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRefine}
+                    disabled={!refinementText.trim() || isRefining}
+                    className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                    aria-label="Refine plan"
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
+              </div>
 
               {/* Start Over */}
               <button

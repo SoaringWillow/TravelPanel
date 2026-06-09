@@ -4,9 +4,11 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { hapticNotification } from '@/lib/haptics';
+import { suggestBoard } from '@/lib/boardSuggestion';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
@@ -29,12 +31,29 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [dupeItem, setDupeItem]               = useState<SavedItem | null>(null);
+  const [boardSuggestion, setBoardSuggestion] = useState<Board | null>(null);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+  const savedItemIdRef = useRef<string | undefined>(undefined);
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Claim any screenshot passed by the iOS Share Extension (Xiaohongshu/WeChat).
+    // CapacitorBridge stores it in sessionStorage as standard base64 under 'tp_pending_img'.
+    try {
+      const img = sessionStorage.getItem('tp_pending_img');
+      if (img) {
+        pendingImageRef.current = img;
+        sessionStorage.removeItem('tp_pending_img');
+      }
+    } catch {
+      // sessionStorage not available
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -60,10 +79,20 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDupeCheck = false) {
+    // Check for duplicate URL before saving
+    if (!skipDupeCheck && rawUrl) {
+      const existing = await findItemByUrl(rawUrl);
+      if (existing) {
+        setDupeItem(existing);
+        return;
+      }
+    }
+    setDupeItem(null);
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    savedItemIdRef.current = itemId;
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
@@ -83,14 +112,15 @@ function SharePageInner() {
 
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    hapticNotification('success');
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (improves 小红书/WeChat extraction)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -107,6 +137,12 @@ function SharePageInner() {
               tags: updated.tags,
               substance: updated.substance,
             } as ImportResult);
+
+            // Auto-suggest a board if item was saved to Inbox
+            if (!selectedBoardId && updated.locations.length > 0) {
+              const suggestion = suggestBoard(updated, boards, []);
+              if (suggestion) setBoardSuggestion(suggestion);
+            }
           }
         }
         setEnrichmentLoading(false);
@@ -166,6 +202,30 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Duplicate warning banner */}
+        {dupeItem && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+            <p className="text-sm font-semibold text-amber-800">Already saved</p>
+            <p className="text-xs text-amber-700 line-clamp-2">"{dupeItem.title}"</p>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="flex-1 py-2 rounded-xl border border-amber-300 text-amber-700 text-xs font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave(undefined, 'Inbox', true)}
+                className="flex-1 py-2 rounded-xl bg-amber-600 text-white text-xs font-medium"
+              >
+                Save again anyway
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
@@ -314,6 +374,41 @@ function SharePageInner() {
             </div>
           ) : null}
         </motion.div>
+
+        {/* Board suggestion */}
+        {boardSuggestion && !suggestionDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+            className="w-full bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3"
+          >
+            <p className="text-xs text-indigo-600 font-semibold mb-2">
+              Add to a collection?
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!savedItemIdRef.current) return;
+                  await addItemToBoard(boardSuggestion.id, savedItemIdRef.current);
+                  setSuggestionDismissed(true);
+                  hapticNotification('success');
+                }}
+                className="flex-1 bg-indigo-600 text-white text-sm font-semibold px-3 py-2 rounded-xl active:scale-95 transition-all"
+              >
+                {boardSuggestion.emoji} {boardSuggestion.name} ✓
+              </button>
+              <button
+                type="button"
+                onClick={() => setSuggestionDismissed(true)}
+                className="text-xs text-indigo-400 px-2 py-2"
+              >
+                Skip
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         <motion.p
           initial={{ opacity: 0 }}

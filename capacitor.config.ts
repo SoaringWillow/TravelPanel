@@ -23,10 +23,12 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 800,
-      backgroundColor: '#f9fafb',
+      launchShowDuration: 600,
+      backgroundColor: '#4f46e5',
       showSpinner: false,
-      launchAutoHide: false,
+      launchAutoHide: true,
+      splashFullScreen: true,
+      splashImmersive: false,
     },
     StatusBar: {
       style: 'Default',

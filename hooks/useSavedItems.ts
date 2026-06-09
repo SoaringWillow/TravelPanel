@@ -20,8 +20,17 @@ export function useSavedItems() {
   }, []);
 
   const removeItem = useCallback(async (id: string) => {
-    await deleteItem(id);
+    // Optimistic: remove from state immediately, restore on failure
     setItems((prev) => prev.filter((i) => i.id !== id));
+    try {
+      await deleteItem(id);
+    } catch {
+      // Restore the item on failure
+      const restored = await getItemById(id);
+      if (restored) {
+        setItems((prev) => [restored, ...prev].sort((a, b) => b.savedAt - a.savedAt));
+      }
+    }
   }, []);
 
   // Re-reads a single item from DB and patches React state — used by retry queue

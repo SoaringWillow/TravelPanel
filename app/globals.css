@@ -71,3 +71,26 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Header safe padding: status bar height + content breathing room */
+.header-safe { padding-top: calc(env(safe-area-inset-top, 20px) + 16px); }
+
+/* NavBar bottom: home-indicator height */
+.nav-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 17 24 39;
+    --foreground: 249 250 251;
+    --card: 31 41 55;
+    --card-foreground: 249 250 251;
+    --border: 55 65 81;
+    --muted: 31 41 55;
+    --muted-foreground: 156 163 175;
+  }
+
+  body {
+    background-color: #111827;
+    color: #f9fafb;
+  }
+}

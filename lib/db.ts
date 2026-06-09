@@ -12,6 +12,7 @@ interface TravelPanelDB extends DBSchema {
       'by-date': number;
       'by-board': string;
       'by-status': string;
+      'by-url': string;
     };
   };
   boards: {
@@ -33,7 +34,7 @@ function getDB() {
     throw new Error('IndexedDB unavailable server-side');
   }
   if (!dbPromise) {
-    dbPromise = openDB<TravelPanelDB>('travel-panel', 2, {
+    dbPromise = openDB<TravelPanelDB>('travel-panel', 3, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const itemStore = db.createObjectStore('items', { keyPath: 'id' });
@@ -52,6 +53,12 @@ function getDB() {
           boardStore.createIndex('by-date', 'createdAt');
           const tripStore = db.createObjectStore('trips', { keyPath: 'id' });
           tripStore.createIndex('by-board', 'boardId');
+        }
+        if (oldVersion < 3) {
+          const itemStore = tx.objectStore('items');
+          if (!itemStore.indexNames.contains('by-url')) {
+            itemStore.createIndex('by-url', 'url');
+          }
         }
       },
     });
@@ -109,6 +116,16 @@ export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedI
   }
 }
 
+export async function findItemByUrl(url: string): Promise<SavedItem | null> {
+  try {
+    const db = await getDB();
+    const results = await db.getAllFromIndex('items', 'by-url', url);
+    return results[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function updateItemEnrichment(
   id: string,
   status: EnrichmentStatus,
@@ -131,10 +148,27 @@ export async function getAllBoards(): Promise<Board[]> {
   try {
     const db = await getDB();
     const boards = await db.getAll('boards');
-    return boards.sort((a, b) => b.createdAt - a.createdAt);
+    return boards.sort((a, b) => {
+      if (a.sortOrder !== undefined && b.sortOrder !== undefined) return a.sortOrder - b.sortOrder;
+      if (a.sortOrder !== undefined) return -1;
+      if (b.sortOrder !== undefined) return 1;
+      return b.createdAt - a.createdAt;
+    });
   } catch {
     return [];
   }
+}
+
+export async function reorderBoards(orderedIds: string[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('boards', 'readwrite');
+  await Promise.all(
+    orderedIds.map(async (id, index) => {
+      const board = await tx.store.get(id);
+      if (board) await tx.store.put({ ...board, sortOrder: index, updatedAt: Date.now() });
+    })
+  );
+  await tx.done;
 }
 
 export async function getBoardById(id: string): Promise<Board | undefined> {
@@ -190,6 +224,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 }
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
 
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {

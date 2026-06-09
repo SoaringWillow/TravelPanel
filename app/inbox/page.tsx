@@ -1,20 +1,25 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import LongPressDeleteCard from '@/components/LongPressDeleteCard';
+import { PullRefreshIndicator } from '@/components/PullRefreshIndicator';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import LocationDetailCard from '@/components/LocationDetailCard';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,15 +34,20 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollRef, pullDistance, refreshing, onTouchStart, onTouchMove, onTouchEnd } =
+    usePullToRefresh({ onRefresh: refresh, externalRef: containerRef });
+
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [detailItem, setDetailItem] = useState<SavedItem | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -53,6 +63,15 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  // Virtual grid: pair items into rows of 2 for the virtualizer
+  const rowCount = Math.ceil(filtered.length / 2);
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 290,
+    overscan: 3,
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -97,12 +116,12 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 header-safe pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
@@ -139,48 +158,83 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
-        {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <PullRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
+        <div className="py-4">
+          {loading ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-60 text-center">
+              <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
+              <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                {query.trim()
+                  ? `No clips match "${query.trim()}". Try a different search.`
+                  : activePlatform === 'all'
+                  ? 'Share content from social apps to get started!'
+                  : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
+            >
+              {virtualizer.getVirtualItems().map((vRow) => {
+                const left  = filtered[vRow.index * 2];
+                const right = filtered[vRow.index * 2 + 1];
+                return (
+                  <div
+                    key={vRow.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      transform: `translateY(${vRow.start}px)`,
+                    }}
+                    className="grid grid-cols-2 gap-3 pb-3"
+                  >
+                    {left && (
+                      <LongPressDeleteCard onDelete={() => removeItem(left.id)}>
+                        <InboxCard
+                          item={left}
+                          onDelete={removeItem}
+                          onViewOnMap={handleViewOnMap}
+                          onMoveToBoard={handleMoveToBoard}
+                          onRetry={retryItem}
+                          onTap={left.enrichmentStatus === 'done' ? setDetailItem : undefined}
+                        />
+                      </LongPressDeleteCard>
+                    )}
+                    {right && (
+                      <LongPressDeleteCard onDelete={() => removeItem(right.id)}>
+                        <InboxCard
+                          item={right}
+                          onDelete={removeItem}
+                          onViewOnMap={handleViewOnMap}
+                          onMoveToBoard={handleMoveToBoard}
+                          onRetry={retryItem}
+                          onTap={right.enrichmentStatus === 'done' ? setDetailItem : undefined}
+                        />
+                      </LongPressDeleteCard>
+                    )}
+                    {!right && left && <div />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Board selector bottom sheet */}
@@ -259,6 +313,20 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Clip detail sheet */}
+      <AnimatePresence>
+        {detailItem && (
+          <LocationDetailCard
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
+            onUpdated={(updated) => {
+              setDetailItem(updated);
+              refreshItem(updated.id);
+            }}
+          />
         )}
       </AnimatePresence>
 

@@ -3,12 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Rocket, MapPin, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import LongPressDeleteCard from '@/components/LongPressDeleteCard';
+import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { buildShareUrl } from '@/lib/shareBoard';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -20,9 +24,11 @@ export default function BoardDetailPage() {
   const router = useRouter();
 
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
-  const { items, loading: itemsLoading, removeItem } = useSavedItems();
+  const { items, loading: itemsLoading, removeItem, refreshItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
+  const [detailItem, setDetailItem] = useState<SavedItem | null>(null);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -51,9 +57,25 @@ export default function BoardDetailPage() {
     // No-op on board detail page — removal handled by handleDelete
   }
 
+  async function handleShare() {
+    if (!board || boardItems.length === 0) return;
+    const url = buildShareUrl(board, boardItems);
+    try {
+      if (typeof navigator.share === 'function') {
+        await navigator.share({ title: `${board.emoji} ${board.name} — TravelPanel`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareState('copied');
+        setTimeout(() => setShareState('idle'), 2000);
+      }
+    } catch {
+      // User dismissed share sheet or clipboard unavailable — no-op
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
         <div className="flex items-center justify-center flex-1">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
         </div>
@@ -64,7 +86,7 @@ export default function BoardDetailPage() {
 
   if (!board) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center justify-center flex-1 text-center px-6">
           <div className="text-5xl mb-4">🗺</div>
           <h2 className="text-lg font-bold text-gray-800 mb-2">Board not found</h2>
@@ -86,9 +108,9 @@ export default function BoardDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 header-safe pb-4 z-10">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -102,7 +124,7 @@ export default function BoardDetailPage() {
           <span className="text-2xl leading-none">{board.emoji}</span>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-gray-800 leading-tight truncate">
+            <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight truncate">
               {board.name}
             </h1>
           </div>
@@ -110,6 +132,19 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={handleShare}
+              title={shareState === 'copied' ? 'Link copied!' : 'Share board'}
+              className="flex items-center gap-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 active:scale-95 px-2.5 py-1 rounded-full transition-all flex-shrink-0"
+            >
+              {shareState === 'copied'
+                ? <><Check size={13} /> Copied!</>
+                : <><Share2 size={13} /> Share</>}
+            </button>
+          )}
         </div>
       </div>
 
@@ -178,17 +213,33 @@ export default function BoardDetailPage() {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
-                />
+                <LongPressDeleteCard key={item.id} onDelete={() => handleDelete(item.id)}>
+                  <InboxCard
+                    item={item}
+                    onDelete={handleDelete}
+                    onViewOnMap={handleViewOnMap}
+                    onTap={item.enrichmentStatus === 'done' ? setDetailItem : undefined}
+                  />
+                </LongPressDeleteCard>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Clip detail sheet */}
+      <AnimatePresence>
+        {detailItem && (
+          <LocationDetailCard
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
+            onUpdated={(updated) => {
+              setDetailItem(updated);
+              refreshItem(updated.id);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <NavBar active="boards" />
     </div>

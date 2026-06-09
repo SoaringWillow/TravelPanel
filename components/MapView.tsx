@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl, GeolocateControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -236,6 +237,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const isDark = useDarkMode();
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -271,7 +273,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={isDark ? 'https://tiles.openfreemap.org/styles/dark' : 'https://tiles.openfreemap.org/styles/liberty'}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
@@ -279,6 +281,14 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+
+        <GeolocateControl
+          position="top-right"
+          positionOptions={{ enableHighAccuracy: true }}
+          trackUserLocation={false}
+          showUserLocation
+          showAccuracyCircle={false}
+        />
 
         <MapController flyTo={flyTo} />
 

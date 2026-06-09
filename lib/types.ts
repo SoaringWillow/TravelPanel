@@ -64,6 +64,7 @@ export interface Board {
   itemIds: string[];       // ordered SavedItem ids
   createdAt: number;
   updatedAt: number;
+  sortOrder?: number;      // user-defined display order (lower = first)
   isDemo?: boolean; // onboarding seed content — removable in one tap
 }
 
@@ -124,6 +125,8 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  // Post-trip: activities the user has checked off. Key format: "d{dayIndex}a{activityIndex}"
+  completedActivities?: string[];
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

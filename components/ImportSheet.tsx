@@ -15,6 +15,7 @@ import {
   PLATFORM_BG,
   PLATFORM_COLORS,
 } from '@/lib/parse-url';
+import { findItemByUrl } from '@/lib/db';
 
 // ─── Props / types ───────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ interface ImportSheetProps {
   initialUrl?: string;
 }
 
-type Stage = 'idle' | 'loading' | 'preview';
+type Stage = 'idle' | 'loading' | 'preview' | 'duplicate';
 
 const ALL_PLATFORMS = ['wechat', 'xiaohongshu', 'douyin', 'bilibili', 'other'] as const;
 
@@ -34,12 +35,13 @@ const IMPORT_TIMEOUT_MS = 25_000;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }: ImportSheetProps) {
-  const [url, setUrl]         = useState(initialUrl);
-  const [notes, setNotes]     = useState('');
-  const [stage, setStage]     = useState<Stage>('idle');
-  const [preview, setPreview] = useState<ImportResult | null>(null);
-  const [error, setError]     = useState('');
-  const abortRef              = useRef<AbortController | null>(null);
+  const [url, setUrl]               = useState(initialUrl);
+  const [notes, setNotes]           = useState('');
+  const [stage, setStage]           = useState<Stage>('idle');
+  const [preview, setPreview]       = useState<ImportResult | null>(null);
+  const [error, setError]           = useState('');
+  const [dupeItem, setDupeItem]     = useState<SavedItem | null>(null);
+  const abortRef                    = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -50,8 +52,18 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
-  async function handleImport() {
+  async function handleImport(skipDupeCheck = false) {
     if (!trimmedUrl) return;
+
+    // Check for duplicate before hitting the AI
+    if (!skipDupeCheck) {
+      const existing = await findItemByUrl(trimmedUrl);
+      if (existing) {
+        setDupeItem(existing);
+        setStage('duplicate');
+        return;
+      }
+    }
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -62,6 +74,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
     setStage('loading');
     setError('');
+    setDupeItem(null);
 
     try {
       const res = await fetch('/api/import', {
@@ -141,6 +154,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     setPreview(null);
     setStage('idle');
     setError('');
+    setDupeItem(null);
   }
 
   function handleClose() {
@@ -224,6 +238,30 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 'Clip & discover places'
               )}
             </button>
+          )}
+
+          {/* ── Duplicate detected ──────────────────────────────────────── */}
+          {stage === 'duplicate' && dupeItem && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-amber-800">Already in your collection</p>
+              <p className="text-sm text-amber-700 line-clamp-2">"{dupeItem.title}"</p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={resetState}
+                  className="flex-1 py-2.5 rounded-xl border border-amber-300 text-amber-700 text-sm font-medium hover:bg-amber-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleImport(true)}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors"
+                >
+                  Save again anyway
+                </button>
+              </div>
+            </div>
           )}
 
           {/* ── Error message + save-anyway fallback ─────────────────────── */}

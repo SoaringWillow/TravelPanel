@@ -96,3 +96,24 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-09 13:27 | 322bc4c | feat(B2): add Chrome/Safari browser extension for one-click clipping
+2026-06-09 13:35 | c06b570 | feat(B3): Claude Vision extraction for Xiaohongshu/WeChat screenshots
+2026-06-09 13:38 | 53a624c | feat(B5): cloud backup export/import + Settings page
+2026-06-09 13:41 | 3ffe3b1 | feat(C1): on-trip GPS mode — Near Me filter + distance badges on trip plans
+2026-06-09 13:43 | 8f8d45f | feat(C2): post-trip timeline — check off activities, see your journey
+2026-06-09 13:46 | a38eecd | feat(C3): shared boards v1 — client-side URL sharing, no backend needed
+2026-06-09 13:48 | 849c55f | feat(C4): proactive resurfacing — daily inspiration card on home map
+2026-06-09 14:04 | a5ac912 | feat(D1/D4/D5/D7/F2/F3/F4/G3): iOS polish sprint — safe areas, duplicate detection, clip editing, offline banner, error boundaries, optimistic delete, lazy images, privacy policy
+2026-06-09 14:09 | 30c8320 | feat(D3/E3/E5/E6/G4): haptics, enrichment signals, inline notes, rich plan streaming, TestFlight guide
+2026-06-09 14:14 | cd5559c | feat(H1/E1): relevance-scored search + auto-board suggestion on save
+2026-06-09 14:16 | bac4f0c | feat(D2): long-press delete overlay on grid cards
+2026-06-09 14:18 | cbed226 | feat(D6): pull-to-refresh on Inbox and Boards
+2026-06-09 14:20 | d536ca4 | feat(E2): board reordering via drag-and-drop
+2026-06-09 14:22 | 8c7a324 | feat(G1): custom app icon — indigo globe compass design
+2026-06-09 14:25 | d38cf50 | feat(D8): dark mode support via prefers-color-scheme
+2026-06-09 14:27 | 4865d5a | feat(E4): natural language plan refinement
+2026-06-09 14:29 | a12c6b9 | feat(F1): virtual scrolling for Inbox grid at 200+ clips
+2026-06-09 14:30 | e409710 | feat(G2): branded launch screen — indigo background with app icon
+2026-06-09 14:32 | 6f7c1df | feat: clipboard URL detection for quick-clip fallback
+2026-06-09 14:34 | dc134e2 | feat: tap InboxCard to open full clip detail sheet
+2026-06-09 14:35 | 5568722 | chore: update sessions log

@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { getRelevantEvents, getWeatherAdvisory } from '@/lib/enrichmentData';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -49,9 +50,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, refinementNote: string | undefined, existingPlan: unknown;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, refinementNote, existingPlan } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
 
       try {
         // ── Step 1: Resolve locations ────────────────────────────────────
-        step('searching', 'Collecting locations from your saved items…');
+        step('searching', `Reading your ${items.length} saved clip${items.length !== 1 ? 's' : ''}…`);
 
         const rawLocations = items.flatMap((i) => i.locations);
 
@@ -94,10 +95,10 @@ export async function POST(req: NextRequest) {
         }
         const { object: resolvedLocs } = resolvedResult;
 
-        step('found', `Resolved ${resolvedLocs.locations.length} location${resolvedLocs.locations.length !== 1 ? 's' : ''}`);
+        step('found', `Found ${resolvedLocs.locations.length} location${resolvedLocs.locations.length !== 1 ? 's' : ''} to work with`);
 
         // ── Step 2: Cluster into day groups ──────────────────────────────
-        step('clustering', `Grouping locations into ${days}-day clusters…`);
+        step('clustering', `Grouping ${resolvedLocs.locations.length} locations across ${days} day${days !== 1 ? 's' : ''} by neighbourhood…`);
 
         const clusterResult = await generateObject({
           model: models.planCluster,
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
         }
         const { object: clusters } = clusterResult;
 
-        step('routing', 'Building optimised route…');
+        step('routing', `Optimising route — minimising daily travel time across ${days} day${days !== 1 ? 's' : ''}…`);
 
         // ── Step 3: Stream full itinerary ────────────────────────────────
         // Include substance (the wisdom layer) so the plan can cite the user's
@@ -133,10 +134,29 @@ export async function POST(req: NextRequest) {
 
         const hasSubstance = items.some((i) => (i.substance?.length ?? 0) > 0);
 
+        // ── Enrichment signals: festivals, events, weather ───────────────
+        const allLocationNames = items.flatMap((i) => i.locations.map((l) => l.name));
+        const currentMonth = new Date().getMonth() + 1; // 1-indexed
+        const relevantEvents = getRelevantEvents(allLocationNames, currentMonth);
+        const weatherWarning = getWeatherAdvisory(allLocationNames, currentMonth);
+
+        const enrichmentWarnings: string[] = [
+          ...relevantEvents.map((e) => e.warning),
+          ...(weatherWarning ? [weatherWarning] : []),
+        ];
+
+        const enrichmentBlock = enrichmentWarnings.length > 0
+          ? `\n\nENRICHMENT WARNINGS (inject these as inline advisories in the relevant parts of the itinerary):\n${enrichmentWarnings.join('\n')}`
+          : '';
+
+        const refinementBlock = refinementNote && existingPlan
+          ? `\n\nREFINEMENT REQUEST: The user wants to modify this existing plan with the following instruction: "${refinementNote}". Existing plan: ${JSON.stringify(existingPlan)}. Preserve the overall structure but apply the requested changes precisely.`
+          : '';
+
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
-          prompt: `Create a detailed ${days}-day travel itinerary.
+          prompt: `${refinementNote ? 'Refine the following travel itinerary per the user\'s instruction.' : `Create a detailed ${days}-day travel itinerary.`}
 
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
@@ -153,14 +173,17 @@ Rules:
   activity, surface it in that activity's "sourcedTips" with the exact clip title
   as sourceTitle. This makes the plan reflect the user's curated knowledge, not
   generic advice. ${hasSubstance ? 'The clips DO contain substance — use it.' : 'If no substance is present, return an empty sourcedTips array.'}
-  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.`,
+  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.${enrichmentBlock}${refinementBlock}`,
         });
 
         for await (const partial of planStream.partialObjectStream) {
           emit({ t: 'plan', plan: partial });
         }
 
-        step('validating', 'Finalising your itinerary…');
+        const substanceCount = items.reduce((sum, i) => sum + (i.substance?.length ?? 0), 0);
+        step('validating', substanceCount > 0
+          ? `Weaving in ${substanceCount} tip${substanceCount !== 1 ? 's' : ''} and warnings from your saves…`
+          : 'Finalising your itinerary…');
         step('done', `Your ${days}-day plan is ready!`);
       } catch (err) {
         step('error', err instanceof Error ? err.message : 'Something went wrong generating your plan');

@@ -44,15 +44,30 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>&imgB64=<base64url>
         const listener = await App.addListener('appUrlOpen', ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const imgB64url = parsed.searchParams.get('imgB64');
 
             if (shareUrl) {
+              // If the Share Extension attached a screenshot (e.g. from Xiaohongshu),
+              // stash the base64url-encoded image in sessionStorage. The share page
+              // reads it and passes it to /api/import for Claude Vision extraction.
+              if (imgB64url) {
+                // Convert base64url → standard base64 before storing
+                const b64 = imgB64url.replace(/-/g, '+').replace(/_/g, '/');
+                const pad = (4 - b64.length % 4) % 4;
+                try {
+                  sessionStorage.setItem('tp_pending_img', b64 + '='.repeat(pad));
+                } catch {
+                  // sessionStorage unavailable — skip image, text extraction still runs
+                }
+              }
+
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);
