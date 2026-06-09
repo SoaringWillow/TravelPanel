@@ -139,3 +139,37 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-09 15:41 | 9cc3c31 | chore: update SESSIONS.md with Phase H completion log
 2026-06-09 15:48 | 8fb7982 | feat(I1-I4,I8): onboarding, empty states, context menu, visit status
 2026-06-09 15:52 | 7f6f304 | feat(I3,I5,I6,I9): notifications, plan redesign, board templates, budget
+2026-06-09 15:54 | d3f69e7 | feat(I7,I10): keyboard avoidance + country/region map filter
+
+---
+
+## Session: 2026-06-09 (Phase I — Beautiful, Shippable, Habit-Forming)
+
+**Branch**: `claude/relaxed-tesla-d3228h`
+
+### Completed — all of Phase I (I1–I10)
+
+- **I1** — First-launch onboarding carousel: 3-screen modal (Save/AI/Plan), spring animations, dot progress, localStorage gate (`tp_onboarded`)
+- **I2** — Illustrated empty states: reusable `EmptyState` with gradient circle + decorative dots; wired into inbox (3 states: search/platform/empty) and boards list
+- **I3** — iOS local notifications: `@capacitor/local-notifications` weekly digest reminder; toggle in Settings with permission request; deep link to `/digest` on tap
+- **I4** — Long-press context menu on clip cards: `ClipContextMenu` bottom sheet via `onContextMenu`; View on Map / Move to Board / Share Link / Delete actions
+- **I5** — Trip plan visual redesign: activity cards with left indigo stripe, activity-type emoji icons (keyword match), large background day number, improved sourced tips layout
+- **I6** — Board templates: 5 pre-made trip types (Beach/City/Road Trip/Food/Cultural) in `CreateBoardModal` horizontal scroll; pre-fills name + emoji
+- **I7** — Keyboard avoidance: `useKeyboardAvoid` hook via `visualViewport`; dynamic `paddingBottom` in share page; scroll-into-view on textarea focus
+- **I8** — Visit status toggle: `visitStatus: 'want' | 'visited'` on SavedItem; filter tabs in inbox (All/Want to go/Visited); toggle badge on card
+- **I9** — AI budget estimate: budget tier selector (💰/💳/💎) in plan config; `estimatedCostUsd` in DayPlan schema; cost badge under day header
+- **I10** — Country/region map filter: auto-derived from location addresses; horizontal pill bar (shown when 2+ countries); AND logic with board filter
+
+### Moat status
+
+Complete end-to-end:
+- Capture (Share Extension + Browser Extension + Batch Import)
+- Extract (2-layer: Spots + Substance)
+- Organize (Boards + Templates + Visit Status + Inbox Multi-select)
+- Plan (Sourced Itinerary + Budget + Travel Month + Multi-version)
+- Delight (Onboarding + Empty States + Notifications + Context Menus)
+
+### Blockers / next priorities
+- B4/D4: Embedding/Vibe Search blocked on Supabase pgvector (needs `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- App Store submission: replace `APP_STORE_URL` placeholder in `lib/reviewPrompt.ts` with real App Store ID after submission
+- iOS native wiring: requires macOS for `pod install` + Xcode (see `ios/App/ShareExtension/XCODE_SETUP.md` and `ios/App/APP_STORE_CHECKLIST.md`)
