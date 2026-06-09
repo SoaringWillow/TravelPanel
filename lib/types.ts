@@ -64,6 +64,7 @@ export interface Board {
   itemIds: string[];       // ordered SavedItem ids
   createdAt: number;
   updatedAt: number;
+  sortOrder?: number;      // user-defined display order (lower = first)
   isDemo?: boolean; // onboarding seed content — removable in one tap
 }
 

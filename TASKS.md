@@ -202,7 +202,7 @@ should infer the right board from the content and offer a single-tap confirm.
   with a checkmark button and an X to dismiss. Confirming calls `addItemToBoard`.
 
 ### E2 — Board Reordering via Drag
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Boards are listed in creation order. Users want their most-used boards at the top.
 **Files**: `app/boards/page.tsx`, `lib/db.ts`
 **What to do**:

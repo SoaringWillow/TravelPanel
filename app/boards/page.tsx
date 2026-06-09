@@ -1,12 +1,24 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import BoardCard from '@/components/BoardCard';
+import { reorderBoards } from '@/lib/db';
+import { Board } from '@/lib/types';
+import SortableBoardCard from '@/components/SortableBoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import { PullRefreshIndicator } from '@/components/PullRefreshIndicator';
@@ -17,6 +29,24 @@ export default function BoardsPage() {
   const { items, refresh: refreshItems } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [localBoards, setLocalBoards] = useState<Board[]>([]);
+
+  useEffect(() => { setLocalBoards(boards); }, [boards]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } })
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = localBoards.findIndex((b) => b.id === active.id);
+    const newIndex = localBoards.findIndex((b) => b.id === over.id);
+    const reordered = arrayMove(localBoards, oldIndex, newIndex);
+    setLocalBoards(reordered);
+    await reorderBoards(reordered.map((b) => b.id));
+  }
 
   const handleRefresh = useCallback(async () => {
     await Promise.all([refreshBoards(), refreshItems()]);
@@ -92,17 +122,21 @@ export default function BoardsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {boards.map((board) => (
-              <BoardCard
-                key={board.id}
-                board={board}
-                itemCount={getItemCount(board.id)}
-                onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
-              />
-            ))}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={localBoards.map((b) => b.id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {localBoards.map((board) => (
+                  <SortableBoardCard
+                    key={board.id}
+                    board={board}
+                    itemCount={getItemCount(board.id)}
+                    onClick={() => router.push(`/boards/${board.id}`)}
+                    onDelete={() => handleDelete(board.id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
         </div>
       </div>
