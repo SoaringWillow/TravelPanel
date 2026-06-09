@@ -235,7 +235,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Install `@capacitor/haptics` if not present
 
 ### C5 — Thumbnail Display in Clip Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (was already implemented in InboxCard)  
 **Why**: `SavedItem.thumbnail` is populated from og:image but never displayed in the card list. Users see a blank rectangle where a visual should be.  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:
@@ -245,7 +245,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - For Xiaohongshu clips with a Vision-derived thumbnail (no og:image available), keep blank — don't show broken icon
 
 ### C6 — Clip Library Performance (Virtual List)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: At 200+ saves, the inbox renders all cards in the DOM, causing scroll jank on mobile. This is an existential issue for power users.  
 **Files**: `app/inbox/page.tsx`, possibly `components/VirtualInboxList.tsx`  
 **What to do**:

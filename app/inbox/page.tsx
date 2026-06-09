@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -67,6 +68,36 @@ export default function InboxPage() {
       setPullDistance(0);
     }
   }
+
+  // ── Virtualizer ──────────────────────────────────────────────────────────
+  // Group filtered items into 2-column rows for the virtual grid
+  const virtualRows = useMemo(() => {
+    const rows: (typeof filtered)[] = [];
+    for (let i = 0; i < filtered.length; i += 2) {
+      rows.push(filtered.slice(i, i + 2));
+    }
+    return rows;
+  }, [filtered]);
+
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 340,
+    overscan: 2,
+  });
+
+  // Restore scroll position on back-navigation
+  const SCROLL_KEY = 'tp_inbox_scroll';
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved) container.scrollTop = parseInt(saved, 10);
+    return () => {
+      if (container) sessionStorage.setItem(SCROLL_KEY, String(container.scrollTop));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -208,26 +239,35 @@ export default function InboxPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          // Virtual 2-column grid — renders only visible rows
+          <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
+            {virtualizer.getVirtualItems().map((vRow) => (
+              <div
+                key={vRow.key}
+                data-index={vRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${vRow.start}px)`,
+                }}
+              >
+                <div className="grid grid-cols-2 gap-3 pb-3">
+                  {virtualRows[vRow.index].map((item) => (
+                    <InboxCard
+                      key={item.id}
+                      item={item}
+                      onDelete={removeItem}
+                      onViewOnMap={handleViewOnMap}
+                      onMoveToBoard={handleMoveToBoard}
+                      onRetry={retryItem}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
         </div>{/* /py-4 */}
