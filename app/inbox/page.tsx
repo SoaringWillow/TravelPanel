@@ -141,8 +141,21 @@ export default function InboxPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+                <div className="w-full h-32 bg-gray-200" />
+                <div className="p-4 space-y-2.5">
+                  <div className="h-3 bg-gray-200 rounded-full w-16" />
+                  <div className="h-3.5 bg-gray-200 rounded-full w-full" />
+                  <div className="h-3 bg-gray-200 rounded-full w-4/5" />
+                  <div className="flex gap-1.5 pt-1">
+                    <div className="h-5 bg-gray-200 rounded-full w-10" />
+                    <div className="h-5 bg-gray-200 rounded-full w-12" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">

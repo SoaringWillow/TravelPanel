@@ -206,7 +206,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Keep backdrop-click-to-close as a fallback
 
 ### D3 — Swipe-to-Delete on InboxCard
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect horizontal swipe to reveal delete. Tap-and-hold → menu feels sluggish.  
 **Files**: `components/InboxCard.tsx`  
 **What to do**:
@@ -216,7 +216,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On swipe right (>60px), reveal a "Move to board" icon (reuse existing Move logic)
 
 ### D4 — Skeleton Loading Grids
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Inbox and Boards show a tiny spinner during load — jarring on fast devices (flicker) and slow on cold start.  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
