@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --indigo-600: #4F46E5;
+      --indigo-700: #4338CA;
+      --indigo-50:  #EEF2FF;
+      --gray-50:    #F9FAFB;
+      --gray-100:   #F3F4F6;
+      --gray-200:   #E5E7EB;
+      --gray-400:   #9CA3AF;
+      --gray-500:   #6B7280;
+      --gray-700:   #374151;
+      --gray-900:   #111827;
+      --green-500:  #22C55E;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 14px;
+      color: var(--gray-900);
+    }
+
+    body {
+      background: var(--gray-50);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 14px;
+      padding: 28px 28px 24px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--indigo-600);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .brand-name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--gray-500);
+      margin-bottom: 8px;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-700);
+      margin-bottom: 6px;
+    }
+
+    input[type="url"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--gray-900);
+      background: #fff;
+      transition: border-color 0.15s;
+      outline: none;
+      font-family: inherit;
+    }
+
+    input[type="url"]:focus {
+      border-color: var(--indigo-600);
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--gray-400);
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-save {
+      padding: 9px 20px;
+      background: var(--indigo-600);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .btn-save:hover { background: var(--indigo-700); }
+
+    .btn-reset {
+      padding: 9px 16px;
+      background: transparent;
+      color: var(--gray-500);
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-reset:hover { border-color: var(--gray-400); color: var(--gray-700); }
+
+    #status {
+      font-size: 13px;
+      font-weight: 500;
+      min-height: 20px;
+      transition: opacity 0.3s;
+    }
+
+    #status.ok    { color: var(--green-500); }
+    #status.error { color: #EF4444; }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--gray-100);
+      margin: 20px 0;
+    }
+
+    .install-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      min-width: 20px;
+      background: var(--indigo-600);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 13px;
+      color: var(--gray-700);
+      line-height: 1.5;
+    }
+
+    code {
+      background: var(--gray-100);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: "SF Mono", Monaco, "Cascadia Mono", monospace;
+      color: var(--indigo-600);
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <div class="brand">
+    <div class="brand-icon">✈️</div>
+    <div>
+      <div class="brand-name">TravelPanel Clipper</div>
+      <div class="brand-sub">Extension settings</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="input-url">TravelPanel URL</label>
+    <input
+      type="url"
+      id="input-url"
+      placeholder="https://your-travelpanel.vercel.app"
+      autocomplete="off"
+    >
+    <p class="hint">The URL where your TravelPanel is deployed. Change this if you're running a local development server.</p>
+  </div>
+
+  <div class="actions">
+    <button class="btn-save" id="btn-save">Save</button>
+    <button class="btn-reset" id="btn-reset">Reset to default</button>
+    <span id="status"></span>
+  </div>
+
+  <hr>
+
+  <p class="section-label">Installation</p>
+  <div class="install-steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Open Chrome and navigate to <code>chrome://extensions</code></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Enable <strong>Developer mode</strong> (toggle in top-right corner)</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Click <strong>Load unpacked</strong> and select the <code>browser-extension/</code> folder from this repo</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">Pin the TravelPanel Clipper icon to your toolbar for quick access</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>
