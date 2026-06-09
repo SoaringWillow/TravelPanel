@@ -116,7 +116,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 pt-12 pb-4">
+      <div className="bg-white border-b border-gray-200 px-4 pb-4" style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}>
         <h1 className="text-xl font-bold text-gray-900">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">App preferences and account options</p>
       </div>

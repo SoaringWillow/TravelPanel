@@ -158,7 +158,7 @@ export default function TimelinePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 pt-12 pb-4 flex items-center gap-3">
+      <div className="bg-white border-b border-gray-200 px-4 pb-4 flex items-center gap-3" style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}>
         <button
           type="button"
           onClick={() => router.back()}

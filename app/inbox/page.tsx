@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, TouchEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -13,6 +13,7 @@ import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems, rankItems, VibeQuery } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
+import SkeletonCard from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 
@@ -29,7 +30,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -39,6 +40,50 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [vibeResults, setVibeResults] = useState<ReturnType<typeof rankItems> | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+
+  const touchStartY = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const PULL_THRESHOLD = 60;
+
+  async function triggerRefresh() {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      // Haptic feedback on pull trigger — graceful no-op in browser
+      const { Haptics, ImpactStyle } = await import('@capacitor/haptics').catch(() => ({ Haptics: null, ImpactStyle: null }));
+      if (Haptics && ImpactStyle) {
+        await Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
+      }
+      await refresh();
+    } finally {
+      setIsRefreshing(false);
+      setPullDistance(0);
+    }
+  }
+
+  function onTouchStart(e: TouchEvent<HTMLDivElement>) {
+    if (scrollRef.current && scrollRef.current.scrollTop === 0) {
+      touchStartY.current = e.touches[0].clientY;
+    }
+  }
+
+  function onTouchMove(e: TouchEvent<HTMLDivElement>) {
+    if (!scrollRef.current || scrollRef.current.scrollTop > 0) return;
+    const delta = e.touches[0].clientY - touchStartY.current;
+    if (delta > 0) {
+      setPullDistance(Math.min(delta * 0.4, PULL_THRESHOLD + 20));
+    }
+  }
+
+  async function onTouchEnd() {
+    if (pullDistance >= PULL_THRESHOLD) {
+      await triggerRefresh();
+    } else {
+      setPullDistance(0);
+    }
+  }
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -122,7 +167,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white shadow-sm px-4 pb-0 z-10" style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
@@ -164,8 +209,27 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      {/* Content with pull-to-refresh */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-4 pb-24"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Pull-to-refresh indicator */}
+        {(pullDistance > 0 || isRefreshing) && (
+          <div
+            className="flex items-center justify-center transition-all"
+            style={{ height: isRefreshing ? 44 : pullDistance, overflow: 'hidden' }}
+          >
+            <RefreshCw
+              size={20}
+              className={`text-indigo-400 transition-transform ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{ transform: `rotate(${pullDistance * 4}deg)` }}
+            />
+          </div>
+        )}
         {/* Vibe search result banner */}
         {vibeResults && (
           <div className="flex items-center gap-2 mb-3 px-1">
@@ -182,8 +246,10 @@ export default function InboxPage() {
           </div>
         )}
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">

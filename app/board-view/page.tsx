@@ -109,7 +109,7 @@ export default function BoardViewPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 pt-12 pb-4">
+      <div className="bg-white border-b border-gray-200 px-4 pb-4" style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-2 mb-3">
           <button
             type="button"
