@@ -179,18 +179,140 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
-## PHASE C — On-Trip Mode (Future)
+## PHASE C — Native Polish & Core Management (Current Sprint)
 
-### C1 — On-Trip GPS Mode
+> All Phase A + most of Phase B done. The app extracts substance, plans trips, exports data,
+> and has a browser extension. What's left to be **beautiful and fully functional** on iOS:
+> board-filter on map, clip editing, board rename, iOS haptics/safe-areas, dark mode,
+> thumbnail images in cards, performance with large libraries, and offline support.
+>
+> Recommended order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8`
+
+### C1 — Board Filter on Map
+**Status**: `[ ]` Not started  
+**Why**: Map currently shows ALL saved items regardless of board. With 100+ clips across multiple trips, the map is unusable. Board filter is the #1 UX gap.  
+**Files**: `app/page.tsx`, `components/MapView.tsx`, possibly a new `components/BoardFilterBar.tsx`  
+**What to do**:
+- Add a horizontal pill-scroll board filter bar above the map (or in the top-right overlay)
+- "All" pill always visible and selected by default
+- One pill per board (show emoji + name, truncated to 12 chars)
+- Filter state in `useState` — on selection, pass `filteredBoardId` to `MapView` and only show items from that board
+- Persist last-used filter in `sessionStorage` so it survives hot reloads
+- Animate pill selection with a subtle spring (framer-motion)
+
+### C2 — Clip Edit Mode (title, notes, tags)
+**Status**: `[ ]` Not started  
+**Why**: Users can't correct a wrong extracted title or add personal notes. `SavedItem.notes` exists in the type but is never editable.  
+**Files**: `components/LocationDetailCard.tsx`, `lib/db.ts` (update function already exists: `updateItemEnrichment`)  
+**What to do**:
+- Add an edit icon (Pencil) in the detail card header
+- Toggling edit mode turns the title and description into `<input>`/`<textarea>` fields, in-place
+- Show a tag selector: tap to toggle tags from the predefined list
+- "Notes" text area (maps to `SavedItem.notes`)
+- Save button commits via `db.updateItemEnrichment(id, 'done', { title, description, tags, notes })`
+- Cancel restores original values
+- Keyboard avoidance: scroll the card up when a keyboard appears (CSS `scroll-margin-bottom`)
+
+### C3 — Board Rename
+**Status**: `[ ]` Not started  
+**Why**: Users can delete boards but not rename them. Board names are permanent typos.  
+**Files**: `app/boards/page.tsx`, `components/BoardCard.tsx` (check if exists), `lib/db.ts`  
+**What to do**:
+- Long-press or swipe on a board card reveals a context menu: "Rename" + "Delete"
+- Rename opens an inline text field seeded with the current name; confirm with Return or a ✓ button
+- `saveBoard({ ...board, name: newName })` — `saveBoard` is already an upsert
+- Add optional `updatedAt` field update: `saveBoard({ ...board, name, updatedAt: Date.now() })`
+
+### C4 — iOS Safe Areas, Haptics, and Pull-to-Refresh
+**Status**: `[ ]` Not started  
+**Why**: On iPhone with a notch/Dynamic Island, content clips under the status bar and above the home indicator. No haptic feedback means saves feel unconfirmed.  
+**Files**: `app/layout.tsx`, `app/globals.css`, `app/inbox/page.tsx`, `app/share/page.tsx`, `components/CapacitorBridge.tsx`  
+**What to do**:
+- `globals.css`: add `padding-top: env(safe-area-inset-top)` to the main content wrapper; `padding-bottom: env(safe-area-inset-bottom)` to nav
+- `app/layout.tsx`: add `<meta name="viewport" content="...viewport-fit=cover">` to enable safe area CSS vars
+- Haptic feedback on clip save: use `@capacitor/haptics` — `Haptics.impact({ style: ImpactStyle.Light })` — in `app/share/page.tsx` when stage transitions to 'done'
+- Pull-to-refresh on inbox: use `@capacitor/splash-screen`'s RefreshPlugin or a pure CSS overscroll → re-fetch items from DB
+- Install `@capacitor/haptics` if not present
+
+### C5 — Thumbnail Display in Clip Cards
+**Status**: `[ ]` Not started  
+**Why**: `SavedItem.thumbnail` is populated from og:image but never displayed in the card list. Users see a blank rectangle where a visual should be.  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- For clips with `thumbnail` set and `enrichmentStatus === 'done'`, show the thumbnail as a right-side image (64×64px rounded-lg) in the card
+- Use `next/image` with `unoptimized` (since URLs are external and vary by platform)
+- Graceful degradation: if image fails to load, hide it (onError → hide element)
+- For Xiaohongshu clips with a Vision-derived thumbnail (no og:image available), keep blank — don't show broken icon
+
+### C6 — Clip Library Performance (Virtual List)
+**Status**: `[ ]` Not started  
+**Why**: At 200+ saves, the inbox renders all cards in the DOM, causing scroll jank on mobile. This is an existential issue for power users.  
+**Files**: `app/inbox/page.tsx`, possibly `components/VirtualInboxList.tsx`  
+**What to do**:
+- Install `@tanstack/react-virtual` (lightweight, no native deps, works in Next.js)
+- Replace the `{items.map(...)}` render in the inbox with a virtualized list
+- Row height is approximately 100px (fixed estimate); use `estimateSize` for variable
+- Keep `SearchBar` outside the virtual container (renders above it)
+- Preserve scroll position on back-navigation using `sessionStorage`
+
+### C7 — Dark Mode
+**Status**: `[ ]` Not started  
+**Why**: iOS users overwhelmingly use Dark Mode at night. The current white UI is jarring. No `dark:` classes exist anywhere.  
+**Files**: `app/globals.css`, `app/layout.tsx`, `tailwind.config.js`, all major components  
+**What to do**:
+- `tailwind.config.js`: set `darkMode: 'class'`
+- `app/layout.tsx`: add a `ThemeProvider` that reads `prefers-color-scheme` and a `data-theme` override stored in `localStorage`
+- Add `dark:` variants to: `bg-white → dark:bg-gray-900`, `text-gray-900 → dark:text-white`, card borders, map overlay backgrounds
+- Settings page: add a Theme toggle (System / Light / Dark)
+- `globals.css`: define CSS variables for the map background to invert in dark mode (`map-style: dark` uses MapLibre's built-in dark vector tiles)
+- Aim: complete dark mode for map, inbox, boards, plan, share, and settings pages
+
+### C8 — Offline Clip Queue
+**Status**: `[ ]` Not started  
+**Why**: The Share Sheet works offline (saves the item) but enrichment silently fails and never retries after connectivity returns. Users lose substance for clips saved on the subway.  
+**Files**: `lib/enrichItem.ts`, `app/layout.tsx` (or a new `components/OfflineHandler.tsx`)  
+**What to do**:
+- In `enrichItem`, detect network errors (as opposed to API errors) and set `enrichmentStatus: 'pending'` instead of `'failed'`
+- Add an `online` event listener to `window` that fires `retryPendingItems()` when connectivity returns
+- `retryPendingItems()`: find all items with `status: 'pending'` and `retryCount < 3`, enqueue them with 500ms staggered delays
+- Show a subtle offline banner ("You're offline — clips will enrich when back online") using `navigator.onLine` + the `online`/`offline` events
+- Hide the banner on reconnection with a "Back online ✓" flash for 2s
+
+---
+
+## PHASE D — Advanced Features (Next Sprint)
+
+### D1 — Map Board Filter (already in C1 above)
+*(Merged into C1)*
+
+### D2 — Shared Boards (Read-Only Link)
+**Status**: `[ ]` Not started  
+**Needs**: A short-link or Supabase storage for the board snapshot  
+**What to do**: "Share board" generates a read-only `/boards/[id]/preview` page or a Supabase-hosted snapshot with clips + map
+
+### D3 — Batch Import
+**Status**: `[ ]` Not started  
+**What to do**: Accept multiple URLs (newline-separated) in the import sheet; queue them as sequential enrichments
+
+### D4 — Embedding/Vibe Search  
+*(Same as B4 — Needs Supabase pgvector)*  
+**Status**: `[ ]` Blocked on B1 activation  
+
+### D5 — On-Trip GPS Mode
+**Status**: `[ ]` Not started  
+**What to do**: "I'm there now" mode — shows nearest saved clips, real walking distance, turn-by-turn link to Apple Maps
+
+---
+
+## PHASE E — Social + AI (Future)
+
+### E1 — Post-Trip Timeline
 **Status**: `[ ]` Not started
 
-### C2 — Post-Trip Timeline
+### E2 — Proactive Resurfacing ("you're near a saved spot")
 **Status**: `[ ]` Not started
 
-### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
-
-### C4 — Proactive Resurfacing
+### E3 — AI Similar Places Suggestions
 **Status**: `[ ]` Not started
 
 ---
