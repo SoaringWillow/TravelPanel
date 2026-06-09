@@ -96,3 +96,80 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-09 14:27 | 1f39662 | feat(B2): add Chrome browser extension for one-click clip capture
+2026-06-09 14:32 | 6df2143 | feat(B3): Claude Vision fallback for scraping-resistant platforms (Xiaohongshu, WeChat)
+2026-06-09 14:33 | 8aa7c80 | feat(B5): data export + Settings page with full JSON backup
+2026-06-09 14:36 | 327fbe5 | chore: update TASKS.md with Phase C–E roadmap (post-Phase-B review)
+2026-06-09 14:37 | 3d07f68 | feat(C1): board filter pills on map view
+2026-06-09 14:38 | f3d891a | feat(C2): clip edit mode — title, notes, tags inline in detail card
+2026-06-09 14:40 | 234b0d3 | feat(C3): inline board rename in BoardCard
+2026-06-09 14:42 | c356867 | feat(C4): iOS safe areas, haptics, pull-to-refresh
+2026-06-09 14:45 | a1f85ca | feat(C6): virtual 2-column grid in inbox for scroll performance
+2026-06-09 14:51 | 52c1924 | feat(C7): add full dark mode with ThemeProvider and system preference
+2026-06-09 14:52 | b3a5414 | feat(C8): offline clip queue with auto-retry on reconnect
+2026-06-09 14:55 | 457bcf7 | feat(D3): batch import — paste multiple URLs in inbox bulk import sheet
+2026-06-09 14:57 | 4b29809 | feat(D5): GPS nearby mode — find and navigate to saved clips on-trip
+2026-06-09 14:59 | 0e469ef | feat(E1,E2): post-trip timeline view + proximity resurfacing toast
+2026-06-09 15:01 | 75bdd4a | feat(E3): AI similar places suggestions based on saved clip taste profile
+2026-06-09 15:02 | b7eb4df | chore: add Phase F iOS polish tasks to TASKS.md
+2026-06-09 15:03 | a7b14b5 | feat(F1): PWA icons and iOS apple-touch-icon metadata
+2026-06-09 15:04 | 362e8e2 | feat(F2): full emoji picker for board creation
+2026-06-09 15:05 | f5a62f5 | feat(F3): swipe-to-delete gesture on inbox cards (iOS-native UX)
+2026-06-09 15:07 | 460d12f | feat(F4): board detail sort options (newest/oldest/most pins/A-Z)
+2026-06-09 15:08 | 7e110fd | feat(F5): share plan button with Web Share API + clipboard fallback
+2026-06-09 15:09 | e6a5a6e | feat(F6): iOS build polish — GPS permissions, splash config, release docs
+2026-06-09 15:10 | 0059e48 | fix: remove unsupported minVersion from capacitor iOS config
+2026-06-09 15:10 | 8003389 | chore: add Phase G intelligence & delight tasks to TASKS.md
+2026-06-09 15:12 | fa1fdd3 | feat(G1,G6): smart title cleanup + expanded haptic feedback
+2026-06-09 15:13 | 9a184f4 | feat(G5): map city search with Nominatim geocoding (jump to any city)
+2026-06-09 15:14 | 5f59d87 | feat(G4): inspiration digest page — resurface forgotten saved clips
+2026-06-09 15:20 | 1b97e5a | feat(map): deduplicate pins within 50m with multi-clip count badge and popup
+2026-06-09 15:22 | cb95110 | feat(ios): save 200x200 thumbnail from Share Extension as clip cover photo
+2026-06-09 15:25 | ccdd452 | feat(boards): read-only board preview page + share button
+2026-06-09 15:28 | 3aaedf3 | feat(phase-h): Phase H task list + H1 rate limit user feedback in share page
+2026-06-09 15:29 | 56296e6 | feat(H2): React error boundary for crash recovery
+2026-06-09 15:30 | 5179796 | feat(H4): board cover photo derived from most recent clip thumbnail
+2026-06-09 15:31 | 5e6f07b | feat(H5): quick note textarea in share/import flow
+2026-06-09 15:32 | 0752b4b | feat(H6): inline mini-map in clip detail card
+2026-06-09 15:33 | 94752ba | feat(H7): travel month context in trip planner
+2026-06-09 15:34 | 945d1dd | feat(H8): accessibility improvements for VoiceOver and screen readers
+2026-06-09 15:35 | afdbc50 | feat(H10): comprehensive App Store submission checklist
+2026-06-09 15:37 | dcaf2a0 | feat(H9): inbox multi-select for batch move and delete
+2026-06-09 15:38 | 8433ae9 | feat(H3): in-app review prompt after 5th clip saved
+2026-06-09 15:41 | 9cc3c31 | chore: update SESSIONS.md with Phase H completion log
+2026-06-09 15:48 | 8fb7982 | feat(I1-I4,I8): onboarding, empty states, context menu, visit status
+2026-06-09 15:52 | 7f6f304 | feat(I3,I5,I6,I9): notifications, plan redesign, board templates, budget
+2026-06-09 15:54 | d3f69e7 | feat(I7,I10): keyboard avoidance + country/region map filter
+
+---
+
+## Session: 2026-06-09 (Phase I — Beautiful, Shippable, Habit-Forming)
+
+**Branch**: `claude/relaxed-tesla-d3228h`
+
+### Completed — all of Phase I (I1–I10)
+
+- **I1** — First-launch onboarding carousel: 3-screen modal (Save/AI/Plan), spring animations, dot progress, localStorage gate (`tp_onboarded`)
+- **I2** — Illustrated empty states: reusable `EmptyState` with gradient circle + decorative dots; wired into inbox (3 states: search/platform/empty) and boards list
+- **I3** — iOS local notifications: `@capacitor/local-notifications` weekly digest reminder; toggle in Settings with permission request; deep link to `/digest` on tap
+- **I4** — Long-press context menu on clip cards: `ClipContextMenu` bottom sheet via `onContextMenu`; View on Map / Move to Board / Share Link / Delete actions
+- **I5** — Trip plan visual redesign: activity cards with left indigo stripe, activity-type emoji icons (keyword match), large background day number, improved sourced tips layout
+- **I6** — Board templates: 5 pre-made trip types (Beach/City/Road Trip/Food/Cultural) in `CreateBoardModal` horizontal scroll; pre-fills name + emoji
+- **I7** — Keyboard avoidance: `useKeyboardAvoid` hook via `visualViewport`; dynamic `paddingBottom` in share page; scroll-into-view on textarea focus
+- **I8** — Visit status toggle: `visitStatus: 'want' | 'visited'` on SavedItem; filter tabs in inbox (All/Want to go/Visited); toggle badge on card
+- **I9** — AI budget estimate: budget tier selector (💰/💳/💎) in plan config; `estimatedCostUsd` in DayPlan schema; cost badge under day header
+- **I10** — Country/region map filter: auto-derived from location addresses; horizontal pill bar (shown when 2+ countries); AND logic with board filter
+
+### Moat status
+
+Complete end-to-end:
+- Capture (Share Extension + Browser Extension + Batch Import)
+- Extract (2-layer: Spots + Substance)
+- Organize (Boards + Templates + Visit Status + Inbox Multi-select)
+- Plan (Sourced Itinerary + Budget + Travel Month + Multi-version)
+- Delight (Onboarding + Empty States + Notifications + Context Menus)
+
+### Blockers / next priorities
+- B4/D4: Embedding/Vibe Search blocked on Supabase pgvector (needs `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- App Store submission: replace `APP_STORE_URL` placeholder in `lib/reviewPrompt.ts` with real App Store ID after submission
+- iOS native wiring: requires macOS for `pod install` + Xcode (see `ios/App/ShareExtension/XCODE_SETUP.md` and `ios/App/APP_STORE_CHECKLIST.md`)

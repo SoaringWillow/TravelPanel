@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: #F8FAFC;
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-logo {
+      width: 26px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .header-text {
+      flex: 1;
+    }
+
+    .header-title {
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      line-height: 1;
+    }
+
+    .header-subtitle {
+      color: rgba(255,255,255,0.75);
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .header-settings-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .header-settings-btn:hover { background: rgba(255,255,255,0.28); }
+    .header-settings-btn:active { background: rgba(255,255,255,0.38); }
+
+    /* ── States ── */
+    #state-loading,
+    #state-ready,
+    #state-success,
+    #state-setup,
+    #state-not-travel {
+      display: none;
+    }
+
+    /* ── Loading ── */
+    #state-loading {
+      padding: 28px 16px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #E5E7EB;
+      border-top-color: #0EA5E9;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { font-size: 13px; color: #9CA3AF; }
+
+    /* ── Ready state ── */
+    #state-ready { padding: 0; }
+
+    /* Preview card */
+    .preview-card {
+      margin: 12px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .preview-header {
+      padding: 12px 14px 10px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .favicon-wrap {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #F3F4F6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .favicon-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .favicon-fallback {
+      font-size: 12px;
+    }
+
+    .page-info { flex: 1; min-width: 0; }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #9CA3AF;
+      margin-top: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .platform-row {
+      padding: 0 14px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    /* ── Board selector ── */
+    .board-section {
+      padding: 0 12px 10px;
+    }
+
+    .board-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+
+    /* ── Notes ── */
+    .notes-section { padding: 0 12px 12px; }
+
+    .notes-input {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1.5px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #374151;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      background: #F9FAFB;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .notes-input:focus {
+      border-color: #0EA5E9;
+      background: #fff;
+    }
+
+    .notes-input::placeholder { color: #C5CBD3; }
+
+    /* ── Save button ── */
+    .save-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: calc(100% - 24px);
+      margin: 0 12px 14px;
+      padding: 12px;
+      background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .save-btn:hover  { opacity: 0.9; }
+    .save-btn:active { transform: scale(0.98); }
+    .save-btn:disabled { opacity: 0.55; cursor: default; }
+
+    .save-btn svg { flex-shrink: 0; }
+
+    /* ── Success state ── */
+    #state-success {
+      padding: 32px 20px 28px;
+      text-align: center;
+    }
+
+    .success-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+
+    .success-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.3px;
+    }
+
+    .success-subtitle {
+      font-size: 13px;
+      color: #6B7280;
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    .success-link {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 12.5px;
+      color: #0EA5E9;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .success-link:hover { text-decoration: underline; }
+
+    /* ── Setup / not configured ── */
+    #state-setup {
+      padding: 20px 16px 20px;
+    }
+
+    .setup-icon {
+      font-size: 36px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .setup-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+      text-align: center;
+      letter-spacing: -0.2px;
+    }
+
+    .setup-desc {
+      font-size: 12.5px;
+      color: #6B7280;
+      text-align: center;
+      margin-top: 6px;
+      line-height: 1.55;
+    }
+
+    .setup-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 11px;
+      background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .setup-btn:hover { opacity: 0.9; }
+
+    /* ── Not a travel page ── */
+    #state-not-travel {
+      padding: 24px 16px;
+      text-align: center;
+    }
+
+    .not-travel-icon { font-size: 32px; margin-bottom: 10px; }
+    .not-travel-title { font-size: 14px; font-weight: 600; color: #374151; }
+    .not-travel-desc { font-size: 12px; color: #9CA3AF; margin-top: 5px; line-height: 1.5; }
+    .clip-anyway-btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 20px;
+      border: 1.5px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #374151;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .clip-anyway-btn:hover { border-color: #0EA5E9; color: #0EA5E9; background: #F0F9FF; }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid #F3F4F6;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-link {
+      font-size: 11px;
+      color: #9CA3AF;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .footer-link:hover { color: #0EA5E9; }
+
+    .footer-version {
+      font-size: 10px;
+      color: #D1D5DB;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icons/icon48.png" alt="" class="header-logo">
+    <div class="header-text">
+      <div class="header-title">TravelPanel</div>
+      <div class="header-subtitle">Save travel inspiration</div>
+    </div>
+    <button class="header-settings-btn" id="btn-settings" title="Settings">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div id="state-loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Getting page info…</div>
+  </div>
+
+  <!-- Not configured -->
+  <div id="state-setup">
+    <div class="setup-icon">✈️</div>
+    <div class="setup-title">Connect to TravelPanel</div>
+    <div class="setup-desc">
+      Enter your TravelPanel app URL to start saving travel inspiration from any page.
+    </div>
+    <button class="setup-btn" id="btn-open-options">Configure App URL →</button>
+  </div>
+
+  <!-- Not a travel-relevant page -->
+  <div id="state-not-travel">
+    <div class="not-travel-icon">🗺️</div>
+    <div class="not-travel-title">This doesn't look like a travel page</div>
+    <div class="not-travel-desc">Great for Instagram, YouTube, Xiaohongshu, Douyin, Bilibili — but any page works.</div>
+    <button class="clip-anyway-btn" id="btn-clip-anyway">Clip it anyway</button>
+  </div>
+
+  <!-- Ready to save -->
+  <div id="state-ready">
+    <div class="preview-card">
+      <div class="preview-header">
+        <div class="favicon-wrap">
+          <img id="favicon-img" src="" alt="" onerror="this.style.display='none'; document.getElementById('favicon-fallback').style.display='block';">
+          <span id="favicon-fallback" class="favicon-fallback" style="display:none">🌐</span>
+        </div>
+        <div class="page-info">
+          <div class="page-title" id="page-title"></div>
+          <div class="page-url" id="page-url"></div>
+        </div>
+      </div>
+      <div class="platform-row">
+        <span class="platform-badge" id="platform-badge"></span>
+      </div>
+    </div>
+
+    <div class="notes-section">
+      <textarea
+        class="notes-input"
+        id="notes-input"
+        rows="2"
+        placeholder="Add a quick note… (optional)"
+      ></textarea>
+    </div>
+
+    <button class="save-btn" id="btn-save">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+      </svg>
+      Save to TravelPanel
+    </button>
+
+    <div class="footer">
+      <a class="footer-link" id="open-app-link" href="#">Open TravelPanel ↗</a>
+      <span class="footer-version">v1.0</span>
+    </div>
+  </div>
+
+  <!-- Success -->
+  <div id="state-success">
+    <div class="success-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="success-title">Saved!</div>
+    <div class="success-subtitle" id="success-subtitle">Opening TravelPanel to add to your board…</div>
+    <a class="success-link" id="success-link" href="#">Open TravelPanel →</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

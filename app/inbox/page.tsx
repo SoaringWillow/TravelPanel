@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Plus, Sparkles, Check, Trash2, FolderInput } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -15,6 +16,12 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import BatchImportSheet from '@/components/BatchImportSheet';
+import SwipeToDelete from '@/components/SwipeToDelete';
+import SimilarPlacesSheet from '@/components/SimilarPlacesSheet';
+import EmptyState from '@/components/EmptyState';
+import ClipContextMenu from '@/components/ClipContextMenu';
+import { SavedItem } from '@/lib/types';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,7 +36,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -37,7 +44,42 @@ export default function InboxPage() {
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [contextItem, setContextItem] = useState<SavedItem | null>(null);
+  const [visitFilter, setVisitFilter] = useState<'all' | 'want' | 'visited'>('all');
+
+  // ── Pull-to-refresh ──────────────────────────────────────────────────────
+  const scrollRef               = useRef<HTMLDivElement>(null);
+  const touchStartY             = useRef(0);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (isRefreshing) return;
+    if ((scrollRef.current?.scrollTop ?? 0) > 2) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) setPullDistance(Math.min(dy * 0.45, 72));
+    else setPullDistance(0);
+  }
+
+  async function onTouchEnd() {
+    if (pullDistance > 52) {
+      setIsRefreshing(true);
+      setPullDistance(0);
+      await refresh();
+      setIsRefreshing(false);
+    } else {
+      setPullDistance(0);
+    }
+  }
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -47,12 +89,49 @@ export default function InboxPage() {
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
 
+  const visitFiltered =
+    visitFilter === 'all'
+      ? inboxItems
+      : visitFilter === 'visited'
+      ? inboxItems.filter((i) => i.visitStatus === 'visited')
+      : inboxItems.filter((i) => i.visitStatus !== 'visited'); // 'want' or undefined
+
   const platformFiltered =
     activePlatform === 'all'
-      ? inboxItems
-      : inboxItems.filter((i) => i.platform === activePlatform);
+      ? visitFiltered
+      : visitFiltered.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  // ── Virtualizer ──────────────────────────────────────────────────────────
+  // Group filtered items into 2-column rows for the virtual grid
+  const virtualRows = useMemo(() => {
+    const rows: (typeof filtered)[] = [];
+    for (let i = 0; i < filtered.length; i += 2) {
+      rows.push(filtered.slice(i, i + 2));
+    }
+    return rows;
+  }, [filtered]);
+
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 340,
+    overscan: 2,
+  });
+
+  // Restore scroll position on back-navigation
+  const SCROLL_KEY = 'tp_inbox_scroll';
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved) container.scrollTop = parseInt(saved, 10);
+    return () => {
+      if (container) sessionStorage.setItem(SCROLL_KEY, String(container.scrollTop));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -68,49 +147,147 @@ export default function InboxPage() {
     setMovingItemId(id);
   }
 
+  async function toggleVisitStatus(id: string) {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    const next = item.visitStatus === 'visited' ? 'want' : 'visited';
+    await saveItem({ ...item, visitStatus: next });
+    refreshItem(id);
+  }
+
+  async function handleShareClip(item: SavedItem) {
+    if (!item.url) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: item.title, url: item.url });
+        return;
+      }
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return;
+    }
+    await navigator.clipboard.writeText(item.url).catch(() => {});
+  }
+
+  function toggleSelectMode() {
+    setSelectMode(prev => !prev);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelectId(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBatchDelete() {
+    const count = selectedIds.size;
+    if (!window.confirm(`Delete ${count} clip${count !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+    for (const id of Array.from(selectedIds)) {
+      await removeItem(id);
+    }
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  }
+
   const handleBoardSelect = useCallback(
     async (boardId: string | null) => {
       if (!movingItemId) return;
 
-      if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
-        const item = items.find((i) => i.id === movingItemId);
-        if (item && item.boardId) {
-          await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
-          const allItems = await getAllItems();
-          const updatedItem = allItems.find((i) => i.id === movingItemId);
-          if (updatedItem) {
-            await saveItem({ ...updatedItem, boardId: undefined });
+      // '__batch__' is a sentinel value for multi-select move
+      const idsToMove = movingItemId === '__batch__'
+        ? Array.from(selectedIds)
+        : [movingItemId];
+
+      for (const id of idsToMove) {
+        if (boardId === null) {
+          const item = items.find((i) => i.id === id);
+          if (item && item.boardId) {
+            await removeItemFromBoard(item.boardId, id);
+            const allItems = await getAllItems();
+            const updatedItem = allItems.find((i) => i.id === id);
+            if (updatedItem) await saveItem({ ...updatedItem, boardId: undefined });
           }
+        } else {
+          await addItemToBoard(boardId, id);
         }
-      } else {
-        await addItemToBoard(boardId, movingItemId);
+      }
+
+      if (movingItemId === '__batch__') {
+        setSelectedIds(new Set());
+        setSelectMode(false);
       }
 
       setMovingItemId(null);
-      // Trigger a soft reload by navigating to the same page
       router.refresh();
     },
-    [movingItemId, items, router]
+    [movingItemId, selectedIds, items, router]
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-safe-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <h1 className="text-xl font-bold text-gray-800 dark:text-white">Inbox</h1>
+          <span className="ml-auto bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
+          <button
+            type="button"
+            onClick={toggleSelectMode}
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 px-2 py-1"
+          >
+            {selectMode ? 'Cancel' : 'Select'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSuggestOpen(true)}
+            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors"
+            aria-label="AI place suggestions"
+          >
+            <Sparkles size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setBatchOpen(true)}
+            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+            aria-label="Bulk import URLs"
+          >
+            <Plus size={20} />
+          </button>
         </div>
 
         {/* Search */}
         <div className="mb-3">
           <SearchBar onSearch={handleSearch} />
+        </div>
+
+        {/* Visit status tabs */}
+        <div className="flex gap-1.5 mb-2.5">
+          {([
+            { key: 'all', label: 'All' },
+            { key: 'want', label: '→ Want to go' },
+            { key: 'visited', label: '✓ Visited' },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setVisitFilter(key)}
+              className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                visitFilter === key
+                  ? key === 'visited'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Platform filter tabs */}
@@ -138,49 +315,112 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      {/* Content — pull-to-refresh enabled */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 pb-safe-nav"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Pull indicator */}
+        {(pullDistance > 0 || isRefreshing) && (
+          <div
+            className="flex items-center justify-center overflow-hidden transition-[height] duration-150"
+            style={{ height: isRefreshing ? 48 : pullDistance }}
+          >
+            <div
+              className={`w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent
+                ${isRefreshing ? 'animate-spin' : ''}`}
+              style={isRefreshing ? {} : { transform: `rotate(${pullDistance * 5}deg)` }}
+            />
+          </div>
+        )}
+        <div className="py-4">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          query.trim() ? (
+            <EmptyState
+              emoji="🔍"
+              title="No matches found"
+              subtitle={`No clips match "${query.trim()}". Try a different search or clear the filter.`}
+            />
+          ) : activePlatform !== 'all' ? (
+            <EmptyState
+              emoji={activePlatform === 'wechat' ? '💬' : activePlatform === 'xiaohongshu' ? '📕' : '📱'}
+              title={`No ${PLATFORM_LABELS[activePlatform as Platform]} clips`}
+              subtitle="Share content from this platform using the iOS Share Sheet to clip it here."
+            />
+          ) : (
+            <EmptyState
+              emoji="📱"
+              title="No clips yet"
+              subtitle="Share any travel post from Instagram, YouTube, or TikTok using the iOS Share Sheet. Your clips appear here."
+              action={{ label: 'How it works →', onClick: () => setBatchOpen(true) }}
+            />
+          )
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          // Virtual 2-column grid — renders only visible rows
+          <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
+            {virtualizer.getVirtualItems().map((vRow) => (
+              <div
+                key={vRow.key}
+                data-index={vRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${vRow.start}px)`,
+                }}
+              >
+                <div className="grid grid-cols-2 gap-3 pb-3">
+                  {virtualRows[vRow.index].map((item) => (
+                    <div
+                      key={item.id}
+                      className="relative"
+                      onContextMenu={(e) => { e.preventDefault(); setContextItem(item); }}
+                    >
+                      <SwipeToDelete
+                        onDelete={() => removeItem(item.id)}
+                        disabled={selectMode || item.enrichmentStatus !== 'done'}
+                      >
+                        <InboxCard
+                          item={item}
+                          onDelete={removeItem}
+                          onViewOnMap={handleViewOnMap}
+                          onMoveToBoard={handleMoveToBoard}
+                          onRetry={retryItem}
+                          onToggleVisit={toggleVisitStatus}
+                        />
+                      </SwipeToDelete>
+                      {/* Multi-select checkbox overlay */}
+                      {selectMode && (
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectId(item.id)}
+                          aria-label={selectedIds.has(item.id) ? 'Deselect clip' : 'Select clip'}
+                          className={`absolute top-2 left-2 z-[100] w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shadow-sm
+                            ${selectedIds.has(item.id)
+                              ? 'bg-indigo-600 border-indigo-600'
+                              : 'bg-white/90 border-gray-300'
+                            }`}
+                        >
+                          {selectedIds.has(item.id) && <Check size={13} className="text-white" strokeWidth={2.5} />}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
+        </div>{/* /py-4 */}
       </div>
 
       {/* Board selector bottom sheet */}
@@ -261,6 +501,66 @@ export default function InboxPage() {
           </>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {suggestOpen && (
+          <SimilarPlacesSheet
+            items={items}
+            onClose={() => setSuggestOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <BatchImportSheet
+        open={batchOpen}
+        onClose={() => setBatchOpen(false)}
+        onDone={() => { refresh(); setBatchOpen(false); }}
+      />
+
+      {/* Multi-select action bar */}
+      <AnimatePresence>
+        {selectMode && selectedIds.size > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed bottom-20 left-4 right-4 z-[900] bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3"
+          >
+            <span className="flex-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
+              {selectedIds.size} selected
+            </span>
+            <button
+              type="button"
+              onClick={() => setMovingItemId('__batch__')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-100 transition-colors"
+            >
+              <FolderInput size={14} />
+              Move to board
+            </button>
+            <button
+              type="button"
+              onClick={handleBatchDelete}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Long-press context menu */}
+      {contextItem && (
+        <ClipContextMenu
+          item={contextItem}
+          onClose={() => setContextItem(null)}
+          onViewOnMap={(id) => { setContextItem(null); handleViewOnMap(id); }}
+          onMoveToBoard={(id) => { setContextItem(null); handleMoveToBoard(id); }}
+          onShare={handleShareClip}
+          onDelete={async (id) => { setContextItem(null); await removeItem(id); }}
+        />
+      )}
 
       <NavBar active="inbox" />
     </div>

@@ -1,16 +1,103 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ChevronDown, Share2, Check } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+// ─── Timeline view ────────────────────────────────────────────────────────────
+
+function TimelineView({ items }: { items: SavedItem[] }) {
+  const sorted = [...items].sort((a, b) => a.savedAt - b.savedAt);
+
+  // Group by month
+  const groups: { label: string; clips: SavedItem[] }[] = [];
+  for (const item of sorted) {
+    const label = new Date(item.savedAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.clips.push(item);
+    else groups.push({ label, clips: [item] });
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 text-center">
+        <MapPin className="text-gray-300 mb-3" size={40} />
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">No places in this board yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {groups.map((group) => (
+        <div key={group.label}>
+          {/* Month header */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+            <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide px-2">
+              {group.label}
+            </span>
+            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+          </div>
+
+          {/* Clips */}
+          <div className="relative pl-5">
+            {/* Vertical line */}
+            <div className="absolute left-1.5 top-2 bottom-2 w-px bg-indigo-200 dark:bg-indigo-900" />
+
+            <div className="space-y-4">
+              {group.clips.map((item) => (
+                <div key={item.id} className="relative">
+                  {/* Timeline dot */}
+                  <div className="absolute -left-[15px] top-3.5 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-2 ring-white dark:ring-gray-950" />
+
+                  {/* Card */}
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    {item.thumbnail && (
+                      <img
+                        src={item.thumbnail}
+                        alt={item.title}
+                        className="w-full h-28 object-cover"
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
+                    <div className="p-3">
+                      <span className={`${PLATFORM_BG[item.platform]} text-white text-[10px] font-medium px-2 py-0.5 rounded-full inline-block mb-1.5`}>
+                        {PLATFORM_LABELS[item.platform]}
+                      </span>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 leading-snug mb-1">
+                        {item.title}
+                      </p>
+                      {item.locations.length > 0 && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <MapPin size={10} className="text-indigo-400" />
+                          {item.locations[0].name}
+                          {item.locations.length > 1 && ` +${item.locations.length - 1} more`}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-1.5">
+                        Saved {new Date(item.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -23,11 +110,30 @@ export default function BoardDetailPage() {
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [view, setView] = useState<'grid' | 'timeline'>('grid');
+  const [shareCopied, setShareCopied] = useState(false);
+  type SortMode = 'newest' | 'oldest' | 'locations' | 'alpha';
+  const [sort, setSort] = useState<SortMode>(() => {
+    if (typeof window === 'undefined') return 'newest';
+    return (sessionStorage.getItem(`tp_board_sort_${boardId}`) as SortMode) ?? 'newest';
+  });
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
     ? items.filter((item) => board.itemIds.includes(item.id))
     : [];
+
+  const sortedBoardItems = [...boardItems].sort((a, b) => {
+    if (sort === 'oldest') return a.savedAt - b.savedAt;
+    if (sort === 'locations') return b.locations.length - a.locations.length;
+    if (sort === 'alpha') return a.title.localeCompare(b.title);
+    return b.savedAt - a.savedAt; // newest
+  });
+
+  function handleSort(s: SortMode) {
+    setSort(s);
+    sessionStorage.setItem(`tp_board_sort_${boardId}`, s);
+  }
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
 
@@ -50,6 +156,30 @@ export default function BoardDetailPage() {
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
   }
+
+  const handleShare = useCallback(async () => {
+    if (!board) return;
+    const previewUrl = `${window.location.origin}/boards/${boardId}/preview`;
+    const shareData = {
+      title: `${board.emoji} ${board.name} — TravelPanel`,
+      text: `Check out my travel board "${board.name}" with ${boardItems.length} saved place${boardItems.length !== 1 ? 's' : ''}!`,
+      url: previewUrl,
+    };
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return;
+    }
+    // Fallback: copy link
+    try {
+      await navigator.clipboard.writeText(previewUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {}
+  }, [board, boardId, boardItems.length]);
 
   if (loading) {
     return (
@@ -107,22 +237,69 @@ export default function BoardDetailPage() {
             </h1>
           </div>
 
-          <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
+          <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            aria-label="Share board"
+            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors flex-shrink-0"
+          >
+            {shareCopied ? <Check size={18} className="text-emerald-600" /> : <Share2 size={18} />}
+          </button>
         </div>
+
+        {/* View toggle + sort */}
+        {boardItems.length > 0 && (
+          <div className="flex mt-3 gap-2">
+            <div className="flex flex-1 gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setView('grid')}
+                className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all
+                  ${view === 'grid' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+              >
+                Grid
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('timeline')}
+                className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all
+                  ${view === 'timeline' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+              >
+                Timeline
+              </button>
+            </div>
+            <div className="relative">
+              <select
+                value={sort}
+                onChange={e => handleSort(e.target.value as SortMode)}
+                className="appearance-none bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300
+                  rounded-xl px-3 py-2 pr-7 border-0 focus:outline-none focus:ring-2 focus:ring-indigo-400 h-full"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="locations">Most Pins</option>
+                <option value="alpha">A–Z</option>
+              </select>
+              <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Scrollable content below header */}
       <div className="flex-1 overflow-y-auto pb-24">
         {/* Map section */}
-        {boardItems.length > 0 && (
+        {sortedBoardItems.length > 0 && (
           <div
             className="relative w-full bg-gray-200"
             style={{ height: 'min(240px, 35vh)' }}
           >
             <MapView
-              items={boardItems}
+              items={sortedBoardItems}
               onPinClick={(item) => {
                 if (item.locations.length > 0) setFlyTo(item.locations[0]);
               }}
@@ -164,20 +341,22 @@ export default function BoardDetailPage() {
             )}
           </div>
 
-          {/* Items grid */}
-          {boardItems.length === 0 ? (
+          {/* Items — grid or timeline */}
+          {sortedBoardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
                 No places saved to this board yet.
               </p>
               <p className="text-sm text-gray-400">
                 Go to Inbox to add items.
               </p>
             </div>
+          ) : view === 'timeline' ? (
+            <TimelineView items={sortedBoardItems} />
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {boardItems.map((item) => (
+              {sortedBoardItems.map((item) => (
                 <InboxCard
                   key={item.id}
                   item={item}

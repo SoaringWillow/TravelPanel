@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +97,30 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // For scraping-resistant platforms (Xiaohongshu, WeChat), still attempt the
+  // fetch — sometimes link-preview metadata leaks through even when body doesn't.
+  const page = await fetchPageData(url);
+  const pageBlocked = !page?.title && !page?.description && !page?.textContent;
+
+  const visionNote = imageBase64
+    ? '\n\n## Visual input\nA screenshot or thumbnail image from this post is attached. Read any visible text (titles, captions, location names, prices, warnings) and use visual cues to identify places and extract substance. This is especially important when the URL is from a scraping-resistant platform like Xiaohongshu or WeChat.'
+    : '';
+
+  const pageNote = pageBlocked
+    ? '(page blocked scraping — rely on the attached image and the URL itself)'
+    : `Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}`;
+
+  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.${visionNote}
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+
+## Page text
+${pageNote}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -133,16 +148,57 @@ Never return an empty substance array for a real travel post.`;
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      ...(imageBase64
+        ? {
+            messages: [
+              {
+                role: 'user' as const,
+                content: [
+                  {
+                    type: 'image' as const,
+                    image: Buffer.from(imageBase64, 'base64'),
+                    mediaType: 'image/jpeg' as const,
+                  },
+                  { type: 'text' as const, text: prompt },
+                ],
+              },
+            ],
+          }
+        : { prompt }),
     });
     claudeResult = object;
   } catch {
     // Fall through to defaults
   }
 
+  let title = (claudeResult?.title || page?.title || url).slice(0, 200);
+
+  // Smart title cleanup: if title is long, non-English, or noisy, run a Haiku cleanup pass
+  if (title && title.length > 60 && claudeResult?.locations?.length) {
+    try {
+      const { object: cleaned } = await generateObject({
+        model: models.enrichment,
+        schema: z.object({
+          title: z.string().describe('Concise English destination-first title, max 60 chars'),
+        }),
+        prompt: `Rewrite this travel clip title to be concise, in English, and destination-first (e.g. "Nishiki Market, Kyoto — street food guide"). Max 60 characters. Keep specific place names.
+
+Original title: ${title}
+Locations found: ${claudeResult.locations.map(l => l.name).join(', ')}
+
+Output only the cleaned title.`,
+      });
+      if (cleaned.title && cleaned.title.length < title.length) {
+        title = cleaned.title;
+      }
+    } catch {
+      // Keep original title if cleanup fails
+    }
+  }
+
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
+    title: title.slice(0, 200),
     description: (claudeResult?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],

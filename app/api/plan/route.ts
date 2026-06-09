@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { haversineMeters } from '@/lib/distance';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -36,6 +37,8 @@ const dayPlanSchema = z.object({
   theme: z.string(),
   locations: z.array(locationSchema),
   activities: z.array(activitySchema),
+  estimatedCostUsd: z.object({ min: z.number(), max: z.number() }).optional()
+    .describe('Rough daily cost in USD (accommodation + food + activities). Only include when a budget tier was specified.'),
 });
 
 const tripPlanSchema = z.object({
@@ -49,9 +52,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, travelMonth: string | undefined, budgetTier: 'budget' | 'mid' | 'luxury' | undefined;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, travelMonth, budgetTier } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -76,7 +79,13 @@ export async function POST(req: NextRequest) {
         // ── Step 1: Resolve locations ────────────────────────────────────
         step('searching', 'Collecting locations from your saved items…');
 
-        const rawLocations = items.flatMap((i) => i.locations);
+        // Deduplicate locations within 50 m before sending to Claude
+        const rawLocations: { name: string; lat: number; lng: number; address?: string }[] = [];
+        for (const loc of items.flatMap((i) => i.locations)) {
+          if (!rawLocations.some((r) => haversineMeters(r.lat, r.lng, loc.lat, loc.lng) < 50)) {
+            rawLocations.push(loc);
+          }
+        }
 
         if (rawLocations.length === 0) {
           step('error', 'No locations found in saved items. Add items with identified locations first.');
@@ -142,6 +151,8 @@ Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
 User preferences: ${preferences || 'None specified'}
+${travelMonth ? `Travel dates: ${new Date(travelMonth + '-01').toLocaleDateString('en', { month: 'long', year: 'numeric' })}` : ''}
+${budgetTier ? `Budget tier: ${budgetTier === 'budget' ? 'Budget (hostels, street food, free attractions) — include rough daily cost estimate in USD' : budgetTier === 'mid' ? 'Mid-range (3-star hotels, local restaurants) — include rough daily cost estimate in USD' : 'Luxury (5-star, fine dining, private tours) — include rough daily cost estimate in USD'}` : ''}
 
 Rules:
 - 2-4 activities per day with realistic timing
@@ -153,7 +164,7 @@ Rules:
   activity, surface it in that activity's "sourcedTips" with the exact clip title
   as sourceTitle. This makes the plan reflect the user's curated knowledge, not
   generic advice. ${hasSubstance ? 'The clips DO contain substance — use it.' : 'If no substance is present, return an empty sourcedTips array.'}
-  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.`,
+  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.${travelMonth ? '\n- Factor in seasonal context: weather, festivals, crowds, closures, and best experiences for that month.' : ''}`,
         });
 
         for await (const partial of planStream.partialObjectStream) {

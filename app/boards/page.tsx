@@ -9,9 +9,10 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import EmptyState from '@/components/EmptyState';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, renameBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -19,6 +20,14 @@ export default function BoardsPage() {
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
     return board ? board.itemIds.length : 0;
+  }
+
+  // Derive cover thumbnail: most recently saved clip in this board that has a thumbnail
+  function getBoardCover(board: (typeof boards)[0]): string | undefined {
+    const idSet = new Set(board.itemIds);
+    return items
+      .filter((i) => idSet.has(i.id) && i.thumbnail)
+      .sort((a, b) => b.savedAt - a.savedAt)[0]?.thumbnail;
   }
 
   async function handleCreate(name: string, emoji: string) {
@@ -30,13 +39,13 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-safe-12 pb-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid className="text-indigo-600" size={22} />
-            <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
+            <h1 className="text-xl font-bold text-gray-800 dark:text-white">My Boards</h1>
           </div>
           <button
             type="button"
@@ -59,30 +68,22 @@ export default function BoardsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
-            >
-              <Plus size={16} />
-              Create a Board
-            </button>
-          </div>
+          <EmptyState
+            emoji="🗺"
+            title="No boards yet"
+            subtitle="Boards let you organise clips by trip, destination, or vibe — like 'Tokyo 2026' or 'Bali Food Tour'."
+            action={{ label: '+ Create your first board', onClick: () => setShowCreate(true) }}
+          />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {boards.map((board) => (
               <BoardCard
                 key={board.id}
-                board={board}
+                board={{ ...board, coverThumbnail: getBoardCover(board) }}
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
+                onRename={(name) => renameBoard(board.id, name)}
               />
             ))}
           </div>

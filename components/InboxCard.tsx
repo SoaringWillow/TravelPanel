@@ -12,6 +12,7 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  onToggleVisit?: (id: string) => void;
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -38,6 +39,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  onToggleVisit,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -50,7 +52,7 @@ export default function InboxCard({
     if (!item.title || item.title === item.url) {
       // Full skeleton — no content yet
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden animate-pulse">
           <div className="w-full h-32 bg-gray-200" />
           <div className="p-4 space-y-3">
             <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
@@ -66,7 +68,7 @@ export default function InboxCard({
 
     // Partial card — title is known, enrichment still running
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-4 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span
@@ -76,7 +78,7 @@ export default function InboxCard({
             </span>
           </div>
 
-          <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2">
             {item.title}
           </h3>
 
@@ -116,7 +118,7 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
@@ -189,7 +191,7 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -201,27 +203,43 @@ export default function InboxCard({
           }}
         />
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
+        <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
           <Globe size={32} className="text-gray-300" />
         </div>
       )}
 
       <div className="p-4">
-        {/* Platform badge */}
-        <span
-          className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full inline-block mb-2`}
-        >
-          {PLATFORM_LABELS[item.platform]}
-        </span>
+        {/* Platform badge + visit status */}
+        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          <span
+            className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full`}
+          >
+            {PLATFORM_LABELS[item.platform]}
+          </span>
+          {onToggleVisit && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggleVisit(item.id); }}
+              aria-label={item.visitStatus === 'visited' ? 'Mark as want to visit' : 'Mark as visited'}
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                item.visitStatus === 'visited'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                  : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 hover:bg-indigo-50 hover:text-indigo-500'
+              }`}
+            >
+              {item.visitStatus === 'visited' ? '✓' : '→'}
+            </button>
+          )}
+        </div>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -263,8 +281,8 @@ export default function InboxCard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-xs text-gray-400">{date}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-700">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
 
           <div className="flex items-center gap-1">
             {/* View on Map */}

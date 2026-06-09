@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2, Check } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -30,8 +30,13 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
+  const [travelMonth, setTravelMonth] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return sessionStorage.getItem(`tp_plan_month_${boardId}`) ?? '';
+  });
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
+  const [budgetTier, setBudgetTier] = useState<'budget' | 'mid' | 'luxury' | null>(null);
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
@@ -89,6 +94,8 @@ export default function PlanPage() {
       body: JSON.stringify({
         items: boardItems,
         days,
+        travelMonth: travelMonth || undefined,
+        budgetTier: budgetTier ?? undefined,
         preferences: [
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
@@ -153,7 +160,7 @@ export default function PlanPage() {
         }
       }
     }
-  }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
+  }, [boardItems, days, travelMonth, budgetTier, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
     setStage('idle');
@@ -183,6 +190,32 @@ export default function PlanPage() {
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
+
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const handleSharePlan = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const text = [
+      `${board.emoji} ${board.name} — Trip Plan`,
+      '',
+      ...plan.days.map((day) => [
+        `Day ${day.day}: ${day.theme}`,
+        ...day.activities.map((a) => `  • ${a.time} ${a.name} @ ${a.location.name}`),
+      ].join('\n')),
+    ].join('\n');
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: `${board.emoji} ${board.name} Trip Plan`, text });
+        return;
+      } catch { /* user cancelled or share failed — fall through to clipboard */ }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch { /* noop */ }
+  }, [plan, board]);
 
   // Load a previously-saved plan variant into view.
   const loadTrip = useCallback((trip: Trip) => {
@@ -318,6 +351,53 @@ export default function PlanPage() {
                 <div className="flex justify-between text-xs text-gray-400">
                   <span>1 day</span>
                   <span>14 days</span>
+                </div>
+              </div>
+
+              {/* Travel month picker */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Calendar size={15} className="text-indigo-500" />
+                  When are you travelling?
+                  <span className="text-xs font-normal text-gray-400">(optional)</span>
+                </label>
+                <input
+                  type="month"
+                  value={travelMonth}
+                  onChange={e => {
+                    setTravelMonth(e.target.value);
+                    sessionStorage.setItem(`tp_plan_month_${boardId}`, e.target.value);
+                  }}
+                  min={new Date().toISOString().slice(0, 7)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                />
+              </div>
+
+              {/* Budget tier */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">
+                  Budget tier <span className="text-xs font-normal text-gray-400">(optional)</span>
+                </label>
+                <div className="flex gap-2">
+                  {([
+                    { key: 'budget', label: '💰 Budget', hint: 'hostels, street food' },
+                    { key: 'mid', label: '💳 Mid-range', hint: '3★ hotels, restaurants' },
+                    { key: 'luxury', label: '💎 Luxury', hint: '5★, fine dining' },
+                  ] as const).map(({ key, label, hint }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setBudgetTier(budgetTier === key ? null : key)}
+                      title={hint}
+                      className={`flex-1 text-xs font-semibold py-2 px-2 rounded-xl transition-all active:scale-95 ${
+                        budgetTier === key
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-indigo-50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -466,14 +546,25 @@ export default function PlanPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
+                  </button>
+                  <button
+                    onClick={handleSharePlan}
+                    className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-xl active:scale-[0.98] transition-all
+                      ${shareCopied
+                        ? 'bg-emerald-50 border border-emerald-300 text-emerald-700'
+                        : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                      }`}
+                  >
+                    {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+                    {shareCopied ? 'Copied!' : 'Share'}
                   </button>
                 </div>
               )}
@@ -508,58 +599,100 @@ export default function PlanPage() {
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
-
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                  {/* Day header */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-baseline gap-2 flex-1">
+                      <span className="text-3xl font-black text-gray-100 dark:text-gray-800 leading-none">
+                        {activeDayIndex + 1}
+                      </span>
+                      <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">
+                        {activeDayPlan.theme}
+                      </h2>
                     </div>
-                  ))}
+                    {activeDayPlan.estimatedCostUsd && (
+                      <span className="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+                        ~${activeDayPlan.estimatedCostUsd.min}–${activeDayPlan.estimatedCostUsd.max}/day
+                      </span>
+                    )}
+                  </div>
+
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    // Pick icon from activity name keywords
+                    const name = (activity.name + activity.location.name).toLowerCase();
+                    const icon =
+                      name.includes('food') || name.includes('eat') || name.includes('restaurant') || name.includes('cafe') || name.includes('market') ? '🍜'
+                      : name.includes('museum') || name.includes('temple') || name.includes('shrine') || name.includes('culture') || name.includes('histor') ? '🏛'
+                      : name.includes('nature') || name.includes('park') || name.includes('garden') || name.includes('hike') || name.includes('forest') ? '🌿'
+                      : name.includes('shop') || name.includes('market') || name.includes('store') ? '🛍'
+                      : name.includes('beach') || name.includes('coast') || name.includes('sea') ? '🏖'
+                      : name.includes('hotel') || name.includes('stay') || name.includes('checkin') || name.includes('accomm') ? '🏨'
+                      : '✨';
+
+                    return (
+                      <div
+                        key={aIdx}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+                      >
+                        {/* Left accent stripe */}
+                        <div className="flex">
+                          <div className="w-1 bg-indigo-500 flex-shrink-0 rounded-l-2xl" />
+                          <div className="flex-1 p-3.5 space-y-2">
+                            {/* Header row */}
+                            <div className="flex items-start gap-2.5">
+                              <span className="text-2xl flex-shrink-0 mt-0.5">{icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                    {activity.time}
+                                  </span>
+                                  <span className="bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                                    {activity.duration}
+                                  </span>
+                                </div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white mt-1 leading-snug">
+                                  {activity.name}
+                                </p>
+                                <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium truncate">
+                                  📍 {activity.location.name}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Generic tips */}
+                            {activity.tips.length > 0 && (
+                              <ul className="space-y-1">
+                                {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                                  <li key={tIdx} className="text-xs text-gray-500 dark:text-gray-400 leading-snug flex items-start gap-1.5">
+                                    <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
+                                    <span>{tip}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+
+                            {/* Sourced tips — wisdom from user's own clips */}
+                            {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                              <div className="space-y-1.5">
+                                {activity.sourcedTips.map((st, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    className="bg-emerald-50 dark:bg-emerald-950 rounded-xl px-3 py-2 border-l-3 border-emerald-400"
+                                  >
+                                    <p className="text-xs text-emerald-800 dark:text-emerald-200 leading-snug font-medium">
+                                      💡 {st.content}
+                                    </p>
+                                    <p className="text-[10px] text-emerald-500 dark:text-emerald-400 mt-0.5 truncate">
+                                      from your clip: <span className="italic">{st.sourceTitle}</span>
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

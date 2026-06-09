@@ -51,6 +51,7 @@ export interface SavedItem {
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
   isDemo?: boolean; // onboarding seed content — removable in one tap
+  visitStatus?: 'want' | 'visited'; // undefined treated as 'want'
 }
 
 // ─── Board / Collection ─────────────────────────────────────────────────────
@@ -104,6 +105,7 @@ export interface DayPlan {
   theme: string;
   locations: Location[];
   activities: Activity[];
+  estimatedCostUsd?: { min: number; max: number };
 }
 
 export interface TripPlan {

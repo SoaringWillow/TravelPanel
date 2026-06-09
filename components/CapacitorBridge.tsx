@@ -11,12 +11,19 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     const { value: url } = await Preferences.get({ key: 'pendingShareURL' });
     if (!url) return;
 
-    const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    const [{ value: title }, { value: image }] = await Promise.all([
+      Preferences.get({ key: 'pendingShareTitle' }),
+      Preferences.get({ key: 'pendingShareImage' }),
+    ]);
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    // pendingShareImage is intentionally NOT removed here — the share page
+    // reads and clears it via consumePendingShareImage() at save time.
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
+    if (image)  qs.set('hasImage', '1');
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
@@ -49,12 +56,14 @@ export function CapacitorBridge() {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
-            const shareUrl = parsed.searchParams.get('url');
+            const shareUrl  = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage  = parsed.searchParams.get('hasImage');
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              if (hasImage)  qs.set('hasImage', hasImage);
               router.push(`/share?${qs.toString()}`);
             }
           } catch {
@@ -77,6 +86,17 @@ export function CapacitorBridge() {
         // Check for a pending share written by the Share Extension via App Group
         // fallback (fires when the URL scheme open wasn't available).
         checkPendingAppGroupShare(router);
+
+        // Local notification tap → navigate to digest
+        try {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+            const route = action.notification.extra?.route;
+            if (route) router.push(route);
+          });
+        } catch {
+          // local-notifications not available in web
+        }
       } catch {
         // Not a Capacitor context (running in a standard browser) — no-op
       }
