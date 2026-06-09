@@ -33,6 +33,11 @@ export default function PlanPage() {
 
   const [stage, setStage] = useState<Stage>('idle');
   const [days, setDays] = useState(3);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
   const [steps, setSteps] = useState<AgentStep[]>([]);
@@ -43,6 +48,7 @@ export default function PlanPage() {
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [tripMode, setTripMode] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | undefined>();
+  const [festivalWarnings, setFestivalWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -99,6 +105,7 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
+    setFestivalWarnings([]);
     recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
@@ -108,6 +115,7 @@ export default function PlanPage() {
       body: JSON.stringify({
         items: boardItems,
         days,
+        startDate,
         preferences: [
           ...Array.from(selectedChips),
           ...(customNotes.trim() ? [customNotes.trim()] : []),
@@ -145,6 +153,10 @@ export default function PlanPage() {
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
               if (msg.step.type === 'done') void notify('success');
+            }
+            // Capture festival warning steps
+            if (msg.step.type === 'found' && msg.step.message.includes('event')) {
+              setFestivalWarnings((prev) => [...prev, msg.step.message]);
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -333,6 +345,20 @@ export default function PlanPage() {
                 </span>
               </div>
 
+              {/* Start date */}
+              <div className="flex items-center justify-between gap-4">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5 flex-shrink-0">
+                  <Calendar size={15} className="text-indigo-500" />
+                  Start date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+
               {/* Days slider */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -469,6 +495,18 @@ export default function PlanPage() {
               {/* Overview */}
               {plan.overview && (
                 <p className="text-sm italic text-gray-600 leading-relaxed">{plan.overview}</p>
+              )}
+
+              {/* Festival callouts */}
+              {festivalWarnings.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 space-y-1">
+                  <p className="text-xs font-bold text-amber-700 flex items-center gap-1">
+                    🎉 Events during your trip
+                  </p>
+                  {festivalWarnings.map((w, i) => (
+                    <p key={i} className="text-xs text-amber-700">{w}</p>
+                  ))}
+                </div>
               )}
 
               {/* Summary chips */}

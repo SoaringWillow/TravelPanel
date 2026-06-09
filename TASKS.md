@@ -140,7 +140,7 @@ new `public/privacy-policy.html`
 ## PHASE E — Cloud + Accounts (Activates B1)
 
 ### E1 — Supabase Auth UI (activate the B1 scaffold)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Complete  
 **Needs**: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 **Why**: The Supabase scaffold (lib/supabase.ts, lib/cloudSync.ts) exists but has no
 sign-in UI. Cloud sync activates the moment keys are added + this UI is wired.
@@ -158,7 +158,7 @@ sign-in UI. Cloud sync activates the moment keys are added + this UI is wired.
   green=synced, orange=syncing, red=error)
 
 ### E2 — Apple Sign In (iOS App Store requirement)
-**Status**: `[ ]` Not started  
+**Status**: `[ ]` Needs Apple Developer account + Supabase Apple OAuth config — skipped for now  
 **Needs**: Apple Developer account + Supabase Apple OAuth config
 **Why**: App Store review requires "Sign in with Apple" when any other OAuth is offered.
 **Files to change**: `ios/App/App/AppDelegate.swift`, `app/account/page.tsx`,
