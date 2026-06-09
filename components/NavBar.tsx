@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 export default function NavBar({ active }: NavBarProps) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
+      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md nav-safe"
       style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
     >
       <div className="flex items-stretch">

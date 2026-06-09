@@ -195,6 +195,8 @@ export default function InboxCard({
         <img
           src={item.thumbnail}
           alt={item.title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-32 object-cover"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = 'none';

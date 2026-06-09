@@ -71,3 +71,9 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* Header safe padding: status bar height + content breathing room */
+.header-safe { padding-top: calc(env(safe-area-inset-top, 20px) + 16px); }
+
+/* NavBar bottom: home-indicator height */
+.nav-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }

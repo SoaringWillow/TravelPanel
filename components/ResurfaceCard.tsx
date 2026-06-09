@@ -74,6 +74,8 @@ export function ResurfaceCard({ item, onView }: ResurfaceCardProps) {
                   <img
                     src={item.thumbnail}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                   />

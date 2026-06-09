@@ -119,7 +119,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-5 pt-14 pb-4 safe-top">
+      <div className="bg-white border-b border-gray-100 px-5 header-safe pb-4">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
       </div>
 
@@ -201,6 +201,14 @@ export default function SettingsPage() {
           <InfoRow label="Storage" value="On-device (IndexedDB)" />
           <InfoRow label="AI" value="Claude by Anthropic" />
           <InfoRow label="Maps" value="OpenFreeMap (no API key)" />
+          <div className="mt-3 pt-3 border-t border-gray-50">
+            <a
+              href="/privacy"
+              className="text-sm text-indigo-600 font-medium hover:underline"
+            >
+              Privacy Policy →
+            </a>
+          </div>
         </Section>
 
       </div>
