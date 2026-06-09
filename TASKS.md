@@ -189,7 +189,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Recommended order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8`
 
 ### C1 — Board Filter on Map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Map currently shows ALL saved items regardless of board. With 100+ clips across multiple trips, the map is unusable. Board filter is the #1 UX gap.  
 **Files**: `app/page.tsx`, `components/MapView.tsx`, possibly a new `components/BoardFilterBar.tsx`  
 **What to do**:

@@ -1,17 +1,21 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { SavedItem, Location } from '@/lib/types';
+import { SavedItem, Location, Board } from '@/lib/types';
+import { getAllBoards } from '@/lib/db';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import BoardFilterBar from '@/components/BoardFilterBar';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+const FILTER_KEY = 'tp_map_board_filter';
 
 // ─── Inner page (needs useSearchParams) ──────────────────────────────────────
 
@@ -22,6 +26,37 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [boards, setBoards]             = useState<Board[]>([]);
+  const [filteredBoardId, setFilteredBoardId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem(FILTER_KEY) || null;
+  });
+
+  useEffect(() => {
+    getAllBoards().then(setBoards).catch(() => {});
+  }, []);
+
+  // Filtered items: when a board is selected use board.itemIds as the source of truth
+  const visibleItems = useMemo(() => {
+    if (!filteredBoardId) return items;
+    const board = boards.find(b => b.id === filteredBoardId);
+    if (!board) return items;
+    const idSet = new Set(board.itemIds);
+    return items.filter(i => idSet.has(i.id));
+  }, [items, boards, filteredBoardId]);
+
+  function handleFilterSelect(boardId: string | null) {
+    setFilteredBoardId(boardId);
+    if (boardId) sessionStorage.setItem(FILTER_KEY, boardId);
+    else sessionStorage.removeItem(FILTER_KEY);
+    // Clear selected item if it's no longer visible
+    if (selectedItem && boardId) {
+      const board = boards.find(b => b.id === boardId);
+      if (board && !board.itemIds.includes(selectedItem.id)) {
+        setSelectedItem(null);
+      }
+    }
+  }
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,17 +106,25 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={visibleItems} onPinClick={setSelectedItem} flyTo={flyTo} />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pb-2 space-y-2">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
           <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+            {loading ? 'Loading…' : `${visibleItems.length} place${visibleItems.length !== 1 ? 's' : ''}`}
           </div>
         </div>
+        {/* Board filter pills — only shown when at least one board exists */}
+        {boards.length > 0 && (
+          <BoardFilterBar
+            boards={boards}
+            selected={filteredBoardId}
+            onSelect={handleFilterSelect}
+          />
+        )}
       </div>
 
       {/* Selected item detail card */}
