@@ -50,9 +50,9 @@ const tripPlanSchema = z.object({
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let items: SavedItem[], days: number, preferences: string;
+  let items: SavedItem[], days: number, preferences: string, refinementNote: string | undefined, existingPlan: unknown;
   try {
-    ({ items, days, preferences } = await req.json());
+    ({ items, days, preferences, refinementNote, existingPlan } = await req.json());
   } catch {
     return new Response('Invalid request body', { status: 400 });
   }
@@ -149,10 +149,14 @@ export async function POST(req: NextRequest) {
           ? `\n\nENRICHMENT WARNINGS (inject these as inline advisories in the relevant parts of the itinerary):\n${enrichmentWarnings.join('\n')}`
           : '';
 
+        const refinementBlock = refinementNote && existingPlan
+          ? `\n\nREFINEMENT REQUEST: The user wants to modify this existing plan with the following instruction: "${refinementNote}". Existing plan: ${JSON.stringify(existingPlan)}. Preserve the overall structure but apply the requested changes precisely.`
+          : '';
+
         const planStream = streamObject({
           model: models.planItinerary,
           schema: tripPlanSchema,
-          prompt: `Create a detailed ${days}-day travel itinerary.
+          prompt: `${refinementNote ? 'Refine the following travel itinerary per the user\'s instruction.' : `Create a detailed ${days}-day travel itinerary.`}
 
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
@@ -169,7 +173,7 @@ Rules:
   activity, surface it in that activity's "sourcedTips" with the exact clip title
   as sourceTitle. This makes the plan reflect the user's curated knowledge, not
   generic advice. ${hasSubstance ? 'The clips DO contain substance — use it.' : 'If no substance is present, return an empty sourcedTips array.'}
-  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.${enrichmentBlock}`,
+  Do NOT fabricate sourced tips; only cite substance that actually appears in a clip.${enrichmentBlock}${refinementBlock}`,
         });
 
         for await (const partial of planStream.partialObjectStream) {

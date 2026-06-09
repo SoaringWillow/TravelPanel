@@ -235,7 +235,7 @@ but the messages are terse. Richer, context-specific messages build trust.
 - Each step should show the elapsed time since generation started (show "3s" etc)
 
 ### E4 — Natural Language Plan Refinement
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: After generating a plan, users want to say "more relaxed pace" or "remove the
 museums" rather than regenerating from scratch. This is the highest-value post-generation
 interaction, and it's what separates a planning tool from a one-shot generator.

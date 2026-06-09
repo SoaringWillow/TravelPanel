@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, CheckCircle2, Circle, Send } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -42,6 +42,9 @@ export default function PlanPage() {
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [completedActivities, setCompletedActivities] = useState<Set<string>>(new Set());
+  const [refinementText, setRefinementText] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineSteps, setRefineSteps] = useState<AgentStep[]>([]);
 
   // Passive GPS — silently request on mount; used for "X km from here" badges on day cards
   const { position: geoPos, request: requestGeo } = useGeolocation();
@@ -263,6 +266,80 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setCurrentTripId(null);
   }, []);
+
+  const handleRefine = useCallback(async () => {
+    if (!refinementText.trim() || !planIsComplete(plan)) return;
+
+    setIsRefining(true);
+    setRefineSteps([]);
+    const note = refinementText.trim();
+
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: boardItems,
+        days,
+        preferences: note,
+        refinementNote: note,
+        existingPlan: plan,
+      }),
+    });
+
+    if (!res.ok || !res.body) {
+      setIsRefining(false);
+      return;
+    }
+
+    const reader = res.body.getReader();
+    let buf = '';
+    let latestPlan: Partial<TripPlan> | null = null;
+    const collectedSteps: AgentStep[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += new TextDecoder().decode(value);
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line) as PlanStreamMessage;
+          if (msg.t === 'step') {
+            collectedSteps.push(msg.step);
+            setRefineSteps((s) => [...s, msg.step]);
+            if (msg.step.type === 'done') {
+              hapticNotification('success');
+              if (latestPlan?.days?.length) {
+                const trip: Trip = {
+                  id: crypto.randomUUID(),
+                  boardId,
+                  boardName: board?.name ?? '',
+                  name: note.slice(0, 30),
+                  days,
+                  preferences: note,
+                  agentSteps: collectedSteps,
+                  plan: latestPlan as TripPlan,
+                  createdAt: Date.now(),
+                };
+                await saveTrip(trip);
+                setSavedTrips((prev) => [...prev, trip]);
+                setCurrentTripId(trip.id);
+              }
+            }
+          }
+          if (msg.t === 'plan') {
+            latestPlan = msg.plan as Partial<TripPlan>;
+            setPlan(latestPlan);
+          }
+        } catch { /* skip bad lines */ }
+      }
+    }
+
+    setIsRefining(false);
+    setRefinementText('');
+  }, [refinementText, plan, boardItems, days, board, boardId, savedTrips.length]);
 
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
@@ -686,6 +763,34 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Refinement input */}
+              <div className="space-y-2">
+                {isRefining && (
+                  <PlannerAgent steps={refineSteps} isRunning={isRefining} />
+                )}
+                <div className="flex gap-2">
+                  <input
+                    value={refinementText}
+                    onChange={(e) => setRefinementText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && refinementText.trim() && !isRefining) handleRefine();
+                    }}
+                    placeholder="Refine this plan…"
+                    disabled={isRefining}
+                    className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRefine}
+                    disabled={!refinementText.trim() || isRefining}
+                    className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                    aria-label="Refine plan"
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
+              </div>
 
               {/* Start Over */}
               <button
