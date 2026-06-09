@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NearMeSheet from '@/components/NearMeSheet';
+import TodayBanner from '@/components/TodayBanner';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -25,6 +26,7 @@ function HomePageInner() {
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showNearMe, setShowNearMe]     = useState(false);
+  const [showBanner, setShowBanner]     = useState(true);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -104,6 +106,22 @@ function HomePageInner() {
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Today's picks banner — proactive resurfacing */}
+      <AnimatePresence>
+        {!selectedItem && !showImport && showBanner && items.length > 0 && (
+          <div className="absolute bottom-20 left-0 right-0 z-[999]">
+            <TodayBanner
+              items={items}
+              onItemClick={(item, location) => {
+                setSelectedItem(item);
+                if (location) setFlyTo(location);
+                setShowBanner(false);
+              }}
+            />
+          </div>
         )}
       </AnimatePresence>
 
