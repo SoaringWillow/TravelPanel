@@ -514,7 +514,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - `SavedItem.notes` field already exists in the type
 
 ### H6 — Clip Detail Inline Map
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The LocationDetailCard shows extracted locations as a text list, but users can't see WHERE they are spatially without going back to the full map. An inline mini-map in the detail card creates the "wow" moment.
 **Files**: `components/LocationDetailCard.tsx`
 **What to do**:

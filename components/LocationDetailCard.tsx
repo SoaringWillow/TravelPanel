@@ -3,10 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Pencil, Check } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { SavedItem } from '@/lib/types';
 import { patchItem } from '@/lib/db';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
+
+const MapView = dynamic(() => import('./MapView'), { ssr: false });
 
 const ALL_TAGS = [
   'food','nature','culture','adventure','relaxation','photography',
@@ -21,6 +25,7 @@ interface LocationDetailCardProps {
 }
 
 export default function LocationDetailCard({ item, onClose, onUpdate }: LocationDetailCardProps) {
+  const router                    = useRouter();
   const [editMode, setEditMode]   = useState(false);
   const [title, setTitle]         = useState(item.title);
   const [notes, setNotes]         = useState(item.notes ?? '');
@@ -217,6 +222,33 @@ export default function LocationDetailCard({ item, onClose, onUpdate }: Location
                   exit={{ opacity: 0 }}
                   className="space-y-3"
                 >
+                  {/* Inline mini-map */}
+                  {item.locations.length > 0 && (
+                    <div
+                      className="relative w-full rounded-2xl overflow-hidden"
+                      style={{ height: 140 }}
+                    >
+                      {/* Read-only map — pointer events off so scrolling works, tap via overlay */}
+                      <div style={{ pointerEvents: 'none', position: 'absolute', inset: 0 }}>
+                        <MapView items={[item]} onPinClick={() => {}} flyTo={item.locations[0]} />
+                      </div>
+                      {/* Tap-through overlay to home map */}
+                      <button
+                        type="button"
+                        aria-label="View on map"
+                        onClick={() => {
+                          onClose();
+                          const loc = item.locations[0];
+                          router.push(`/?flyTo=${loc.lat},${loc.lng}&itemId=${item.id}`);
+                        }}
+                        className="absolute inset-0 w-full h-full"
+                      />
+                      <div className="absolute bottom-2 right-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg px-2 py-1 text-xs font-semibold text-indigo-600 pointer-events-none shadow-sm">
+                        View on map →
+                      </div>
+                    </div>
+                  )}
+
                   {/* Description */}
                   {item.description && (
                     <p className="text-sm text-gray-600 leading-relaxed">
