@@ -185,10 +185,10 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Status**: `[x]` Done
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 
 ### C4 — Proactive Resurfacing
 **Status**: `[ ]` Not started

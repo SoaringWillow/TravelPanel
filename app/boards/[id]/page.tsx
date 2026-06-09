@@ -1,16 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, LayoutGrid, BookOpen, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import BoardTimeline from '@/components/BoardTimeline';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+type ViewMode = 'grid' | 'timeline';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -22,7 +25,9 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]       = useState<Location | undefined>(undefined);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [shared, setShared]     = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -50,6 +55,35 @@ export default function BoardDetailPage() {
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
   }
+
+  const handleShare = useCallback(async () => {
+    if (!board) return;
+    const text = [
+      `${board.emoji} ${board.name} — ${boardItems.length} saved place${boardItems.length !== 1 ? 's' : ''}`,
+      '',
+      ...boardItems.slice(0, 8).map((item) => `• ${item.title}`),
+      boardItems.length > 8 ? `  …and ${boardItems.length - 8} more` : '',
+      '',
+      'Saved with TravelPanel ✈️',
+    ].filter((l) => l !== undefined).join('\n').trim();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${board.emoji} ${board.name}`, text });
+        return;
+      } catch {
+        // User cancelled or share failed — fall through to clipboard
+      }
+    }
+    // Clipboard fallback
+    try {
+      await navigator.clipboard.writeText(text);
+      setShared(true);
+      setTimeout(() => setShared(false), 2500);
+    } catch {
+      // ignore
+    }
+  }, [board, boardItems]);
 
   if (loading) {
     return (
@@ -110,7 +144,45 @@ export default function BoardDetailPage() {
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
+
+          {/* Share button */}
+          <button
+            type="button"
+            onClick={handleShare}
+            title={shared ? 'Copied!' : 'Share board'}
+            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0"
+          >
+            {shared ? <span className="text-xs font-semibold text-green-600">✓</span> : <Share2 size={18} />}
+          </button>
         </div>
+
+        {/* View toggle */}
+        {boardItems.length > 0 && (
+          <div className="flex items-center gap-1 mt-3">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              <LayoutGrid size={13} /> Grid
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('timeline')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                viewMode === 'timeline'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              <BookOpen size={13} /> Journal
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Scrollable content below header */}
@@ -164,7 +236,7 @@ export default function BoardDetailPage() {
             )}
           </div>
 
-          {/* Items grid */}
+          {/* Items — grid or timeline */}
           {boardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <MapPin className="text-gray-300 mb-3" size={40} />
@@ -175,7 +247,7 @@ export default function BoardDetailPage() {
                 Go to Inbox to add items.
               </p>
             </div>
-          ) : (
+          ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-2 gap-3">
               {boardItems.map((item) => (
                 <InboxCard
@@ -186,6 +258,8 @@ export default function BoardDetailPage() {
                 />
               ))}
             </div>
+          ) : (
+            <BoardTimeline items={boardItems} />
           )}
         </div>
       </div>
