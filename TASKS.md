@@ -548,7 +548,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test with iOS VoiceOver: navigate through the share flow, inbox, and board detail
 
 ### H9 — Inbox Multi-Select (Batch Operations)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Power users with 50+ clips need to bulk-manage clips: move 10 clips to a board at once, or delete a batch of irrelevant clips. One-at-a-time is painfully slow.
 **Files**: `app/inbox/page.tsx`, `lib/db.ts`
 **What to do**:

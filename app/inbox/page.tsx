@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Plus, Sparkles } from 'lucide-react';
+import { X, Plus, Sparkles, Check, Trash2, FolderInput } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
@@ -44,6 +44,8 @@ export default function InboxPage() {
   const [batchOpen, setBatchOpen] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // ── Pull-to-refresh ──────────────────────────────────────────────────────
   const scrollRef               = useRef<HTMLDivElement>(null);
@@ -133,32 +135,62 @@ export default function InboxPage() {
     setMovingItemId(id);
   }
 
+  function toggleSelectMode() {
+    setSelectMode(prev => !prev);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelectId(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBatchDelete() {
+    const count = selectedIds.size;
+    if (!window.confirm(`Delete ${count} clip${count !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+    for (const id of Array.from(selectedIds)) {
+      await removeItem(id);
+    }
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  }
+
   const handleBoardSelect = useCallback(
     async (boardId: string | null) => {
       if (!movingItemId) return;
 
-      if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
-        const item = items.find((i) => i.id === movingItemId);
-        if (item && item.boardId) {
-          await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
-          const allItems = await getAllItems();
-          const updatedItem = allItems.find((i) => i.id === movingItemId);
-          if (updatedItem) {
-            await saveItem({ ...updatedItem, boardId: undefined });
+      // '__batch__' is a sentinel value for multi-select move
+      const idsToMove = movingItemId === '__batch__'
+        ? Array.from(selectedIds)
+        : [movingItemId];
+
+      for (const id of idsToMove) {
+        if (boardId === null) {
+          const item = items.find((i) => i.id === id);
+          if (item && item.boardId) {
+            await removeItemFromBoard(item.boardId, id);
+            const allItems = await getAllItems();
+            const updatedItem = allItems.find((i) => i.id === id);
+            if (updatedItem) await saveItem({ ...updatedItem, boardId: undefined });
           }
+        } else {
+          await addItemToBoard(boardId, id);
         }
-      } else {
-        await addItemToBoard(boardId, movingItemId);
+      }
+
+      if (movingItemId === '__batch__') {
+        setSelectedIds(new Set());
+        setSelectMode(false);
       }
 
       setMovingItemId(null);
-      // Trigger a soft reload by navigating to the same page
       router.refresh();
     },
-    [movingItemId, items, router]
+    [movingItemId, selectedIds, items, router]
   );
 
   return (
@@ -168,9 +200,16 @@ export default function InboxPage() {
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800 dark:text-white">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <span className="ml-auto bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
+          <button
+            type="button"
+            onClick={toggleSelectMode}
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 px-2 py-1"
+          >
+            {selectMode ? 'Cancel' : 'Select'}
+          </button>
           <button
             type="button"
             onClick={() => setSuggestOpen(true)}
@@ -277,19 +316,35 @@ export default function InboxPage() {
               >
                 <div className="grid grid-cols-2 gap-3 pb-3">
                   {virtualRows[vRow.index].map((item) => (
-                    <SwipeToDelete
-                      key={item.id}
-                      onDelete={() => removeItem(item.id)}
-                      disabled={item.enrichmentStatus !== 'done'}
-                    >
-                      <InboxCard
-                        item={item}
-                        onDelete={removeItem}
-                        onViewOnMap={handleViewOnMap}
-                        onMoveToBoard={handleMoveToBoard}
-                        onRetry={retryItem}
-                      />
-                    </SwipeToDelete>
+                    <div key={item.id} className="relative">
+                      <SwipeToDelete
+                        onDelete={() => removeItem(item.id)}
+                        disabled={selectMode || item.enrichmentStatus !== 'done'}
+                      >
+                        <InboxCard
+                          item={item}
+                          onDelete={removeItem}
+                          onViewOnMap={handleViewOnMap}
+                          onMoveToBoard={handleMoveToBoard}
+                          onRetry={retryItem}
+                        />
+                      </SwipeToDelete>
+                      {/* Multi-select checkbox overlay */}
+                      {selectMode && (
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectId(item.id)}
+                          aria-label={selectedIds.has(item.id) ? 'Deselect clip' : 'Select clip'}
+                          className={`absolute top-2 left-2 z-[100] w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shadow-sm
+                            ${selectedIds.has(item.id)
+                              ? 'bg-indigo-600 border-indigo-600'
+                              : 'bg-white/90 border-gray-300'
+                            }`}
+                        >
+                          {selectedIds.has(item.id) && <Check size={13} className="text-white" strokeWidth={2.5} />}
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -392,6 +447,39 @@ export default function InboxPage() {
         onClose={() => setBatchOpen(false)}
         onDone={() => { refresh(); setBatchOpen(false); }}
       />
+
+      {/* Multi-select action bar */}
+      <AnimatePresence>
+        {selectMode && selectedIds.size > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed bottom-20 left-4 right-4 z-[900] bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3"
+          >
+            <span className="flex-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
+              {selectedIds.size} selected
+            </span>
+            <button
+              type="button"
+              onClick={() => setMovingItemId('__batch__')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-100 transition-colors"
+            >
+              <FolderInput size={14} />
+              Move to board
+            </button>
+            <button
+              type="button"
+              onClick={handleBatchDelete}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <NavBar active="inbox" />
     </div>
