@@ -482,7 +482,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - In dev mode, re-throw to preserve React dev overlay
 
 ### H3 — In-App Review Prompt
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done (custom modal — no native plugin needed)
 **Why**: App Store ranking is directly correlated with review volume. Prompting users at the right moment (after their 5th saved clip, when they're happy) converts satisfied users into reviews.
 **Files**: new `lib/reviewPrompt.ts`, `app/share/page.tsx`
 **What to do**:

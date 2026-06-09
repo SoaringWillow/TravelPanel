@@ -7,10 +7,12 @@ import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { checkEnrichmentLimit, formatResetsIn } from '@/lib/rateLimits';
+import { incrementClipCount, shouldShowReviewPrompt } from '@/lib/reviewPrompt';
 import { track } from '@/lib/analytics';
 import { hapticSuccess } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import ReviewPromptModal from '@/components/ReviewPromptModal';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -60,6 +62,7 @@ function SharePageInner() {
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [enrichLimitResetAt, setEnrichLimitResetAt] = useState<number | null>(null);
   const [quickNote, setQuickNote] = useState('');
+  const [showReview, setShowReview] = useState(false);
   const pendingImageRef     = useRef<string | null>(null);
   const pendingThumbnailRef = useRef<string | null>(null);
 
@@ -125,6 +128,12 @@ function SharePageInner() {
     await saveItem(item);
     hapticSuccess();
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
+
+    // Check if review prompt should be shown after this save
+    const clipCount = incrementClipCount();
+    if (clipCount >= 5 && shouldShowReviewPrompt()) {
+      setTimeout(() => setShowReview(true), 1800);
+    }
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
@@ -404,6 +413,8 @@ function SharePageInner() {
       >
         Return to app →
       </button>
+
+      <ReviewPromptModal open={showReview} onClose={() => setShowReview(false)} />
     </div>
   );
 }
