@@ -29,12 +29,25 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const pendingImageRef = useRef<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    // Claim any screenshot passed by the iOS Share Extension (Xiaohongshu/WeChat).
+    // CapacitorBridge stores it in sessionStorage as standard base64 under 'tp_pending_img'.
+    try {
+      const img = sessionStorage.getItem('tp_pending_img');
+      if (img) {
+        pendingImageRef.current = img;
+        sessionStorage.removeItem('tp_pending_img');
+      }
+    } catch {
+      // sessionStorage not available
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +101,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (improves 小红书/WeChat extraction)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageRef.current)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

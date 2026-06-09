@@ -166,8 +166,15 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Implemented**: `browser-extension/` — Manifest V3 Chrome extension with popup UI (platform detection, og:image thumbnail, skeleton loading), keyboard shortcut (Alt+Shift+S / ⌘+Shift+S on Mac), right-click context menu, options page for configuring TravelPanel URL, background service worker.
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+**Status**: `[x]` Done  
+**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance  
+**Implemented**:
+- `app/api/import/route.ts`: accepts optional `imageBase64` in POST body; uses Claude Vision (`claude-sonnet-4-6`) with a 小红书-aware prompt (reads Chinese text, 踩雷/推荐 patterns) when image provided; falls back to text extraction if vision fails
+- `lib/models.ts`: added `vision: claude-sonnet-4-6` model entry
+- `lib/enrichItem.ts`: `enrichItem(id, url, imageBase64?)` — threads image to API
+- `ios/App/ShareExtension/ShareViewController.swift`: uses DispatchGroup to collect URL + image attachments concurrently; resizes screenshot to ≤512px JPEG @ 50% quality; base64url-encodes it (no percent-encoding needed) and appends `imgB64` to the URL scheme deep link
+- `components/CapacitorBridge.tsx`: extracts `imgB64` from URL scheme params, converts base64url → standard base64, stores in `sessionStorage('tp_pending_img')`
+- `app/share/page.tsx`: on mount claims the pending image from sessionStorage, passes it to `enrichItem` for Vision-enhanced extraction
 
 ### B4 — Embedding/Vibe Search
 **Status**: `[ ]` Not started  

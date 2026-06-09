@@ -85,8 +85,12 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64 : undefined;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,7 +102,7 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -128,16 +132,68 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  const visionPrompt = `You are analyzing a screenshot shared from a travel social media post.
+
+Platform: ${platform}
+URL: ${url} (this URL may not be directly fetchable due to anti-scraping)
+${page?.title ? `Page title hint: ${page.title}` : ''}
+
+Analyze the screenshot image to extract TWO layers of travel information:
+
+## Layer 1 — Spots (geographic skeleton)
+Read any visible location names, place names, hashtags, geotags, or map pins in the image.
+Look for restaurant names, hotel names, attraction names, neighbourhood names.
+Only return locations with GPS coordinates you are highly confident about — do NOT invent coordinates.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Read all visible text in the image including captions, overlays, speech bubbles, and subtitles.
+If the post is in Chinese (小红书/WeChat posts often are), read and translate it.
+Extract every piece of actionable insight, advice, or opinion visible in the image text.
+Common patterns on 小红书:
+- Numbered lists of tips ("攻略", "必去", "踩雷" meaning must-go/avoid)
+- Pricing info ("人均消费", "套餐价格")
+- Queue/timing tips ("排队时间", "最佳时间")
+- "踩雷" (landmine/avoid) items and "推荐" (recommended) items
+
+For each visible tip, warning, or recommendation — extract it as a substance item.
+Never return an empty substance array if there is visible text in the image.`;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+
+  // Vision path: when an image was shared (Xiaohongshu/WeChat blocks page scraping)
+  if (imageBase64) {
+    try {
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: visionPrompt },
+              { type: 'image', image: `data:image/jpeg;base64,${imageBase64}` },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to text extraction
+    }
+  }
+
+  // Text path: standard page scraping (or fallback when vision fails)
+  if (!claudeResult) {
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {
