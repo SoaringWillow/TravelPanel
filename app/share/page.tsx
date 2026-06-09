@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const preselectedBoardId = searchParams.get('boardId') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -32,9 +33,18 @@ function SharePageInner() {
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards on mount; auto-save if boardId was passed (e.g. from browser extension)
   useEffect(() => {
-    getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    getAllBoards().then((b) => {
+      setBoards(b);
+      if (preselectedBoardId && rawUrl) {
+        const board = b.find((brd) => brd.id === preselectedBoardId);
+        if (board) {
+          handleSave(board.id, `${board.emoji} ${board.name}`);
+        }
+      }
+    }).catch(() => setBoards([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-dismiss when done
