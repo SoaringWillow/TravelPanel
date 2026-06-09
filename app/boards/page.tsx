@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
@@ -12,10 +13,17 @@ import { DailyDiscovery } from '@/components/DailyDiscovery';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
-  const { items } = useSavedItems();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
+  const { items, refresh: refreshItems } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  async function handleRefresh() {
+    await Promise.all([refreshBoards(), refreshItems()]);
+  }
+
+  const { pullDistance, refreshing } = usePullToRefresh({ onRefresh: handleRefresh, scrollContainerRef: scrollRef });
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -54,7 +62,13 @@ export default function BoardsPage() {
       <OnboardingSeed />
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ paddingTop: pullDistance > 0 ? pullDistance : 16 }}>
+        {/* Pull-to-refresh indicator */}
+        {(pullDistance > 0 || refreshing) && (
+          <div className="flex justify-center mb-2" style={{ height: 28 }}>
+            <div className={`w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent ${refreshing ? 'animate-spin' : ''}`} style={{ opacity: Math.min(pullDistance / 64, 1) }} />
+          </div>
+        )}
         {/* Daily rediscovery widget — appears when user has clips ≥7 days old */}
         {!boardsLoading && items.length > 0 && (
           <DailyDiscovery

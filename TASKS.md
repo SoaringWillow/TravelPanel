@@ -238,7 +238,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Update `ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json`
 
 ### D5 — Pull-to-Refresh on Inbox & Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done — usePullToRefresh hook with touch events and rubber-band damping; indigo spinner indicator on both inbox and boards pages; refresh() added to useBoards  
 **Why**: After clipping a link in another app or tab, users return to the inbox and see stale data. Pull-to-refresh is a standard iOS pattern that forces a reload.  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:  

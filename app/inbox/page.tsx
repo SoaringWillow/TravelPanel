@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, LayoutGrid, Clock, RefreshCw } from 'lucide-react';
@@ -10,6 +10,7 @@ import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
@@ -147,12 +148,14 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { boards } = useBoards();
   const router = useRouter();
 
   const { retryItem, retryAll } = useEnrichmentRetry(refreshItem);
   const [retryingAll, setRetryingAll] = useState(false);
+  const { pullDistance, refreshing } = usePullToRefresh({ onRefresh: refresh, scrollContainerRef: scrollRef });
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -311,7 +314,13 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ paddingTop: pullDistance > 0 ? pullDistance : 16 }}>
+        {/* Pull-to-refresh indicator */}
+        {(pullDistance > 0 || refreshing) && (
+          <div className="flex justify-center mb-2" style={{ height: 28 }}>
+            <div className={`w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent ${refreshing ? 'animate-spin' : ''}`} style={{ opacity: Math.min(pullDistance / 64, 1) }} />
+          </div>
+        )}
         {/* Timeline mode */}
         {viewMode === 'timeline' && !loading && (
           <TimelineView
