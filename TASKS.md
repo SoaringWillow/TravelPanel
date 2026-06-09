@@ -207,7 +207,11 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - `app/plan/[boardId]/page.tsx`: `toggleActivity(dayIdx, actIdx)` persists check state to IndexedDB immediately; `loadTrip` restores check state from saved Trip; activity cards show green border + strikethrough + `CheckCircle2` when done, `Circle` when not; "My Journey" section appears as a vertical timeline when ≥1 activity is checked, showing all checked activities across all days with day/time/location/name and an uncheck X button
 
 ### C3 — Shared Boards v1
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done  
+**Implemented**: Client-side URL sharing — no backend required.
+- `lib/shareBoard.ts`: compact wire format (short field names, ≤4 substance per item), base64url encode/decode, `buildShareUrl()` generates `/import?b=...` link
+- `app/boards/[id]/page.tsx`: "Share" button in board header — uses `navigator.share()` (iOS/mobile Web Share API) with clipboard fallback + "Copied!" feedback; only appears when board has items
+- `app/import/page.tsx`: decodes `?b=` param, shows board preview (emoji, name, clip count, location count, first 4 clip cards), "Add to my collections" imports all items + board into IndexedDB, shows success screen with link to new board
 
 ### C4 — Proactive Resurfacing
 **Status**: `[ ]` Not started
