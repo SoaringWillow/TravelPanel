@@ -45,7 +45,16 @@ export async function enrichItem(id: string, url: string, imageBase64?: string):
       substanceCount: data.substance?.length ?? 0,
     });
     return true;
-  } catch {
+  } catch (err) {
+    // Network error (offline, DNS failure, timeout) → keep as pending for offline retry
+    const isNetworkError = err instanceof TypeError &&
+      (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('Network'));
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    if (isNetworkError || isOffline) {
+      await updateItemEnrichment(id, 'pending');
+      return false;
+    }
+    // API error (4xx/5xx) → mark failed, increment retryCount
     await updateItemEnrichment(id, 'failed');
     track('clip_enrich_failed', { url });
     return false;

@@ -268,7 +268,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Aim: complete dark mode for map, inbox, boards, plan, share, and settings pages
 
 ### C8 — Offline Clip Queue
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The Share Sheet works offline (saves the item) but enrichment silently fails and never retries after connectivity returns. Users lose substance for clips saved on the subway.  
 **Files**: `lib/enrichItem.ts`, `app/layout.tsx` (or a new `components/OfflineHandler.tsx`)  
 **What to do**:
