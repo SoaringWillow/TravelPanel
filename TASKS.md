@@ -99,7 +99,7 @@ show content but don't explain the product.
 - Skip button on slide 1
 
 ### D6 — iOS Native Navigation Patterns
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: On iOS, users swipe right to go back. The app uses `router.back()` buttons
 but has no swipe gesture support, making it feel like a web app, not a native one.
 **Files to change**: `app/layout.tsx`, `components/NavBar.tsx`
