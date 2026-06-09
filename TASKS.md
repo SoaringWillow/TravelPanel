@@ -185,7 +185,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **Status**: `[x]` Done — MapLibre GeolocateControl + nearby clips panel (500m radius)
 
 ### C2 — Post-Trip Timeline
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done — Timeline toggle in Inbox: all clips grouped by Today/Yesterday/This week/Month
 
 ### C3 — Shared Boards v1
 **Status**: `[ ]` Not started
