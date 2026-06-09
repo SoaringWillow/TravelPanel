@@ -12,6 +12,7 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/li
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -29,11 +30,15 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
+
+  const { containerRef, isRefreshing, progress } = usePullToRefresh({
+    onRefresh: refresh,
+  });
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -138,8 +143,27 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="overflow-hidden transition-all"
+        style={{ height: progress > 0 ? Math.max(progress * 44, 0) : 0 }}
+      >
+        <div className="flex items-center justify-center py-2">
+          <div
+            className={`rounded-full border-2 border-indigo-400 border-t-transparent transition-all ${
+              isRefreshing ? 'animate-spin' : ''
+            }`}
+            style={{
+              width:   Math.max(progress * 24, 8),
+              height:  Math.max(progress * 24, 8),
+              opacity: progress,
+            }}
+          />
+        </div>
+      </div>
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

@@ -193,7 +193,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Wire: share page `handleSave` → `medium()` on success; plan view on plan ready → `heavy()`
 
 ### D2 — Pull-to-Refresh
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Standard iOS interaction. Users expect to pull down to see new clips and re-trigger pending enrichment.  
 **Files**: new `lib/usePullToRefresh.ts`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
