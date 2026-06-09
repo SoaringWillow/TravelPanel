@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Navigation2, MapPin, X, Wifi, WifiOff, ChevronUp, ChevronDown } from 'lucide-react';
+import { Navigation2, MapPin, X, Wifi, WifiOff, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface TripStop {
@@ -9,12 +9,14 @@ export interface TripStop {
   lat: number;
   lng: number;
   itemTitle: string;
+  itemId?: string;
   tags?: string[];
 }
 
 interface TripNavigatorProps {
   stops: TripStop[];
   onLocationChange?: (lat: number, lng: number) => void;
+  onMarkVisited?: (itemId: string, stopName: string) => void;
   onClose: () => void;
 }
 
@@ -42,11 +44,12 @@ interface NearStop {
   distance: number;
 }
 
-export default function TripNavigator({ stops, onLocationChange, onClose }: TripNavigatorProps) {
+export default function TripNavigator({ stops, onLocationChange, onMarkVisited, onClose }: TripNavigatorProps) {
   const [gpsStatus, setGpsStatus] = useState<'requesting' | 'ok' | 'error'>('requesting');
   const [gpsError, setGpsError] = useState('');
   const [nearStops, setNearStops] = useState<NearStop[]>([]);
   const [expanded, setExpanded] = useState(true);
+  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -172,28 +175,53 @@ export default function TripNavigator({ stops, onLocationChange, onClose }: Trip
 
               {gpsStatus === 'ok' && nearStops.length > 0 && (
                 <div className="divide-y divide-gray-50">
-                  {nearStops.map(({ stop, distance }, i) => (
-                    <div key={`${stop.name}-${i}`} className="flex items-center gap-3 px-4 py-3">
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                        i === 0 ? 'bg-indigo-100' : 'bg-gray-100'
-                      }`}>
-                        <MapPin size={14} className={i === 0 ? 'text-indigo-600' : 'text-gray-400'} />
+                  {nearStops.map(({ stop, distance }, i) => {
+                    const isVisited = stop.itemId ? visitedIds.has(stop.itemId) : false;
+                    const canMarkVisited = distance < 150 && stop.itemId && !isVisited;
+
+                    return (
+                      <div key={`${stop.name}-${i}`} className="flex items-center gap-3 px-4 py-3">
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                          isVisited ? 'bg-green-100' : i === 0 ? 'bg-indigo-100' : 'bg-gray-100'
+                        }`}>
+                          {isVisited
+                            ? <CheckCircle2 size={14} className="text-green-600" />
+                            : <MapPin size={14} className={i === 0 ? 'text-indigo-600' : 'text-gray-400'} />
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold truncate ${isVisited ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                            {stop.name}
+                          </p>
+                          <p className="text-xs text-gray-400 truncate">{stop.itemTitle}</p>
+                        </div>
+                        <div className="flex-shrink-0 flex items-center gap-1.5">
+                          {canMarkVisited && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!stop.itemId) return;
+                                setVisitedIds((prev) => new Set([...prev, stop.itemId!]));
+                                onMarkVisited?.(stop.itemId, stop.name);
+                              }}
+                              className="text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 px-2 py-0.5 rounded-full transition-colors"
+                            >
+                              ✓ Here
+                            </button>
+                          )}
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                            distance < 200
+                              ? 'bg-green-100 text-green-700'
+                              : distance < 500
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {formatDistance(distance)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{stop.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{stop.itemTitle}</p>
-                      </div>
-                      <span className={`flex-shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
-                        distance < 200
-                          ? 'bg-green-100 text-green-700'
-                          : distance < 500
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {formatDistance(distance)}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </motion.div>

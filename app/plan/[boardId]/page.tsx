@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
-import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, markItemVisited } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -75,6 +75,7 @@ export default function PlanPage() {
       lat: loc.lat,
       lng: loc.lng,
       itemTitle: item.title,
+      itemId: item.id,
       tags: item.tags,
     }))
   );
@@ -295,6 +296,10 @@ export default function PlanPage() {
             <TripNavigator
               stops={tripStops}
               onLocationChange={(lat, lng) => setUserLocation({ lat, lng })}
+              onMarkVisited={(itemId) => {
+                markItemVisited(itemId).catch(() => {});
+                track('stop_marked_visited', { boardId });
+              }}
               onClose={() => { setTripMode(false); setUserLocation(undefined); }}
             />
           )}
@@ -622,6 +627,14 @@ export default function PlanPage() {
                   </ul>
                 </div>
               )}
+
+              {/* Timeline link */}
+              <button
+                onClick={() => router.push('/timeline')}
+                className="flex items-center justify-center gap-2 w-full bg-indigo-50 text-indigo-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+              >
+                🗺 View Trip Timeline
+              </button>
 
               {/* Start Over */}
               <button

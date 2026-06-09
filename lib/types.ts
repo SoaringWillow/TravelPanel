@@ -46,6 +46,7 @@ export interface SavedItem {
   tags: string[];
   substance: SubstanceItem[]; // wisdom layer — tips, warnings, opinions from the post
   savedAt: number;
+  visitedAt?: number; // set when the user marks a stop as visited during a trip
   notes?: string;
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
