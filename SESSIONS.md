@@ -116,3 +116,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-09 14:30 | e409710 | feat(G2): branded launch screen — indigo background with app icon
 2026-06-09 14:32 | 6f7c1df | feat: clipboard URL detection for quick-clip fallback
 2026-06-09 14:34 | dc134e2 | feat: tap InboxCard to open full clip detail sheet
+2026-06-09 14:35 | 5568722 | chore: update sessions log
