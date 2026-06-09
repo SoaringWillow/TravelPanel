@@ -180,7 +180,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE D — iOS Native Feel & UI Polish
 
 ### D1 — Haptic Feedback
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Every clip save, plan start, and board creation should feel tactile. Missing haptics make the app feel like a website, not a native app. Haptics are a 0-cost conversion boost.  
 **Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `app/plan/[boardId]/page.tsx`, `app/boards/page.tsx`  
 **What to do**:

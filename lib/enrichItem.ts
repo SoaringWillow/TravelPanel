@@ -4,6 +4,7 @@ import { updateItemEnrichment } from './db';
 import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
+import { hapticsError } from './haptics';
 
 export async function enrichItem(id: string, url: string, imageBase64?: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
@@ -46,6 +47,7 @@ export async function enrichItem(id: string, url: string, imageBase64?: string):
     return true;
   } catch {
     await updateItemEnrichment(id, 'failed');
+    hapticsError();
     track('clip_enrich_failed', { url });
     return false;
   }
