@@ -16,6 +16,7 @@ import InboxCard from '@/components/InboxCard';
 import SkeletonCard from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { useToast } from '@/components/Toast';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -30,9 +31,10 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
+  const { items, loading, storageError, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
+  const { showToast } = useToast();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
 
@@ -104,10 +106,10 @@ export default function InboxPage() {
       const vibe: VibeQuery = await res.json();
       setVibeResults(rankItems(items, vibe));
     } catch {
-      // Fall back to keyword search on error
+      showToast('Vibe search failed — try keyword search instead', 'error');
       setVibeResults(null);
     }
-  }, [items]);
+  }, [items, showToast]);
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
@@ -230,6 +232,15 @@ export default function InboxPage() {
             />
           </div>
         )}
+        {/* Storage unavailable banner */}
+        {storageError && (
+          <div className="flex items-center gap-2 mb-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl">
+            <span className="text-xs text-red-700 dark:text-red-300 font-medium">
+              ⚠ Storage unavailable — clips may not be saved. Try disabling private browsing.
+            </span>
+          </div>
+        )}
+
         {/* Vibe search result banner */}
         {vibeResults && (
           <div className="flex items-center gap-2 mb-3 px-1">

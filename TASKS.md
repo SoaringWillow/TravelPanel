@@ -52,7 +52,7 @@ at night and feels unpolished.
 - Map and card backgrounds need dark counterparts (`bg-gray-900`, `text-gray-100`)
 
 ### D3 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: iOS users expect haptic responses. Currently every button is silent tactilely.
 **Files to change**: `lib/haptics.ts` (new), `app/share/page.tsx`,
 `components/InboxCard.tsx`, `components/TripNavigator.tsx`
