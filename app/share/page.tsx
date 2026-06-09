@@ -10,6 +10,7 @@ import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { impact, notification } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -98,6 +99,7 @@ function SharePageInner() {
       boardId: selectedBoardId,
     };
 
+    impact('light');
     await saveItem(item);
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
@@ -111,6 +113,7 @@ function SharePageInner() {
       enrichItem(itemId, rawUrl, enrichOpts)
         .then(async (success) => {
           if (success) {
+            notification('success');
             const { getItemById } = await import('@/lib/db');
             const updated = await getItemById(itemId);
             if (updated) {

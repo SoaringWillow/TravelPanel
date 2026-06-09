@@ -257,7 +257,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On tap: re-attempt enrichment for all failed items simultaneously
 
 ### D7 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done — lib/haptics.ts wrapper (dynamic @capacitor/haptics import, no-op in web); impact('light') on clip save, notification('success') on enrichment done, impact('medium') on card delete  
 **Why**: iOS users expect haptic feedback on save, delete, and success. Without it the app feels like a website, not a native app.  
 **Files**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:  
