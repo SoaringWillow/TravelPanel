@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigation2, MapPin, X, Wifi, WifiOff, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { notify } from '@/lib/haptics';
 
 export interface TripStop {
   name: string;
@@ -202,6 +203,7 @@ export default function TripNavigator({ stops, onLocationChange, onMarkVisited, 
                               onClick={() => {
                                 if (!stop.itemId) return;
                                 setVisitedIds((prev) => new Set([...prev, stop.itemId!]));
+                                void notify('success');
                                 onMarkVisited?.(stop.itemId, stop.name);
                               }}
                               className="text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 px-2 py-0.5 rounded-full transition-colors"

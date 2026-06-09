@@ -38,7 +38,7 @@ shimmer cards (à la Instagram) and pull-to-refresh on all list views.
   that have a header (currently only share page has them)
 
 ### D2 — Dark Mode Support
-**Status**: `[ ]` Not started
+**Status**: `[x]` Complete
 **Why**: 60% of iOS users use dark mode. The app is hard-coded white, which burns eyes
 at night and feels unpolished.
 **Files to change**: `tailwind.config.js`, `app/globals.css`, all components

@@ -3,6 +3,7 @@
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { impact } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -305,7 +306,7 @@ export default function InboxCard({
             {!readOnly && (
               <button
                 type="button"
-                onClick={() => onDelete(item.id)}
+                onClick={() => { void impact('heavy'); onDelete(item.id); }}
                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 aria-label="Delete"
               >

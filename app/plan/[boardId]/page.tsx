@@ -9,6 +9,7 @@ import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip, mark
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
+import { impact, notify } from '@/lib/haptics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
 import DayStripCard from '@/components/DayStripCard';
@@ -89,9 +90,11 @@ export default function PlanPage() {
         `Unlimited plans coming in Pro — stay tuned!`
       );
       track('plan_limit_hit', { boardId });
+      void notify('warning');
       return;
     }
 
+    void impact('medium');
     setStage('generating');
     setSteps([]);
     setPlan(null);
@@ -141,6 +144,7 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') void notify('success');
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
