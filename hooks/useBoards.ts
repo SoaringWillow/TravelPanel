@@ -55,5 +55,10 @@ export function useBoards() {
     setBoards((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, updateBoard, moveItemToBoard, removeItemFromBoard };
+  const refresh = useCallback(async (): Promise<void> => {
+    const fetchedBoards = await getAllBoards();
+    setBoards(fetchedBoards);
+  }, []);
+
+  return { boards, loading, createBoard, removeBoard, updateBoard, refresh, moveItemToBoard, removeItemFromBoard };
 }

@@ -97,7 +97,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
   - API error (4xx/5xx): "Something went wrong — tap to retry"
 
 ### F4 — Pull-to-Refresh in Inbox & Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users instinctively pull down to refresh. Without it, the app feels static and stale. This is a P0 UX expectation from App Store reviewers and users alike.  
 **Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
