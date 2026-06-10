@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "version": "1.0.0",
+  "description": "Save any travel post to your TravelPanel boards in one click.",
+  "icons": {
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon.svg",
+      "48": "icons/icon.svg",
+      "128": "icons/icon.svg"
+    },
+    "default_title": "Save to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "contextMenus",
+    "notifications",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "save-to-travelpanel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      },
+      "description": "Save current page to TravelPanel"
+    }
+  }
+}

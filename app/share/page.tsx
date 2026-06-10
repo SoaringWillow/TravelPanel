@@ -20,6 +20,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const preselectedId   = searchParams.get('boardId') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -178,7 +179,11 @@ function SharePageInner() {
               type="button"
               disabled={stage === 'saving'}
               onClick={() => handleSave(undefined, 'Inbox')}
-              className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
+              className={`flex-shrink-0 text-sm font-semibold px-4 py-2 rounded-full active:scale-95 transition-all disabled:opacity-50 ${
+                !preselectedId
+                  ? 'bg-indigo-600 text-white ring-2 ring-indigo-300'
+                  : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+              }`}
             >
               Inbox
             </button>
@@ -190,7 +195,11 @@ function SharePageInner() {
                 type="button"
                 disabled={stage === 'saving'}
                 onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                className={`flex-shrink-0 text-sm font-semibold px-4 py-2 rounded-full active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap ${
+                  preselectedId === board.id
+                    ? 'bg-indigo-600 text-white ring-2 ring-indigo-300'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
                 {board.emoji} {board.name}
               </button>
