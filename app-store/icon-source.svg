@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background: sky-blue gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="pin-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#e0f2fe" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded rect (iOS icon mask is applied by the OS) -->
+  <rect width="1024" height="1024" rx="0" fill="url(#bg)"/>
+
+  <!-- Subtle inner glow -->
+  <rect width="1024" height="1024" rx="0" fill="white" opacity="0.05"/>
+
+  <!-- Map pin body -->
+  <!-- Pin: teardrop shape centered at 512,480 with radius ~220px -->
+  <path
+    d="M512 220
+       C 370 220, 256 334, 256 476
+       C 256 580, 340 660, 420 730
+       C 460 768, 490 800, 512 830
+       C 534 800, 564 768, 604 730
+       C 684 660, 768 580, 768 476
+       C 768 334, 654 220, 512 220 Z"
+    fill="url(#pin-grad)"
+  />
+
+  <!-- Pin hole / circle -->
+  <circle cx="512" cy="460" r="100" fill="#0284c7"/>
+
+  <!-- Globe lines inside the circle -->
+  <!-- Horizontal equator -->
+  <ellipse cx="512" cy="460" rx="100" ry="34" fill="none" stroke="white" stroke-width="8" opacity="0.7"/>
+  <!-- Vertical meridian (left arc) -->
+  <path d="M 512 360 Q 462 460 512 560" fill="none" stroke="white" stroke-width="8" opacity="0.7"/>
+  <!-- Vertical meridian (right arc) -->
+  <path d="M 512 360 Q 562 460 512 560" fill="none" stroke="white" stroke-width="8" opacity="0.7"/>
+  <!-- Outer circle of globe -->
+  <circle cx="512" cy="460" r="97" fill="none" stroke="white" stroke-width="6" opacity="0.5"/>
+</svg>

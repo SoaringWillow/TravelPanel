@@ -238,7 +238,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Import and call in relevant components — keep calls tight (one per user action, not on animation frames)
 
 ### D4 — App Icon Asset Pack + Launch Screen
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (SVG source + generation script — run `npm run generate-icons` after `npm install sharp`)  
 **Why**: The app still ships with the default Capacitor "C" icon. This is the most visible App Store polish gap.  
 **Files to change**: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`, `ios/App/App/Base.lproj/LaunchScreen.storyboard`  
 **What to do**:
