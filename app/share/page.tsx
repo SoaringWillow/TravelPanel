@@ -237,26 +237,37 @@ function SharePageInner() {
     return (
       <div className="min-h-screen bg-white flex flex-col justify-between p-6 header-pt safe-bottom">
         {/* Top section */}
-        <div className="space-y-2 pt-4">
-          {/* Platform chip */}
-          <div className="flex items-center gap-2">
-            <span
-              className="text-white text-xs font-semibold px-3 py-1 rounded-full"
-              style={{ backgroundColor: platformColor }}
+        <div className="space-y-3 pt-4">
+          {/* Link preview card */}
+          {rawUrl && (
+            <div
+              className="flex items-center gap-3 rounded-2xl border border-gray-100 px-4 py-3"
+              style={{ background: `${platformColor}08` }}
             >
-              {platformLabel}
-            </span>
-          </div>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                style={{ background: `${platformColor}20` }}
+              >
+                {platform === 'wechat' ? '💬' :
+                 platform === 'xiaohongshu' ? '📖' :
+                 platform === 'douyin' ? '🎵' :
+                 platform === 'bilibili' ? '📺' : '🌐'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold" style={{ color: platformColor }}>
+                  {platformLabel}
+                </p>
+                <p className="text-xs text-gray-400 truncate mt-0.5">
+                  {(() => { try { return new URL(rawUrl).hostname.replace('www.', ''); } catch { return rawUrl.slice(0, 40); } })()}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2">
+          <h1 className="text-xl font-bold text-gray-900 leading-snug line-clamp-2">
             {sharedTitle}
           </h1>
-
-          {/* URL */}
-          {rawUrl && (
-            <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
-          )}
         </div>
 
         {/* Screenshot helper — shown for platforms that block scraping */}

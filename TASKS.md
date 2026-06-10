@@ -447,7 +447,7 @@ Goal: fill in the remaining gaps — missing features users will hit quickly, de
 - Animate in with a gentle scale+fade
 
 ### F8 — Clip Source URL Preview Card
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/share/page.tsx`, `components/ImportSheet.tsx`
 **What to do**:
 - Before enrichment starts, show a link-preview card (favicon + domain + page title)
