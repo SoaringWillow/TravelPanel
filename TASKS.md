@@ -246,7 +246,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 > These features use AI to make the app smarter over time — turning a clip library into a contextual travel assistant.
 
 ### H1 — Contextual Clip Resurfacing ("Good time to go")
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The best moment to use a saved Tokyo clip is when the user is planning a Japan trip, not 6 months after they saved it. The "Good time to go" feature resurfaces clips based on season, events, or user behavior patterns.  
 **Files to change**: `app/inbox/page.tsx`, new `lib/resurface.ts`  
 **What to do**:

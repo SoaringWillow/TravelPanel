@@ -14,6 +14,7 @@ import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import { checkMilestone } from '@/lib/milestones';
+import { getResurfaceRecommendations, ResurfaceResult } from '@/lib/resurface';
 import { usePagedItems } from '@/hooks/usePagedItems';
 import { hapticSuccess } from '@/lib/haptics';
 import { findNearbyItems } from '@/lib/geolocation';
@@ -53,6 +54,8 @@ export default function InboxPage() {
   const [nearbyMode, setNearbyMode] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [milestoneMessage, setMilestoneMessage] = useState<string | null>(null);
+
+  const resurfaced: ResurfaceResult[] = loading ? [] : getResurfaceRecommendations(items);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -183,6 +186,42 @@ export default function InboxPage() {
         <div className="mb-3">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {/* Seasonal resurfacing row */}
+        {resurfaced.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">
+              Good time to go
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {resurfaced.map(({ item, reason }) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleViewOnMap(item.id)}
+                  className="flex-shrink-0 flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-xl px-3 py-2 text-left max-w-[200px]"
+                >
+                  {item.thumbnail ? (
+                    <img
+                      src={item.thumbnail}
+                      alt=""
+                      className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-800 flex-shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-800 dark:text-slate-200 line-clamp-1 leading-snug">
+                      {item.title}
+                    </p>
+                    <p className="text-[10px] text-indigo-500 dark:text-indigo-400 mt-0.5">{reason}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
