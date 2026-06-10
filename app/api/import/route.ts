@@ -81,31 +81,17 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Shared prompt body ───────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildExtractionInstructions(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — a screenshot is provided instead)'}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -127,15 +113,64 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
+
+  try {
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = body.imageBase64;
+    imageMimeType = body.imageMimeType ?? 'image/jpeg';
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+  const instructions = buildExtractionInstructions(platform, url, page);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: screenshot provided — use Sonnet with image + text
+      const imageData = Buffer.from(imageBase64, 'base64');
+      const { object } = await generateObject({
+        model: models.enrichmentVision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageData,
+                mimeType: imageMimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+              },
+              { type: 'text', text: instructions },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: normal HTML extraction via Haiku
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: instructions,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
