@@ -384,6 +384,87 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE G — Polish, Performance & Submission Readiness
+
+> Goal: An app that feels polished on iPhone, passes App Store review, and retains users.
+> Execution order: G1 → G2 → G3 → G4 → G5 → G6 → G7 → G8
+
+### G1 — Privacy Policy Page (App Store Required)
+**Status**: `[x]` Done  
+**Files**: `app/privacy/page.tsx`
+**What to do**: Static page at /privacy required for App Store submission. Settings About section links to it.
+
+### G2 — Duplicate URL Detection
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Before saving a new clip, check if any existing SavedItem has the same URL (normalize: strip UTM params, trailing slashes)
+- If duplicate found: show a toast/banner "You already saved this!" with a link to the existing clip
+- Still allow re-save if user confirms (some users want to re-clip with new context)
+- Add `getItemByUrl(url)` to `lib/db.ts` (use `by-url` index if one exists, else scan all items)
+
+### G3 — Dark Mode Support
+**Status**: `[ ]` Not started  
+**Files**: `app/globals.css`, all components  
+**What to do**:
+- Add `dark:` variants to all major UI surfaces: backgrounds, text, borders, cards
+- Map stays light (MapLibre doesn't have a dark tile style in OpenFreeMap by default — use liberty-dark if available, otherwise skip map dark mode)
+- Test in Simulator with dark mode enabled
+- Use `prefers-color-scheme: dark` CSS media query + Tailwind's `darkMode: 'media'` config
+
+### G4 — Geofence Resurfacing (local notifications, no Supabase needed)
+**Status**: `[ ]` Not started  
+**Files**: new `hooks/useGeofence.ts`, `app/page.tsx`, `capacitor.config.ts`  
+**What to do**:
+- Install `@capacitor/geolocation` and `@capacitor/local-notifications`
+- On app foreground (once per session), check GPS position against all saved clip locations
+- If user is within 500m of a saved location, fire a local notification: "📍 You're near Senso-ji — you saved this 3 weeks ago"
+- Rate-limit: max 1 notification per clip per day (track in localStorage)
+- Opt-in setting in Settings with a toggle
+- Only fire if user has ≥1 saved clip with valid coordinates
+
+### G5 — Performance: Inbox Virtualization
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`  
+**What to do**:
+- The inbox list renders all items at once. At 200+ clips, this causes jank
+- Replace the `space-y-3` list with a virtualized scroller
+- Option A: Use `react-virtual` (tanstack/virtual) — install and wire it up
+- Option B: Use intersection-observer based lazy rendering (no package needed)
+- Test performance at 100+ items in Simulator
+
+### G6 — Accessibility Pass
+**Status**: `[ ]` Not started  
+**Files**: `components/InboxCard.tsx`, `components/BoardCard.tsx`, `components/NavBar.tsx`, all interactive UI  
+**What to do**:
+- Add `aria-label` to all icon-only buttons (delete, move, external link, map buttons)
+- Ensure all tap targets are ≥44pt (minimum iOS touch target)
+- Add `role="button"` or use `<button>` consistently (not `<div onClick>`)
+- Add `alt` text to all images including thumbnails
+- Test with VoiceOver in Simulator: navigate through the inbox, verify each element is readable
+
+### G7 — iPad Split-View Layout
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- On iPad (detect via `window.innerWidth > 768`), show a two-column layout:
+  - Home: map on left (60%), inbox or selected item on right (40%)
+  - Boards: 3-column grid instead of 2-column
+- NavBar moves from bottom to left sidebar on iPad
+- Test in Xcode Simulator iPad Pro 12.9"
+
+### G8 — TestFlight Beta Setup Guide
+**Status**: `[ ]` Not started  
+**Files**: new `ios/App/TESTFLIGHT_SETUP.md`  
+**What to do**:
+- Document exact steps to create App Store Connect app entry
+- Set up signing certificates and provisioning profiles
+- Archive and upload to TestFlight
+- Add internal testers (email addresses)
+- Create external test group with review notes
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*

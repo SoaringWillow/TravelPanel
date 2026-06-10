@@ -316,6 +316,10 @@ export default function SettingsPage() {
               <span>AI model</span>
               <span className="text-gray-400">Claude (Anthropic)</span>
             </div>
+            <div className="flex justify-between">
+              <span>Privacy Policy</span>
+              <a href="/privacy" className="text-indigo-500 hover:underline">View</a>
+            </div>
           </div>
         </div>
 
