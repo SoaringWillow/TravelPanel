@@ -825,6 +825,117 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE M — iOS App Completeness
+
+> Goal: Ship a beautiful, fully-functional iOS app that feels native. Every feature in this
+> phase either closes a gap in the core loop, makes the app feel more polished on iPhone,
+> or adds a high-value discovery/planning feature that sets TravelPanel apart.
+> Execution order: M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8
+
+### M1 — Clipboard Travel URL Quick-Save
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`, new `components/ClipboardBanner.tsx`  
+**What to do**:
+- On app focus (visibilitychange) and on mount, read `navigator.clipboard.readText()`
+- If clipboard contains a URL that looks like a travel-relevant domain (instagram, youtube,
+  xiaohongshu, douyin, bilibili, tiktok, maps.google, tripadvisor, airbnb, booking, etc.),
+  show a dismissable floating banner at the bottom of the map: "📋 Clip from Instagram? → Save"
+- Tapping "Save" opens ImportSheet with the clipboard URL pre-filled
+- Dismiss stores the URL hash in sessionStorage so the banner doesn't re-appear for the same URL
+- Only show once per URL; hide if user navigates away or URL changes in clipboard
+
+### M2 — Tag Cloud Map Filter
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`, new `components/TagFilter.tsx`  
+**What to do**:
+- Compute the top 10 most-used tags across all saved items
+- Show a horizontal scrollable pill row just above the NavBar on the home map screen
+- Each pill shows the tag name + count (e.g. "🍜 food 12")
+- Tapping a pill activates a filter: only items with that tag show on the map
+- Active pill turns indigo; tapping it again clears the filter
+- "All" pill at the start resets to showing everything
+- Filter state is ephemeral (no persistence needed)
+
+### M3 — Board Trip Date + Countdown
+**Status**: `[ ]` Not started  
+**Files**: `lib/types.ts`, `lib/db.ts`, `app/boards/[id]/page.tsx`, `components/BoardCard.tsx`  
+**What to do**:
+- Add optional `tripStart?: number` (unix ms) and `tripEnd?: number` to the Board type
+- On the board detail page header, add a small calendar icon button that opens a date-picker
+  (two date inputs, start + end; save via `updateBoard`)
+- If `tripStart` is set and in the future, show a countdown badge: "✈️ in 14 days"
+- If trip is ongoing (between start and end), show "🌍 Happening now!"
+- On the boards list, upcoming-trip boards sort to the top (before the normal order)
+- BoardCard shows the trip date range if set (small text below board name)
+
+### M4 — Substance Full-Text Search
+**Status**: `[ ]` Not started  
+**Files**: `lib/searchItems.ts`, `components/SearchBar.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Add a "Search tips" mode to SearchBar (a third toggle alongside "By location")
+- In this mode, `searchItems` searches only through `substance[].content` text
+- Results show the matching substance item highlighted inline on the InboxCard
+  (add a "matched tip" preview below the description: italic quote with highlight)
+- Sort by number of matching substance items (most hits first)
+- Show "N tip matches" in the result count badge
+
+### M5 — Itinerary Text Export
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Add an "Export" button to the trip plan page header (Share icon)
+- On tap: format the full itinerary as plain text:
+  ```
+  🗺 [Board name] — [N] Day Itinerary
+  
+  Day 1 — [Theme]
+  • 09:00  [Activity name] ([Location])
+    Tips: [tip1], [tip2]
+  ...
+  ```
+- Call `navigator.share({ title, text })` — on iOS this opens the native share sheet
+  (Messages, Notes, Mail, etc.) — perfect for sharing with travel companions
+- Fall back to `navigator.clipboard.writeText()` with a "Copied!" toast if share unavailable
+
+### M6 — Board Stats Insight Card
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- Below the "Plan this trip" CTA button, add a compact stats card
+- Show: total locations count, total substance (tips+warnings) count, estimated trip length
+  (based on unique location count: 1-3 locs = "day trip", 4-8 = "weekend", 9+ = "full trip"),
+  most-common tag (the vibe)
+- Also show a geographic spread indicator: if all locations are within 50km → "Compact area",
+  within 200km → "Regional trip", wider → "Multi-city trip"
+- Calculate spread from the bounding box of all location coordinates
+
+### M7 — Dark Mode Polish Pass
+**Status**: `[ ]` Not started  
+**Files**: All major components and pages  
+**What to do**:
+- Audit every screen for missing `dark:` Tailwind variants on `bg-white`, `text-gray-800`,
+  `border-gray-100`, `bg-gray-50` elements
+- Key components to fix: `LocationDetailCard`, `ImportSheet`, `AddPlaceSheet`,
+  `BoardSuggestBanner`, `DuplicateMergeModal`, `CreateBoardModal`, `ContextMenu`,
+  `PlannerAgent`, all inline-style popover/sheet overlays that use hardcoded white backgrounds
+- Also fix the map popup (MapView Popup component) which has hardcoded light styles
+- Test by toggling `prefers-color-scheme: dark` in browser DevTools
+
+### M8 — iOS Native Feel: Safe Area + Transitions
+**Status**: `[ ]` Not started  
+**Files**: `app/layout.tsx`, `app/page.tsx`, `components/NavBar.tsx`, global CSS  
+**What to do**:
+- Add `padding-bottom: env(safe-area-inset-bottom)` to NavBar so it sits above the iOS home
+  indicator (use `pb-safe` Tailwind plugin or inline style)
+- Add `padding-top: env(safe-area-inset-top)` to the top phone bar on the home screen and
+  all page headers (currently hardcoded `pt-12` which may clip on some devices)
+- Add page transition animations: all pushes slide right, all backs slide left
+  (use `framer-motion` `AnimatePresence` with `x: ±20, opacity: 0` variants)
+- NavBar active tab indicator: animate the active dot/indicator with a `layoutId` spring
+- Add a subtle page load progress bar at the top (thin indigo line, 200ms animated)
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
