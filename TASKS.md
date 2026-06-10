@@ -248,7 +248,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a native-style share button (Upload icon) in the top-right of the detail card header that triggers `navigator.share()` with the clip URL and title
 
 ### D7 — Context Menus (Long-Press) on Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Long-press on a clip card (>400ms): show a `popover` or `div`-based context menu with: Open, Move to Board, Copy URL, Delete
@@ -258,7 +258,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On mobile, this replaces the need for visible edit buttons which clutter the UI
 
 ### D8 — Board Cover + Item Count Badges
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx`, `lib/db.ts`  
 **What to do**:
 - On the boards grid, show the board cover thumbnail (first clip's thumbnail) as a card background, darkened with a gradient overlay

@@ -9,6 +9,7 @@ import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
+import { updateBoard } from '@/lib/db';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
@@ -27,6 +28,11 @@ export default function BoardsPage() {
 
   async function handleDelete(id: string) {
     await removeBoard(id);
+  }
+
+  async function handleRename(id: string, newName: string) {
+    await updateBoard(id, { name: newName });
+    router.refresh();
   }
 
   return (
@@ -55,8 +61,10 @@ export default function BoardsPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl overflow-hidden min-h-[160px] shimmer" />
+            ))}
           </div>
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center px-6">
@@ -83,6 +91,7 @@ export default function BoardsPage() {
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
+                onRename={(name) => handleRename(board.id, name)}
               />
             ))}
           </div>

@@ -1,11 +1,12 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Copy, ArrowRight } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { impact, notification, selection } from '@/lib/haptics';
+import ContextMenu, { useLongPress } from './ContextMenu';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,43 @@ export default function InboxCard({
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
   const cardRef = useRef<HTMLDivElement>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
+
+  const longPressProps = useLongPress((point) => {
+    impact('medium');
+    setMenuAnchor(point);
+  });
+
+  const contextMenuItems = [
+    {
+      label: 'View on Map',
+      icon: <MapPin size={14} />,
+      onSelect: () => onViewOnMap(item.id),
+    },
+    ...(onMoveToBoard ? [{
+      label: 'Move to Board',
+      icon: <LayoutGrid size={14} />,
+      onSelect: () => onMoveToBoard(item.id),
+    }] : []),
+    {
+      label: 'Copy URL',
+      icon: <Copy size={14} />,
+      onSelect: () => {
+        if (typeof navigator !== 'undefined') navigator.clipboard.writeText(item.url).catch(() => {});
+      },
+    },
+    {
+      label: 'Open Original',
+      icon: <ExternalLink size={14} />,
+      onSelect: () => window.open(item.url, '_blank'),
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 size={14} />,
+      destructive: true,
+      onSelect: () => onDelete(item.id),
+    },
+  ];
 
   // ── Swipe motion values ───────────────────────────────────────────────────
   const dragX = useMotionValue(0);
@@ -216,15 +254,16 @@ export default function InboxCard({
         </motion.div>
       )}
 
-      {/* Card surface — draggable */}
+      {/* Card surface — draggable + long-pressable */}
       <motion.div
+        {...longPressProps}
         style={{ x: dragX }}
         drag="x"
         dragConstraints={{ left: -280, right: onMoveToBoard ? 280 : 0 }}
         dragElastic={0.07}
         dragMomentum={false}
         onDragEnd={handleDragEnd}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative z-10 cursor-grab active:cursor-grabbing"
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative z-10 cursor-grab active:cursor-grabbing select-none"
       >
         {/* Thumbnail */}
         {item.thumbnail ? (
@@ -306,6 +345,8 @@ export default function InboxCard({
           </div>
         </div>
       </motion.div>
+
+      <ContextMenu items={contextMenuItems} anchor={menuAnchor} onClose={() => setMenuAnchor(null)} />
     </div>
   );
 }
