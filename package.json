@@ -12,7 +12,8 @@
     "ios:open": "npx cap open ios",
     "ios:sync": "npx cap sync ios",
     "ios:run": "npx cap run ios",
-    "extension:icons": "node browser-extension/generate-icons.js"
+    "extension:icons": "node browser-extension/generate-icons.js",
+    "app:icons": "node scripts/generate-app-icon.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.76",

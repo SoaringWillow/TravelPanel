@@ -341,7 +341,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE F — App Store & Distribution
 
 ### F1 — App Store Assets
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - App icon: 1024×1024 PNG, indigo background, white location pin
 - Launch screen: centered logo on white background with "TravelPanel" wordmark
