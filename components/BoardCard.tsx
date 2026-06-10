@@ -1,7 +1,8 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Trash2, Pencil, Check, X, AlertTriangle } from 'lucide-react';
 import { Board } from '@/lib/types';
 
 interface BoardCardProps {
@@ -9,58 +10,160 @@ interface BoardCardProps {
   itemCount: number;
   onClick: () => void;
   onDelete?: () => void;
+  onRename?: (name: string) => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, onClick, onDelete, onRename }: BoardCardProps) {
+  const [mode, setMode] = useState<'normal' | 'renaming' | 'confirmDelete'>('normal');
+  const [editName, setEditName] = useState(board.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keep editName in sync if board.name changes from outside
+  useEffect(() => {
+    if (mode === 'normal') setEditName(board.name);
+  }, [board.name, mode]);
+
+  useEffect(() => {
+    if (mode === 'renaming') inputRef.current?.focus();
+  }, [mode]);
+
+  function saveRename() {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== board.name && onRename) {
+      onRename(trimmed);
+    }
+    setMode('normal');
+  }
+
+  function cancelRename() {
+    setEditName(board.name);
+    setMode('normal');
+  }
+
+  // ── Rename mode ─────────────────────────────────────────────────────────────
+
+  if (mode === 'renaming') {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-indigo-200 overflow-hidden min-h-[160px] flex flex-col p-4">
+        <div className="text-2xl leading-none mb-3">{board.emoji}</div>
+        <input
+          ref={inputRef}
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') saveRename();
+            if (e.key === 'Escape') cancelRename();
+          }}
+          className="font-bold text-gray-800 text-sm bg-gray-50 border border-indigo-300 rounded-lg px-2 py-1 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          maxLength={40}
+        />
+        <p className="text-sm text-gray-400 mb-auto">{itemCount} place{itemCount !== 1 ? 's' : ''}</p>
+        <div className="flex items-center gap-2 pt-3">
+          <button
+            type="button"
+            onClick={saveRename}
+            disabled={!editName.trim()}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold py-2 rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+          >
+            <Check size={13} />
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={cancelRename}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 text-gray-600 text-xs font-semibold py-2 rounded-xl hover:bg-gray-200 transition-colors"
+          >
+            <X size={13} />
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Delete confirm mode ──────────────────────────────────────────────────────
+
+  if (mode === 'confirmDelete') {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden min-h-[160px] flex flex-col p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
+          <p className="text-sm font-semibold text-gray-800">Delete board?</p>
+        </div>
+        <p className="text-xs text-gray-500 mb-auto leading-relaxed">
+          <strong>{board.emoji} {board.name}</strong> will be removed.
+          Your {itemCount} clip{itemCount !== 1 ? 's' : ''} stay in your Inbox.
+        </p>
+        <div className="flex items-center gap-2 pt-3">
+          <button
+            type="button"
+            onClick={() => { onDelete?.(); setMode('normal'); }}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-red-500 text-white text-xs font-semibold py-2 rounded-xl hover:bg-red-600 transition-colors"
+          >
+            <Trash2 size={13} />
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('normal')}
+            className="flex-1 flex items-center justify-center bg-gray-100 text-gray-600 text-xs font-semibold py-2 rounded-xl hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal mode ──────────────────────────────────────────────────────────────
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
-      style={{ borderLeftWidth: undefined }}
     >
-      {/* Cover thumbnail background */}
+      {/* Cover thumbnail */}
       {board.coverThumbnail && (
         <>
-          <img
-            src={board.coverThumbnail}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          <img src={board.coverThumbnail} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-white/80" />
         </>
       )}
 
-      {/* Content */}
       <div className="relative flex flex-col flex-1 p-4">
-        {/* Emoji top-left */}
         <div className="text-2xl leading-none mb-3">{board.emoji}</div>
-
-        {/* Name */}
         <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
           {board.name}
         </h3>
-
-        {/* Item count */}
         <p className="text-sm text-gray-400">
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
-        {/* Delete button bottom-right */}
-        {onDelete && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="absolute bottom-3 right-3 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            aria-label="Delete board"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
+        {/* Action buttons */}
+        <div className="absolute bottom-3 right-3 flex items-center gap-1">
+          {onRename && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setMode('renaming'); }}
+              className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              aria-label="Rename board"
+            >
+              <Pencil size={13} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setMode('confirmDelete'); }}
+              className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              aria-label="Delete board"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
     </motion.div>
   );

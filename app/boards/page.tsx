@@ -11,7 +11,7 @@ import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, renameBoard } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -27,6 +27,10 @@ export default function BoardsPage() {
 
   async function handleDelete(id: string) {
     await removeBoard(id);
+  }
+
+  async function handleRename(id: string, name: string) {
+    await renameBoard(id, name);
   }
 
   return (
@@ -59,19 +63,35 @@ export default function BoardsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
+          <div className="flex flex-col items-center text-center px-6 pt-8 pb-24">
+            <div className="w-24 h-24 rounded-3xl bg-indigo-50 flex items-center justify-center text-5xl mb-5 shadow-inner">
+              🗺️
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Create your first board</h2>
+            <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">
+              Boards keep your travel ideas organised — Tokyo eats, Bali surf spots, weekend escapes. Each board becomes a trip plan.
             </p>
+            {/* Visual board preview */}
+            <div className="w-full max-w-xs grid grid-cols-2 gap-2 mb-8 opacity-40 pointer-events-none select-none">
+              {[
+                { emoji: '🍜', name: 'Tokyo Food' },
+                { emoji: '🏖', name: 'Bali Beaches' },
+                { emoji: '🏔', name: 'Alps Hiking' },
+                { emoji: '🛍', name: 'Seoul Shopping' },
+              ].map((b) => (
+                <div key={b.name} className="bg-white rounded-xl border border-gray-100 p-3 min-h-[80px] flex flex-col">
+                  <span className="text-xl mb-1">{b.emoji}</span>
+                  <span className="text-xs font-semibold text-gray-700 line-clamp-1">{b.name}</span>
+                </div>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-6 py-3 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-200"
             >
               <Plus size={16} />
-              Create a Board
+              Create first board
             </button>
           </div>
         ) : (
@@ -83,6 +103,7 @@ export default function BoardsPage() {
                 itemCount={getItemCount(board.id)}
                 onClick={() => router.push(`/boards/${board.id}`)}
                 onDelete={() => handleDelete(board.id)}
+                onRename={(name) => handleRename(board.id, name)}
               />
             ))}
           </div>

@@ -145,19 +145,62 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          query.trim() ? (
+            /* Search empty */
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center h-60 text-center px-6"
+            >
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-3xl mb-4">🔍</div>
+              <h3 className="font-semibold text-gray-700 mb-1">No results for &ldquo;{query.trim()}&rdquo;</h3>
+              <p className="text-sm text-gray-400">Try a shorter or different search term.</p>
+            </motion.div>
+          ) : inboxItems.length === 0 ? (
+            /* First-time empty */
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center text-center px-6 pt-8 pb-24"
+            >
+              <div className="w-24 h-24 rounded-3xl bg-indigo-50 flex items-center justify-center text-5xl mb-5 shadow-inner">
+                ✈️
+              </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">Your inspiration inbox awaits</h2>
+              <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">
+                Save travel posts from Xiaohongshu, Bilibili, WeChat and more.
+                Locations &amp; tips are extracted automatically.
+              </p>
+
+              {/* How-to mini guide */}
+              <div className="w-full max-w-xs space-y-3 text-left">
+                {[
+                  { n: '1', text: 'Find a travel post on any social app' },
+                  { n: '2', text: 'Tap Share → TravelPanel' },
+                  { n: '3', text: 'Choose a board and save — done!' },
+                ].map(({ n, text }) => (
+                  <div key={n} className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 text-sm font-bold flex items-center justify-center flex-shrink-0">
+                      {n}
+                    </span>
+                    <span className="text-sm text-gray-600">{text}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            /* Platform filter empty */
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center h-60 text-center px-6"
+            >
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-3xl mb-4">📭</div>
+              <h3 className="font-semibold text-gray-700 mb-1">No {PLATFORM_LABELS[activePlatform as Platform]} clips</h3>
+              <p className="text-sm text-gray-400">Switch to &ldquo;All&rdquo; or clip something from that platform.</p>
+            </motion.div>
+          )
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence>

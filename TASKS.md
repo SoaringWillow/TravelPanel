@@ -200,7 +200,7 @@ Work top-to-bottom within this phase.
 - Keep existing tap-to-open-detail behaviour
 
 ### D3 — Board Rename & Delete
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/BoardCard.tsx`, `lib/db.ts`, `app/boards/page.tsx`  
 **What to do**:
 - Long-press (or ⋯ menu) on BoardCard opens an action sheet: "Rename", "Delete"
@@ -209,7 +209,7 @@ Work top-to-bottom within this phase.
 - Add `renameBoard(id, name)` to `lib/db.ts`
 
 ### D4 — Beautiful Empty States
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Inbox empty: large emoji illustration + "Clip your first travel inspiration" CTA + "Tap + to get started" sub-text

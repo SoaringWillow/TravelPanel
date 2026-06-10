@@ -99,3 +99,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 03:25 | ae68bbb | feat: B2 browser extension — one-click clip to TravelPanel
 2026-06-10 03:30 | c736e1e | feat: B3 Xiaohongshu Vision fix — image-based extraction for blocked platforms
 2026-06-10 03:32 | a0556fc | feat: B5 cloud backup export + settings page
+2026-06-10 03:38 | b5754d7 | feat: D1 user location on map + D2 swipe-to-delete inbox cards
