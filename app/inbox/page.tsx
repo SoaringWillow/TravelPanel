@@ -17,6 +17,7 @@ import SkeletonCard from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import BoardSuggestBanner from '@/components/BoardSuggestBanner';
 
 // ─── Sort options ─────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 
 export default function InboxPage() {
   const { items, loading, removeItem, refreshItem } = useSavedItems();
-  const { boards } = useBoards();
+  const { boards, createBoard } = useBoards();
   const router = useRouter();
 
   const { retryItem } = useEnrichmentRetry(refreshItem);
@@ -163,6 +164,12 @@ export default function InboxPage() {
     await Promise.all(ids.map((id) => addItemToBoard(boardId, id)));
     setSelectedIds(new Set());
     setMovingItemId(null);
+    router.refresh();
+  }
+
+  async function handleCreateSuggestedBoard(country: string, emoji: string, itemIds: string[]) {
+    const board = await createBoard(country, emoji);
+    await Promise.all(itemIds.map((id) => addItemToBoard(board.id, id)));
     router.refresh();
   }
 
@@ -361,6 +368,14 @@ export default function InboxPage() {
             </div>
           ) : null;
         })()}
+
+        {/* Smart board auto-suggest */}
+        {!loading && (
+          <BoardSuggestBanner
+            items={inboxItems}
+            onCreateBoard={handleCreateSuggestedBoard}
+          />
+        )}
 
         {loading ? (
           <div className="mt-4 space-y-3">

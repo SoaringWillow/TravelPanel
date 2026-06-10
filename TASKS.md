@@ -728,7 +728,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Execution order: L1 → L2 → L3 → L4 → L5 → L6 → L7 → L8
 
 ### L1 — Smart Board Auto-Suggest
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, new `components/BoardSuggestBanner.tsx`  
 **What to do**:
 - After a user has ≥4 unboarded clips with locations in the same country/region,
