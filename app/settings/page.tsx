@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Trash2, CheckCircle2, AlertTriangle, Map, Inbox, LayoutGrid, FileJson } from 'lucide-react';
+import Link from 'next/link';
+import { Download, Trash2, CheckCircle2, AlertTriangle, Map, LayoutGrid, FileJson, ChevronRight } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards } from '@/lib/db';
 
@@ -14,13 +15,13 @@ function StatCard({ icon: Icon, label, value, color }: {
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
+    <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-2xl px-4 py-3 shadow-sm border border-gray-100 dark:border-gray-700">
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color}`}>
         <Icon size={18} className="text-white" />
       </div>
       <div>
-        <p className="text-xl font-bold text-gray-900 leading-none">{value}</p>
-        <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-none">{value}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
       </div>
     </div>
   );
@@ -59,11 +60,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-nav">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-nav">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-5 pt-status pb-5">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Your data, your device.</p>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-5 pt-status pb-5">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Your data, your device.</p>
       </div>
 
       <div className="px-5 py-6 space-y-6">
@@ -84,15 +85,15 @@ export default function SettingsPage() {
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
             Data backup
           </h2>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
             <div className="px-5 py-4">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
                   <FileJson size={20} className="text-green-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">Download all my data</p>
-                  <p className="text-sm text-gray-500 mt-0.5 leading-snug">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">Download all my data</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
                     Exports all clips, boards, and trip plans as a JSON file.
                     Keep a copy on your device or iCloud Drive.
                   </p>
@@ -145,7 +146,7 @@ export default function SettingsPage() {
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
             Danger zone
           </h2>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
             <div className="px-5 py-4">
               {!confirmClear ? (
                 <button
@@ -189,20 +190,43 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* ── Legal ── */}
+        <section>
+          <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+            Legal
+          </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+            <Link
+              href="/privacy"
+              className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <span className="text-sm text-gray-700 dark:text-gray-200">Privacy Policy</span>
+              <ChevronRight size={16} className="text-gray-400" />
+            </Link>
+            <Link
+              href="/terms"
+              className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <span className="text-sm text-gray-700 dark:text-gray-200">Terms of Use</span>
+              <ChevronRight size={16} className="text-gray-400" />
+            </Link>
+          </div>
+        </section>
+
         {/* ── About ── */}
         <section>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 space-y-2.5 text-sm text-gray-500">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 space-y-2.5 text-sm text-gray-500 dark:text-gray-400">
             <div className="flex justify-between">
               <span>App</span>
-              <span className="font-medium text-gray-900">TravelPanel</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">TravelPanel</span>
             </div>
             <div className="flex justify-between">
               <span>Data stored</span>
-              <span className="font-medium text-gray-900">On device (IndexedDB)</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">On device (IndexedDB)</span>
             </div>
             <div className="flex justify-between">
               <span>Cloud sync</span>
-              <span className="text-amber-600 font-medium">Coming soon</span>
+              <span className="text-amber-600 dark:text-amber-400 font-medium">Coming soon</span>
             </div>
           </div>
         </section>

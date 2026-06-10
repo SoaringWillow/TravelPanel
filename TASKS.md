@@ -334,7 +334,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Goal: everything needed to submit TravelPanel to the App Store.
 
 ### F1 — Privacy Policy Page
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/privacy/page.tsx`, new `app/terms/page.tsx`  
 **What to do**:
 - Simple static pages for Privacy Policy and Terms of Use (required by App Store)
