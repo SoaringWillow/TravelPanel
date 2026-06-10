@@ -329,7 +329,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Opt-in from Settings with a toggle
 
 ### E4 — Import from Maps & Bookmarks
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - "Import from Google Maps saved places" — user pastes the Google Takeout JSON export, we parse locations and create clips
 - "Import from Apple Maps" — parse shared `.maps` links or clipboard URLs

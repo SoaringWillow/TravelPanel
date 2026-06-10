@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Cloud, CloudOff, Info, CheckCircle2, Sparkles, Check, X } from 'lucide-react';
+import { Download, Cloud, CloudOff, Info, CheckCircle2, Sparkles, Check, X, FolderInput } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards } from '@/lib/db';
 import { SavedItem, Board } from '@/lib/types';
@@ -29,6 +30,7 @@ function downloadJSON(data: object, filename: string) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<SavedItem[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,6 +156,16 @@ export default function SettingsPage() {
               <p className="text-xs text-gray-400 text-center">
                 JSON file · ~{estimatedSize} · includes all clips, boards, extracted locations &amp; wisdom
               </p>
+
+              {/* Import button */}
+              <button
+                type="button"
+                onClick={() => router.push('/import')}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98]"
+              >
+                <FolderInput size={16} />
+                Import from Google Maps or Bookmarks
+              </button>
             </div>
           )}
         </div>
