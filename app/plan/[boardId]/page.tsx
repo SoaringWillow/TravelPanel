@@ -297,7 +297,7 @@ export default function PlanPage() {
                   Back
                 </button>
                 <span className="text-2xl">{board.emoji}</span>
-                <h1 className="text-lg font-bold text-gray-800 flex-1 truncate">{board.name}</h1>
+                <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex-1 truncate">{board.name}</h1>
                 <span className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
                   {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 </span>
@@ -306,7 +306,7 @@ export default function PlanPage() {
               {/* Days slider */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
                     <Calendar size={15} className="text-indigo-500" />
                     Trip length
                   </label>
@@ -328,10 +328,10 @@ export default function PlanPage() {
 
               {/* Preference chips */}
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-gray-700">Travel style</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Travel style</label>
                 {CHIP_GROUPS.map(({ label, chips }) => (
                   <div key={label} className="space-y-1.5">
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{label}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">{label}</p>
                     <div className="flex flex-wrap gap-2">
                       {chips.map((chip) => {
                         const active = selectedChips.has(chip);
@@ -342,8 +342,8 @@ export default function PlanPage() {
                             onClick={() => toggleChip(chip)}
                             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 ${
                               active
-                                ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-400'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-400'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                             }`}
                           >
                             {chip}
@@ -358,7 +358,7 @@ export default function PlanPage() {
                   onChange={(e) => setCustomNotes(e.target.value)}
                   placeholder="Anything else? e.g. avoid hills, travelling with kids…"
                   rows={2}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
                 />
               </div>
 
