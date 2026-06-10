@@ -198,7 +198,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Style: white background, large fonts, indigo accents — looks great as a screenshot
 
 ### G2 — "Import Friend's Board" Deep Link
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: D2 added board sharing (base64 URL). But when a friend taps the link on iOS, there's no obvious prompt to "Save to my TravelPanel". The import experience needs to be more intentional and conversion-optimized.  
 **Files to change**: `app/shared/[token]/page.tsx`, `components/CapacitorBridge.tsx`  
 **What to do**:
@@ -212,7 +212,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Track this event: `track('board_imported_from_share_link')`
 
 ### G3 — Clip Count Milestone Celebrations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Celebrating milestones (5th clip, 25th clip, first plan) creates dopamine moments that increase weekly retention. Apps like Duolingo live by this.  
 **Files to change**: `app/inbox/page.tsx`, `app/plan/[boardId]/page.tsx`, new `lib/milestones.ts`  
 **What to do**:

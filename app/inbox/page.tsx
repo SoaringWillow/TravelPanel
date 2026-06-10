@@ -13,6 +13,7 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/li
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { checkMilestone } from '@/lib/milestones';
 import { usePagedItems } from '@/hooks/usePagedItems';
 import { hapticSuccess } from '@/lib/haptics';
 import { findNearbyItems } from '@/lib/geolocation';
@@ -51,6 +52,7 @@ export default function InboxPage() {
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nearbyMode, setNearbyMode] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [milestoneMessage, setMilestoneMessage] = useState<string | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -408,7 +410,21 @@ export default function InboxPage() {
       <ImportSheet
         open={showImport}
         onClose={() => { setShowImport(false); setPrefilledUrl(''); }}
-        onSaved={(item: SavedItem) => { addItem(item); hapticSuccess(); setShowImport(false); setPrefilledUrl(''); router.refresh(); }}
+        onSaved={(item: SavedItem) => {
+          addItem(item);
+          hapticSuccess();
+          setShowImport(false);
+          setPrefilledUrl('');
+          router.refresh();
+          // +1 because addItem is async-ish; inboxItems.length reflects pre-add state
+          const newCount = inboxItems.length + 1;
+          const msg = checkMilestone(newCount);
+          if (msg) {
+            setMilestoneMessage(msg);
+            track('milestone_hit', { count: newCount });
+            setTimeout(() => setMilestoneMessage(null), 3000);
+          }
+        }}
         initialUrl={prefilledUrl}
       />
 
@@ -434,6 +450,31 @@ export default function InboxPage() {
             >
               Undo
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Milestone celebration modal */}
+      <AnimatePresence>
+        {milestoneMessage && (
+          <motion.div
+            key="milestone"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="fixed inset-0 z-[4000] flex items-center justify-center px-8"
+            onClick={() => setMilestoneMessage(null)}
+          >
+            <div className="absolute inset-0 bg-black/50" />
+            <div className="relative bg-white dark:bg-slate-800 rounded-3xl px-8 py-10 text-center shadow-2xl max-w-xs w-full">
+              {/* Confetti emoji burst */}
+              <div className="text-5xl mb-4 select-none">🎉</div>
+              <p className="text-base font-bold text-gray-800 dark:text-slate-100 leading-snug">
+                {milestoneMessage}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-3">Tap to dismiss</p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
