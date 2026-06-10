@@ -143,11 +143,11 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
         exit={{ y: 120, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[65vh] flex flex-col">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden max-h-[65vh] flex flex-col">
 
           {/* Drag handle */}
           <div className="flex justify-center pt-2.5 pb-0 flex-shrink-0">
-            <div className="w-9 h-1 bg-gray-300 rounded-full" />
+            <div className="w-9 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
           </div>
 
           {/* Hero image */}
@@ -159,8 +159,8 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 className="w-full h-full object-cover"
                 onError={() => setImgError(true)}
               />
-              {/* Gradient fade to white */}
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/70" />
+              {/* Gradient fade */}
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/70 dark:to-gray-900/70" />
             </div>
           )}
 
@@ -183,13 +183,13 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                     if (e.key === 'Enter') { e.preventDefault(); saveTitle(); }
                     if (e.key === 'Escape') { setTitleValue(item.title); setEditingTitle(false); }
                   }}
-                  className="font-bold text-gray-800 text-base leading-snug w-full border-b-2 border-indigo-400 outline-none bg-transparent pb-0.5"
+                  className="font-bold text-gray-800 dark:text-gray-100 text-base leading-snug w-full border-b-2 border-indigo-400 outline-none bg-transparent pb-0.5"
                 />
               ) : (
                 <button
                   type="button"
                   onClick={() => { setEditingTitle(true); }}
-                  className="font-bold text-gray-800 text-base leading-snug line-clamp-2 text-left w-full hover:text-indigo-700 transition-colors"
+                  className="font-bold text-gray-800 dark:text-gray-100 text-base leading-snug line-clamp-2 text-left w-full hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors"
                   aria-label="Tap to edit title"
                 >
                   {titleValue}
@@ -198,19 +198,19 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               <button type="button" onClick={handleShare}
-                className={`p-2 rounded-full transition-colors ${shareSuccess ? 'bg-green-50' : 'hover:bg-gray-100'}`}
+                className={`p-2 rounded-full transition-colors ${shareSuccess ? 'bg-green-50 dark:bg-green-950' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
                 aria-label={shareSuccess ? 'Copied!' : 'Share'}>
                 {shareSuccess
                   ? <Check size={17} className="text-green-500" />
-                  : <Share2 size={17} className="text-gray-500" />}
+                  : <Share2 size={17} className="text-gray-500 dark:text-gray-400" />}
               </button>
               <a href={item.url} target="_blank" rel="noopener noreferrer"
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Open original">
-                <Globe size={17} className="text-gray-500" />
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" aria-label="Open original">
+                <Globe size={17} className="text-gray-500 dark:text-gray-400" />
               </a>
               <button type="button" onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Close">
-                <X size={18} className="text-gray-500" />
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" aria-label="Close">
+                <X size={18} className="text-gray-500 dark:text-gray-400" />
               </button>
             </div>
           </div>
@@ -218,20 +218,20 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
           {/* ── Scrollable body ──────────────────────────────────────────── */}
           <div className="overflow-y-auto px-4 pb-5 space-y-3">
             {item.description && (
-              <p className="text-sm text-gray-600 leading-relaxed">{item.description}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{item.description}</p>
             )}
 
             {item.locations.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Locations</p>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Locations</p>
                 <div className="space-y-2">
                   {item.locations.map((loc, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <MapPin size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <span className="text-sm text-gray-700 font-medium block">{loc.name}</span>
-                        {loc.address && <span className="text-xs text-gray-400 block">{loc.address}</span>}
-                        <span className="text-xs text-gray-400">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-200 font-medium block">{loc.name}</span>
+                        {loc.address && <span className="text-xs text-gray-400 dark:text-gray-500 block">{loc.address}</span>}
+                        <span className="text-xs text-gray-400 dark:text-gray-500">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</span>
                       </div>
                     </div>
                   ))}
@@ -241,10 +241,10 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
 
             {item.activities.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Activities</p>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Activities</p>
                 <div className="flex flex-wrap gap-1.5">
                   {item.activities.map((a) => (
-                    <span key={a} className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full">{a}</span>
+                    <span key={a} className="bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs px-2.5 py-1 rounded-full">{a}</span>
                   ))}
                 </div>
               </div>
@@ -255,13 +255,13 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             {/* Editable tags */}
             <div className="flex flex-wrap gap-1.5 items-center">
               {tags.map((t) => (
-                <span key={t} className="flex items-center gap-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                <span key={t} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full">
                   #{t}
                   <button
                     type="button"
                     onClick={() => removeTag(t)}
                     aria-label={`Remove tag ${t}`}
-                    className="text-gray-400 hover:text-red-400 transition-colors leading-none"
+                    className="text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors leading-none"
                   >
                     <X size={10} />
                   </button>
@@ -289,7 +289,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 <button
                   type="button"
                   onClick={() => setAddingTag(true)}
-                  className="flex items-center gap-0.5 text-xs text-gray-400 hover:text-indigo-500 border border-dashed border-gray-300 hover:border-indigo-300 px-2 py-0.5 rounded-full transition-colors"
+                  className="flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-500 border border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-300 px-2 py-0.5 rounded-full transition-colors"
                   aria-label="Add tag"
                 >
                   <Plus size={11} />
@@ -299,14 +299,14 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             </div>
 
             {/* Editable personal note */}
-            <div className="rounded-xl border border-dashed border-gray-200 overflow-hidden">
+            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">My Note</p>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">My Note</p>
                 <button
                   type="button"
                   onClick={() => setEditingNote(true)}
                   aria-label="Edit note"
-                  className="p-1 text-gray-300 hover:text-indigo-400 transition-colors rounded-md"
+                  className="p-1 text-gray-300 dark:text-gray-600 hover:text-indigo-400 transition-colors rounded-md"
                 >
                   <Pencil size={12} />
                 </button>
@@ -320,7 +320,7 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveNote(); } if (e.key === 'Escape') { setNoteValue(item.notes ?? ''); setEditingNote(false); } }}
                   rows={3}
                   placeholder="Add a personal note…"
-                  className="w-full px-3 pb-2.5 text-sm text-gray-700 placeholder-gray-300 resize-none outline-none bg-transparent"
+                  className="w-full px-3 pb-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-600 resize-none outline-none bg-transparent"
                 />
               ) : (
                 <button
@@ -329,9 +329,9 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                   className="w-full text-left px-3 pb-2.5 text-sm leading-relaxed"
                 >
                   {noteValue ? (
-                    <span className="text-gray-700">{noteValue}</span>
+                    <span className="text-gray-700 dark:text-gray-200">{noteValue}</span>
                   ) : (
-                    <span className="text-gray-300">Add a personal note…</span>
+                    <span className="text-gray-300 dark:text-gray-600">Add a personal note…</span>
                   )}
                 </button>
               )}

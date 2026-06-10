@@ -180,12 +180,12 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
         <div className="px-4 pb-8 space-y-4">
           {/* ── Tab switcher ─────────────────────────────────────────────── */}
           {stage !== 'preview' && (
-            <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+            <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
               <button
                 type="button"
                 onClick={() => { setTab('url'); setError(''); }}
                 className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2 rounded-lg transition-colors ${
-                  tab === 'url' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'
+                  tab === 'url' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-800 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
               >
                 <Link2 size={13} />
@@ -195,7 +195,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 type="button"
                 onClick={() => { setTab('text'); setError(''); }}
                 className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2 rounded-lg transition-colors ${
-                  tab === 'text' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'
+                  tab === 'text' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-800 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
               >
                 <FileText size={13} />
@@ -238,7 +238,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   onKeyDown={(e) => { if (e.key === 'Enter') handleImport(); }}
                   placeholder="Paste URL from WeChat, Red Book, Douyin, Bilibili…"
                   disabled={stage === 'loading'}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
                 />
               </div>
             </>
@@ -252,7 +252,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               placeholder="Paste a blog excerpt, travel notes, Airbnb description, or any text with travel tips…"
               disabled={stage === 'loading'}
               rows={6}
-              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors resize-none disabled:opacity-60"
+              className="w-full border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-400 focus:outline-none transition-colors resize-none disabled:opacity-60"
             />
           )}
 
@@ -316,11 +316,11 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 >
                   {PLATFORM_LABELS[preview.platform]}
                 </span>
-                <h3 className="font-bold text-gray-800 leading-snug">
+                <h3 className="font-bold text-gray-800 dark:text-gray-100 leading-snug">
                   {preview.title}
                 </h3>
                 {preview.description && (
-                  <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                     {preview.description}
                   </p>
                 )}
@@ -328,19 +328,19 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
               {/* Locations */}
               {preview.locations.length > 0 ? (
-                <div className="bg-indigo-50 rounded-2xl p-4">
-                  <p className="text-xs font-semibold text-indigo-600 mb-2 flex items-center gap-1.5">
+                <div className="bg-indigo-50 dark:bg-indigo-950 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2 flex items-center gap-1.5">
                     <MapPin size={12} />
                     📍 {preview.locations.length} place{preview.locations.length !== 1 ? 's' : ''} found
                   </p>
                   <div className="space-y-1.5">
                     {preview.locations.map((loc, i) => (
                       <div key={i}>
-                        <span className="text-sm text-indigo-800 font-medium">
+                        <span className="text-sm text-indigo-800 dark:text-indigo-200 font-medium">
                           {loc.name}
                         </span>
                         {loc.address && (
-                          <span className="text-xs text-indigo-500 font-normal ml-1.5">
+                          <span className="text-xs text-indigo-500 dark:text-indigo-400 font-normal ml-1.5">
                             — {loc.address}
                           </span>
                         )}
@@ -349,7 +349,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 text-center py-2">
+                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
                   No places spotted yet
                 </p>
               )}
@@ -357,14 +357,14 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               {/* Activities */}
               {preview.activities.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">
                     Activities
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {preview.activities.map((a) => (
                       <span
                         key={a}
-                        className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full"
+                        className="bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs px-2.5 py-1 rounded-full"
                       >
                         {a}
                       </span>
@@ -379,7 +379,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   {preview.tags.map((t) => (
                     <span
                       key={t}
-                      className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                      className="bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >
                       #{t}
                     </span>
@@ -389,7 +389,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
               {/* Notes */}
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">
                   Personal notes
                 </p>
                 <textarea
@@ -397,7 +397,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add notes about this place…"
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:border-indigo-400 focus:outline-none transition-colors"
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-sm resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-400 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -409,7 +409,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                     setStage('idle');
                     setPreview(null);
                   }}
-                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   Try another
                 </button>

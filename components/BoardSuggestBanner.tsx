@@ -122,13 +122,13 @@ export default function BoardSuggestBanner({ items, onCreateBoard }: BoardSugges
           transition={{ duration: 0.25 }}
           className="overflow-hidden"
         >
-          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div className="bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 rounded-2xl px-4 py-3 flex items-center gap-3">
             <span className="text-2xl flex-shrink-0">{getCountryEmoji(suggestion.country)}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-indigo-900 leading-snug">
+              <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-100 leading-snug">
                 You have {suggestion.count} {suggestion.country} clips
               </p>
-              <p className="text-xs text-indigo-600 mt-0.5">
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">
                 Create a board and organize them?
               </p>
             </div>
@@ -145,7 +145,7 @@ export default function BoardSuggestBanner({ items, onCreateBoard }: BoardSugges
             <button
               type="button"
               onClick={() => dismiss(suggestion.country)}
-              className="p-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors flex-shrink-0"
+              className="p-1.5 text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-lg transition-colors flex-shrink-0"
               aria-label="Dismiss suggestion"
             >
               <X size={15} />

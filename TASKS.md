@@ -910,7 +910,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Calculate spread from the bounding box of all location coordinates
 
 ### M7 — Dark Mode Polish Pass
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: All major components and pages  
 **What to do**:
 - Audit every screen for missing `dark:` Tailwind variants on `bg-white`, `text-gray-800`,
