@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Globe2, MapPin, Tag } from 'lucide-react';
+import { Globe2, MapPin, Tag, Download, Check } from 'lucide-react';
 import { decodeShareToken, SharePayload } from '@/lib/shareBoard';
+import { SavedItem, Board } from '@/lib/types';
+import { saveItem, saveBoard } from '@/lib/db';
+import { track } from '@/lib/analytics';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -61,12 +64,60 @@ function SharedClipCard({ item }: { item: SharePayload['items'][number] }) {
 
 export default function SharedBoardPage() {
   const { token } = useParams() as { token: string };
+  const router = useRouter();
   const [payload, setPayload] = useState<SharePayload | null | 'invalid'>(null);
+  const [importState, setImportState] = useState<'idle' | 'importing' | 'done'>('idle');
 
   useEffect(() => {
     const decoded = decodeShareToken(token);
     setPayload(decoded ?? 'invalid');
   }, [token]);
+
+  async function handleImportBoard() {
+    if (!payload || payload === 'invalid' || importState !== 'idle') return;
+    setImportState('importing');
+
+    const { board, items } = payload;
+    const newBoardId = crypto.randomUUID();
+    const itemIds: string[] = [];
+
+    for (const sharedItem of items) {
+      const newId = crypto.randomUUID();
+      itemIds.push(newId);
+      const fullItem: SavedItem = {
+        id:               newId,
+        url:              '',
+        platform:         'other',
+        title:            sharedItem.title,
+        description:      '',
+        thumbnail:        sharedItem.thumbnail,
+        locations:        sharedItem.locations,
+        activities:       sharedItem.activities,
+        tags:             sharedItem.tags,
+        substance:        [],
+        savedAt:          Date.now(),
+        enrichmentStatus: 'done',
+        retryCount:       0,
+      };
+      await saveItem(fullItem);
+    }
+
+    const newBoard: Board = {
+      id:          newBoardId,
+      name:        board.name,
+      emoji:       board.emoji,
+      description: board.description,
+      itemIds,
+      createdAt:   Date.now(),
+      updatedAt:   Date.now(),
+    };
+    await saveBoard(newBoard);
+
+    track('board_imported_from_share_link', { clipCount: items.length });
+
+    setImportState('done');
+    setTimeout(() => router.push(`/boards/${newBoardId}`), 1200);
+  }
 
   // Loading
   if (payload === null) {
@@ -169,20 +220,55 @@ export default function SharedBoardPage() {
           </div>
         )}
 
-        {/* Open in app CTA */}
+        {/* Import CTA */}
         <div className="mt-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl p-4 text-center">
-          <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-1">
-            Save your own travel inspiration
-          </p>
-          <p className="text-xs text-indigo-500 dark:text-indigo-400 mb-3">
-            TravelPanel clips spots and wisdom from any social post.
-          </p>
-          <a
-            href="/"
-            className="inline-block bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            Try TravelPanel →
-          </a>
+          {items.length > 0 ? (
+            <>
+              <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-1">
+                Save this board to your TravelPanel
+              </p>
+              <p className="text-xs text-indigo-500 dark:text-indigo-400 mb-3">
+                {items.length} clip{items.length !== 1 ? 's' : ''} will be added to your collection.
+              </p>
+              <button
+                onClick={handleImportBoard}
+                disabled={importState !== 'idle'}
+                className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {importState === 'done' ? (
+                  <>
+                    <Check size={16} />
+                    {items.length} clip{items.length !== 1 ? 's' : ''} saved!
+                  </>
+                ) : importState === 'importing' ? (
+                  <>
+                    <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    Save to my TravelPanel
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-1">
+                Save your own travel inspiration
+              </p>
+              <p className="text-xs text-indigo-500 dark:text-indigo-400 mb-3">
+                TravelPanel clips spots and wisdom from any social post.
+              </p>
+              <a
+                href="/"
+                className="inline-block bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+              >
+                Try TravelPanel →
+              </a>
+            </>
+          )}
         </div>
       </div>
     </div>
