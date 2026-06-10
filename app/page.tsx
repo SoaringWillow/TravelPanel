@@ -16,6 +16,7 @@ import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import AddPlaceSheet from '@/components/AddPlaceSheet';
+import ClipboardBanner from '@/components/ClipboardBanner';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -439,6 +440,14 @@ function HomePageInner() {
         onAdded={(item) => {
           addItem(item);
           if (item.locations.length > 0) setFlyTo(item.locations[0]);
+        }}
+      />
+
+      {/* Clipboard quick-save banner */}
+      <ClipboardBanner
+        onSave={(url) => {
+          setPrefilledUrl(url);
+          setShowImport(true);
         }}
       />
 

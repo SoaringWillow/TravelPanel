@@ -833,7 +833,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Execution order: M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8
 
 ### M1 — Clipboard Travel URL Quick-Save
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, new `components/ClipboardBanner.tsx`  
 **What to do**:
 - On app focus (visibilitychange) and on mount, read `navigator.clipboard.readText()`
