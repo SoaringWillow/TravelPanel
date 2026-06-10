@@ -229,7 +229,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test: plan page, inbox page, share page, settings page, boards page
 
 ### D3 — Haptic Feedback Throughout
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Haptics make the app feel native and responsive. Every significant action should have a matching tap.  
 **Files to change**: `lib/haptics.ts` (new), `app/share/page.tsx`, `components/ImportSheet.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
