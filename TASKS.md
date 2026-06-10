@@ -353,7 +353,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Document the minimum iOS version (target iOS 16+)
 
 ### F3 — App Store Metadata Pack
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app-store/metadata.md` (not checked in, just a reference doc)  
 **What to do**:
 - Write App Store name (30 chars): "TravelPanel — Trip Planner"
