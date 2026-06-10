@@ -454,7 +454,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test in Xcode Simulator iPad Pro 12.9"
 
 ### G8 — TestFlight Beta Setup Guide
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `ios/App/TESTFLIGHT_SETUP.md`  
 **What to do**:
 - Document exact steps to create App Store Connect app entry
