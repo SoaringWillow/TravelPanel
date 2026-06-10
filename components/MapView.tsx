@@ -224,18 +224,97 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
   );
 }
 
+// ─── User location dot (pulsing blue circle) ─────────────────────────────────
+
+interface UserLocDotProps {
+  accuracy: number; // metres, used to size the accuracy ring
+}
+
+function UserLocDot({ accuracy }: UserLocDotProps) {
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Accuracy ring — only shown when accuracy is reasonably precise */}
+      {accuracy < 500 && (
+        <div
+          style={{
+            position:     'absolute',
+            width:        Math.min(accuracy / 2, 80),
+            height:       Math.min(accuracy / 2, 80),
+            borderRadius: '50%',
+            background:   'rgba(59,130,246,0.12)',
+            border:       '1px solid rgba(59,130,246,0.3)',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      {/* Outer pulse ring */}
+      <div
+        style={{
+          position:     'absolute',
+          width:        22,
+          height:       22,
+          borderRadius: '50%',
+          background:   'rgba(59,130,246,0.25)',
+          animation:    'user-loc-pulse 2s ease-out infinite',
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Inner solid dot */}
+      <div
+        style={{
+          width:     14,
+          height:    14,
+          borderRadius: '50%',
+          background:   '#3b82f6',
+          border:       '2.5px solid white',
+          boxShadow:    '0 2px 8px rgba(59,130,246,0.5)',
+          position:     'relative',
+          zIndex:       1,
+        }}
+      />
+      <style>{`
+        @keyframes user-loc-pulse {
+          0%   { transform: scale(0.6); opacity: 0.9; }
+          70%  { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
+
+export interface UserLocation {
+  lat: number;
+  lng: number;
+  accuracy: number;
+}
 
 interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  userLocation?: UserLocation;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
-  const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const mapInstanceRef      = useRef<maplibregl.Map | null>(null);
+  const hasFlownToUserRef   = useRef(false);
+
+  // Fly to user location the first time it becomes available
+  useEffect(() => {
+    if (!userLocation || hasFlownToUserRef.current) return;
+    if (!mapInstanceRef.current) return;
+    hasFlownToUserRef.current = true;
+    mapInstanceRef.current.flyTo({
+      center: [userLocation.lng, userLocation.lat],
+      zoom: 14,
+      duration: 1800,
+    });
+  }, [userLocation]);
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -328,6 +407,13 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </Marker>
           );
         })}
+
+        {/* User location blue dot */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <UserLocDot accuracy={userLocation.accuracy} />
+          </Marker>
+        )}
 
         {popupInfo && (
           <Popup
