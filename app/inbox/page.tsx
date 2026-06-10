@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Plus, Link2 } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
-import { PLATFORM_LABELS } from '@/lib/parse-url';
+import { PLATFORM_LABELS, detectPlatform, PLATFORM_COLORS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
@@ -40,8 +40,31 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [clipSheetOpen, setClipSheetOpen] = useState(false);
+  const [clipUrl, setClipUrl] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const clipInputRef = useRef<HTMLInputElement>(null);
   const pullState = usePullToRefresh(scrollRef, refresh);
+
+  // Pre-fill from clipboard when sheet opens
+  useEffect(() => {
+    if (!clipSheetOpen) return;
+    setTimeout(() => clipInputRef.current?.focus(), 100);
+    navigator.clipboard?.readText().then((text) => {
+      if (/^https?:\/\//.test(text.trim())) setClipUrl(text.trim());
+    }).catch(() => {});
+  }, [clipSheetOpen]);
+
+  function handleClipSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const url = clipUrl.trim();
+    if (!url) return;
+    setClipSheetOpen(false);
+    setClipUrl('');
+    router.push(`/share?url=${encodeURIComponent(url)}`);
+  }
+
+  const detectedPlatform = clipUrl.trim() ? detectPlatform(clipUrl.trim()) : null;
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -255,6 +278,94 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+
+      {/* Clip URL FAB */}
+      <button
+        type="button"
+        onClick={() => setClipSheetOpen(true)}
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+72px)] right-5 z-[100] w-14 h-14 rounded-full bg-indigo-600 shadow-lg shadow-indigo-300 flex items-center justify-center text-white active:scale-95 transition-transform"
+        aria-label="Add clip from URL"
+      >
+        <Plus size={26} strokeWidth={2.5} />
+      </button>
+
+      {/* Clip URL sheet */}
+      <AnimatePresence>
+        {clipSheetOpen && (
+          <>
+            <motion.div
+              key="clip-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1999] bg-black/40"
+              onClick={() => setClipSheetOpen(false)}
+            />
+            <motion.div
+              key="clip-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl px-5 pb-10 pt-4"
+            >
+              <div className="flex justify-center mb-4">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800 text-lg">Paste a URL to clip</h3>
+                <button
+                  type="button"
+                  onClick={() => setClipSheetOpen(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <form onSubmit={handleClipSubmit} className="space-y-3">
+                <div className="flex items-center gap-2 border-2 border-gray-200 focus-within:border-indigo-400 rounded-2xl px-3 py-3 transition-colors">
+                  {detectedPlatform ? (
+                    <span
+                      className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                      style={{ background: PLATFORM_COLORS[detectedPlatform] }}
+                    >
+                      {detectedPlatform === 'wechat' ? '微' : detectedPlatform === 'xiaohongshu' ? '红' : detectedPlatform === 'douyin' ? '抖' : detectedPlatform === 'bilibili' ? 'B' : '🌍'}
+                    </span>
+                  ) : (
+                    <Link2 size={16} className="text-gray-400 flex-shrink-0" />
+                  )}
+                  <input
+                    ref={clipInputRef}
+                    type="url"
+                    value={clipUrl}
+                    onChange={(e) => setClipUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none min-w-0"
+                    enterKeyHint="go"
+                  />
+                  {clipUrl && (
+                    <button type="button" onClick={() => setClipUrl('')} className="text-gray-400 flex-shrink-0">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                {detectedPlatform && (
+                  <p className="text-xs text-gray-400 px-1">
+                    Detected: <span className="font-medium text-gray-600">{PLATFORM_LABELS[detectedPlatform]}</span>
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={!clipUrl.trim()}
+                  className="w-full bg-indigo-600 disabled:opacity-40 text-white font-semibold py-3.5 rounded-2xl text-sm active:scale-[0.98] transition-all"
+                >
+                  Clip it ✈️
+                </button>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Board selector bottom sheet */}
       <AnimatePresence>

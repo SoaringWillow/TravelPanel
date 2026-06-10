@@ -474,6 +474,127 @@ Goal: fill in the remaining gaps — missing features users will hit quickly, de
 
 ---
 
+## PHASE G — iOS App Completeness (Current Sprint)
+
+Goal: close every remaining gap between this and a native iOS travel app. No Xcode required — all pure web/PWA.
+
+### G1 — Clipboard Import (Paste URL to Clip)
+**Status**: `[x]` Done
+**Files**: `app/inbox/page.tsx`, `app/share/page.tsx`
+**Why**: Users discovering the app without knowing about Share Sheet hit a dead end. Paste-URL import removes this blocker.
+**What to do**:
+- Add a "+" FAB (floating action button) on the Inbox page (bottom-right, above NavBar)
+- Tapping it opens a bottom sheet with a URL input field + "Clip it" button
+- On submit: navigate to `/share?url=<encodedUrl>` (reuses existing share page flow)
+- Also read from clipboard automatically on sheet open (`navigator.clipboard.readText()`) and pre-fill the input if clipboard contains a URL
+- Show the platform icon (parse URL to detect xiaohongshu/douyin/etc) next to the input
+
+### G2 — Multi-Select & Bulk Move to Board
+**Status**: `[ ]` Not started
+**Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`
+**Why**: Users with 20+ clips need to organize in batches, not one-by-one.
+**What to do**:
+- Long-press (500ms timeout on touchstart) on an inbox card enters multi-select mode
+- Cards show checkboxes (top-left); already-selected cards have a blue ring + checkmark
+- A bottom action bar slides up (above NavBar) showing: "X selected · Move to board ▼ · Cancel"
+- "Move to board" opens the board picker sheet and bulk-moves all selected items
+- Tap "Cancel" or long-press background to exit multi-select mode
+- Animate checkboxes in/out with framer-motion scale
+
+### G3 — PWA Add-to-Home-Screen Nudge
+**Status**: `[ ]` Not started
+**Files**: new `components/InstallBanner.tsx`, `app/layout.tsx`
+**Why**: iOS Safari users need a nudge to install — the "Add to Home Screen" shortcut is hidden in the share sheet and most users miss it. Without installation, there's no standalone mode, no safe-area insets, and no Share Extension.
+**What to do**:
+- Detect if running in standalone mode: `window.matchMedia('(display-mode: standalone)').matches` or `window.navigator.standalone`
+- If NOT standalone and on iOS (UA sniff: `/iPhone|iPad|iPod/`), show a dismissible bottom banner after 30 seconds or 3 page views (localStorage counter)
+- Banner: "📲 Install for the full experience — tap the Share button then 'Add to Home Screen'" with a small ↑ arrow pointing up
+- iOS Share button icon inline in the text
+- Dismiss button stores `travelpanel_install_dismissed=1` in localStorage; don't show again for 7 days
+- On Android, listen for `beforeinstallprompt` event and show a native install button instead
+
+### G4 — Dark Mode Support
+**Status**: `[ ]` Not started
+**Files**: `app/globals.css`, `tailwind.config.js`, `app/layout.tsx`, `app/settings/page.tsx`
+**Why**: ~70% of iOS users use dark mode at night. Currently all text/backgrounds are hardcoded light-mode values.
+**What to do**:
+- Set `darkMode: 'class'` in `tailwind.config.js`
+- Add a `ThemeProvider` component that reads `prefers-color-scheme` and a localStorage override; applies `class="dark"` to `<html>`
+- In globals.css add dark-mode CSS variables for background, text, border colors
+- Go through main pages (inbox, boards, settings, share, plan) and add `dark:` Tailwind variants for bg, text, border, shadow classes
+- Settings page: add a "Appearance" section with Light / Dark / System toggle (3-way segmented control)
+- NavBar, InboxCard, BoardCard, MapView overlay all need dark variants
+
+### G5 — Clip Deduplication Warning
+**Status**: `[ ]` Not started
+**Files**: `app/share/page.tsx`, `lib/db.ts`
+**Why**: Users often share the same URL twice (different sessions, saw it on a different device). Silent duplicate saves pollute the inbox.
+**What to do**:
+- Add `findItemByUrl(url: string): Promise<SavedItem | undefined>` to `lib/db.ts` (query the `by-url` index if it exists, or scan items)
+- In `app/share/page.tsx`, before calling the import API, check for an existing item with the same URL
+- If duplicate found: show a warning card "Already saved! This URL was clipped on [date]." with two options: "Go to existing clip" and "Save anyway"
+- "Go to existing clip" navigates to `/inbox` with the existing item highlighted
+
+### G6 — Batch Retry Failed Enrichments
+**Status**: `[ ]` Not started
+**Files**: `app/inbox/page.tsx`, `hooks/useEnrichmentRetry.ts`
+**Why**: After network issues, multiple clips can be in failed state. Users need one tap to retry all, not card-by-card.
+**What to do**:
+- Count `failedCount = items.filter(i => i.enrichmentStatus === 'failed').length`
+- When `failedCount > 0`, show a slim amber banner at the top of the inbox list: "⚠️ X clips failed to load · Retry all"
+- Tapping "Retry all" calls `retryItem` for each failed item with a 200ms stagger between each (avoid API hammering)
+- Banner disappears when `failedCount === 0`
+- Disable button during retrying with a spinner
+
+### G7 — Swipeable Day Navigation in Trip Plan
+**Status**: `[ ]` Not started
+**Files**: `app/plan/[boardId]/page.tsx`
+**Why**: Long trips (7+ days) require heavy scrolling. Day tabs + swipe feel native.
+**What to do**:
+- Add a sticky horizontal day pill tab bar below the plan header: "Day 1", "Day 2", etc.
+- Tapping a pill scrolls to that day's section (smooth scroll via `scrollIntoView`)
+- Active pill highlights in indigo; pills scroll horizontally if >5 days
+- Wrap the day sections in a `useRef` map so each day has a ref for scrollIntoView
+- Bonus: add a "jump to today" button if the trip has started (compare today's date to trip start)
+
+### G8 — Post-Save Board Assignment on Share Page
+**Status**: `[ ]` Not started
+**Files**: `app/share/page.tsx`, `lib/db.ts`
+**Why**: Currently every saved clip lands in the inbox and users must manually move to boards. Adding the assignment immediately after save (while the clip is top-of-mind) dramatically improves organization rates.
+**What to do**:
+- After successful enrichment (status `done`), on the success screen add a "Add to a board" section
+- Show a horizontal scrollable list of existing boards (emoji + name chips)
+- Tapping a board chip calls `addItemToBoard(boardId, itemId)` and shows a checkmark on that chip
+- "Create new board" option at the end of the chip list opens an inline input
+- Multiple boards can be selected (the clip goes into all selected boards)
+- This replaces the plain "Going to inbox" text
+
+### G9 — Accessible Keyboard Navigation & ARIA
+**Status**: `[ ]` Not started
+**Files**: `components/NavBar.tsx`, `components/InboxCard.tsx`, `components/BoardCard.tsx`, `app/inbox/page.tsx`
+**Why**: Screen reader users and keyboard-only users (iPad with keyboard) currently can't use the app effectively.
+**What to do**:
+- NavBar links: add `aria-label` with full descriptive text ("Navigate to map", "Navigate to inbox")
+- InboxCard: `role="article"`, `aria-label={item.title || 'Saved clip'}` on the card wrapper
+- Swipe-to-delete: add a keyboard-accessible delete button (visible on focus, hidden otherwise) as alternative to swipe
+- Bottom sheets (board picker, etc.): add `role="dialog"`, `aria-modal="true"`, focus trap when open
+- Search input: `aria-label="Search clips"`, results count announced via `aria-live="polite"`
+- Skeleton loaders: `aria-busy="true"` on the container while loading
+
+### G10 — "Continue Planning" Smart Banner on Home
+**Status**: `[ ]` Not started
+**Files**: `app/page.tsx`, `lib/db.ts`
+**Why**: Users forget which board they were building. A contextual nudge to resume the most recently active board drives plan generation (the North Star metric).
+**What to do**:
+- On app load, find the board with the most recent `updatedAt` timestamp that has ≥3 clips with locations
+- If found and the board has no completed trip plan, show a floating "Continue planning [emoji] [name] →" card in the bottom-left of the map view (above NavBar)
+- Card fades in after 1.5s delay (don't obstruct first load)
+- Tapping navigates to `/boards/[id]` where the Plan CTA is prominent
+- Dismiss (×) stores dismissed board ID in localStorage; don't show for that board again
+- Hide the banner once the board has a completed plan
+
+---
+
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode
