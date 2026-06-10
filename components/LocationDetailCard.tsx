@@ -56,11 +56,18 @@ export default function LocationDetailCard({ item, onClose, onMarkVisited }: Loc
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">
             <div className="flex-1 min-w-0 pr-3">
-              <span
-                className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2 py-0.5 rounded-full inline-block mb-2`}
-              >
-                {PLATFORM_LABELS[item.platform]}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <span
+                  className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2 py-0.5 rounded-full`}
+                >
+                  {PLATFORM_LABELS[item.platform]}
+                </span>
+                {item.sourceAuthor && (
+                  <span className="text-xs text-gray-400 dark:text-slate-500">
+                    Inspired by {item.sourceAuthor}
+                  </span>
+                )}
+              </div>
               <h3 className="font-bold text-gray-800 dark:text-slate-100 text-base leading-snug line-clamp-2">
                 {item.title}
               </h3>

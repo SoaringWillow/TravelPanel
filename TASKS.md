@@ -229,7 +229,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Gate per milestone: only show each milestone once (localStorage flag)
 
 ### G4 — "Inspiration From" Attribution on Import
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When a clip is imported from a specific creator's video/post, the "Inspired by [creator]" attribution is valuable context — both for the user's memory and for potential future social features.  
 **Files to change**: `app/api/import/route.ts`, `lib/types.ts`, `components/LocationDetailCard.tsx`  
 **What to do**:

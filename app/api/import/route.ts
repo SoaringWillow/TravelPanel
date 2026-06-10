@@ -26,6 +26,7 @@ const substanceSchema = z.object({
 const importSchema = z.object({
   title: z.string().describe('Concise descriptive title for this travel content'),
   description: z.string().describe('2-3 sentence summary of the travel content'),
+  sourceAuthor: z.string().optional().describe('Username or display name of the content creator if visible in the URL, title, or content. E.g. "@travel_jane", "旅行博主小王". Omit if not clearly identifiable.'),
   locations: z.array(locationSchema).describe('Real identifiable locations with accurate GPS coordinates. Only include places you are confident about.'),
   activities: z.array(z.string()).describe('Specific things to do at these places'),
   tags: z.array(z.string()).describe('Relevant tags from: food, nature, culture, adventure, relaxation, photography, shopping, nightlife, history, art, architecture, beach, mountain, city, rural'),
@@ -209,6 +210,7 @@ export async function POST(req: NextRequest) {
     activities: claudeResult?.activities ?? [],
     tags: claudeResult?.tags ?? [],
     substance: claudeResult?.substance ?? [],
+    sourceAuthor: claudeResult?.sourceAuthor,
   };
 
   return NextResponse.json(result);

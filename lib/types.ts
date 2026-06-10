@@ -47,6 +47,7 @@ export interface SavedItem {
   substance: SubstanceItem[]; // wisdom layer — tips, warnings, opinions from the post
   savedAt: number;
   notes?: string;
+  sourceAuthor?: string; // creator attribution extracted from the original post
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
@@ -140,6 +141,7 @@ export interface ImportResult {
   activities: string[];
   tags: string[];
   substance: SubstanceItem[];
+  sourceAuthor?: string;
 }
 
 // NDJSON messages streamed from /api/plan
