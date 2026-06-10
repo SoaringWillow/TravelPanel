@@ -18,7 +18,10 @@ export default function NavBar({ active }: NavBarProps) {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
-      style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
+      style={{
+        boxShadow: '0 -1px 12px rgba(0,0,0,0.08)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
     >
       <div className="flex items-stretch">
         {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {

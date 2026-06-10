@@ -16,6 +16,7 @@ import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { InboxSkeleton } from '@/components/SkeletonCard';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -171,9 +172,7 @@ export default function InboxPage() {
           </div>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-          </div>
+          <InboxSkeleton />
         ) : filtered.length === 0 ? (
           query.trim() ? (
             /* Search empty */

@@ -10,6 +10,7 @@ import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
 import NavBar from '@/components/NavBar';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { BoardsSkeleton } from '@/components/SkeletonCard';
 
 export default function BoardsPage() {
   const { boards, loading: boardsLoading, createBoard, removeBoard, renameBoard, refresh } = useBoards();
@@ -89,9 +90,7 @@ export default function BoardsPage() {
           </div>
         </div>
         {boardsLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-          </div>
+          <BoardsSkeleton />
         ) : boards.length === 0 ? (
           <div className="flex flex-col items-center text-center px-6 pt-8 pb-24">
             <div className="w-24 h-24 rounded-3xl bg-indigo-50 flex items-center justify-center text-5xl mb-5 shadow-inner">

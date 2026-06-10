@@ -103,3 +103,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 03:41 | 4edb0fb | feat: D3 board rename/delete + D4 beautiful empty states
 2026-06-10 03:42 | 6a3dcaf | feat: D5 board filter bar on map
 2026-06-10 03:44 | 5eb1845 | feat: D7 haptic feedback + D9 plan share button
+2026-06-10 03:46 | 646de7f | feat: D10 screenshot thumbnail preservation for Xiaohongshu/WeChat clips
+2026-06-10 03:50 | 24e84b3 | feat(D8): pull-to-refresh on Inbox and Boards

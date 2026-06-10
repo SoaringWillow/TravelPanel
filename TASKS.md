@@ -277,6 +277,106 @@ Work top-to-bottom within this phase.
 
 ---
 
+## PHASE E — Production Polish & Native iOS Feel (Current Sprint)
+
+Goal: eliminate every "web app" tell. Every screen should feel indistinguishable from a native iOS app.
+Work top-to-bottom.
+
+### E1 — NavBar iOS Home Indicator Safe Area
+**Status**: `[x]` Done
+**Files**: `components/NavBar.tsx`, `app/globals.css`
+**What to do**:
+- NavBar currently clips at the very bottom edge — on iPhone with home indicator (all modern iPhones) it overlaps the system gesture bar
+- Add `padding-bottom: env(safe-area-inset-bottom)` to the nav container
+- Also ensure `pb-24` / `pb-[env(safe-area-inset-bottom)]` offsets used in content areas are updated to account for actual nav height + safe area
+- Header `pt-12` should use `padding-top: max(48px, env(safe-area-inset-top))` to handle Dynamic Island / notch
+
+### E2 — Skeleton Loading States
+**Status**: `[x]` Done
+**Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`
+**What to do**:
+- Replace the centered spinner in Inbox and Boards with shimmer-skeleton placeholders that match the actual card grid layout
+- Inbox skeleton: 6 skeleton cards in a 2-column grid (matching InboxCard dimensions)
+- Boards skeleton: 4 skeleton board cards in a 2-column grid
+- Use a CSS `@keyframes shimmer` animation (gradient sweep from left to right)
+- Add reusable `SkeletonCard` component in `components/SkeletonCard.tsx`
+
+### E3 — Error Boundary + Crash Recovery UI
+**Status**: `[x]` Done
+**Files**: new `components/ErrorBoundary.tsx`, `app/layout.tsx`
+**What to do**:
+- Add a React class ErrorBoundary wrapping the main content in `app/layout.tsx`
+- On crash: show a friendly "Something went wrong" card with emoji, message, and "Reload app" button
+- Log the error to the analytics `track('app_error', { message, stack })` wrapper
+- Don't wrap in ErrorBoundary: CapacitorBridge, AnalyticsProvider (they should fail silently)
+
+### E4 — Smooth Page Transitions
+**Status**: `[x]` Done
+**Files**: `app/layout.tsx`, new `components/PageTransition.tsx`
+**What to do**:
+- Wrap `{children}` in a `PageTransition` component that uses framer-motion `AnimatePresence`
+- Transition: `initial={{ opacity: 0, y: 8 }}` → `animate={{ opacity: 1, y: 0 }}` → `exit={{ opacity: 0 }}`
+- Duration: 180ms ease-out — snappy, not floaty
+- Use `usePathname()` as the `key` for AnimatePresence so each navigation triggers the animation
+
+### E5 — Clip Count & New Badge on Board Cards
+**Status**: `[ ]` Not started
+**Files**: `components/BoardCard.tsx`, `app/boards/page.tsx`
+**What to do**:
+- Show a "N clips" pill badge on each board card (already partially there with `itemCount` prop)
+- If any clip in the board has `enrichmentStatus === 'pending'` or `=== 'failed'`, show a small amber dot indicator
+- Board card image: show a 2×2 grid of thumbnail previews from the board's clips (first 4 clips with thumbnails)
+- Fallback: show the board emoji centered on a gradient background if no thumbnails
+
+### E6 — Map Pin Tap → Rich Popup Card
+**Status**: `[ ]` Not started
+**Files**: `components/MapView.tsx`, `components/LocationDetailCard.tsx`
+**What to do**:
+- When user taps a pin, currently opens LocationDetailCard via parent state
+- Improve: show a mini preview card anchored near the pin (not just the bottom sheet) — or improve the bottom sheet open animation (spring up, not instant)
+- Add a close affordance (swipe down or × button) to the detail card
+- Show the clip's thumbnail prominently at the top (hero image)
+
+### E7 — Improved InboxCard: Gradient Placeholder & Status Polish
+**Status**: `[x]` Done
+**Files**: `components/InboxCard.tsx`
+**What to do**:
+- When `item.thumbnail` is undefined/null: show a gradient placeholder based on platform color (wechat=green, xiaohongshu=red, douyin=black, bilibili=pink, unknown=indigo) instead of a gray box
+- Processing state: show animated shimmer over the whole card, not just a spinner
+- Failed state: show a warm amber error card with retry button more prominently
+- Add subtle drop shadow on card hover/press for tactile feedback
+
+### E8 — Trip Planner UI: Day Strip Cards Polish
+**Status**: `[ ]` Not started
+**Files**: `components/DayStripCard.tsx`, `app/plan/[boardId]/page.tsx`
+**What to do**:
+- Day header: larger emoji + day number, more visual weight
+- Activity cards: show a colored left border by activity type (food=orange, culture=purple, nature=green, transport=blue)
+- Sourced tips: render with a subtle indigo quote-style left border and "📎 from: <title>" attribution
+- Add a "Collapse day" affordance so users can fold/unfold days
+- Total trip stats bar at the top: "X days · Y activities · Z locations"
+
+### E9 — Offline / No-Network State
+**Status**: `[x]` Done
+**Files**: new `components/OfflineBanner.tsx`, `app/layout.tsx`
+**What to do**:
+- Detect `navigator.onLine` and listen to `online`/`offline` events
+- When offline: show a slim amber banner at the top "You're offline — clips save locally"
+- When back online: show brief green "Back online" toast for 2s then hide
+- Enrichment and plan generation should show "Requires internet connection" instead of failing silently
+
+### E10 — Pinch-to-Zoom & Full-Screen Image Viewer
+**Status**: `[ ]` Not started
+**Files**: new `components/ImageViewer.tsx`, `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`
+**What to do**:
+- Tapping a clip thumbnail (in detail card or inbox card) opens a full-screen image viewer
+- Support pinch-to-zoom (CSS `touch-action: manipulation` + transform scale)
+- Double-tap to zoom/reset
+- Swipe down to dismiss (framer-motion drag="y")
+- Show image URL source and clip title at the bottom
+
+---
+
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode

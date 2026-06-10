@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
+import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
-import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
 import { lightHaptic } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -51,13 +51,13 @@ export default function InboxCard({
 
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
-      // Full skeleton — no content yet
+      // Full shimmer skeleton — no content yet
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
-          <div className="w-full h-32 bg-gray-200" />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="shimmer w-full h-32" />
           <div className="p-4 space-y-3">
-            <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
-            <div className="h-3 bg-gray-200 rounded-full w-3/5" />
+            <div className="shimmer h-3.5 rounded-full w-4/5" />
+            <div className="shimmer h-3 rounded-full w-3/5" />
             <div className="flex items-center gap-2 pt-1">
               <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
@@ -119,7 +119,7 @@ export default function InboxCard({
     const exhausted = (item.retryCount ?? 0) >= 3;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+      <div className={`rounded-2xl shadow-sm border overflow-hidden p-4 space-y-3 ${exhausted ? 'bg-red-50 border-red-100' : 'bg-amber-50 border-amber-100'}`}>
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
@@ -254,7 +254,7 @@ function SwipeToDeleteCard({
         className="relative z-10 cursor-grab active:cursor-grabbing"
       >
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Thumbnail or placeholder */}
+      {/* Thumbnail or platform-colored gradient placeholder */}
       {item.thumbnail ? (
         <img
           src={item.thumbnail}
@@ -265,8 +265,18 @@ function SwipeToDeleteCard({
           }}
         />
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
+        <div
+          className="w-full h-24 flex items-center justify-center"
+          style={{
+            background: `linear-gradient(135deg, ${PLATFORM_COLORS[item.platform]}22 0%, ${PLATFORM_COLORS[item.platform]}44 100%)`,
+          }}
+        >
+          <span className="text-3xl opacity-60">
+            {item.platform === 'wechat' ? '💬' :
+             item.platform === 'xiaohongshu' ? '📖' :
+             item.platform === 'douyin' ? '🎵' :
+             item.platform === 'bilibili' ? '📺' : '🌍'}
+          </span>
         </div>
       )}
 
