@@ -46,6 +46,17 @@
   font-size: 10px;
 }
 
+/* Clean up MapLibre popup chrome for our custom card popup */
+.maplibregl-popup-content {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important;
+  overflow: hidden !important;
+}
+.maplibregl-popup-close-button {
+  display: none !important;
+}
+
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;

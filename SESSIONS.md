@@ -107,3 +107,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 03:50 | 24e84b3 | feat(D8): pull-to-refresh on Inbox and Boards
 2026-06-10 03:54 | 09b26ee | feat(E1-E9): Phase E iOS production polish
 2026-06-10 03:57 | c283630 | feat(E5+E8): board thumbnail grid + activity color coding
+2026-06-10 03:58 | 7dc4e51 | feat(E10): pinch-to-zoom full-screen image viewer

@@ -329,7 +329,7 @@ Work top-to-bottom.
 - Fallback: show the board emoji centered on a gradient background if no thumbnails
 
 ### E6 — Map Pin Tap → Rich Popup Card
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/MapView.tsx`, `components/LocationDetailCard.tsx`
 **What to do**:
 - When user taps a pin, currently opens LocationDetailCard via parent state
