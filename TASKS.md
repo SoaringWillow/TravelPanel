@@ -392,7 +392,7 @@ Goal: fill in the remaining gaps — missing features users will hit quickly, de
 - Add a stats bar under the map: "X pins · Y tips · Z activities"
 
 ### F2 — Share Page UX Polish
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/share/page.tsx`
 **What to do**:
 - Show a more prominent loading animation while enriching ("Analyzing your clip...")

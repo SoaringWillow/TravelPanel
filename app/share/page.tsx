@@ -198,11 +198,44 @@ function SharePageInner() {
     await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
   }
 
+  // ── Stage: saving (full-screen enrichment animation) ──────────────────────
+
+  if (stage === 'saving') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 header-pt safe-bottom">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="flex flex-col items-center gap-4 text-center"
+        >
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
+               style={{ background: `${platformColor}20` }}>
+            🔍
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-800 mb-1">Analyzing your clip…</p>
+            <p className="text-sm text-gray-500">AI is extracting locations and travel wisdom</p>
+          </div>
+          <div className="flex gap-1.5 mt-2">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity }}
+                className="w-2 h-2 rounded-full bg-indigo-400"
+              />
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ── Stage: picking ────────────────────────────────────────────────────────
 
-  if (stage === 'picking' || stage === 'saving') {
+  if (stage === 'picking') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      <div className="min-h-screen bg-white flex flex-col justify-between p-6 header-pt safe-bottom">
         {/* Top section */}
         <div className="space-y-2 pt-4">
           {/* Platform chip */}
@@ -362,7 +395,7 @@ function SharePageInner() {
   // ── Stage: done ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+    <div className="min-h-screen bg-white flex flex-col justify-between p-6 header-pt safe-bottom">
       {/* Success content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12">
         {/* Animated green checkmark */}

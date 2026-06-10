@@ -110,3 +110,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 03:58 | 7dc4e51 | feat(E10): pinch-to-zoom full-screen image viewer
 2026-06-10 03:59 | c4e805d | feat(E6): rich map pin popup with thumbnail and substance count
 2026-06-10 04:02 | 31f2649 | feat(F1+F3+F7): board detail polish, stats dashboard, map empty state
+2026-06-10 04:03 | 671e056 | feat(F6): substance quick-peek inline in Inbox cards
