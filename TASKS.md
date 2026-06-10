@@ -108,7 +108,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Must feel native: the spinner should appear ABOVE the first list item, not push content down
 
 ### F5 — Accessibility (VoiceOver + Dynamic Type)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: App Store review team tests with VoiceOver. Failing accessibility review causes rejection. Additionally, many travel users are older — Dynamic Type support is retention-critical for them.  
 **Files to change**: Most components  
 **What to do**:

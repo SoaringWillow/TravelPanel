@@ -210,6 +210,8 @@ function HomePageInner() {
             transition={{ duration: 0.25 }}
             type="button"
             onClick={() => { setSelectedItem(nearbyMatch.item); setNearbyMatch(null); }}
+            aria-label={`You're near ${nearbyMatch.locationName} — view tips`}
+            aria-live="polite"
             className="fixed bottom-24 left-4 right-16 z-[900] bg-blue-600 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-left hover:bg-blue-700 active:scale-[0.98] transition-all"
           >
             <span className="text-base">📍</span>

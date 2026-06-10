@@ -280,11 +280,12 @@ export default function InboxPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3" role="list" aria-label="Saved clips">
             <AnimatePresence>
               {filtered.map((item) => (
                 <motion.div
                   key={item.id}
+                  role="listitem"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
@@ -410,12 +411,15 @@ export default function InboxPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.2 }}
+            role="status"
+            aria-live="polite"
             className="fixed bottom-20 left-4 right-4 z-[3000] flex items-center justify-between bg-gray-900 dark:bg-slate-700 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-xl"
           >
             <span>Clip deleted</span>
             <button
               type="button"
               onClick={handleUndo}
+              aria-label="Undo clip deletion"
               className="text-indigo-300 hover:text-indigo-200 font-semibold ml-4 shrink-0"
             >
               Undo

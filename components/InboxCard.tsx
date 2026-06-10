@@ -73,7 +73,11 @@ export default function InboxCard({
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
       return (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+        <div
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden"
+          aria-busy="true"
+          aria-label="Loading clip…"
+        >
           {/* Thumbnail skeleton */}
           <div className="w-full h-32 bg-gray-200 dark:bg-slate-700 animate-pulse relative">
             <div className="absolute top-2 right-2">
