@@ -526,7 +526,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - NavBar, InboxCard, BoardCard, MapView overlay all need dark variants
 
 ### G5 — Clip Deduplication Warning
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/share/page.tsx`, `lib/db.ts`
 **Why**: Users often share the same URL twice (different sessions, saw it on a different device). Silent duplicate saves pollute the inbox.
 **What to do**:

@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { successHaptic, lightHaptic } from '@/lib/haptics';
@@ -13,7 +13,7 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Stage = 'picking' | 'saving' | 'done';
+type Stage = 'picking' | 'duplicate' | 'saving' | 'done';
 
 // ─── Image helpers ────────────────────────────────────────────────────────────
 
@@ -54,6 +54,9 @@ function SharePageInner() {
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
+  const [pendingBoardId, setPendingBoardId]   = useState<string | undefined>(undefined);
+  const [pendingBoardName, setPendingBoardName] = useState<string | undefined>(undefined);
   const [savedToName, setSavedToName]         = useState('');
   const [newBoardName, setNewBoardName]       = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
@@ -117,7 +120,17 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDupCheck = false) {
+    if (!skipDupCheck && rawUrl) {
+      const existing = await findItemByUrl(rawUrl);
+      if (existing) {
+        setDuplicateItem(existing);
+        setPendingBoardId(selectedBoardId);
+        setPendingBoardName(boardDisplayName);
+        setStage('duplicate');
+        return;
+      }
+    }
     setStage('saving');
 
     const itemId = crypto.randomUUID();
@@ -196,6 +209,55 @@ function SharePageInner() {
     setNewBoardName('');
     setShowNewBoardInput(false);
     await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
+  }
+
+  // ── Stage: duplicate warning ──────────────────────────────────────────────
+
+  if (stage === 'duplicate' && duplicateItem) {
+    const savedDate = new Date(duplicateItem.savedAt).toLocaleDateString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+    });
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 header-pt safe-bottom">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-full max-w-sm"
+        >
+          <div className="text-4xl text-center mb-4">🔁</div>
+          <h2 className="text-xl font-bold text-gray-800 text-center mb-2">Already saved!</h2>
+          <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+            You clipped this URL on <strong>{savedDate}</strong>.
+            <br />
+            {duplicateItem.title && duplicateItem.title !== duplicateItem.url && (
+              <span className="italic">"{duplicateItem.title}"</span>
+            )}
+          </p>
+          <div className="space-y-3">
+            <a
+              href="/inbox"
+              className="block w-full text-center bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl"
+            >
+              Go to existing clip
+            </a>
+            <button
+              type="button"
+              onClick={() => handleSave(pendingBoardId, pendingBoardName, true)}
+              className="w-full text-center bg-gray-100 text-gray-700 font-semibold py-3.5 rounded-2xl"
+            >
+              Save anyway (duplicate)
+            </button>
+            <button
+              type="button"
+              onClick={() => setStage('picking')}
+              className="w-full text-center text-gray-400 text-sm py-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   // ── Stage: saving (full-screen enrichment animation) ──────────────────────

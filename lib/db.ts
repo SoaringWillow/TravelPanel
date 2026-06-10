@@ -100,6 +100,11 @@ export async function getPendingItems(): Promise<SavedItem[]> {
   }
 }
 
+export async function findItemByUrl(url: string): Promise<SavedItem | undefined> {
+  const items = await getAllItems();
+  return items.find((i) => i.url === url);
+}
+
 export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedItem[]> {
   try {
     const db = await getDB();
