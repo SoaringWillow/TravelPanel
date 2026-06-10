@@ -283,7 +283,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE D — On-Trip Mode & Social
 
 ### D1 — Nearby Clips (On-Trip GPS Mode)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The "I just landed — what's nearby?" use case is the highest-value on-trip moment. When the user is physically close to a saved location, the clip should surface automatically.  
 **Files to change**: `app/page.tsx` (map view), `components/MapView.tsx`  
 **What to do**:
@@ -295,7 +295,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Gate geolocation request on user action (button tap), not on mount — iOS requires this for user trust
 
 ### D2 — Read-Only Board Sharing
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to share their "Tokyo trip" board with a friend planning the same trip. This is a natural virality mechanic.  
 **Needs**: Supabase from B1 (to store shared boards server-side) — OR implement as a local export-to-URL (encode board as compressed JSON in the URL, no backend needed)  
 **Files to change**: `app/boards/[id]/page.tsx`, new `app/shared/[token]/page.tsx`  
