@@ -284,6 +284,164 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 
 ---
 
+## PHASE I — UI Polish & Delight
+
+> The app is functionally complete. Phase I closes the gap between "works" and "feels great". These are the refinements that get 5-star reviews and word-of-mouth.
+
+### I1 — Board Cover Thumbnail
+**Status**: `[ ]` Not started  
+**Why**: The boards list shows only emoji + name. A cover thumbnail derived from the first clip with an image would make the list visually rich and help users find boards at a glance.  
+**Files to change**: `lib/db.ts`, `hooks/useBoards.ts`, `app/boards/page.tsx`, `components/BoardCard.tsx`  
+**What to do**:
+- When saving or updating a board, set `board.coverThumbnail` to the `thumbnail` of the first item in `board.itemIds` that has one
+- Update `saveBoard` in `lib/db.ts` to NOT overwrite `coverThumbnail` if already set (only clear it if all items are removed)
+- In `BoardCard`, show the cover thumbnail as a full-width image at top of card (aspect-[3/2], object-cover), styled with rounded-t-2xl
+- If no cover, show a placeholder with the board emoji centered on a gradient background (indigo-to-purple)
+- Auto-update cover: after `addItemToBoard` or `removeItemFromBoard`, refresh the board's `coverThumbnail` by re-scanning `itemIds`
+
+### I2 — Clip Notes (User Annotations)
+**Status**: `[ ]` Not started  
+**Why**: Users want to annotate clips with personal context: "Book 3 months ahead!", "Dad loves sushi — perfect for his trip", "Visited but want to return". The `notes` field already exists on `SavedItem` but is never surfaced in the UI.  
+**Files to change**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
+**What to do**:
+- In `LocationDetailCard`, add an editable notes section below the substance list
+- Show a textarea (or tappable "Add note…" placeholder that expands) with auto-save on blur
+- On save: call `saveItem({ ...item, notes: text.trim() || undefined })` then emit a `refreshItem` callback
+- Style: slightly indented, pencil icon, light yellow background `bg-yellow-50 dark:bg-yellow-900/20` — visually distinct from extracted substance
+- If `item.notes` is set, always show it expanded (not collapsed)
+
+### I3 — Swipe-to-Delete in Inbox
+**Status**: `[ ]` Not started  
+**Why**: iOS users expect swipe-left to delete. The current approach (tap card → long-press menu) is not discoverable. Swipe-to-delete is a table-stakes mobile UX pattern.  
+**Files to change**: `components/InboxCard.tsx`  
+**What to do**:
+- Add swipe-left gesture on `InboxCard` using `onTouchStart`/`onTouchMove`/`onTouchEnd`
+- When drag exceeds 60px left: reveal a red delete action area behind the card (absolute positioned, `bg-red-500`, trash icon + "Delete" text)
+- When drag exceeds 140px (full swipe): trigger `onDelete(item.id)` automatically
+- If drag released before 140px: spring back to original position
+- Use `framer-motion` `motion.div` with `x` animate value for smooth spring-back
+- The existing tap-to-open behavior must still work — only horizontal drag ≥5px should enter swipe mode
+
+### I4 — Boards List Drag-to-Reorder
+**Status**: `[ ]` Not started  
+**Why**: Users organize boards by trip priority. Tokyo trip should be at the top when planning Tokyo. Currently boards are creation-order only.  
+**Files to change**: `app/boards/page.tsx`, `hooks/useBoards.ts`, `lib/db.ts`  
+**What to do**:
+- Add `sortOrder?: number` to `Board` type in `lib/types.ts` (default: `createdAt` for existing boards)
+- In `app/boards/page.tsx`, sort boards by `sortOrder ?? createdAt` ascending
+- Implement drag-to-reorder using touch events: long-press on a `BoardCard` (300ms) activates drag mode, then `onTouchMove` translates the card and highlights the drop slot
+- On drop: recompute `sortOrder` for all boards (e.g. positions 0, 1000, 2000...) and call `updateBoard` for each changed board
+- Show a drag handle (6-dot grip icon) on the right edge of each board card that appears on long-press
+- Use `framer-motion` `Reorder` component if the gesture complexity is too high manually
+
+### I5 — Map Clustering & Category Color Pins
+**Status**: `[ ]` Not started  
+**Why**: When a board has 20+ clips, the map becomes a sea of identical blue pins. Clustering pins by category (food, nature, culture, etc.) with distinct colors would make the map dramatically more useful for trip planning.  
+**Files to change**: `components/MapView.tsx`  
+**What to do**:
+- Define a color palette for tag categories:
+  - `food` → orange `#f97316`
+  - `nature` → green `#22c55e`
+  - `culture` / `history` / `art` → purple `#a855f7`
+  - `adventure` → red `#ef4444`
+  - `beach` → cyan `#06b6d4`
+  - `shopping` → pink `#ec4899`
+  - default → indigo `#6366f1`
+- Use the first tag of each item to determine pin color
+- For MapLibre: create custom `CircleLayer` or SVG marker per category
+- When ≥3 pins are within ~50px of each other at current zoom: show a cluster circle with count
+- Cluster circle: grey with white number, expands on tap to reveal individual pins
+
+---
+
+## PHASE J — Onboarding & First-Run Experience
+
+> First impressions determine retention. The first 90 seconds in the app must show value, not a blank screen.
+
+### J1 — Animated Onboarding Walkthrough
+**Status**: `[ ]` Not started  
+**Why**: New users open the app and see a map with no content and a + button with no explanation. The 3-step value prop (Clip → Organize → Plan) is never shown. Without onboarding, most users churn in the first session.  
+**Files to create**: `components/OnboardingFlow.tsx`, `app/page.tsx` (add trigger)  
+**What to do**:
+- Create a 3-slide full-screen onboarding modal shown once on first launch (localStorage flag `tp_onboarding_done`)
+- Slide 1: "Clip from anywhere" — phone with share sheet animation; "Tap share in any app → AI extracts locations and tips"
+- Slide 2: "Organize into boards" — board emoji grid animation; "Group your inspiration by destination"
+- Slide 3: "Plan your trip" — map with route animation; "AI generates a day-by-day itinerary from your clips"
+- Each slide: large illustration area (top 60%), text (middle), dot pagination, "Next →" button
+- Final slide: "Start clipping →" CTA that:
+  1. Marks onboarding done in localStorage
+  2. Opens `ImportSheet` directly so the user takes their first action immediately
+- Slide transitions: horizontal slide with `framer-motion` spring
+- Skip button in top-right (sets flag, skips all slides)
+
+### J2 — "Clip this URL" Quick Input on Home Map
+**Status**: `[ ]` Not started  
+**Why**: The + FAB opens a full-screen sheet. On first launch with no clips, the map is completely empty with no guidance. A persistent "Paste a link to get started" input placeholder visible at the bottom of the map (above NavBar) would reduce friction for the most important action.  
+**Files to change**: `app/page.tsx`  
+**What to do**:
+- When `items.length === 0`: show a floating card above the NavBar (fixed position, z-10) with:
+  - A URL input field pre-populated with placeholder "Paste a travel link…"
+  - Paste button that reads from clipboard and opens ImportSheet with the URL
+  - Small "or" separator and "Browse examples →" link that loads demo seed boards
+- Style: white card, rounded-t-2xl, shadow-lg, indigo accents
+- Dismiss: disappears once the user has ≥1 saved item (don't show if they've clipped something before)
+- This card replaces the FAB on zero-state only — the FAB appears once items exist
+
+### J3 — Rich Empty States with Animated Illustrations
+**Status**: `[ ]` Not started  
+**Why**: Several screens (Timeline, Settings, Boards list) have minimal or no empty states. A consistent, delightful empty state system reinforces the brand and reduces abandonment.  
+**Files to change**: `app/timeline/page.tsx`, `app/boards/page.tsx`, `app/settings/page.tsx`  
+**What to do**:
+- Timeline empty state: already has a clock SVG — add a subtle float animation (`animate-bounce` with slow duration, or framer-motion `y` loop) to the SVG
+- Boards empty state: the current one just shows a pin SVG. Add an animated "Create your first board" primary CTA button that opens `CreateBoardModal` inline. Also show 2–3 example board names as ghost chips: "🗼 Tokyo Ideas", "🏖 Bali 2025", "🍜 Food Lists" — tapping one creates a board with that name/emoji immediately.
+- Plan page with no items in board: show a gentle animated illustration of a blank map with a "Add clips to this board first" message and a shortcut button "← Go to Inbox"
+- Consistent visual language across all empty states: large emoji/SVG (80px), bold headline, 1-sentence explanation, primary action CTA
+
+---
+
+## PHASE K — Robustness & Data Safety
+
+> Users will eventually lose their data if we don't address these gaps. Phase K is defensive engineering.
+
+### K1 — JSON Export / Import (Backup & Restore)
+**Status**: `[ ]` Not started  
+**Why**: All user data is in IndexedDB — one browser clear or device wipe loses everything. There's already an `exportAllData` function in `lib/exportData.ts` but no import path. Backup/restore is the minimum viable data safety net before Supabase sync.  
+**Files to change**: `app/settings/page.tsx`, `lib/db.ts`  
+**What to do**:
+- The "Export data" button in Settings already calls `exportAllData()` — verify it works and downloads a valid `.json` file
+- Add an "Import backup" row in Settings:
+  - Shows a file picker (`<input type="file" accept=".json">`)
+  - Reads the file, validates it has `{ items: SavedItem[], boards: Board[] }` shape
+  - Merges by ID: skips items/boards that already exist (same `id`)
+  - Shows a confirmation dialog: "Import X clips and Y boards? Existing items with the same ID will be skipped."
+  - After import: navigate to Inbox to see imported items
+- Add a "Last exported: [date]" sublabel to the Export row using `localStorage`
+
+### K2 — Enrichment Retry Queue Visibility
+**Status**: `[ ]` Not started  
+**Why**: Items with `enrichmentStatus: 'failed'` or `'pending'` silently sit in the inbox with no indication to the user that something went wrong. If the network was flaky during import, users lose tips without knowing.  
+**Files to change**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- In Inbox header, show an amber badge "X clips pending" when any items have `enrichmentStatus: 'pending' | 'failed'`
+- Tapping the badge opens a small sheet with a list of affected clips and a "Retry all" button
+- "Retry all" calls `retryItem(id)` for each failed/pending item sequentially (with 500ms delay between calls to avoid hammering the API)
+- On `InboxCard`, when `enrichmentStatus === 'failed'`: show a small amber "Retry" chip in the card footer instead of the current silent failure
+
+### K3 — Undo for Board Deletion
+**Status**: `[ ]` Not started  
+**Why**: Deleting a board currently deletes all its items permanently with no undo. This is a high-severity data loss risk — one tap destroys hours of curation.  
+**Files to change**: `app/boards/page.tsx`, `hooks/useBoards.ts`  
+**What to do**:
+- In `app/boards/page.tsx`, when user long-presses a board card, show a bottom sheet with "Delete board" (destructive) and "Cancel"
+- Replace the immediate delete with a 5-second undo pattern (same as inbox clip deletion):
+  1. Remove board and all its items from local state immediately (optimistic)
+  2. Show undo toast: "Board deleted · Undo"
+  3. If undo is tapped: restore board + items from the local snapshot
+  4. If timer expires without undo: call `deleteBoard` and `deleteItem` for all items permanently
+- Store the deleted board snapshot in a `useRef` (not state) to avoid re-renders
+
+---
+
 ## Blocked (waiting for external resources)
 
 ### B4 — Embedding/Vibe Search
