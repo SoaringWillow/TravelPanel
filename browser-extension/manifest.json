@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "short_name": "TravelPanel",
+  "version": "1.0.0",
+  "description": "Clip any travel inspiration page — Instagram, YouTube, Xiaohongshu — into TravelPanel with one click.",
+
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "action": {
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel"
+  },
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus"
+  ],
+
+  "host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ]
+}
