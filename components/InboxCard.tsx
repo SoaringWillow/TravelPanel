@@ -177,12 +177,12 @@ export default function InboxCard({
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
-          <div className="w-full h-32 bg-gray-200" />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse" role="status" aria-label="Analyzing clip…" aria-busy="true">
+          <div className="w-full h-32 bg-gray-200" aria-hidden="true" />
           <div className="p-4 space-y-3">
-            <div className="h-3.5 bg-gray-200 rounded-full w-4/5" />
-            <div className="h-3 bg-gray-200 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
+            <div className="h-3.5 bg-gray-200 rounded-full w-4/5" aria-hidden="true" />
+            <div className="h-3 bg-gray-200 rounded-full w-3/5" aria-hidden="true" />
+            <div className="flex items-center gap-2 pt-1" aria-hidden="true">
               <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
             </div>
@@ -201,8 +201,8 @@ export default function InboxCard({
           </div>
           <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">{item.title}</h3>
           <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-1.5">
-              <Loader2 size={12} className="text-indigo-400 animate-spin flex-shrink-0" />
+            <div className="flex items-center gap-1.5" role="status" aria-label="Analyzing clip…">
+              <Loader2 size={12} className="text-indigo-400 animate-spin flex-shrink-0" aria-hidden="true" />
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
             </div>
             <div className="flex items-center gap-1">
@@ -277,6 +277,10 @@ export default function InboxCard({
       ref={cardRef}
       className="relative rounded-2xl overflow-hidden"
       onClick={multiSelectMode ? onToggleSelect : undefined}
+      role={multiSelectMode ? 'checkbox' : undefined}
+      aria-checked={multiSelectMode ? isSelected : undefined}
+      tabIndex={multiSelectMode ? 0 : undefined}
+      onKeyDown={multiSelectMode ? (e) => { if (e.key === ' ' || e.key === 'Enter') onToggleSelect?.(); } : undefined}
     >
 
       {/* Delete action background (left swipe) */}

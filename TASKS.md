@@ -811,7 +811,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Run the scan at most once per session (sessionStorage flag)
 
 ### L8 — Full Accessibility Pass
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: All interactive components  
 **What to do**:
 - Add proper `aria-label` to every icon-only button in the app

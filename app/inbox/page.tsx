@@ -487,8 +487,8 @@ export default function InboxPage() {
             </AnimatePresence>
             {/* Sentinel — triggers loading more items when scrolled into view */}
             {visibleCount < filtered.length && (
-              <div ref={sentinelRef} className="h-12 flex items-center justify-center">
-                <div className="w-5 h-5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+              <div ref={sentinelRef} className="h-12 flex items-center justify-center" role="status" aria-label="Loading more clips…">
+                <div className="w-5 h-5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" aria-hidden="true" />
               </div>
             )}
           </div>

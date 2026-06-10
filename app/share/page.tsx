@@ -389,8 +389,8 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2" role="status" aria-live="polite" aria-label="Finding locations…">
+              <span className="text-sm animate-pulse" aria-hidden="true">🔍 Finding locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
             <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
@@ -441,8 +441,8 @@ export default function SharePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="text-sm text-gray-400 animate-pulse">Loading…</div>
+        <div className="min-h-screen bg-white flex items-center justify-center" role="status" aria-label="Loading" aria-busy="true">
+          <div className="text-sm text-gray-400 animate-pulse" aria-hidden="true">Loading…</div>
         </div>
       }
     >

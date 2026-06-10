@@ -5,7 +5,7 @@
 
 export default function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" role="status" aria-label="Loading clip" aria-busy="true">
       {/* Thumbnail placeholder */}
       <div className="w-full h-32 shimmer" />
 

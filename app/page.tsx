@@ -218,8 +218,11 @@ function HomePageInner() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               className="mt-2 bg-indigo-600/90 backdrop-blur-md text-white text-xs font-medium px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 pointer-events-auto"
+              role="status"
+              aria-live="polite"
+              aria-label={`You're near ${nearbyName}`}
             >
-              <span>📍</span>
+              <span aria-hidden="true">📍</span>
               <span>Near: {nearbyName}</span>
             </motion.div>
           )}
