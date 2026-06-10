@@ -21,6 +21,7 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const fromExtension   = searchParams.get('source') === 'extension';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -30,6 +31,15 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+
+  // Image data from iOS Share Extension (stored in sessionStorage by CapacitorBridge)
+  const pendingImageRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (hasImage) {
+      pendingImageRef.current = sessionStorage.getItem('pendingShareImage');
+      sessionStorage.removeItem('pendingShareImage');
+    }
+  }, [hasImage]);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -69,6 +79,8 @@ function SharePageInner() {
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    const imageBase64 = pendingImageRef.current ?? undefined;
+
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
@@ -76,6 +88,7 @@ function SharePageInner() {
       platform,
       description: '',
       thumbnail: undefined,
+      imageBase64,
       locations: [],
       activities: [],
       tags: [],
@@ -87,15 +100,15 @@ function SharePageInner() {
     };
 
     await saveItem(item);
-    track('clip_saved', { platform, toBoard: !!selectedBoardId });
+    track('clip_saved', { platform, toBoard: !!selectedBoardId, hasImage: !!imageBase64 });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image when available (e.g. Xiaohongshu screenshots)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

@@ -81,12 +81,65 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Vision extraction ────────────────────────────────────────────────────────
+
+async function extractFromImage(
+  imageBase64: string,
+  url: string,
+  platform: string,
+): Promise<z.infer<typeof importSchema> | null> {
+  const visionPrompt = `You are analyzing a screenshot of a travel post shared via iOS Share Sheet.
+
+Platform: ${platform}
+Source URL: ${url}
+
+The image contains a social media post (likely from Xiaohongshu / 小红书 or a similar platform).
+Read ALL visible text in the image carefully — captions, overlaid text, comments, hashtags.
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+Do NOT invent or guess coordinates. Only include places explicitly mentioned.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight visible in the post text. Examples:
+- "Arrive before 8am to beat the queue" → tip
+- "Cash only, nearest ATM is 10 min walk" → warning
+- "Skip the tourist menu — ask for the locals' version" → recommendation
+- "Cherry blossom peaks mid-April here, not early April" → wisdom
+- "It was overrated for the price" → opinion
+- "August is typhoon season" → context
+
+Aim for completeness — extract every insight visible in the image text.
+Never return an empty substance array if any travel tips are visible.`;
+
+  try {
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
+    const { object } = await generateObject({
+      model: models.visionEnrichment,
+      schema: importSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', image: imageBuffer, mimeType: 'image/jpeg' },
+            { type: 'text', text: visionPrompt },
+          ],
+        },
+      ],
+    });
+    return object;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,6 +149,26 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
+
+  // Vision path: screenshot provided (e.g. Xiaohongshu which blocks web scraping)
+  if (imageBase64 && typeof imageBase64 === 'string') {
+    const claudeResult = await extractFromImage(imageBase64, url, platform);
+    if (claudeResult) {
+      return NextResponse.json({
+        platform,
+        title: claudeResult.title.slice(0, 200),
+        description: claudeResult.description.slice(0, 500),
+        thumbnail: undefined,
+        locations: claudeResult.locations,
+        activities: claudeResult.activities,
+        tags: claudeResult.tags,
+        substance: claudeResult.substance,
+      } satisfies ImportResult);
+    }
+    // Vision failed — fall through to URL scraping
+  }
+
+  // URL scraping path
   const page = await fetchPageData(url);
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
