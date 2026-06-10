@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, Share2, Check } from 'lucide-react';
+import { ArrowLeft, Rocket, Share2, Check, Sparkles, RefreshCw } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -20,11 +20,14 @@ export default function BoardDetailPage() {
   const boardId = params.id as string;
   const router = useRouter();
 
-  const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
+  const { boards, loading: boardsLoading, removeItemFromBoard, updateBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo]         = useState<Location | undefined>(undefined);
-  const [copied, setCopied]       = useState(false);
+  const [flyTo, setFlyTo]             = useState<Location | undefined>(undefined);
+  const [copied, setCopied]           = useState(false);
+  const [summaryText, setSummaryText] = useState('');
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const summaryAbortRef = useRef<AbortController | null>(null);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -51,6 +54,73 @@ export default function BoardDetailPage() {
 
   async function handleMoveToBoard(id: string) {
     // No-op on board detail page — removal handled by handleDelete
+  }
+
+  // Load cached summary or auto-generate when board has ≥5 items and cache is stale
+  useEffect(() => {
+    if (!board || boardItems.length < 5) return;
+
+    const isStale = (board.summaryItemCount ?? 0) < boardItems.length - 4;
+    if (board.summary && !isStale) {
+      setSummaryText(board.summary);
+      return;
+    }
+
+    generateSummary();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board?.id, boardItems.length]);
+
+  async function generateSummary(force = false) {
+    if (!board) return;
+    if (summaryLoading) {
+      summaryAbortRef.current?.abort();
+    }
+
+    setSummaryLoading(true);
+    setSummaryText('');
+
+    const ctrl = new AbortController();
+    summaryAbortRef.current = ctrl;
+
+    try {
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          boardName:  board.name,
+          boardEmoji: board.emoji,
+          items:      boardItems.map((i) => ({
+            title:     i.title,
+            tags:      i.tags,
+            substance: i.substance,
+          })),
+        }),
+        signal: ctrl.signal,
+      });
+
+      if (!res.ok || !res.body) throw new Error('summarize failed');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let full = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        full += chunk;
+        setSummaryText(full);
+      }
+
+      // Cache in board record
+      await updateBoard({ ...board, summary: full, summaryItemCount: boardItems.length });
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setSummaryLoading(false);
+      }
+    } finally {
+      setSummaryLoading(false);
+    }
   }
 
   async function handleShare() {
@@ -144,6 +214,39 @@ export default function BoardDetailPage() {
 
       {/* Scrollable content below header */}
       <div className="flex-1 overflow-y-auto pb-24">
+        {/* AI Summary card */}
+        {boardItems.length >= 5 && (summaryText || summaryLoading) && (
+          <div className="mx-4 mt-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-3.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={13} className="text-indigo-500 dark:text-indigo-400" />
+                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">AI summary</span>
+              </div>
+              {!summaryLoading && (
+                <button
+                  type="button"
+                  onClick={() => generateSummary(true)}
+                  className="p-1 text-indigo-400 hover:text-indigo-600 transition-colors"
+                  aria-label="Regenerate summary"
+                >
+                  <RefreshCw size={12} />
+                </button>
+              )}
+            </div>
+            {summaryLoading && !summaryText ? (
+              <div className="space-y-1.5">
+                <div className="h-3 bg-indigo-200 dark:bg-indigo-800/40 rounded animate-pulse w-full" />
+                <div className="h-3 bg-indigo-200 dark:bg-indigo-800/40 rounded animate-pulse w-4/5" />
+              </div>
+            ) : (
+              <p className="text-sm text-indigo-800 dark:text-indigo-300 leading-relaxed">
+                {summaryText}
+                {summaryLoading && <span className="inline-block w-1 h-3.5 bg-indigo-500 ml-0.5 animate-pulse align-text-bottom" />}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Map section */}
         {boardItems.length > 0 && (
           <div

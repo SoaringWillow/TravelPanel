@@ -333,7 +333,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## PHASE E — Growth & Monetization
 
 ### E1 — AI Board Summary
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users with 10+ clips in a board can't easily grasp what they've saved. An AI-generated summary ("Your Tokyo collection: 18 clips focused on street food in Shinjuku and day trips to Nikko") acts as ambient organization.  
 **Files to change**: `app/boards/[id]/page.tsx`, new `app/api/summarize/route.ts`  
 **What to do**:
