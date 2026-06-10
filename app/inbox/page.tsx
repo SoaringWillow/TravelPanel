@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -40,6 +40,8 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(30);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +51,23 @@ export default function InboxPage() {
     await Promise.allSettled(failedItems.map((i) => retryItem(i.id, i.url)));
     router.refresh();
   }, [items, retryItem, router]);
+
+  // Reset visible window when query or filter changes
+  useEffect(() => { setVisibleCount(30); }, [query, activePlatform]);
+
+  // Expand window as sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) setVisibleCount((c) => c + 20);
+      },
+      { rootMargin: '200px' },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  });
 
   const pullState = usePullToRefresh(scrollRef as React.RefObject<HTMLElement>, {
     onRefresh: handlePullRefresh,
@@ -184,7 +203,7 @@ export default function InboxPage() {
         ) : (
           <div className="space-y-3">
             <AnimatePresence>
-              {filtered.map((item) => (
+              {filtered.slice(0, visibleCount).map((item) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -202,6 +221,12 @@ export default function InboxPage() {
                 </motion.div>
               ))}
             </AnimatePresence>
+            {/* Sentinel — triggers loading more items when scrolled into view */}
+            {visibleCount < filtered.length && (
+              <div ref={sentinelRef} className="h-12 flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -424,7 +424,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only fire if user has ≥1 saved clip with valid coordinates
 
 ### G5 — Performance: Inbox Virtualization
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`  
 **What to do**:
 - The inbox list renders all items at once. At 200+ clips, this causes jank
