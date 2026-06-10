@@ -46,7 +46,11 @@ export type AnalyticsEvent =
   | 'substance_viewed'
   | 'data_exported'
   | 'data_imported'
-  | 'data_cleared';
+  | 'data_cleared'
+  | 'app_crash'
+  | 'location_permission_shown'
+  | 'location_permission_granted'
+  | 'location_permission_declined';
 
 export function track(event: AnalyticsEvent, props?: Record<string, unknown>): void {
   if (!KEY) return; // fast path — no client, no cost

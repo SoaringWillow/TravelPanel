@@ -11,6 +11,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import OnboardingSlides from '@/components/OnboardingSlides';
 import type { UserLocation } from '@/components/MapView';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -34,6 +35,7 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // GPS navigate mode
   const geo = useGeolocation();
@@ -59,6 +61,13 @@ function HomePageInner() {
     }
     nearbySpots.sort((a, b) => a.distance - b.distance);
   }
+
+  // Show onboarding on first launch
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('tp_onboarding_done')) {
+      setShowOnboarding(true);
+    }
+  }, []);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -120,7 +129,7 @@ function HomePageInner() {
       />
 
       {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      <div className="absolute top-0 left-0 right-0 z-[1000] p-4" style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))' }}>
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
@@ -276,6 +285,18 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+
+      {/* First-launch onboarding */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingSlides
+            onDone={() => {
+              localStorage.setItem('tp_onboarding_done', '1');
+              setShowOnboarding(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }

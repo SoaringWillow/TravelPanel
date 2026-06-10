@@ -1,200 +1,262 @@
 # TravelPanel — Task Queue
 
-> This file is the autonomous work queue. Each Claude session reads this file, picks the next `[ ]` task, implements it, marks it `[x]`, commits, and moves to the next. Sessions are logged in SESSIONS.md.
+> This file is the autonomous work queue. Each Claude session reads this file, picks the next `[ ]` task, implements it, marks it `[x]`, commits, and moves to the next.
 >
 > **Task format**: Each task has enough detail to implement without further clarification.
 > **Priority order**: Work top-to-bottom within each phase. Don't skip phases.
 
 ---
 
-## ⭐ Recommended Execution Order (revised 2026-05-31)
+## ⭐ Recommended Execution Order (revised 2026-06-10)
 
-The moat is **Substance over Spots**. A1 made the app *extract* substance, but it's
-currently invisible (only a count badge) and the trip planner throws it away. The two
-highest-value tasks are surfacing substance (A11) and threading it into plans (A12) —
-do these before clustering/search polish.
+Core extraction moat is complete. The app is ~85% of a beautiful iOS product.
+Next sprint focuses on: iOS-native polish → App Store readiness → Cloud sync activation.
 
-`A11 → A12 → A3 → A7 → A8 → A6 → A9 → A10`
+`D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → E1 → G1 → G2`
 
-(A3 is NOT blocked — it no-ops without a key. Build it now; it just stays dormant
-until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
+B4 (Embedding Search) remains blocked on Supabase pgvector — skip until B1 is activated with real keys.
 
 ---
 
-## PHASE A — Bug-Free MVP (Current Sprint)
+## PHASE D — iOS Polish & Native Feel (Current Sprint)
 
-### A1 — Substance Extraction (2-layer clip schema) 🔴 HIGHEST PRIORITY
-**Status**: `[x]` Done  
-**Why**: This is the #1 strategic moat. Currently `api/import/route.ts` only extracts spots (locations + coordinates). It must ALSO extract substance: tips, warnings, opinions, "go in the morning"-style wisdom from the post content.  
-**File to change**: `app/api/import/route.ts`  
+### D1 — First-Launch Onboarding Carousel
+**Status**: `[x]` Done
+**Why**: The app opens to an empty map on first launch. New users have no idea what to do. A quick 3-step intro dramatically reduces abandonment.
+**Files**: new `components/OnboardingSlides.tsx`, `app/page.tsx`
 **What to do**:
-- Extend the Zod schema to add a `substance` array alongside `locations`
-- Each substance item: `{ type: 'tip'|'warning'|'opinion'|'wisdom'|'context'|'recommendation', content: string, applies_to?: string, source_quote?: string }`
-- Update the Claude prompt to explicitly ask for both layers
-- Update the DB schema in `lib/db.ts` to store `substance: SubstanceItem[]` on `SavedItem`
-- Update `lib/types.ts` with the `SubstanceItem` type
-- Update `components/InboxCard.tsx` to show substance count badge (e.g. "3 tips")
+- Create `OnboardingSlides` component: a full-screen overlay with 3 slides using `AnimatePresence` + `motion.div` (slide transitions)
+  - Slide 1: "✈️ Clip any travel inspiration" — large emoji, short copy "Share posts from Instagram, YouTube, or 小红书 directly to TravelPanel. We extract every spot and tip automatically."
+  - Slide 2: "🧠 Capture the wisdom" — "We don't just pin locations. We extract tips, warnings, and hidden-gem advice from every post — the stuff your friends actually told you."
+  - Slide 3: "🗺️ Plan your perfect trip" — "When you're ready, AI builds a day-by-day itinerary from your saved clips, citing which post each activity came from."
+- Each slide: full-screen gradient background (slide-specific: indigo → violet, amber → orange, green → teal), centered emoji (80px), h2 title, p description, bottom dot indicators, "Next" / "Get started" button
+- Show when `localStorage.getItem('tp_onboarding_done')` is falsy
+- On "Get started": set `localStorage.setItem('tp_onboarding_done', '1')` and unmount
+- Rendered in `app/page.tsx` on top of everything (`fixed inset-0 z-50`)
 
-### A2 — Enrichment Retry Queue 🔴 HIGH PRIORITY
-**Status**: `[x]` Done  
-**Why**: Enrichment is currently fire-and-forget. Items silently fail to enrich (no error, no retry). Users see empty cards. This is a retention killer.  
-**Files to change**: `app/share/page.tsx`, `lib/db.ts`, possibly a new `lib/retryQueue.ts`  
+### D2 — iOS Safe Area & Native Feel Improvements
+**Status**: `[x]` Done
+**Why**: On iPhone with Dynamic Island or notch, content can overlap the status bar or home indicator. The app also lacks iOS-native micro-interactions.
+**Files**: `app/layout.tsx`, `app/globals.css`, `components/NavBar.tsx`, `app/page.tsx`
 **What to do**:
-- On enrichment failure, set `enrichmentStatus: 'failed'` and increment `retryCount`
-- Create a retry mechanism: on app load, find items with `status: 'failed'` and `retryCount < 3`, re-attempt enrichment with exponential backoff (2s, 4s, 8s)
-- Show a subtle "Retrying..." indicator on failed cards
-- After 3 failures, show a "Failed to extract info" state with a manual retry button
+- In `app/globals.css`, add:
+  ```css
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+  ```
+- Update `app/layout.tsx` `<meta name="viewport">` to include `viewport-fit=cover`
+- Update `NavBar.tsx`: add `paddingBottom: calc(0.75rem + var(--sab))` to the nav container so it sits above the home indicator
+- Update `app/page.tsx` top bar: add `paddingTop: calc(3rem + var(--sat))` so it clears the Dynamic Island
+- Add `-webkit-overflow-scrolling: touch` to all `overflow-y-auto` scroll containers (in globals.css)
+- Add `touch-action: manipulation` to all buttons in globals.css (prevents 300ms tap delay on iOS)
+- Ensure `select-none` on drag handles and non-text elements
 
-### A3 — Error Tracking (PostHog)
-**Status**: `[x]` Done  
-**Needs**: `NEXT_PUBLIC_POSTHOG_KEY` env var (free tier) — but NOT a blocker; wrappers no-op without it  
-**Files to change**: `app/layout.tsx`, new `lib/analytics.ts`  
+### D3 — App-Level Error Boundary
+**Status**: `[x]` Done
+**Why**: Any unhandled React render error currently whites out the entire app with no recovery path. On a phone this is a dead end.
+**Files**: new `components/ErrorBoundary.tsx`, `app/layout.tsx`
 **What to do**:
-- Install `posthog-js`
-- Create `lib/analytics.ts` with `track(event, props)` and `identify(userId)` wrappers that no-op if key is missing
-- Add PostHog provider to `app/layout.tsx`
-- Track key events: `clip_saved`, `plan_generated`, `board_created`, `search_performed`
-- If `NEXT_PUBLIC_POSTHOG_KEY` is missing, trigger resource request notification (see A5)
+- Create `components/ErrorBoundary.tsx` as a React class component (error boundaries must be class components):
+  ```tsx
+  class ErrorBoundary extends React.Component<{children: ReactNode}, {error: Error | null}> {
+    state = { error: null };
+    static getDerivedStateFromError(error: Error) { return { error }; }
+    componentDidCatch(error: Error, info: ErrorInfo) { /* track to PostHog */ }
+    render() { if (this.state.error) return <ErrorFallback onReset={() => this.setState({error: null})} />; return this.props.children; }
+  }
+  ```
+- `ErrorFallback`: centered white screen, "🚨" emoji, "Something went wrong" title, error.message in a gray `<pre>` (dev only), "Reload app" button that calls `window.location.reload()`, secondary "Clear data & reload" button that calls `indexedDB.deleteDatabase('TravelPanel')` then reloads
+- Wrap the entire `<body>` content in `app/layout.tsx` with `<ErrorBoundary>`
+- In `componentDidCatch`, call `track('app_crash', { message: error.message, stack: info.componentStack?.slice(0, 500) })`
+- Add `'app_crash'` to the `AnalyticsEvent` union in `lib/analytics.ts`
 
-### A4 — AI Cost Guard
-**Status**: `[x]` Done  
-**Why**: Heavy users can spike API spend with no ceiling. No visibility into per-user cost.  
-**Files to change**: `app/api/plan/route.ts`, `app/api/import/route.ts`  
+### D4 — Offline Indicator Banner
+**Status**: `[x]` Done
+**Why**: When the user loses connection, AI enrichment fails silently. An offline banner sets expectations and prevents repeated tapping.
+**Files**: new `components/OfflineBanner.tsx`, `app/layout.tsx`
 **What to do**:
-- Add a simple per-session rate limit: max 10 enrichments per hour (track in localStorage), max 5 plan generations per day (track in IndexedDB)
-- When limit is hit, show a friendly message: "You've hit the daily plan limit. Upgrade to Pro for unlimited plans — coming soon."
-- Log token usage per request to console in dev mode (foundation for cost tracking)
+- Create `components/OfflineBanner.tsx`:
+  - `useEffect` registers `window.addEventListener('online', ...)` and `'offline'` event listeners
+  - State: `isOnline` (default `navigator.onLine ?? true`)
+  - When offline: animate in a slim banner (`fixed top-0 left-0 right-0 z-[9999]`) — dark charcoal background, white text "📡 No internet connection — clips will save when reconnected", 44px height
+  - When back online: briefly show "✓ Back online" in green for 2s, then animate out
+  - Use `AnimatePresence` + `motion.div` with `y: -44` initial/exit, `y: 0` animate
+- Render `<OfflineBanner />` in `app/layout.tsx` inside the body, before children
+- Cleanup: remove event listeners on unmount
 
-### A5 — In-App Resource Request Notifications
-**Status**: `[x]` Done  
-**Files**: new `components/ResourceBanner.tsx`, new `app/api/notify/route.ts`  
+### D5 — Pull-to-Refresh on Inbox & Boards
+**Status**: `[x]` Done
+**Why**: Standard iOS gesture. Users expect it. Without it the app feels unresponsive when clips don't update.
+**Files**: new `hooks/usePullToRefresh.ts`, `app/inbox/page.tsx`, `app/boards/page.tsx`
 **What to do**:
-- Create a banner component that checks for missing env vars and shows what's needed
-- Create `app/api/notify/route.ts` that sends an email via Resend to jiangnan027@gmail.com when a resource is needed
-- Env vars to check: `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_POSTHOG_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`
-- If `RESEND_API_KEY` is missing, fall back to a mailto: link
-- **NOTE**: Ask user for `RESEND_API_KEY` to enable email notifications (free tier: 100 emails/day)
+- Create `hooks/usePullToRefresh.ts`:
+  - Accepts `onRefresh: () => Promise<void>`, `containerRef: RefObject<HTMLElement>`
+  - Tracks `touchstart`, `touchmove`, `touchend` on the container ref
+  - When pull distance > 60px from top-of-scroll (scrollTop === 0), show a spinner and call `onRefresh()`
+  - Returns `{ isPulling: boolean; pullDistance: number; isRefreshing: boolean }`
+- In `app/inbox/page.tsx`:
+  - Attach hook to the `flex-1 overflow-y-auto` div
+  - Show a `motion.div` at top of scroll area: circular spinner that scales from 0→1 as pull distance increases (threshold 60px = scale 1.0)
+  - On release: run `enrichmentRetry` + `router.refresh()`
+- In `app/boards/page.tsx` (the boards list page): same pattern, refresh boards list
+- Minimum refresh time: 800ms (use `Promise.all([onRefresh(), sleep(800)])`) so spinner doesn't flash
 
-### A6 — Pin Clustering at Low Zoom
-**Status**: `[x]` Done  
-**Files to change**: `components/MapView.tsx`  
+### D6 — Location Permission Explanation Sheet
+**Status**: `[ ]` Not started
+**Why**: iOS users see a bare system dialog with no context. Explaining WHY before the dialog shows dramatically improves permission grant rates.
+**Files**: new `components/LocationPermissionSheet.tsx`, `app/page.tsx`
 **What to do**:
-- Enable MapLibre's built-in cluster layer on the locations source
-- Show count badge on clustered pins
-- On click of cluster, zoom in to reveal individual pins
-- Individual pin color should reflect tag category (food=orange, nature=green, culture=purple, etc.)
+- Create `components/LocationPermissionSheet.tsx`:
+  - Full-screen modal overlay (semi-transparent dark bg), bottom sheet (white, rounded-t-3xl)
+  - Large location pin icon (indigo, 64px)
+  - Title: "See spots near you"
+  - Body: "TravelPanel uses your location to surface saved clips within 1km — the hidden gems you bookmarked for exactly this moment. Your location is never stored or shared."
+  - "Allow location" button (indigo, full-width) → calls `navigator.geolocation.getCurrentPosition()` then dismisses
+  - "Not now" text link → dismisses, sets `localStorage.setItem('tp_location_declined', '1')`
+- In `app/page.tsx`, when the Navigate FAB is tapped for the first time AND `Notification.permission` hasn't been asked AND `tp_location_declined` is not set: show this sheet first instead of immediately calling geolocation
+- Track `location_permission_shown`, `location_permission_granted`, `location_permission_declined` in PostHog
+- Add these 3 events to `AnalyticsEvent` union in `lib/analytics.ts`
 
-### A7 — Full-Text Search on Clips
-**Status**: `[x]` Done  
-**Files**: new `components/SearchBar.tsx`, `app/page.tsx` or `app/inbox/page.tsx`  
+### D7 — Haptic Feedback on Key Actions
+**Status**: `[ ]` Not started
+**Why**: On native iOS, haptics signal successful actions (save, delete, complete). Without them the app feels like a web page, not a native app.
+**Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/InboxCard.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:
-- Add a search bar to the main board/inbox view
-- Client-side search across clip title + description + tags + substance content (if present)
-- Debounced (300ms), highlights matching text
-- Empty state: "No clips match '[query]'. Try a different search."
-- Foundation for embedding search in Phase B
+- Create `lib/haptics.ts`:
+  ```ts
+  // Uses Capacitor Haptics if available, falls back to navigator.vibrate (web)
+  async function impact(style: 'light' | 'medium' | 'heavy') { ... }
+  async function notification(type: 'success' | 'warning' | 'error') { ... }
+  async function selection() { ... }
+  export const haptics = { impact, notification, selection };
+  ```
+  - Check `typeof Capacitor !== 'undefined' && Capacitor.isPluginAvailable('Haptics')` before importing `@capacitor/haptics`
+  - Web fallback: `navigator.vibrate?.(style === 'light' ? 10 : style === 'medium' ? 20 : 40)`
+- Add `@capacitor/haptics` to package.json (it's in the Capacitor ecosystem, install with `npm install @capacitor/haptics`)
+- Trigger `haptics.notification('success')` when a clip is successfully saved (in `app/share/page.tsx` after enrichment completes)
+- Trigger `haptics.impact('medium')` when a clip card is long-pressed / delete confirmed (in `InboxCard.tsx`)
+- Trigger `haptics.notification('success')` when a trip plan finishes generating (in `app/plan/[boardId]/page.tsx` when streaming completes)
+- Trigger `haptics.impact('light')` on navigation tab switches (in `NavBar.tsx`)
 
-### A8 — Onboarding Seed Boards
-**Status**: `[x]` Done  
-**Files**: new `lib/seedData.ts`, `app/page.tsx`  
+### D8 — Skeleton Loading States for Map Pins
+**Status**: `[ ]` Not started
+**Why**: The map shows blank grey until items load from IndexedDB. A subtle loading treatment tells users the app is working.
+**Files**: `components/MapView.tsx`, `app/page.tsx`
 **What to do**:
-- Create 3 seed boards with real-looking clip data (Tokyo, Kyoto, Bali or similar)
-- Each seed board has 4–6 clips with locations, tags, and substance items
-- Show these on first launch (detect via a `hasSeenOnboarding` flag in localStorage)
-- User can dismiss ("I'll add my own clips") or keep them
-- Seed data should showcase the substance layer: each clip has at least 2 substance items
-
-### A9 — Plan Export (PDF + Calendar)
-**Status**: `[x]` Done  
-**Files**: `app/plan/[boardId]/page.tsx`, new `lib/exportPlan.ts`  
-**What to do**:
-- Add Export button to the plan view
-- PDF: use `jspdf` to generate a clean print-layout PDF with day-by-day itinerary
-- Calendar: generate `.ics` file (RFC 5545) with one event per activity, including location coordinates for Apple Maps deep link
-- Both exports include source citations from substance items
-
-### A10 — Multi-Version Plan Support
-**Status**: `[x]` Done  
-**Files**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
-**What to do**:
-- Allow saving a named plan variant ("Relaxed pace", "Budget version")
-- Store multiple plans per board in IndexedDB (`trips` store)
-- Show plan version selector at top of plan view
-- "Regenerate" creates a new version (doesn't overwrite current)
-
-### A11 — Surface Substance in Clip Detail (the "Wisdom view") 🔴 HIGHEST PRIORITY
-**Status**: `[x]` Done  
-**Why**: A1 extracts substance but `LocationDetailCard` never shows it — the moat is invisible. This is the payoff for the count badge users already see.  
-**Files to change**: `components/LocationDetailCard.tsx`, possibly a new `components/SubstanceList.tsx`  
-**What to do**:
-- Add a "Wisdom" section to the detail card rendering `item.substance`
-- Group by type with an icon/color per type: tip 💡, warning ⚠️, opinion 💬, wisdom 🧠, context 🌍, recommendation ⭐
-- Show `content`; if `source_quote` present, show it as a subtle italic citation under the content
-- Extract a reusable `SubstanceList` so the plan view (A12) can reuse it
-- Empty state: don't render the section if `substance` is empty
-
-### A12 — Thread Substance into Trip Plans (sourced itineraries) 🔴 HIGHEST PRIORITY
-**Why**: The strategic promise is "the trip planner generates an itinerary that *cites the source clips inline*." Currently `/api/plan` builds `contentSummary` from only `title/activities/tags` — substance is dropped, so plans can't cite wisdom. This wires the moat end-to-end.  
-**Status**: `[x]` Done  
-**Files to change**: `app/api/plan/route.ts`, `lib/types.ts` (Activity/DayPlan), `components/DayStripCard.tsx` or plan view  
-**What to do**:
-- Include each item's `substance` (with source title) in the `contentSummary` passed to the planner
-- Update the planner prompt: when an activity is informed by a clip's tip/warning, surface that wisdom in the activity's `tips` and note which saved clip it came from
-- Add an optional `sourcedTips?: { content: string; sourceTitle: string }[]` to the `Activity` type so citations render distinctly from generic tips
-- In the day plan UI, render sourced tips with a "from your clip: <title>" attribution
-- Keep it graceful: items without substance still plan fine
+- In `app/page.tsx`, pass a `loading` prop to `MapView` (true while `itemsLoading || boardsLoading`)
+- In `MapView.tsx`, when `loading` is true:
+  - Show a `LoadingOverlay` in the bottom-left corner (NOT covering the whole map): pill-shaped white card, 3 animated pulse dots, "Loading your clips…" text — 140px wide, positioned `bottom: 80px, left: 12px`
+  - Animate it out (opacity → 0) once `loading` becomes false
+- Also: add `MapView` prop `itemCount?: number` — when 0 and not loading, show a centered map overlay card: "📍 No places yet" subtitle "Save clips to see them on the map" — semi-transparent white card, 200px wide, centered
 
 ---
 
-## PHASE B — Cloud Sync + Auth (Next Sprint)
+## PHASE E — Cloud Sync & Auth Activation
 
-### B1 — Supabase Setup
-**Status**: `[~]` Scaffolded, dormant until keys  
-**Needs**: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (request from user)  
-**Done** (no-op-until-keyed, same pattern as PostHog A3 — activates the moment keys are pasted):
-- `lib/supabase.ts` — lazy client + auth (magic link, Google OAuth, session, auth-change sub); `cloudEnabled` flag
-- `supabase/schema.sql` — Postgres mirror of IndexedDB (items/boards/trips as JSONB) + per-user RLS + indexes
-- `lib/cloudSync.ts` — `pushToCloud`/`pullFromCloud`/`syncNow`, last-write-wins, demo content excluded
-- `.env.local.example` — documents the two Supabase vars
-- `@supabase/supabase-js` added to deps + lockfile
-**Remaining to fully activate** (next session, once keys exist): create Supabase project, run `schema.sql`,
-add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
+### E1 — Supabase Auth UI (Magic Link + Google)
+**Status**: `[ ]` Not started
+**Needs**: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+**Why**: B1 scaffolded `lib/supabase.ts` and `lib/cloudSync.ts` but there's no way to sign in. This is the gate for multi-device sync.
+**Files**: new `components/AuthModal.tsx`, `app/settings/page.tsx`, `lib/supabase.ts`
+**What to do**:
+- Create `components/AuthModal.tsx`:
+  - Bottom sheet modal (same pattern as board selector)
+  - "Sign in to sync across devices" header
+  - Email input → "Send magic link" button → `supabase.auth.signInWithOtp({ email })`
+  - Google OAuth button → `supabase.auth.signInWithOAuth({ provider: 'google' })`
+  - Success state: "Check your email for a sign-in link"
+  - Error state: "Sign-in failed — check your email and try again"
+- In `app/settings/page.tsx`:
+  - Add "Cloud Sync" section at the top (above Export)
+  - If `cloudEnabled` (from `lib/supabase.ts`): show sign-in status, email, "Sign out" button, "Sync now" button, last sync timestamp
+  - If not `cloudEnabled`: show a dormant "Cloud sync available with Supabase" info card (no button) — cloud sync activates automatically once keys are present
+  - If `cloudEnabled` and not signed in: show "Sign in to sync" button → opens `AuthModal`
+- On auth state change (`supabase.auth.onAuthStateChange`): call `syncNow()` from `lib/cloudSync.ts`
 
-### B2 — Browser Extension
-**Status**: `[x]` Done  
-**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
-
-### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[x]` Done  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
-
-### B4 — Embedding/Vibe Search
-**Status**: `[ ]` Not started  
-**Needs**: Supabase pgvector (from B1)  
-**What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
-
-### B5 — Cloud Backup Export
-**Status**: `[x]` Done  
-**What to do**: "Download all my data" as JSON from the account settings page
-
----
-
-## PHASE C — On-Trip Mode (Future)
-
-### C1 — On-Trip GPS Mode
-**Status**: `[x]` Done
-
-### C2 — Post-Trip Timeline
-**Status**: `[x]` Done
-
-### C3 — Shared Boards v1
-**Status**: `[x]` Done
-
-### C4 — Proactive Resurfacing
-**Status**: `[x]` Done
+### E2 — Background Sync on App Focus
+**Status**: `[ ]` Not started
+**Needs**: E1 complete + Supabase keys
+**Files**: `app/layout.tsx`, `lib/cloudSync.ts`
+**What to do**:
+- In `app/layout.tsx`, add a client component `SyncOnFocus` that:
+  - Registers `window.addEventListener('focus', handleFocus)`
+  - `handleFocus`: if user is signed in and online, call `syncNow()` (debounced — no more than once per 30s)
+  - On initial mount: call `syncNow()` once
+- Update `lib/cloudSync.ts` `syncNow()` to also update a `syncedAt` key in localStorage so `app/settings/page.tsx` can display "Last synced: 3 min ago"
 
 ---
 
-## Completed Tasks
+## PHASE G — App Store Launch
 
-*(Claude marks tasks [x] and moves them here when done)*
+### G1 — Privacy Policy & Terms Pages
+**Status**: `[ ]` Not started
+**Why**: Required by App Store. Apple will reject without a privacy policy link.
+**Files**: new `app/privacy/page.tsx`, new `app/terms/page.tsx`, `app/settings/page.tsx`
+**What to do**:
+- Create `app/privacy/page.tsx`: static page with a complete, honest privacy policy. Key points:
+  - Data stored locally on device (IndexedDB) by default
+  - If cloud sync enabled: data synced to Supabase (describe what's stored: clips, boards, trip plans)
+  - Location data: used only on-device for nearby-spots feature, never sent to servers
+  - Claude AI: URLs + post content are sent to Anthropic API for extraction (no PII retention)
+  - PostHog: anonymous usage analytics (can be opted out)
+  - No ads, no data selling, no tracking across apps
+  - Contact: jiangnan027@gmail.com
+  - Styled consistently with the app (white bg, indigo accents, max-w-2xl centered, proper headings)
+- Create `app/terms/page.tsx`: similarly styled Terms of Service (permitted use, no warranty, governing law)
+- In `app/settings/page.tsx`: add "Legal" section at the bottom with links to `/privacy` and `/terms`
+
+### G2 — App Store Screenshot Frames
+**Status**: `[ ]` Not started
+**Why**: App Store requires polished screenshots. The current UI is good; it just needs framing + captions.
+**Files**: new `app/screenshots/page.tsx`
+**What to do**:
+- Create `app/screenshots/page.tsx` — a special "screenshot mode" page (not in nav) that renders 5 screenshot compositions in 390×844px frames (iPhone 15 Pro size):
+  - Screen 1: Home map with pins + nearby spots tray visible. Caption overlay: "Clip from anywhere. See everything."
+  - Screen 2: Inbox with substance visible on a card (expanded). Caption: "Not just pins — the wisdom behind them."
+  - Screen 3: Plan view (itinerary with day strips + sourced tips). Caption: "AI plans trips from YOUR saved clips."
+  - Screen 4: Board detail view (grid + timeline toggle). Caption: "Organize inspiration into trip boards."
+  - Screen 5: Share view (shared board with items expanded). Caption: "Share boards with friends."
+- Each frame: iPhone bezel (simple SVG rounded rect with notch), app UI inside, gradient background behind bezel, caption text below
+- Page is print-ready (use `@media print` CSS to hide the navigation). Link from `/settings` with `?mode=screenshots` param so it's accessible but not prominent.
+
+---
+
+## PHASE B — Remaining
+
+### B4 — Embedding / Vibe Search
+**Status**: `[ ]` Not started (BLOCKED — needs Supabase pgvector from B1/E1)
+**What to do**: Embed clip title + substance text using `text-embedding-3-small` (OpenAI) or a local model. Store vectors in Supabase pgvector. Add semantic search UI that queries "find me minimalist cafes in Tokyo" by cosine similarity.
+
+---
+
+## All Previously Completed Tasks (Phases A–C)
+
+### Phase A — Bug-Free MVP
+- [x] A1 — Substance Extraction (2-layer clip schema)
+- [x] A2 — Enrichment Retry Queue
+- [x] A3 — Error Tracking (PostHog)
+- [x] A4 — AI Cost Guard
+- [x] A5 — In-App Resource Request Notifications
+- [x] A6 — Pin Clustering at Low Zoom
+- [x] A7 — Full-Text Search on Clips
+- [x] A8 — Onboarding Seed Boards
+- [x] A9 — Plan Export (PDF + Calendar)
+- [x] A10 — Multi-Version Plan Support
+- [x] A11 — Surface Substance in Clip Detail (Wisdom view)
+- [x] A12 — Thread Substance into Trip Plans
+
+### Phase B — Cloud Sync + Auth
+- [~] B1 — Supabase Setup (scaffolded, dormant until keys)
+- [x] B2 — Browser Extension
+- [x] B3 — Xiaohongshu Fix (Claude Vision)
+- [x] B5 — Cloud Backup Export
+
+### Phase C — On-Trip Mode
+- [x] C1 — On-Trip GPS Mode
+- [x] C2 — Post-Trip Timeline
+- [x] C3 — Shared Boards v1
+- [x] C4 — Proactive Resurfacing
