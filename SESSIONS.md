@@ -96,3 +96,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-10 11:25 | b5a19dc | feat(B2): browser extension — clip any page to TravelPanel in one click
+2026-06-10 11:32 | 420d2b5 | feat(B3): Claude Vision extraction for iOS screenshots (Xiaohongshu fix)

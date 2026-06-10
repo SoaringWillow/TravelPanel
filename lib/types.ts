@@ -41,6 +41,7 @@ export interface SavedItem {
   title: string;
   description: string;
   thumbnail?: string;
+  imageBase64?: string; // raw screenshot from iOS Share Sheet; used by Claude Vision when URL scraping fails
   locations: Location[];
   activities: string[];
   tags: string[];
