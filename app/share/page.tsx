@@ -3,12 +3,15 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
-import { Board, SavedItem, ImportResult } from '@/lib/types';
+import { Board, SavedItem, ImportResult, Platform } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+
+// Platforms that block HTML scraping — screenshot upload gives much better results
+const SCRAPING_BLOCKED: Platform[] = ['xiaohongshu', 'wechat', 'douyin'];
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +23,8 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  // iOS Share Extension passes base64 image via ?image= for screenshot clips
+  const imageParam      = searchParams.get('image') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,7 +34,12 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Screenshot upload: base64 data URI (from file input) or raw base64 (from URL param)
+  const [screenshot, setScreenshot]           = useState<string>(
+    imageParam ? (imageParam.startsWith('data:') ? imageParam : `data:image/jpeg;base64,${imageParam}`) : ''
+  );
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
@@ -49,9 +59,10 @@ function SharePageInner() {
     };
   }, [stage]);
 
-  const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
+  const platform      = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
+  const isScrapingBlocked = SCRAPING_BLOCKED.includes(platform);
 
   // Most-recently-updated 5 boards for quick-pick
   const recentBoards = [...boards]
@@ -88,9 +99,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available for vision extraction
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshot || undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -242,6 +253,69 @@ function SharePageInner() {
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+
+        {/* Screenshot upload — prominent for blocked platforms, subtle otherwise */}
+        <div className="mb-4">
+          {isScrapingBlocked && !screenshot && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-2">
+              📷 {platformLabel} blocks link previews. Adding a screenshot lets Claude read the full post.
+            </p>
+          )}
+
+          {screenshot ? (
+            <div className="relative rounded-xl overflow-hidden border border-gray-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={screenshot}
+                alt="Screenshot preview"
+                className="w-full max-h-40 object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setScreenshot('')}
+                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
+                aria-label="Remove screenshot"
+              >
+                <X size={12} />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
+                <p className="text-white text-xs font-medium">✓ Screenshot attached — Claude will read the full post</p>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-medium transition-colors ${
+                isScrapingBlocked
+                  ? 'border-amber-300 text-amber-700 hover:bg-amber-50'
+                  : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-500'
+              }`}
+            >
+              <ImagePlus size={15} />
+              {isScrapingBlocked ? 'Add screenshot (recommended)' : 'Add screenshot (optional)'}
+            </button>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                const result = ev.target?.result;
+                if (typeof result === 'string') setScreenshot(result);
+              };
+              reader.readAsDataURL(file);
+              // Reset input so the same file can be re-selected
+              e.target.value = '';
+            }}
+          />
         </div>
 
         {/* Bottom — return button (ghost) */}
