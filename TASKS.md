@@ -246,7 +246,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - **Long-press on map**: show a "Save this location" tooltip at that coordinate, prompting a quick note input
 
 ### C6 — Empty State Illustrations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: An empty app shows a blank white screen. This causes new users to bounce. Good empty states explain the product and give a clear next action.  
 **Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:

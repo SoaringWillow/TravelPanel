@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, 
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
+import { recordPlanGenerated, maybePromptReview } from '@/lib/reviewPrompt';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
@@ -81,6 +82,7 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     recordPlanGeneration();
+    recordPlanGenerated();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
     const res = await fetch('/api/plan', {
@@ -125,6 +127,9 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') {
+                setTimeout(() => maybePromptReview(boardItems.length), 2000);
+              }
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
