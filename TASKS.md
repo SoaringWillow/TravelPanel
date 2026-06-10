@@ -626,6 +626,101 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE K — Core Feature Completeness
+
+> Goal: Fill the gaps that prevent TravelPanel from being a fully self-contained travel app.
+> A user should be able to add places, manage their library, and have their plans feel alive.
+> Execution order: K1 → K2 → K3 → K4 → K5 → K6 → K7 → K8
+
+### K1 — Add Place Manually (Geocoded Search)
+**Status**: `[x]` Done  
+**Files**: new `components/AddPlaceSheet.tsx`, `app/page.tsx`, `components/NavBar.tsx`  
+**What to do**:
+- Add a "+" long-press or secondary button that opens an "Add Place" sheet
+- Search field hits Nominatim geocoder (free, no key: `https://nominatim.openstreetmap.org/search?q=...&format=json&limit=5&addressdetails=1`)
+- Results list: place name + address + type (city/restaurant/museum)
+- Tap a result → creates a `SavedItem` with platform `'other'`, enrichmentStatus `'done'`,
+  location pre-filled from Nominatim, title = display_name trimmed, tags from `type`
+- "Add manually" fallback: free-text name + tap-on-map to place a pin (optional stretch)
+- Shows in the map and inbox immediately after adding
+
+### K2 — Inbox Smart Sort
+**Status**: `[x]` Done  
+**Files**: `app/inbox/page.tsx`, `lib/searchItems.ts`  
+**What to do**:
+- Add a "Sort" button next to the search bar in the inbox header
+- Sort options: Date saved (newest), Date saved (oldest), Most tips, Most locations
+- Selected sort persists to `localStorage` under `inboxSort`
+- Apply sort AFTER search and platform filter
+- Show active sort label: "Sorted by: Most tips" under the filter chips when non-default
+
+### K3 — Multi-select Batch Actions in Inbox
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Long-press on a card (>500ms) enters multi-select mode
+- Selected cards show a checkmark overlay (indigo circle, scale animation)
+- Bottom action bar appears: "Delete X" (red), "Move to Board" (indigo), "Cancel"
+- "Select All" button in the top bar when in multi-select mode
+- Exit multi-select on ESC or tap outside (empty area)
+- Use existing `removeItem` and `addItemToBoard` from db
+
+### K4 — Plan Day Mini Route Map
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, new `components/DayRouteMap.tsx`  
+**What to do**:
+- In the trip plan day view, show a compact MapLibre map (200px tall) above the activity list
+- Pins for each activity's location; connected by a straight-line polyline in the day's order
+- Tapping the mini map expands to full-screen (or navigates to the navigate view)
+- Re-uses MapLibre already in the codebase — no new dependencies
+- If an activity has no location data, skip it in the route (don't break the map)
+
+### K5 — Board Visited / Trip Completed Toggle
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/[id]/page.tsx`, `lib/types.ts`, `lib/db.ts`  
+**What to do**:
+- Add a "Mark as completed" button to the board detail page (and board context menu)
+- Adds `completedAt: number` field to `Board`
+- Completed boards show a green "✓ Visited" badge on the board card
+- Filter toggle on the Boards page: "All" / "Planning" / "Visited"
+- Completed boards move to the bottom of the list automatically
+
+### K6 — Offline Clip Queue
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, new `lib/clipQueue.ts`, `hooks/useClipQueue.ts`  
+**What to do**:
+- When enrichment API call fails with a network error (not a 4xx), save the clip URL to an
+  IndexedDB "queue" store with status `'queued'`
+- On app reconnect (`window.addEventListener('online', ...)`), drain the queue: re-attempt
+  enrichment for each queued item in order
+- Show a subtle "1 clip queued — will process when online" banner in the inbox
+- Distinguishable from `failed` status — queued items have a ⏳ indicator not a ⚠ indicator
+- This makes the Share Sheet flow truly resilient: sharing on airplane mode works
+
+### K7 — Plan Streaming UX: Visible Agent Steps
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`  
+**What to do**:
+- During plan generation, show a live "thinking" view with animated step cards:
+  "🔍 Reading your clips…" → "🗺 Grouping by neighborhood…" → "📅 Building your itinerary…"
+- Each step card animates in with framer-motion (from y:20, opacity:0)
+- Inspired by 圆周旅记's agent UX — makes users feel the AI is actively thinking
+- Steps are already partially there in `AgentStep` type — surface them visually
+- Replace the current static "Generating..." spinner with this flow
+
+### K8 — Map: Tap to Save a Place
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Long-press on the map (300ms) triggers a reverse geocode via Nominatim
+  (`https://nominatim.openstreetmap.org/reverse?lat=...&lon=...&format=json`)
+- Shows a small popover: "📍 <Place Name>" with a "+ Save" button
+- Tapping "+ Save" creates a SavedItem with the geocoded place, platform `'other'`
+- Shows a pulse animation at the tapped point while geocoding
+- Dismiss on tap elsewhere
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*

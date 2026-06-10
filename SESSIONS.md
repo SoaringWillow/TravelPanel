@@ -123,3 +123,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 21:31 | cd81383 | feat(I1,I2): Empty state CTA + personal notes on clips
 2026-06-10 21:32 | 57a832e | feat(I3,I4): Clipboard URL suggestion + plan preferences memory
 2026-06-10 21:34 | 3fe59d7 | feat(I5,I6): Map memoization + travel stats dashboard
+2026-06-10 21:39 | 83e27e6 | feat(J1,J2,J4,J6): Trip history, day nav, substance preview, ambient stats
+2026-06-10 21:44 | e555593 | feat(J3,J5,J6): Fuzzy search with location toggle, board drag reorder, ambient home widgets

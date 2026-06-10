@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Globe2, Plus, LayoutGrid } from 'lucide-react';
+import { Globe2, Plus, LayoutGrid, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useGeofence } from '@/hooks/useGeofence';
 import { useBoards } from '@/hooks/useBoards';
@@ -13,6 +13,7 @@ import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import OnboardingFlow from '@/components/OnboardingFlow';
+import AddPlaceSheet from '@/components/AddPlaceSheet';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -32,6 +33,7 @@ function HomePageInner() {
     }
   }, []);
   const [showImport, setShowImport]     = useState(false);
+  const [showAddPlace, setShowAddPlace] = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
@@ -252,15 +254,23 @@ function HomePageInner() {
           )}
         </div>
 
-        {/* Import button at bottom of panel */}
-        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
+        {/* Import buttons at bottom of panel */}
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex-shrink-0 flex gap-2">
+          <button
+            onClick={() => setShowAddPlace(true)}
+            className="flex items-center justify-center gap-1.5 border border-indigo-200 text-indigo-600 font-semibold text-sm px-3 py-3 rounded-xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
+            aria-label="Add a place"
+          >
+            <MapPin size={16} />
+            Add place
+          </button>
           <button
             onClick={() => setShowImport(true)}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold text-sm px-4 py-3 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
+            className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold text-sm px-4 py-3 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
             aria-label="Clip inspiration"
           >
             <Plus size={18} />
-            Clip inspiration
+            Clip URL
           </button>
         </div>
       </div>
@@ -277,15 +287,26 @@ function HomePageInner() {
         </AnimatePresence>
       </div>
 
-      {/* Import FAB (phone only) */}
+      {/* FABs (phone only) */}
       {!selectedItem && (
-        <button
-          onClick={() => setShowImport(true)}
-          className="md:hidden absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          aria-label="Clip inspiration"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="md:hidden absolute bottom-24 right-4 z-[1000] flex flex-col items-end gap-3">
+          {/* Add place geocoder */}
+          <button
+            onClick={() => setShowAddPlace(true)}
+            className="bg-white text-indigo-600 border border-indigo-100 rounded-full p-3 shadow-lg hover:bg-indigo-50 active:scale-95 transition-all"
+            aria-label="Add a place"
+          >
+            <MapPin size={20} />
+          </button>
+          {/* Clip from URL */}
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            aria-label="Clip inspiration"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       )}
 
       {/* Import Sheet */}
@@ -294,6 +315,16 @@ function HomePageInner() {
         onClose={handleImportClose}
         onSaved={handleItemSaved}
         initialUrl={prefilledUrl}
+      />
+
+      {/* Add Place Sheet */}
+      <AddPlaceSheet
+        open={showAddPlace}
+        onClose={() => setShowAddPlace(false)}
+        onAdded={(item) => {
+          addItem(item);
+          if (item.locations.length > 0) setFlyTo(item.locations[0]);
+        }}
       />
 
       <NavBar active="home" />

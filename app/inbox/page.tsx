@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, ArrowUpDown } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -17,6 +17,26 @@ import SkeletonCard from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+
+// ─── Sort options ─────────────────────────────────────────────────────────────
+
+type SortKey = 'newest' | 'oldest' | 'most_tips' | 'most_locations';
+const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
+  { key: 'newest', label: 'Date saved (newest)' },
+  { key: 'oldest', label: 'Date saved (oldest)' },
+  { key: 'most_tips', label: 'Most tips' },
+  { key: 'most_locations', label: 'Most locations' },
+];
+const SORT_STORAGE_KEY = 'inboxSort';
+
+function applySortKey(items: import('@/lib/types').SavedItem[], sort: SortKey) {
+  const copy = [...items];
+  if (sort === 'newest') return copy.sort((a, b) => b.savedAt - a.savedAt);
+  if (sort === 'oldest') return copy.sort((a, b) => a.savedAt - b.savedAt);
+  if (sort === 'most_tips') return copy.sort((a, b) => (b.substance?.length ?? 0) - (a.substance?.length ?? 0));
+  if (sort === 'most_locations') return copy.sort((a, b) => b.locations.length - a.locations.length);
+  return copy;
+}
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -41,6 +61,13 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [locationMode, setLocationMode] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem(SORT_STORAGE_KEY) as SortKey) ?? 'newest';
+    }
+    return 'newest';
+  });
+  const [showSort, setShowSort] = useState(false);
   const [visibleCount, setVisibleCount] = useState(30);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -53,8 +80,8 @@ export default function InboxPage() {
     router.refresh();
   }, [items, retryItem, router]);
 
-  // Reset visible window when query or filter changes
-  useEffect(() => { setVisibleCount(30); }, [query, activePlatform, locationMode]);
+  // Reset visible window when query, filter, or sort changes
+  useEffect(() => { setVisibleCount(30); }, [query, activePlatform, locationMode, sortKey]);
 
   // Expand window as sentinel scrolls into view
   useEffect(() => {
@@ -75,6 +102,14 @@ export default function InboxPage() {
     threshold: 68,
   });
 
+  // Close sort dropdown when clicking outside
+  useEffect(() => {
+    if (!showSort) return;
+    const close = () => setShowSort(false);
+    document.addEventListener('click', close, { capture: true, once: true });
+    return () => document.removeEventListener('click', close, { capture: true });
+  }, [showSort]);
+
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
@@ -88,7 +123,9 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query, { byLocation: locationMode });
+  const searched = searchItems(platformFiltered, query, { byLocation: locationMode });
+  // Apply sort after search (search already scores by relevance; only sort when no active query)
+  const filtered = query.trim() ? searched : applySortKey(searched, sortKey);
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -144,15 +181,69 @@ export default function InboxPage() {
           </span>
         </div>
 
-        {/* Search */}
-        <div className="mb-3">
-          <SearchBar
-            onSearch={handleSearch}
-            onLocationModeChange={setLocationMode}
-            locationMode={locationMode}
-            resultCount={query.trim() ? filtered.length : undefined}
-          />
+        {/* Search + Sort row */}
+        <div className="mb-3 flex items-start gap-2">
+          <div className="flex-1">
+            <SearchBar
+              onSearch={handleSearch}
+              onLocationModeChange={setLocationMode}
+              locationMode={locationMode}
+              resultCount={query.trim() ? filtered.length : undefined}
+            />
+          </div>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSort((v) => !v)}
+              className={`flex items-center gap-1 px-3 py-2 rounded-xl border text-xs font-medium transition-colors ${
+                sortKey !== 'newest'
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+              aria-label="Sort options"
+            >
+              <ArrowUpDown size={13} />
+              Sort
+            </button>
+            <AnimatePresence>
+              {showSort && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl z-50 min-w-[190px] overflow-hidden"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => {
+                        setSortKey(opt.key);
+                        localStorage.setItem(SORT_STORAGE_KEY, opt.key);
+                        setShowSort(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 text-sm transition-colors ${
+                        sortKey === opt.key
+                          ? 'bg-indigo-50 text-indigo-700 font-semibold dark:bg-indigo-950 dark:text-indigo-300'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
+
+        {/* Active sort label */}
+        {sortKey !== 'newest' && !query.trim() && (
+          <p className="text-[11px] text-indigo-500 mb-2 px-1">
+            Sorted by: {SORT_OPTIONS.find((o) => o.key === sortKey)?.label}
+          </p>
+        )}
 
         {/* Platform filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
