@@ -343,7 +343,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Clean, readable typography — no distracting layout
 
 ### F2 — Capacitor Plugin Audit & Version Update
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `package.json`, `ios/App/Podfile`, `capacitor.config.ts`  
 **What to do**:
 - Audit installed Capacitor plugins: `@capacitor/app`, `@capacitor/haptics`, `@capacitor/preferences`, `@capacitor/splash-screen`, `@capacitor/status-bar`
@@ -364,7 +364,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Note: screenshots needed (5 per device size) — stub the sizes in `app-store/screenshots/`
 
 ### F4 — Sentry Error Tracking (native crash reporting)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/layout.tsx`, `capacitor.config.ts`, `ios/App/App/AppDelegate.swift`  
 **What to do**:
 - Install `@sentry/nextjs` and `@sentry/capacitor`
