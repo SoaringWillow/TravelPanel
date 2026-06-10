@@ -187,7 +187,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > **Recommended order**: `D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8 → D9`
 
 ### D1 — Skeleton Loading Screens
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: IndexedDB queries take 50–200 ms. The current state is a flash of empty content before items appear, which feels janky and cheap.  
 **Files to change**: `components/InboxCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
