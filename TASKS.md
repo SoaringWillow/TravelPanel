@@ -869,7 +869,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - BoardCard shows the trip date range if set (small text below board name)
 
 ### M4 — Substance Full-Text Search
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/searchItems.ts`, `components/SearchBar.tsx`, `app/inbox/page.tsx`  
 **What to do**:
 - Add a "Search tips" mode to SearchBar (a third toggle alongside "By location")
@@ -880,7 +880,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show "N tip matches" in the result count badge
 
 ### M5 — Itinerary Text Export
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - Add an "Export" button to the trip plan page header (Share icon)

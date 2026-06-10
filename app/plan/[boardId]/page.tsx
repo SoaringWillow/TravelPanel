@@ -269,6 +269,38 @@ export default function PlanPage() {
   }, []);
 
   const [sharingCard, setSharingCard] = useState(false);
+  const [shareTextSuccess, setShareTextSuccess] = useState(false);
+
+  const handleShareText = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const lines: string[] = [];
+    lines.push(`🗺 ${board.emoji} ${board.name} — ${plan.days.length} Day Itinerary`);
+    if (plan.overview) lines.push(`\n${plan.overview}`);
+    for (const day of plan.days) {
+      lines.push(`\nDay ${day.day} — ${day.theme}`);
+      for (const act of day.activities) {
+        lines.push(`• ${act.time}  ${act.name} (${act.location.name})`);
+        if (act.tips.length > 0) {
+          lines.push(`  Tips: ${act.tips.slice(0, 2).join('; ')}`);
+        }
+        if (act.sourcedTips && act.sourcedTips.length > 0) {
+          lines.push(`  💡 ${act.sourcedTips[0].content} — from: ${act.sourcedTips[0].sourceTitle}`);
+        }
+      }
+    }
+    lines.push(`\nPlanned with TravelPanel`);
+    const text = lines.join('\n');
+    const title = `${board.emoji} ${board.name} Trip Plan`;
+    if (navigator.share) {
+      try { await navigator.share({ title, text }); return; } catch { /* fall through */ }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareTextSuccess(true);
+      setTimeout(() => setShareTextSuccess(false), 2000);
+    } catch { /* ignore */ }
+    track('plan_exported', { format: 'text', boardId });
+  }, [plan, board, boardId]);
 
   const handleShareCard = useCallback(async () => {
     if (!planIsComplete(plan) || !board) return;
@@ -653,11 +685,18 @@ export default function PlanPage() {
                   )}
                   <div className="flex gap-2">
                     <button
+                      onClick={handleShareText}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold py-2 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                    >
+                      <Share2 size={14} />
+                      {shareTextSuccess ? '✓ Copied!' : 'Share'}
+                    </button>
+                    <button
                       onClick={handleExportPDF}
                       className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                     >
                       <Download size={14} />
-                      Export PDF
+                      PDF
                       <ProBadge size="xs" />
                     </button>
                     <button
@@ -665,7 +704,7 @@ export default function PlanPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                     >
                       <CalendarPlus size={14} />
-                      Add to Calendar
+                      Calendar
                       <ProBadge size="xs" />
                     </button>
                     <button
