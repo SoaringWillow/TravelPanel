@@ -20,6 +20,9 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  // `text` carries the full share-payload text from the iOS Share Extension —
+  // used by the API as content when page scraping fails (Xiaohongshu, WeChat).
+  const capturedText    = searchParams.get('text') ?? undefined;
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -88,9 +91,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass captured share text so the API can use it
+    // when page scraping returns empty (Xiaohongshu, WeChat anti-scraping).
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, capturedText)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
