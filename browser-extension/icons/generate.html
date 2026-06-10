@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!--
+  Open this file in a browser to generate PNG icons for the TravelPanel
+  browser extension.
+
+  Steps:
+  1. Open this file in Chrome or Safari
+  2. Right-click each canvas and "Save image as…"
+  3. Save as icon16.png, icon48.png, icon128.png in this icons/ folder
+  4. Add to manifest.json under "icons" and "action.default_icon"
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Icon Generator</title>
+  <style>
+    body { font-family: sans-serif; padding: 32px; background: #f3f4f6; }
+    h1 { font-size: 20px; margin-bottom: 24px; color: #111; }
+    .icons { display: flex; gap: 32px; align-items: flex-end; flex-wrap: wrap; }
+    .icon-wrap { text-align: center; }
+    .icon-wrap p { font-size: 12px; color: #6b7280; margin-top: 8px; }
+    canvas { display: block; border-radius: 22%; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .note {
+      background: #eef2ff;
+      color: #4338ca;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <h1>TravelPanel Icon Generator</h1>
+  <div class="note">
+    Right-click each icon → "Save image as…" → save as icon16.png, icon48.png, icon128.png in the icons/ folder.
+  </div>
+  <div class="icons" id="icons"></div>
+
+  <script>
+    const SIZES = [16, 48, 128];
+
+    SIZES.forEach(size => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = size;
+      canvas.height = size;
+      canvas.title  = `Right-click → Save image as "icon${size}.png"`;
+
+      const ctx = canvas.getContext('2d');
+      const r   = size / 2;
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, size, size);
+      grad.addColorStop(0, '#4f46e5');
+      grad.addColorStop(1, '#7c3aed');
+
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, size * 0.22);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Globe emoji / map icon
+      ctx.font = `${size * 0.58}px serif`;
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🗺', r, r * 1.08);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'icon-wrap';
+      const label = document.createElement('p');
+      label.textContent = `${size}×${size} — icon${size}.png`;
+      wrap.appendChild(canvas);
+      wrap.appendChild(label);
+      document.getElementById('icons').appendChild(wrap);
+    });
+  </script>
+</body>
+</html>
