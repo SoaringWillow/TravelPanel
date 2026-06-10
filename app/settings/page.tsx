@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Cloud, CloudOff, Info, CheckCircle2, Sparkles, Check, X, FolderInput } from 'lucide-react';
+import { Download, Cloud, CloudOff, Info, CheckCircle2, Sparkles, Check, X, FolderInput, Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards } from '@/lib/db';
@@ -38,13 +38,27 @@ export default function SettingsPage() {
   const [exported, setExported] = useState(false);
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistJoined, setWaitlistJoined] = useState(false);
+  const [geofenceEnabled, setGeofenceEnabled] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('proWaitlistEmail');
       if (stored) { setWaitlistEmail(stored); setWaitlistJoined(true); }
+      setGeofenceEnabled(localStorage.getItem('geofenceEnabled') === '1');
     }
   }, []);
+
+  function toggleGeofence(val: boolean) {
+    setGeofenceEnabled(val);
+    if (typeof window !== 'undefined') {
+      if (val) {
+        localStorage.setItem('geofenceEnabled', '1');
+        sessionStorage.removeItem('geofence_ran'); // allow immediate re-check
+      } else {
+        localStorage.removeItem('geofenceEnabled');
+      }
+    }
+  }
 
   function handleJoinWaitlist() {
     if (!waitlistEmail.includes('@')) return;
@@ -191,6 +205,40 @@ export default function SettingsPage() {
                   : 'Sync across devices and protect against data loss. Add Supabase credentials to enable — see B1 in TASKS.md.'}
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Nearby Alerts */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm border border-transparent dark:border-gray-800">
+          <div className="px-4 py-3 border-b border-gray-50">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nearby Alerts</p>
+          </div>
+          <div className="px-4 py-4 flex items-center justify-between gap-3">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <Bell size={20} className={`mt-0.5 flex-shrink-0 ${geofenceEnabled ? 'text-indigo-500' : 'text-gray-400'}`} />
+              <div>
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Notify when nearby</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                  Get a notification when you're within 500 m of a saved spot. Max once per clip per day.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={geofenceEnabled}
+              aria-label="Toggle nearby alerts"
+              onClick={() => toggleGeofence(!geofenceEnabled)}
+              className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                geofenceEnabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                  geofenceEnabled ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
         </div>
 

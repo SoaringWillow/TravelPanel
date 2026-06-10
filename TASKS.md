@@ -413,7 +413,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use `prefers-color-scheme: dark` CSS media query + Tailwind's `darkMode: 'media'` config
 
 ### G4 — Geofence Resurfacing (local notifications, no Supabase needed)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `hooks/useGeofence.ts`, `app/page.tsx`, `capacitor.config.ts`  
 **What to do**:
 - Install `@capacitor/geolocation` and `@capacitor/local-notifications`

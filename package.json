@@ -18,10 +18,12 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.76",
     "@capacitor/app": "^8.1.0",
-    "@capacitor/haptics": "^8.0.1",
     "@capacitor/cli": "^8.3.3",
     "@capacitor/core": "^8.3.3",
+    "@capacitor/geolocation": "^8.2.0",
+    "@capacitor/haptics": "^8.0.1",
     "@capacitor/ios": "^8.3.3",
+    "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
