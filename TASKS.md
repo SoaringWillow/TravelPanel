@@ -194,7 +194,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Dark background target: `#0f172a` (slate-900); card background: `#1e293b` (slate-800)
 
 ### C2 — Clipboard Import (Paste URL)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The Share Sheet is iOS-only. Web users and Android users have no way to import URLs. A "Paste URL" button on the main screen gives all users a first-class import path without opening a Share Sheet.  
 **Files to change**: `app/page.tsx` (or `app/inbox/page.tsx`), `components/ImportSheet.tsx`  
 **What to do**:
@@ -206,7 +206,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On iOS within the Capacitor app, this complements the Share Sheet (both work simultaneously)
 
 ### C3 — Swipe Gestures + Haptics on Clip Cards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Swipe-to-delete is a native iOS pattern users expect. Without it, managing clips feels clunky. Haptics make the app feel native rather than web-ported.  
 **Files to change**: `components/InboxCard.tsx`, `components/CapacitorBridge.tsx`  
 **What to do**:
@@ -222,7 +222,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Wrap Haptics calls in `try/catch` since the plugin no-ops on web
 
 ### C4 — Skeleton Loaders for Pending Clips
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: While a clip is enriching (status: 'pending' or 'processing'), the card shows a minimal stub. Users don't know if the app is working. Skeleton loaders signal activity and prevent perceived hangs.  
 **Files to change**: `components/InboxCard.tsx`  
 **What to do**:

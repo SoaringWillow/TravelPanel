@@ -86,10 +86,40 @@ function HomePageInner() {
     setPrefilledUrl('');
   }
 
+  function handlePinClick(item: SavedItem) {
+    setSelectedItem(item);
+    if (item.locations.length > 0) {
+      setFlyTo({ ...item.locations[0] });
+    }
+  }
+
+  function handleSaveLocation(lat: number, lng: number, note: string) {
+    const pinName = note || `Pin at ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    const newItem: SavedItem = {
+      id: crypto.randomUUID(),
+      url: `https://maps.google.com/?q=${lat},${lng}`,
+      platform: 'other',
+      title: pinName,
+      description: '',
+      thumbnail: undefined,
+      locations: [{ lat, lng, name: pinName }],
+      activities: [],
+      tags: [],
+      substance: [],
+      savedAt: Date.now(),
+      notes: note || undefined,
+      enrichmentStatus: 'done',
+      retryCount: 0,
+      boardId: undefined,
+    };
+    addItem(newItem);
+    setFlyTo({ lat, lng, name: pinName });
+  }
+
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} mapStyle={mapStyle} />
+      <MapView items={items} onPinClick={handlePinClick} flyTo={flyTo} mapStyle={mapStyle} onSaveLocation={handleSaveLocation} />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">

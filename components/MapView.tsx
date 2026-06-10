@@ -29,6 +29,36 @@ const TAG_EMOJI: Record<string, string> = {
   rural:        '🌾',
 };
 
+// ─── Tag → category color (for emoji-less pins) ──────────────────────────────
+
+const TAG_COLORS: Record<string, string> = {
+  food:         '#f97316', // orange
+  restaurant:   '#f97316',
+  nature:       '#22c55e', // green
+  park:         '#22c55e',
+  forest:       '#22c55e',
+  culture:      '#a855f7', // purple
+  history:      '#a855f7',
+  museum:       '#a855f7',
+  art:          '#a855f7',
+  adventure:    '#ef4444', // red
+  hiking:       '#ef4444',
+  beach:        '#14b8a6', // teal
+  ocean:        '#14b8a6',
+  sea:          '#14b8a6',
+  shopping:     '#ec4899', // pink
+  nightlife:    '#f59e0b', // amber
+  city:         '#6366f1', // indigo (default)
+};
+
+function getPinColor(tags: string[]): string {
+  for (const tag of tags) {
+    const color = TAG_COLORS[tag.toLowerCase()];
+    if (color) return color;
+  }
+  return '#6366f1'; // default indigo
+}
+
 function getPinEmoji(tags: string[]): string | null {
   for (const tag of tags) {
     const emoji = TAG_EMOJI[tag.toLowerCase()];
@@ -91,6 +121,7 @@ interface PinProps {
 function Pin({ item, locName, onClick }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
+  const pinColor = getPinColor(item.tags);
 
   return (
     <div style={{ position: 'relative' }}>
@@ -167,8 +198,8 @@ function Pin({ item, locName, onClick }: PinProps) {
             width:           emoji ? 34 : 26,
             height:          emoji ? 34 : 26,
             borderRadius:    '50%',
-            backgroundColor: emoji ? 'white' : PLATFORM_COLORS[item.platform],
-            border:          `2.5px solid ${emoji ? PLATFORM_COLORS[item.platform] : 'white'}`,
+            backgroundColor: emoji ? 'white' : pinColor,
+            border:          `2.5px solid ${emoji ? pinColor : 'white'}`,
             boxShadow:       hovered ? '0 4px 12px rgba(0,0,0,0.30)' : '0 2px 8px rgba(0,0,0,0.22)',
             cursor:          'pointer',
             padding:         0,
@@ -231,10 +262,20 @@ interface MapViewProps {
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
   mapStyle?: string;
+  onSaveLocation?: (lat: number, lng: number, note: string) => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo, mapStyle = 'https://tiles.openfreemap.org/styles/liberty' }: MapViewProps) {
+interface ContextMenu {
+  lat: number;
+  lng: number;
+  x: number;
+  y: number;
+}
+
+export default function MapView({ items, onPinClick, flyTo, mapStyle = 'https://tiles.openfreemap.org/styles/liberty', onSaveLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [saveNote, setSaveNote] = useState('');
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
 
@@ -278,6 +319,11 @@ export default function MapView({ items, onPinClick, flyTo, mapStyle = 'https://
         reuseMaps
         onLoad={handleLoad}
         onMoveEnd={handleMove}
+        onContextMenu={(e) => {
+          setContextMenu({ lat: e.lngLat.lat, lng: e.lngLat.lng, x: e.point.x, y: e.point.y });
+          setSaveNote('');
+        }}
+        onClick={() => setContextMenu(null)}
       >
         <NavigationControl position="top-right" />
 
@@ -351,6 +397,60 @@ export default function MapView({ items, onPinClick, flyTo, mapStyle = 'https://
           </Popup>
         )}
       </Map>
+
+      {/* Long-press / right-click context menu */}
+      {contextMenu && (
+        <div
+          style={{
+            position: 'absolute',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            zIndex: 1200,
+            transform: 'translate(-50%, -110%)',
+          }}
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 p-3 w-56"
+        >
+          <p className="text-xs text-gray-500 dark:text-slate-400 mb-2">
+            📍 {contextMenu.lat.toFixed(5)}, {contextMenu.lng.toFixed(5)}
+          </p>
+          <input
+            type="text"
+            value={saveNote}
+            onChange={(e) => setSaveNote(e.target.value)}
+            placeholder="Add a note (optional)"
+            className="w-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-xs rounded-lg px-2.5 py-2 mb-2 focus:border-indigo-400 focus:outline-none placeholder:text-gray-400 dark:placeholder:text-slate-500"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && onSaveLocation) {
+                onSaveLocation(contextMenu.lat, contextMenu.lng, saveNote.trim());
+                setContextMenu(null);
+              }
+              if (e.key === 'Escape') setContextMenu(null);
+            }}
+          />
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setContextMenu(null)}
+              className="flex-1 text-xs py-1.5 rounded-lg border border-gray-200 dark:border-slate-600 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              Cancel
+            </button>
+            {onSaveLocation && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSaveLocation(contextMenu.lat, contextMenu.lng, saveNote.trim());
+                  setContextMenu(null);
+                }}
+                className="flex-1 text-xs py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors font-medium"
+              >
+                Save pin
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
