@@ -250,8 +250,44 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
-      {/* Import FAB */}
-      {!selectedItem && (
+      {/* Zero-state quick input card */}
+      <AnimatePresence>
+        {!loading && items.length === 0 && !selectedItem && !showImport && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            className="absolute bottom-20 left-0 right-0 z-[1000] px-4"
+          >
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-4 border border-gray-100 dark:border-slate-700">
+              <p className="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">
+                Clip your first travel inspiration
+              </p>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    if (text.startsWith('http')) {
+                      setPrefilledUrl(text);
+                    }
+                  } catch {
+                    // clipboard read not permitted — just open empty
+                  }
+                  setShowImport(true);
+                }}
+                className="w-full flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-3 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
+              >
+                <Plus size={16} />
+                Paste a travel link
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Import FAB — only visible when items exist */}
+      {!selectedItem && items.length > 0 && (
         <button
           onClick={() => setShowImport(true)}
           className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"

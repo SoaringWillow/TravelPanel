@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Sparkles } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -92,15 +92,33 @@ export default function BoardsPage() {
               <path d="M46 52 V60" strokeWidth="2.5" strokeLinecap="round" className="stroke-indigo-500 dark:stroke-indigo-400" />
             </svg>
             <h3 className="font-bold text-gray-800 dark:text-slate-100 text-lg mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs mb-6 leading-relaxed">
+            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs mb-5 leading-relaxed">
               Create your first board to organise your travel ideas into trips.
             </p>
+            {/* Example starter chips */}
+            <div className="flex flex-wrap gap-2 justify-center mb-6">
+              {[
+                { emoji: '🗼', name: 'Tokyo Ideas' },
+                { emoji: '🏖', name: 'Bali 2025' },
+                { emoji: '🍜', name: 'Food Lists' },
+              ].map(({ emoji, name }) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => handleCreate(name, emoji)}
+                  className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl border-2 border-dashed border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-400 transition-all"
+                >
+                  <span>{emoji}</span>
+                  <span>{name}</span>
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => setShowCreate(true)}
               className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-3 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30"
             >
-              <Plus size={16} />
+              <Sparkles size={16} />
               Create a Board
             </button>
           </div>

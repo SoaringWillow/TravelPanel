@@ -375,7 +375,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Skip button in top-right (sets flag, skips all slides)
 
 ### J2 — "Clip this URL" Quick Input on Home Map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The + FAB opens a full-screen sheet. On first launch with no clips, the map is completely empty with no guidance. A persistent "Paste a link to get started" input placeholder visible at the bottom of the map (above NavBar) would reduce friction for the most important action.  
 **Files to change**: `app/page.tsx`  
 **What to do**:
@@ -388,7 +388,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - This card replaces the FAB on zero-state only — the FAB appears once items exist
 
 ### J3 — Rich Empty States with Animated Illustrations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Several screens (Timeline, Settings, Boards list) have minimal or no empty states. A consistent, delightful empty state system reinforces the brand and reduces abandonment.  
 **Files to change**: `app/timeline/page.tsx`, `app/boards/page.tsx`, `app/settings/page.tsx`  
 **What to do**:

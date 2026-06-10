@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, MapPin } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem } from '@/lib/types';
@@ -118,7 +118,12 @@ export default function TimelinePage() {
         ) : groups.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-            <svg width="88" height="88" viewBox="0 0 88 88" fill="none" aria-hidden="true" className="mb-5">
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+              className="mb-5"
+            >
+            <svg width="88" height="88" viewBox="0 0 88 88" fill="none" aria-hidden="true">
               {/* Calendar-ish circle */}
               <circle cx="44" cy="44" r="32" strokeWidth="2" strokeDasharray="6 4" className="stroke-gray-300 dark:stroke-slate-600" />
               {/* Clock hands */}
@@ -127,6 +132,7 @@ export default function TimelinePage() {
               <line x1="44" y1="44" x2="54" y2="50" strokeWidth="2" strokeLinecap="round" className="stroke-indigo-400 dark:stroke-indigo-500" />
               <circle cx="44" cy="44" r="2.5" className="fill-indigo-500 dark:fill-indigo-400" />
             </svg>
+            </motion.div>
             <h2 className="text-base font-bold text-gray-800 dark:text-slate-100 mb-2">
               Your travel diary starts here
             </h2>
