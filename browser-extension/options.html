@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #F9FAFB;
+      color: #111827;
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+    .header-logo {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+      border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(59,130,246,0.3);
+    }
+    .header-text h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.02em;
+    }
+    .header-text p {
+      font-size: 13px;
+      color: #6B7280;
+      margin-top: 2px;
+    }
+
+    /* ── Card ────────────────────────────────────────────────────── */
+    .card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid #E5E7EB;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .card-title-icon { font-size: 14px; }
+
+    /* ── Form fields ─────────────────────────────────────────────── */
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 7px;
+    }
+    .field input[type="url"],
+    .field input[type="text"] {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid #D1D5DB;
+      border-radius: 9px;
+      font-size: 14px;
+      color: #111827;
+      background: white;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus {
+      outline: none;
+      border-color: #3B82F6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    }
+    .field .hint {
+      font-size: 12px;
+      color: #9CA3AF;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+    .field .hint code {
+      background: #F3F4F6;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 11px;
+      color: #374151;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .btn-primary {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: -0.01em;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .btn-secondary {
+      padding: 10px 16px;
+      background: #F3F4F6;
+      color: #374151;
+      border: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #E5E7EB; }
+
+    /* ── Status message ──────────────────────────────────────────── */
+    .status {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .status.success {
+      background: #ECFDF5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+    }
+    .status.error {
+      background: #FEF2F2;
+      color: #991B1B;
+      border: 1px solid #FECACA;
+    }
+
+    /* ── Info box ────────────────────────────────────────────────── */
+    .info-box {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .info-box p {
+      font-size: 13px;
+      color: #1E40AF;
+      line-height: 1.6;
+    }
+    .info-box p + p { margin-top: 8px; }
+    .info-box strong { font-weight: 600; }
+    .info-box code {
+      background: rgba(59,130,246,0.1);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo">✈</div>
+      <div class="header-text">
+        <h1>TravelPanel Clipper</h1>
+        <p>Extension settings</p>
+      </div>
+    </div>
+
+    <!-- App URL card -->
+    <div class="card">
+      <p class="card-title">
+        <span class="card-title-icon">🔗</span>
+        App Configuration
+      </p>
+
+      <div class="field">
+        <label for="appUrl">TravelPanel App URL</label>
+        <input
+          type="url"
+          id="appUrl"
+          placeholder="https://your-travelpanel.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <p class="hint">
+          Your deployed TravelPanel URL — e.g. <code>https://your-app.vercel.app</code>
+          or <code>http://localhost:3000</code> for local dev.
+          No trailing slash.
+        </p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="saveBtn">Save Settings</button>
+        <div class="status success" id="statusSuccess">✓ Saved</div>
+        <div class="status error" id="statusError">✗ Please enter a valid URL</div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="card">
+      <p class="card-title">
+        <span class="card-title-icon">💡</span>
+        How it works
+      </p>
+      <div class="info-box">
+        <p>
+          <strong>Toolbar button</strong> — Click the ✈ icon in your browser toolbar while on any
+          travel-related page (Instagram, YouTube, Xiaohongshu, etc.) to save it instantly.
+        </p>
+        <p>
+          <strong>Right-click menu</strong> — Right-click any page or link and choose
+          <strong>Save to TravelPanel</strong>.
+        </p>
+        <p>
+          Both actions open your TravelPanel app's share screen where you can pick the board
+          to save to. TravelPanel then extracts locations, tips, and wisdom from the page automatically.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

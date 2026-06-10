@@ -37,11 +37,15 @@ function SharePageInner() {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
-  // Auto-dismiss when done
+  // Auto-dismiss when done — falls back to home if opened in a new tab (e.g. browser extension)
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = '/';
+        }
       }, 3000);
     }
     return () => {
@@ -247,7 +251,13 @@ function SharePageInner() {
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              window.location.href = '/';
+            }
+          }}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
           Return to app
@@ -330,7 +340,11 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.href = '/';
+          }
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
