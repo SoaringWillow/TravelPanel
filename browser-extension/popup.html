@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <a id="settingsLink" class="icon-btn" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </a>
+    </header>
+
+    <main id="main">
+      <!-- Loading state -->
+      <div id="loading" class="state">
+        <div class="spinner"></div>
+        <p class="state-label">Reading page…</p>
+      </div>
+
+      <!-- Clip preview -->
+      <div id="clip-form" class="hidden">
+        <div id="thumbnail-wrap" class="thumbnail-wrap hidden">
+          <img id="thumbnail" alt="" />
+        </div>
+
+        <div class="clip-meta">
+          <div class="meta-row">
+            <span id="platform-badge" class="platform-badge"></span>
+            <span id="domain" class="domain"></span>
+          </div>
+          <h2 id="clip-title" class="clip-title"></h2>
+          <p id="clip-desc" class="clip-desc hidden"></p>
+        </div>
+
+        <div class="actions">
+          <button id="saveBtn" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+            </svg>
+            Save to TravelPanel
+          </button>
+          <button id="openAppBtn" class="btn btn-ghost">
+            Open TravelPanel
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Saved state -->
+      <div id="saved-state" class="state hidden">
+        <div class="check-ring">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="state-label">Opening TravelPanel…</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-state" class="state hidden">
+        <div class="error-icon">!</div>
+        <p id="error-msg" class="state-label">Could not read this page.</p>
+        <button id="retryBtn" class="btn btn-ghost" style="margin-top:12px">Try Again</button>
+      </div>
+
+      <!-- Not a supported page -->
+      <div id="unsupported-state" class="state hidden">
+        <p class="state-label muted">This page type isn't supported.<br>Try on a travel blog, Instagram, or YouTube link.</p>
+        <button id="openAppBtn2" class="btn btn-ghost" style="margin-top:16px">Open TravelPanel</button>
+      </div>
+    </main>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
