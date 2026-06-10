@@ -19,7 +19,7 @@ export default function NavBar({ active }: NavBarProps) {
     <nav
       role="navigation"
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
+      className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
       style={{
         boxShadow: '0 -1px 12px rgba(0,0,0,0.08)',
         paddingBottom: 'env(safe-area-inset-bottom)',
@@ -35,7 +35,7 @@ export default function NavBar({ active }: NavBarProps) {
               aria-label={`Navigate to ${label}`}
               aria-current={isActive ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
-                isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
+                isActive ? 'text-indigo-400 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
               }`}
             >
               <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} aria-hidden="true" />

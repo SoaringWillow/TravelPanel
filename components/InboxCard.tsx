@@ -79,7 +79,7 @@ export default function InboxCard({
     if (!item.title || item.title === item.url) {
       // Full shimmer skeleton — no content yet
       return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="shimmer w-full h-32" />
           <div className="p-4 space-y-3">
             <div className="shimmer h-3.5 rounded-full w-4/5" />
@@ -309,7 +309,7 @@ function SwipeToDeleteCard({
         }}
         className="relative z-10 cursor-grab active:cursor-grabbing"
       >
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       {/* Thumbnail or platform-colored gradient placeholder */}
       {item.thumbnail ? (
         <ZoomableThumbnail

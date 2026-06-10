@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, CheckCircle2, AlertTriangle, Database, Puzzle, BarChart2, Bell, BellOff } from 'lucide-react';
+import { Download, CheckCircle2, AlertTriangle, Database, Puzzle, BarChart2, Bell, BellOff, Sun, Moon, Monitor } from 'lucide-react';
 import NavBar from '@/components/NavBar';
+import { useTheme } from '@/components/ThemeProvider';
 import { exportAndDownload } from '@/lib/exportData';
 import { getAllItems, getAllBoards } from '@/lib/db';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
@@ -30,6 +31,7 @@ interface AppStats {
 // ─── Settings Page ────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const [exportState, setExportState] = useState<ExportState>('idle');
   const [exportCounts, setExportCounts] = useState<{ items: number; boards: number; trips: number } | null>(null);
   const [stats, setStats] = useState<AppStats | null>(null);
@@ -84,11 +86,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-5 header-pt pb-5">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your data and preferences</p>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-5 header-pt pb-5">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Settings</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your data and preferences</p>
       </div>
 
       <div className="px-4 py-5 space-y-4">
@@ -270,6 +272,35 @@ export default function SettingsPage() {
             </div>
           </>
         )}
+
+        {/* ── Appearance ──────────────────────────────────────────────────── */}
+        <SectionHeader icon={Sun} title="Appearance" />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4">
+            <p className="text-sm font-semibold text-gray-800 mb-3">Color theme</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { value: 'light', label: 'Light', icon: Sun },
+                { value: 'dark', label: 'Dark', icon: Moon },
+                { value: 'system', label: 'Auto', icon: Monitor },
+              ] as const).map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-colors ${
+                    theme === value
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span className="text-xs font-semibold">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* ── About ───────────────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4">

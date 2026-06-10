@@ -514,7 +514,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - On Android, listen for `beforeinstallprompt` event and show a native install button instead
 
 ### G4 — Dark Mode Support
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done (ThemeProvider, CSS variables, Settings toggle; dark: variants on key surfaces)
 **Files**: `app/globals.css`, `tailwind.config.js`, `app/layout.tsx`, `app/settings/page.tsx`
 **Why**: ~70% of iOS users use dark mode at night. Currently all text/backgrounds are hardcoded light-mode values.
 **What to do**:
