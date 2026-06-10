@@ -59,16 +59,24 @@ export default function BoardsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-6">
-            <div className="text-5xl mb-4">🗺</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No boards yet.</h3>
-            <p className="text-sm text-gray-500 max-w-xs mb-6">
-              Create your first board to organise your travel ideas.
+          <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+            <svg width="96" height="96" viewBox="0 0 96 96" fill="none" aria-hidden="true" className="mb-5">
+              {/* Back board (offset) */}
+              <rect x="22" y="26" width="56" height="44" rx="8" strokeWidth="2" strokeDasharray="5 3" className="stroke-indigo-200 dark:stroke-indigo-700" />
+              {/* Front board */}
+              <rect x="14" y="34" width="56" height="44" rx="8" strokeWidth="2.5" className="stroke-indigo-400 dark:stroke-indigo-500 fill-indigo-50 dark:fill-indigo-900/40" />
+              {/* + icon */}
+              <path d="M42 56 H50" strokeWidth="2.5" strokeLinecap="round" className="stroke-indigo-500 dark:stroke-indigo-400" />
+              <path d="M46 52 V60" strokeWidth="2.5" strokeLinecap="round" className="stroke-indigo-500 dark:stroke-indigo-400" />
+            </svg>
+            <h3 className="font-bold text-gray-800 dark:text-slate-100 text-lg mb-2">No boards yet.</h3>
+            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs mb-6 leading-relaxed">
+              Create your first board to organise your travel ideas into trips.
             </p>
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-3 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30"
             >
               <Plus size={16} />
               Create a Board

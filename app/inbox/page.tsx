@@ -176,18 +176,61 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 dark:text-slate-300 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
+          <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+            {query.trim() ? (
+              <>
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="font-semibold text-gray-700 dark:text-slate-300 mb-2">No matches found.</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
+                  No clips match &ldquo;{query.trim()}&rdquo;. Try a different search.
+                </p>
+              </>
+            ) : inboxItems.length === 0 && activePlatform === 'all' ? (
+              /* ── Full inbox empty state with SVG illustration ── */
+              <>
+                <svg width="96" height="96" viewBox="0 0 96 96" fill="none" aria-hidden="true" className="mb-5">
+                  {/* Phone body */}
+                  <rect x="26" y="8" width="44" height="72" rx="8" strokeWidth="2.5" className="stroke-indigo-300 dark:stroke-indigo-600" />
+                  {/* Screen area */}
+                  <rect x="32" y="16" width="32" height="48" rx="4" className="fill-indigo-50 dark:fill-indigo-900/40" />
+                  {/* Map lines on screen */}
+                  <path d="M37 30 Q48 26 59 30" strokeWidth="1.5" strokeLinecap="round" className="stroke-indigo-200 dark:stroke-indigo-700" />
+                  <path d="M37 37 Q44 40 59 37" strokeWidth="1.5" strokeLinecap="round" className="stroke-indigo-200 dark:stroke-indigo-700" />
+                  {/* Map pin */}
+                  <path d="M48 43 C48 43 42 50 42 55 C42 58.3 44.7 61 48 61 C51.3 61 54 58.3 54 55 C54 50 48 43 48 43Z" strokeWidth="2" className="stroke-indigo-500 dark:stroke-indigo-400 fill-white dark:fill-slate-800" />
+                  <circle cx="48" cy="55" r="2.5" className="fill-indigo-500 dark:fill-indigo-400" />
+                  {/* Home button */}
+                  <circle cx="48" cy="88" r="4" strokeWidth="1.5" className="stroke-indigo-200 dark:stroke-indigo-700" />
+                  {/* Arrow down to phone */}
+                  <path d="M20 20 L20 10 M20 10 L16 14 M20 10 L24 14" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stroke-indigo-300 dark:stroke-indigo-600" />
+                  <path d="M76 28 L76 18 M76 18 L72 22 M76 18 L80 22" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stroke-indigo-200 dark:stroke-indigo-700" />
+                </svg>
+                <h3 className="font-bold text-gray-800 dark:text-slate-100 text-lg mb-2">Your inspiration, organized</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs mb-6 leading-relaxed">
+                  Save any travel link from Instagram, YouTube, or the web — AI extracts the locations and wisdom for you.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowImport(true)}
+                  className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-3 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30"
+                >
+                  <Plus size={16} />
+                  Clip a link
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="text-4xl mb-3">📭</div>
+                <h3 className="font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  {activePlatform === 'all' ? 'Your inbox is empty.' : `No ${PLATFORM_LABELS[activePlatform as Platform]} clips`}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
+                  {activePlatform === 'all'
+                    ? 'Share content from social apps to get started!'
+                    : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

@@ -358,12 +358,28 @@ export default function PlanPage() {
               </div>
 
               {/* Warning if no locations */}
-              {!hasLocations && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+              {!hasLocations && boardItems.length === 0 ? (
+                <div className="flex flex-col items-center py-6 text-center px-2">
+                  <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true" className="mb-3">
+                    {/* Route start */}
+                    <circle cx="16" cy="56" r="5" strokeWidth="2" className="stroke-indigo-400 fill-indigo-50 dark:fill-indigo-900/30" />
+                    {/* Route end */}
+                    <circle cx="56" cy="16" r="5" strokeWidth="2" className="stroke-indigo-400 fill-indigo-50 dark:fill-indigo-900/30" />
+                    {/* Route path */}
+                    <path d="M16 51 C16 28 56 44 56 21" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="4 3" className="stroke-indigo-300 dark:stroke-indigo-600" />
+                    {/* Waypoints */}
+                    <circle cx="30" cy="42" r="3" className="fill-indigo-200 dark:fill-indigo-700" />
+                    <circle cx="44" cy="28" r="3" className="fill-indigo-200 dark:fill-indigo-700" />
+                  </svg>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">No clips in this board</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">Add clips with locations from the Inspiration tab first.</p>
+                </div>
+              ) : !hasLocations ? (
+                <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
                   <MapPin size={14} className="flex-shrink-0 mt-0.5" />
                   <span>Add items with identified locations to plan a trip.</span>
                 </div>
-              )}
+              ) : null}
 
               {/* Plan rate limit warning */}
               {planLimitError && (

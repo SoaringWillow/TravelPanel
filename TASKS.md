@@ -233,7 +233,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - When enrichment completes, transition from skeleton → real content with a `framer-motion` fade-in
 
 ### C5 — Map UX Improvements
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The map is the hero surface but has rough edges: no fly-to animation when selecting a clip, no way to navigate to a location, pins feel generic.  
 **Files to change**: `components/MapView.tsx`, `components/LocationDetailCard.tsx`  
 **What to do**:

@@ -166,13 +166,19 @@ export default function BoardDetailPage() {
 
           {/* Items grid */}
           {boardItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                No places saved to this board yet.
+            <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" aria-hidden="true" className="mb-4">
+                {/* Dashed card outline */}
+                <rect x="12" y="12" width="56" height="56" rx="10" strokeWidth="2" strokeDasharray="5 4" className="stroke-gray-300 dark:stroke-slate-600" />
+                {/* Map pin */}
+                <path d="M40 28 C40 28 33 36 33 42 C33 46.4 36.1 50 40 50 C43.9 50 47 46.4 47 42 C47 36 40 28 40 28Z" strokeWidth="2" className="stroke-indigo-400 dark:stroke-indigo-500 fill-indigo-50 dark:fill-indigo-900/40" />
+                <circle cx="40" cy="42" r="2.5" className="fill-indigo-400 dark:fill-indigo-500" />
+              </svg>
+              <p className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                No clips in this board yet.
               </p>
-              <p className="text-sm text-gray-400">
-                Go to Inbox to add items.
+              <p className="text-sm text-gray-400 dark:text-slate-500">
+                Add clips from the Inspiration tab.
               </p>
             </div>
           ) : (
