@@ -238,7 +238,7 @@ Work top-to-bottom within this phase.
 - Pass the base64 image to `enrichItem` — web side already handles it (B3)
 
 ### D7 — In-App Haptic Feedback
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `app/inbox/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:
 - Use the Web Vibration API (`navigator.vibrate`) as a thin wrapper
@@ -257,7 +257,7 @@ Work top-to-bottom within this phase.
 - On iOS in Capacitor, this should feel native (use `framer-motion` drag detection)
 
 ### D9 — Trip Plan Share / Deep Link
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `lib/exportPlan.ts`  
 **What to do**:
 - Add a "Share plan" button to the plan view

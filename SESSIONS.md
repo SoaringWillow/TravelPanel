@@ -101,3 +101,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 03:32 | a0556fc | feat: B5 cloud backup export + settings page
 2026-06-10 03:38 | b5754d7 | feat: D1 user location on map + D2 swipe-to-delete inbox cards
 2026-06-10 03:41 | 4edb0fb | feat: D3 board rename/delete + D4 beautiful empty states
+2026-06-10 03:42 | 6a3dcaf | feat: D5 board filter bar on map

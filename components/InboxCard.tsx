@@ -5,6 +5,7 @@ import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { lightHaptic } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -216,6 +217,7 @@ function SwipeToDeleteCard({
   const actionBarWidth = useTransform(x, [-120, 0], [120, 0]);
 
   function confirmDelete() {
+    lightHaptic();
     setDismissed(true);
     setTimeout(() => onDelete(item.id), 320);
   }
