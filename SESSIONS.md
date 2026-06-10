@@ -105,3 +105,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 03:44 | 5eb1845 | feat: D7 haptic feedback + D9 plan share button
 2026-06-10 03:46 | 646de7f | feat: D10 screenshot thumbnail preservation for Xiaohongshu/WeChat clips
 2026-06-10 03:50 | 24e84b3 | feat(D8): pull-to-refresh on Inbox and Boards
+2026-06-10 03:54 | 09b26ee | feat(E1-E9): Phase E iOS production polish

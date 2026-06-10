@@ -121,7 +121,7 @@ export default function SettingsPage() {
           <div className="px-5 pb-4 space-y-2">
             <SetupStep n={1} text='Open chrome://extensions and enable Developer mode' />
             <SetupStep n={2} text='Click "Load unpacked" → select the browser-extension/ folder' />
-            <SetupStep n={3} text='Open the extension settings and enter this app's URL' />
+            <SetupStep n={3} text="Open the extension settings and enter this app's URL" />
           </div>
         </div>
 

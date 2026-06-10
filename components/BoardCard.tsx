@@ -8,12 +8,13 @@ import { Board } from '@/lib/types';
 interface BoardCardProps {
   board: Board;
   itemCount: number;
+  thumbnails?: string[];
   onClick: () => void;
   onDelete?: () => void;
   onRename?: (name: string) => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete, onRename }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, thumbnails = [], onClick, onDelete, onRename }: BoardCardProps) {
   const [mode, setMode] = useState<'normal' | 'renaming' | 'confirmDelete'>('normal');
   const [editName, setEditName] = useState(board.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -117,32 +118,47 @@ export default function BoardCard({ board, itemCount, onClick, onDelete, onRenam
 
   // ── Normal mode ──────────────────────────────────────────────────────────────
 
+  const hasThumbnails = thumbnails.length > 0;
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
+      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer flex flex-col active:shadow-md transition-all duration-150"
     >
-      {/* Cover thumbnail */}
-      {board.coverThumbnail && (
-        <>
-          <img src={board.coverThumbnail} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-white/80" />
-        </>
+      {/* Thumbnail grid or emoji cover */}
+      {hasThumbnails ? (
+        <div className={`grid gap-0.5 ${thumbnails.length >= 4 ? 'grid-cols-2' : thumbnails.length >= 2 ? 'grid-cols-2' : 'grid-cols-1'} h-28 flex-shrink-0`}>
+          {thumbnails.slice(0, 4).map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="h-20 flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-50 to-indigo-100">
+          <span className="text-3xl">{board.emoji}</span>
+        </div>
       )}
 
-      <div className="relative flex flex-col flex-1 p-4">
-        <div className="text-2xl leading-none mb-3">{board.emoji}</div>
-        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
+      <div className="relative flex flex-col flex-1 p-3">
+        {hasThumbnails && (
+          <span className="text-base leading-none mb-1">{board.emoji}</span>
+        )}
+        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-0.5">
           {board.name}
         </h3>
-        <p className="text-sm text-gray-400">
+        <p className="text-xs text-gray-400">
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
         {/* Action buttons */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-1">
+        <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1">
           {onRename && (
             <button
               type="button"

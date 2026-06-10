@@ -20,6 +20,21 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
 
+function getActivityAccent(name: string): { border: string; bg: string } {
+  const n = name.toLowerCase();
+  if (/eat|food|lunch|dinner|breakfast|cafe|restaurant|coffee|drink|bar|snack/.test(n))
+    return { border: 'border-l-orange-400', bg: 'bg-orange-50' };
+  if (/museum|temple|shrine|church|palace|castle|histor|culture|art|gallery|exhibit/.test(n))
+    return { border: 'border-l-purple-400', bg: 'bg-purple-50' };
+  if (/park|hike|trail|nature|garden|mountain|lake|beach|forest|waterfall/.test(n))
+    return { border: 'border-l-green-400', bg: 'bg-green-50' };
+  if (/train|bus|subway|taxi|metro|transport|transfer|airport|station/.test(n))
+    return { border: 'border-l-blue-400', bg: 'bg-blue-50' };
+  if (/shop|market|mall|store|buy|purchase/.test(n))
+    return { border: 'border-l-pink-400', bg: 'bg-pink-50' };
+  return { border: 'border-l-indigo-300', bg: 'bg-white' };
+}
+
 export default function PlanPage() {
   const params = useParams();
   const router = useRouter();
@@ -545,13 +560,15 @@ export default function PlanPage() {
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
+                  {activeDayPlan.activities.map((activity, aIdx) => {
+                    const accent = getActivityAccent(activity.name);
+                    return (
                     <div
                       key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
+                      className={`rounded-2xl p-3 shadow-sm border border-gray-100 border-l-4 space-y-1 ${accent.border} ${accent.bg}`}
                     >
                       <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        <span className="flex-shrink-0 bg-white/70 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full border border-gray-100">
                           {activity.time}
                         </span>
                         <div className="flex-1 min-w-0">
@@ -560,7 +577,7 @@ export default function PlanPage() {
                           </p>
                           <p className="text-sm text-gray-800">{activity.name}</p>
                         </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        <span className="flex-shrink-0 bg-white/70 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full border border-indigo-100">
                           {activity.duration}
                         </span>
                       </div>
@@ -592,7 +609,7 @@ export default function PlanPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  ); })}
                 </div>
               )}
 

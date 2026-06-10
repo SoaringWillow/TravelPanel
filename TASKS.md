@@ -320,7 +320,7 @@ Work top-to-bottom.
 - Use `usePathname()` as the `key` for AnimatePresence so each navigation triggers the animation
 
 ### E5 — Clip Count & New Badge on Board Cards
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/BoardCard.tsx`, `app/boards/page.tsx`
 **What to do**:
 - Show a "N clips" pill badge on each board card (already partially there with `itemCount` prop)
@@ -347,7 +347,7 @@ Work top-to-bottom.
 - Add subtle drop shadow on card hover/press for tactile feedback
 
 ### E8 — Trip Planner UI: Day Strip Cards Polish
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/DayStripCard.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:
 - Day header: larger emoji + day number, more visual weight
