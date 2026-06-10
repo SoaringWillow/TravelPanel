@@ -181,7 +181,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 > Features that expand reach without ads. The best travel apps grow because users share their trips.
 
 ### G1 — Smart "Share this Trip Plan" Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: A generated trip plan is a shareable moment. Currently there's no way to share a plan — only boards (via D2). A "Share plan" action generates a visually rich summary card that users can screenshot and share on social.  
 **Files to change**: `app/plan/[boardId]/page.tsx`, new `components/PlanShareCard.tsx`  
 **What to do**:

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, WifiOff } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, WifiOff, Share2, Check } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
@@ -40,6 +40,7 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [planShared, setPlanShared] = useState(false);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
 
@@ -194,6 +195,39 @@ export default function PlanPage() {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
+  }, [plan, board, boardId]);
+
+  const handleSharePlan = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const days = plan.days ?? [];
+    const dayThemes = days.map((d) => `Day ${d.day}: ${d.theme}`).join('\n');
+    const text = [
+      `${board.emoji} ${board.name} — ${days.length}-day trip plan`,
+      '',
+      dayThemes,
+      '',
+      `${plan.totalLocations ?? 0} locations · Built with TravelPanel 🗺`,
+    ].join('\n');
+
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { Share } = await import('@capacitor/share');
+        await Share.share({ text, title: `${board.emoji} ${board.name} trip plan`, dialogTitle: 'Share trip plan' });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setPlanShared(true);
+        setTimeout(() => setPlanShared(false), 2000);
+      }
+      track('plan_shared', { boardId, days: days.length });
+    } catch {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(text);
+        setPlanShared(true);
+        setTimeout(() => setPlanShared(false), 2000);
+      } catch { /* silent */ }
+    }
   }, [plan, board, boardId]);
 
   // Load a previously-saved plan variant into view.
@@ -498,18 +532,25 @@ export default function PlanPage() {
               {planIsComplete(plan) && (
                 <div className="flex gap-2">
                   <button
+                    onClick={handleSharePlan}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-semibold py-2 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                    aria-label="Share trip plan"
+                  >
+                    {planShared ? <><Check size={14} /> Copied!</> : <><Share2 size={14} /> Share plan</>}
+                  </button>
+                  <button
                     onClick={handleExportPDF}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
                   </button>
                 </div>
               )}
