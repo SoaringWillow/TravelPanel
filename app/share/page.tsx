@@ -4,10 +4,12 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { notification } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
+import { AlertCircle } from 'lucide-react';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -29,12 +31,49 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [duplicate, setDuplicate] = useState<SavedItem | null>(null);
+  const [ignoreDuplicate, setIgnoreDuplicate] = useState(false);
+  const [clipboardUrl, setClipboardUrl] = useState<string | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards + check for duplicate URL on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+    if (rawUrl) {
+      findItemByUrl(rawUrl).then((existing) => {
+        if (existing) setDuplicate(existing);
+      }).catch(() => {});
+    }
+  }, [rawUrl]);
+
+  // Check clipboard for a URL different from the current one
+  useEffect(() => {
+    if (!rawUrl) return;
+    if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) return;
+    navigator.clipboard.readText().then((text) => {
+      try {
+        const trimmed = text.trim();
+        new URL(trimmed); // validate it's a URL
+        if (trimmed !== rawUrl) setClipboardUrl(trimmed);
+      } catch {
+        // not a URL
+      }
+    }).catch(() => {});
+  }, [rawUrl]);
+
+  // Read image payload written by CapacitorBridge (from iOS Share Extension)
+  useEffect(() => {
+    try {
+      const img = sessionStorage.getItem('pendingShareImage');
+      if (img) {
+        setPendingImageBase64(img);
+        sessionStorage.removeItem('pendingShareImage');
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -82,15 +121,16 @@ function SharePageInner() {
     };
 
     await saveItem(item);
+    notification('success');
     track('clip_saved', { platform, toBoard: !!selectedBoardId });
 
     if (selectedBoardId) {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — include image for anti-scrape platforms (Xiaohongshu/WeChat)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +204,61 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Duplicate warning */}
+          {duplicate && !ignoreDuplicate && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-1">
+              <AlertCircle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-amber-800">Already saved</p>
+                <p className="text-xs text-amber-700 leading-snug mt-0.5">
+                  You saved &ldquo;{duplicate.title}&rdquo; before.
+                </p>
+                <div className="flex gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => window.history.back()}
+                    className="text-xs font-semibold text-amber-700 hover:underline"
+                  >
+                    Go back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIgnoreDuplicate(true)}
+                    className="text-xs font-semibold text-gray-500 hover:underline"
+                  >
+                    Save anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Clipboard URL suggestion */}
+          {clipboardUrl && (
+            <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 mt-1">
+              <AlertCircle size={15} className="text-indigo-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-indigo-800">📋 Clipboard has a URL</p>
+                <p className="text-xs text-indigo-700 leading-snug mt-0.5 truncate">{clipboardUrl}</p>
+                <div className="flex gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = `/share?url=${encodeURIComponent(clipboardUrl)}`; }}
+                    className="text-xs font-semibold text-indigo-700 hover:underline"
+                  >
+                    Use instead
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setClipboardUrl(null)}
+                    className="text-xs font-semibold text-gray-400 hover:underline"
+                  >
+                    Ignore
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
@@ -294,8 +389,8 @@ function SharePageInner() {
           className="w-full"
         >
           {enrichmentLoading && !enrichedData ? (
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2">
-              <span className="text-sm animate-pulse">🔍 Finding locations…</span>
+            <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center gap-2" role="status" aria-live="polite" aria-label="Finding locations…">
+              <span className="text-sm animate-pulse" aria-hidden="true">🔍 Finding locations…</span>
             </div>
           ) : enrichedData && enrichedData.locations.length > 0 ? (
             <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
@@ -346,8 +441,8 @@ export default function SharePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="text-sm text-gray-400 animate-pulse">Loading…</div>
+        <div className="min-h-screen bg-white flex items-center justify-center" role="status" aria-label="Loading" aria-busy="true">
+          <div className="text-sm text-gray-400 animate-pulse" aria-hidden="true">Loading…</div>
         </div>
       }
     >

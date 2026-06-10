@@ -7,6 +7,7 @@ import {
   deleteBoard,
   addItemToBoard as dbAddItemToBoard,
   removeItemFromBoard as dbRemoveItemFromBoard,
+  reorderBoards as dbReorderBoards,
 } from '@/lib/db';
 import { track } from '@/lib/analytics';
 
@@ -50,5 +51,10 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  const reorderBoards = useCallback(async (newOrder: Board[]): Promise<void> => {
+    setBoards(newOrder);
+    await dbReorderBoards(newOrder.map((b) => b.id));
+  }, []);
+
+  return { boards, setBoards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard, reorderBoards };
 }

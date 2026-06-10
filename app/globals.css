@@ -26,6 +26,30 @@
     --ring: 240 5.9% 10%;
     --radius: 0.75rem;
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 220 14% 7%;
+      --foreground: 220 14% 95%;
+      --card: 220 14% 11%;
+      --card-foreground: 220 14% 95%;
+      --popover: 220 14% 11%;
+      --popover-foreground: 220 14% 95%;
+      --primary: 245 80% 68%;
+      --primary-foreground: 220 14% 7%;
+      --secondary: 220 14% 16%;
+      --secondary-foreground: 220 14% 85%;
+      --muted: 220 14% 16%;
+      --muted-foreground: 220 8% 56%;
+      --accent: 220 14% 16%;
+      --accent-foreground: 220 14% 85%;
+      --destructive: 0 62% 50%;
+      --destructive-foreground: 0 0% 98%;
+      --border: 220 14% 18%;
+      --input: 220 14% 18%;
+      --ring: 245 80% 68%;
+    }
+  }
 }
 
 @layer base {
@@ -54,7 +78,7 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
 }
 
 .scrollbar-hide, .scrollbar-none {
@@ -67,7 +91,36 @@
 }
 
 /* iOS safe area utilities */
-.safe-top    { padding-top:    env(safe-area-inset-top); }
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-.safe-left   { padding-left:   env(safe-area-inset-left); }
-.safe-right  { padding-right:  env(safe-area-inset-right); }
+.safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-left   { padding-left:   env(safe-area-inset-left, 0px); }
+.safe-right  { padding-right:  env(safe-area-inset-right, 0px); }
+.pt-safe     { padding-top:    max(env(safe-area-inset-top, 0px), 0px); }
+.pb-safe     { padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px); }
+
+/* Shimmer skeleton animation — dark mode aware */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+@media (prefers-color-scheme: dark) {
+  .shimmer {
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 200% 100%;
+  }
+}
+
+/* ── Print layout for trip plans ────────────────────────────────────────── */
+@media print {
+  body { background: white !important; color: #111 !important; font-size: 12pt; }
+  nav, button, .no-print { display: none !important; }
+  .print-page-break { page-break-before: always; }
+  /* Force all cards to show fully */
+  * { overflow: visible !important; }
+  .line-clamp-1, .line-clamp-2 { -webkit-line-clamp: unset !important; overflow: visible !important; }
+}

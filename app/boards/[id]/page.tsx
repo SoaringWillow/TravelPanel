@@ -3,14 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ArrowUpDown, CheckCircle2, Calendar, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { updateBoard } from '@/lib/db';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+type SortOrder = 'date' | 'name';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -19,25 +22,101 @@ export default function BoardDetailPage() {
   const boardId = params.id as string;
   const router = useRouter();
 
-  const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
+  const { boards, loading: boardsLoading, removeItemFromBoard, setBoards } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [sort, setSort] = useState<SortOrder>('date');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
-  const boardItems: SavedItem[] = board
+  const unsortedItems: SavedItem[] = board
     ? items.filter((item) => board.itemIds.includes(item.id))
     : [];
+
+  const boardItems = [...unsortedItems].sort((a, b) =>
+    sort === 'name'
+      ? (a.title || '').localeCompare(b.title || '')
+      : b.savedAt - a.savedAt,
+  );
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
 
   const loading = boardsLoading || itemsLoading;
+
+  // Cover thumbnail: first clip with a thumbnail
+  const coverThumbnail = boardItems.find((i) => i.thumbnail)?.thumbnail;
+
+  const substanceCount = boardItems.reduce((n, i) => n + (i.substance?.length ?? 0), 0);
+
+  const totalLocations = boardItems.reduce((n, i) => n + i.locations.length, 0);
+  const estimatedLength =
+    totalLocations <= 3 ? 'Day trip' : totalLocations <= 8 ? 'Weekend' : 'Full trip';
+
+  const topTag = (() => {
+    const tally = new Map<string, number>();
+    for (const item of boardItems) for (const tag of item.tags) tally.set(tag, (tally.get(tag) ?? 0) + 1);
+    if (tally.size === 0) return null;
+    return Array.from(tally).sort((a, b) => b[1] - a[1])[0][0];
+  })();
+
+  const geoSpread = (() => {
+    const coords = boardItems.flatMap((i) =>
+      i.locations.filter((l) => l.lat && l.lng).map((l) => ({ lat: l.lat!, lng: l.lng! }))
+    );
+    if (coords.length < 2) return null;
+    const lats = coords.map((c) => c.lat);
+    const lngs = coords.map((c) => c.lng);
+    const latSpan = (Math.max(...lats) - Math.min(...lats)) * 111;
+    const lngSpan = (Math.max(...lngs) - Math.min(...lngs)) * 85;
+    const km = Math.max(latSpan, lngSpan);
+    if (km <= 50) return 'Compact area';
+    if (km <= 200) return 'Regional trip';
+    return 'Multi-city trip';
+  })();
+
+  // Countdown / status from tripStart/tripEnd
+  const tripStatus = (() => {
+    if (!board?.tripStart) return null;
+    const now = Date.now();
+    const start = board.tripStart;
+    const end = board.tripEnd;
+    if (now < start) {
+      const days = Math.ceil((start - now) / 86400000);
+      return days === 1 ? '✈️ Tomorrow!' : `✈️ in ${days} days`;
+    }
+    if (end && now <= end) return '🌍 Happening now!';
+    return null;
+  })();
+
+  async function handleSaveDates(start: string, end: string) {
+    if (!board) return;
+    const tripStart = start ? new Date(start).getTime() : undefined;
+    const tripEnd = end ? new Date(end).getTime() : undefined;
+    await updateBoard(board.id, { tripStart, tripEnd });
+    setBoards((prev) => prev.map((b) => b.id === board.id ? { ...b, tripStart, tripEnd } : b));
+    setShowDatePicker(false);
+  }
+
+  async function handleClearDates() {
+    if (!board) return;
+    await updateBoard(board.id, { tripStart: undefined, tripEnd: undefined });
+    setBoards((prev) => prev.map((b) => b.id === board.id ? { ...b, tripStart: undefined, tripEnd: undefined } : b));
+    setShowDatePicker(false);
+  }
 
   function handleViewOnMap(id: string) {
     const item = boardItems.find((i) => i.id === id);
     if (item && item.locations.length > 0) {
       setFlyTo(item.locations[0]);
     }
+  }
+
+  async function handleToggleVisited() {
+    if (!board) return;
+    const now = board.completedAt ? undefined : Date.now();
+    await updateBoard(board.id, { completedAt: now });
+    setBoards((prev) => prev.map((b) => b.id === board.id ? { ...b, completedAt: now } : b));
   }
 
   async function handleDelete(id: string) {
@@ -47,13 +126,9 @@ export default function BoardDetailPage() {
     await removeItem(id);
   }
 
-  async function handleMoveToBoard(id: string) {
-    // No-op on board detail page — removal handled by handleDelete
-  }
-
   if (loading) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950 md:pl-16">
         <div className="flex items-center justify-center flex-1">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
         </div>
@@ -64,11 +139,11 @@ export default function BoardDetailPage() {
 
   if (!board) {
     return (
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950 md:pl-16">
         <div className="flex flex-col items-center justify-center flex-1 text-center px-6">
           <div className="text-5xl mb-4">🗺</div>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">Board not found</h2>
-          <p className="text-sm text-gray-500 mb-6">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Board not found</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             This board may have been deleted or does not exist.
           </p>
           <button
@@ -86,41 +161,160 @@ export default function BoardDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-4 z-10">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950 md:pl-16">
+      {/* Hero header */}
+      <div className="relative bg-white dark:bg-gray-900 shadow-sm z-10 flex-shrink-0">
+        {/* Cover image */}
+        {coverThumbnail && (
+          <>
+            <img
+              src={coverThumbnail}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
+          </>
+        )}
+
+        <div className={`relative px-4 pt-12 pb-4 ${coverThumbnail ? 'text-white' : ''}`}>
+          {/* Back button */}
           <button
             type="button"
             onClick={() => router.back()}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors -ml-1"
+            className={`p-2 rounded-xl transition-colors -ml-1 mb-3 flex items-center gap-1 ${
+              coverThumbnail
+                ? 'text-white/90 hover:bg-white/20'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
 
-          <span className="text-2xl leading-none">{board.emoji}</span>
+          <div className="flex items-start gap-3">
+            <span className="text-3xl leading-none mt-0.5">{board.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <h1 className={`text-xl font-bold leading-tight ${coverThumbnail ? 'text-white drop-shadow' : 'text-gray-800 dark:text-gray-100'}`}>
+                {board.name}
+              </h1>
+              <p className={`text-xs mt-0.5 ${coverThumbnail ? 'text-white/75' : 'text-gray-500 dark:text-gray-400'}`}>
+                {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
+                {substanceCount > 0 && ` · ${substanceCount} tip${substanceCount !== 1 ? 's' : ''}`}
+              </p>
+              {substanceCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/boards/${boardId}/wisdom`)}
+                  className={`text-xs mt-1 font-medium flex items-center gap-0.5 hover:underline ${
+                    coverThumbnail ? 'text-white/80' : 'text-indigo-500'
+                  }`}
+                >
+                  View trip wisdom →
+                </button>
+              )}
+              {/* Trip date + countdown */}
+              {tripStatus && (
+                <span className={`text-xs font-semibold mt-1 ${
+                  coverThumbnail ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'
+                }`}>
+                  {tripStatus}
+                </span>
+              )}
+              {board.tripStart && !tripStatus && (
+                <span className={`text-xs mt-1 ${coverThumbnail ? 'text-white/70' : 'text-gray-400'}`}>
+                  {new Date(board.tripStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {board.tripEnd ? ` – ${new Date(board.tripEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+                </span>
+              )}
+            </div>
 
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-gray-800 leading-tight truncate">
-              {board.name}
-            </h1>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Visited toggle */}
+              <button
+                type="button"
+                onClick={handleToggleVisited}
+                className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
+                  board.completedAt
+                    ? coverThumbnail ? 'bg-green-500/80 text-white' : 'bg-green-100 text-green-700'
+                    : coverThumbnail ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                }`}
+                aria-label={board.completedAt ? 'Mark as not visited' : 'Mark as visited'}
+              >
+                <CheckCircle2 size={12} />
+                {board.completedAt ? 'Visited' : 'Mark visited'}
+              </button>
+
+              {/* Sort toggle */}
+              {boardItems.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setSort((s) => (s === 'date' ? 'name' : 'date'))}
+                  aria-label={`Sort by ${sort === 'date' ? 'name' : 'date'}`}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
+                    coverThumbnail
+                      ? 'bg-white/20 text-white hover:bg-white/30'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                  }`}
+                >
+                  <ArrowUpDown size={12} />
+                  {sort === 'date' ? 'Date' : 'Name'}
+                </button>
+              )}
+
+              {/* Trip date picker toggle */}
+              <button
+                type="button"
+                onClick={() => setShowDatePicker((v) => !v)}
+                aria-label="Set trip dates"
+                className={`p-1.5 rounded-lg transition-colors ${
+                  board.tripStart
+                    ? coverThumbnail ? 'bg-indigo-500/60 text-white' : 'bg-indigo-100 text-indigo-600'
+                    : coverThumbnail ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200'
+                }`}
+              >
+                <Calendar size={13} />
+              </button>
+            </div>
           </div>
 
-          <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
-            {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
-          </span>
+          {/* Date picker inline panel */}
+          {showDatePicker && (
+            <div className="mt-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-2xl px-4 py-3 border border-gray-100 dark:border-gray-700 shadow-lg">
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Trip dates</p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
+                  handleSaveDates(fd.get('start') as string, fd.get('end') as string);
+                }}
+                className="space-y-2"
+              >
+                <div className="flex gap-2 items-center">
+                  <input type="date" name="start" defaultValue={board.tripStart ? new Date(board.tripStart).toISOString().slice(0, 10) : ''}
+                    className="flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-indigo-400" />
+                  <span className="text-xs text-gray-400">to</span>
+                  <input type="date" name="end" defaultValue={board.tripEnd ? new Date(board.tripEnd).toISOString().slice(0, 10) : ''}
+                    className="flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-indigo-400" />
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 bg-indigo-600 text-white text-xs font-semibold py-1.5 rounded-xl hover:bg-indigo-700 transition-colors">Save</button>
+                  {board.tripStart && (
+                    <button type="button" onClick={handleClearDates} className="px-3 text-xs text-red-500 hover:text-red-600 flex items-center gap-1">
+                      <X size={11} />Clear
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Scrollable content below header */}
+      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-24">
         {/* Map section */}
         {boardItems.length > 0 && (
-          <div
-            className="relative w-full bg-gray-200"
-            style={{ height: 'min(240px, 35vh)' }}
-          >
+          <div className="relative w-full bg-gray-200 dark:bg-gray-800" style={{ height: 'min(220px, 32vh)' }}>
             <MapView
               items={boardItems}
               onPinClick={(item) => {
@@ -148,12 +342,11 @@ export default function BoardDetailPage() {
                 <button
                   type="button"
                   disabled
-                  className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-semibold py-3.5 rounded-2xl cursor-not-allowed"
                 >
                   <Rocket size={18} />
                   Plan this trip
                 </button>
-                {/* Tooltip */}
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
                   <div className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
                     Add items with identified locations to plan a trip
@@ -164,19 +357,59 @@ export default function BoardDetailPage() {
             )}
           </div>
 
-          {/* Items grid */}
+          {/* Stats insight card */}
+          {boardItems.length > 0 && (
+            <div className="mb-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 py-3 shadow-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📍</span>
+                  <div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Locations</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{totalLocations}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base">💡</span>
+                  <div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Tips & warnings</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{substanceCount}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🗓</span>
+                  <div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Estimated</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{estimatedLength}</p>
+                  </div>
+                </div>
+                {(topTag || geoSpread) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{geoSpread ? '🗺' : '✨'}</span>
+                    <div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{geoSpread ? 'Spread' : 'Vibe'}</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                        {geoSpread ?? topTag}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Items list */}
           {boardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
-              <MapPin className="text-gray-300 mb-3" size={40} />
-              <p className="text-sm font-medium text-gray-600 mb-1">
+              <MapPin className="text-gray-300 dark:text-gray-600 mb-3" size={40} />
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
                 No places saved to this board yet.
               </p>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-400 dark:text-gray-500">
                 Go to Inbox to add items.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
               {boardItems.map((item) => (
                 <InboxCard
                   key={item.id}

@@ -5,7 +5,7 @@ import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
-export async function enrichItem(id: string, url: string): Promise<boolean> {
+export async function enrichItem(id: string, url: string, imageBase64?: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
     // Don't mark as failed — leave as pending so retry queue picks it up later
@@ -18,10 +18,12 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
   await updateItemEnrichment(id, 'processing');
   recordEnrichment();
   try {
+    const body: Record<string, string> = { url };
+    if (imageBase64) body.imageBase64 = imageBase64;
     const res = await fetch('/api/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(body),
       keepalive: true,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -42,7 +44,14 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
       substanceCount: data.substance?.length ?? 0,
     });
     return true;
-  } catch {
+  } catch (err) {
+    // Network error (offline) — leave as pending so we retry when online,
+    // don't increment retryCount, don't show the error UI.
+    const isNetworkError = err instanceof TypeError && /fetch|network/i.test((err as TypeError).message);
+    if (isNetworkError || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      await updateItemEnrichment(id, 'pending');
+      return false;
+    }
     await updateItemEnrichment(id, 'failed');
     track('clip_enrich_failed', { url });
     return false;

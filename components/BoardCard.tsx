@@ -1,67 +1,154 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Pencil, Trash2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Board } from '@/lib/types';
+import ContextMenu, { useLongPress } from './ContextMenu';
+import { impact } from '@/lib/haptics';
 
 interface BoardCardProps {
   board: Board;
   itemCount: number;
   onClick: () => void;
   onDelete?: () => void;
+  onRename?: (newName: string) => void;
 }
 
-export default function BoardCard({ board, itemCount, onClick, onDelete }: BoardCardProps) {
+export default function BoardCard({ board, itemCount, onClick, onDelete, onRename }: BoardCardProps) {
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(board.name);
+
+  const longPressProps = useLongPress((point) => {
+    impact('medium');
+    setMenuAnchor(point);
+  });
+
+  const hasCover = !!board.coverThumbnail;
+
+  function handleRenameSubmit() {
+    const name = renameValue.trim();
+    if (name && name !== board.name) onRename?.(name);
+    setRenaming(false);
+  }
+
+  const menuItems = [
+    {
+      label: 'Open',
+      icon: <ArrowRight size={14} />,
+      onSelect: onClick,
+    },
+    ...(onRename ? [{
+      label: 'Rename',
+      icon: <Pencil size={14} />,
+      onSelect: () => {
+        setRenameValue(board.name);
+        setRenaming(true);
+      },
+    }] : []),
+    ...(onDelete ? [{
+      label: 'Delete',
+      icon: <Trash2 size={14} />,
+      destructive: true,
+      onSelect: onDelete,
+    }] : []),
+  ];
+
   return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
-      style={{ borderLeftWidth: undefined }}
-    >
-      {/* Cover thumbnail background */}
-      {board.coverThumbnail && (
-        <>
-          <img
-            src={board.coverThumbnail}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-white/80" />
-        </>
-      )}
-
-      {/* Content */}
-      <div className="relative flex flex-col flex-1 p-4">
-        {/* Emoji top-left */}
-        <div className="text-2xl leading-none mb-3">{board.emoji}</div>
-
-        {/* Name */}
-        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
-          {board.name}
-        </h3>
-
-        {/* Item count */}
-        <p className="text-sm text-gray-400">
-          {itemCount} place{itemCount !== 1 ? 's' : ''}
-        </p>
-
-        {/* Delete button bottom-right */}
-        {onDelete && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="absolute bottom-3 right-3 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            aria-label="Delete board"
-          >
-            <Trash2 size={14} />
-          </button>
+    <>
+      <motion.div
+        {...longPressProps}
+        whileTap={{ scale: 0.97 }}
+        onClick={onClick}
+        role="button"
+        tabIndex={0}
+        aria-label={`Open ${board.name} board`}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+        className="relative rounded-2xl overflow-hidden cursor-pointer min-h-[160px] flex flex-col select-none"
+        style={{ touchAction: 'none' }}
+      >
+        {/* Background */}
+        {hasCover ? (
+          <>
+            <img src={board.coverThumbnail} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-indigo-700" />
         )}
-      </div>
-    </motion.div>
+
+        {/* Content */}
+        <div className="relative flex flex-col flex-1 p-4 justify-end">
+          {/* Emoji */}
+          <div className={`text-3xl leading-none mb-2 ${hasCover ? 'drop-shadow-lg' : ''}`}>
+            {board.emoji}
+          </div>
+
+          {/* Name */}
+          {renaming ? (
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={handleRenameSubmit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit();
+                if (e.key === 'Escape') setRenaming(false);
+                e.stopPropagation();
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="font-bold text-sm bg-white/20 text-white placeholder-white/60 rounded-lg px-2 py-1 outline-none border border-white/40 w-full"
+            />
+          ) : (
+            <h3 className={`font-bold text-sm leading-snug line-clamp-1 ${hasCover ? 'text-white drop-shadow' : 'text-white'}`}>
+              {board.name}
+            </h3>
+          )}
+
+          {/* Item count badge */}
+          <span className={`mt-1 text-xs font-medium ${hasCover ? 'text-white/80' : 'text-indigo-200'}`}>
+            {itemCount} place{itemCount !== 1 ? 's' : ''}
+          </span>
+
+          {/* Trip date / countdown */}
+          {board.tripStart && (() => {
+            const now = Date.now();
+            if (board.tripStart > now) {
+              const days = Math.ceil((board.tripStart - now) / 86400000);
+              return (
+                <span className="mt-0.5 text-[10px] font-semibold text-white/90">
+                  {days === 1 ? '✈️ Tomorrow!' : `✈️ in ${days}d`}
+                </span>
+              );
+            }
+            if (board.tripEnd && now <= board.tripEnd) {
+              return <span className="mt-0.5 text-[10px] font-semibold text-white/90">🌍 Now!</span>;
+            }
+            return (
+              <span className="mt-0.5 text-[10px] text-white/60">
+                {new Date(board.tripStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </span>
+            );
+          })()}
+        </div>
+
+        {/* Visited badge */}
+        {board.completedAt && (
+          <div className="absolute top-3 left-3 bg-green-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+            ✓ Visited
+          </div>
+        )}
+
+        {/* Item count badge in top-right */}
+        {itemCount > 0 && (
+          <div className="absolute top-3 right-3 bg-white/25 backdrop-blur-sm text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+            {itemCount}
+          </div>
+        )}
+      </motion.div>
+
+      <ContextMenu items={menuItems} anchor={menuAnchor} onClose={() => setMenuAnchor(null)} />
+    </>
   );
 }

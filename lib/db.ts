@@ -1,7 +1,7 @@
 'use client';
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { SavedItem, Board, Trip, EnrichmentStatus } from './types';
+import { SavedItem, Board, Trip, EnrichmentStatus, ActualTimeline } from './types';
 
 interface TravelPanelDB extends DBSchema {
   items: {
@@ -60,6 +60,28 @@ function getDB() {
 }
 
 // ─── Items ─────────────────────────────────────────────────────────────────
+
+function normalizeUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const TRACKING = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid', 'ref', 's'];
+    TRACKING.forEach((p) => u.searchParams.delete(p));
+    return (u.origin + u.pathname).replace(/\/$/, '') + (u.search || '');
+  } catch {
+    return url.toLowerCase().replace(/\/$/, '');
+  }
+}
+
+export async function findItemByUrl(url: string): Promise<SavedItem | undefined> {
+  try {
+    const db = await getDB();
+    const all = await db.getAll('items');
+    const normalized = normalizeUrl(url);
+    return all.find((item) => normalizeUrl(item.url) === normalized);
+  } catch {
+    return undefined;
+  }
+}
 
 export async function getAllItems(): Promise<SavedItem[]> {
   try {
@@ -131,9 +153,38 @@ export async function getAllBoards(): Promise<Board[]> {
   try {
     const db = await getDB();
     const boards = await db.getAll('boards');
-    return boards.sort((a, b) => b.createdAt - a.createdAt);
+    const now = Date.now();
+    return boards.sort((a, b) => {
+      // Upcoming trips sort first (tripStart set and in the future)
+      const aUpcoming = a.tripStart && a.tripStart > now ? a.tripStart : null;
+      const bUpcoming = b.tripStart && b.tripStart > now ? b.tripStart : null;
+      if (aUpcoming && !bUpcoming) return -1;
+      if (!aUpcoming && bUpcoming) return 1;
+      if (aUpcoming && bUpcoming) return aUpcoming - bUpcoming; // sooner first
+      // Then user-defined order
+      if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
+      if (a.order !== undefined) return -1;
+      if (b.order !== undefined) return 1;
+      return b.createdAt - a.createdAt;
+    });
   } catch {
     return [];
+  }
+}
+
+export async function reorderBoards(orderedIds: string[]): Promise<void> {
+  try {
+    const db = await getDB();
+    const tx = db.transaction('boards', 'readwrite');
+    await Promise.all(
+      orderedIds.map(async (id, i) => {
+        const board = await tx.store.get(id);
+        if (board) await tx.store.put({ ...board, order: i, updatedAt: Date.now() });
+      })
+    );
+    await tx.done;
+  } catch {
+    // non-fatal
   }
 }
 
@@ -145,6 +196,13 @@ export async function getBoardById(id: string): Promise<Board | undefined> {
 export async function saveBoard(board: Board): Promise<void> {
   const db = await getDB();
   await db.put('boards', board);
+}
+
+export async function updateBoard(id: string, partial: Partial<Board>): Promise<void> {
+  const db = await getDB();
+  const existing = await db.get('boards', id);
+  if (!existing) return;
+  await db.put('boards', { ...existing, ...partial, id, updatedAt: Date.now() });
 }
 
 export async function deleteBoard(id: string): Promise<void> {
@@ -191,6 +249,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
 
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
+
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {
     const db = await getDB();
@@ -205,7 +272,60 @@ export async function saveTrip(trip: Trip): Promise<void> {
   await db.put('trips', trip);
 }
 
+export async function getTripById(id: string): Promise<Trip | undefined> {
+  try {
+    const db = await getDB();
+    return db.get('trips', id);
+  } catch {
+    return undefined;
+  }
+}
+
+export async function updateTripTimeline(tripId: string, timeline: ActualTimeline): Promise<void> {
+  const db = await getDB();
+  const trip = await db.get('trips', tripId);
+  if (!trip) return;
+  await db.put('trips', { ...trip, actualTimeline: timeline });
+}
+
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
+}
+
+// Merge dropId into keepId: copy unique locations+substance, then delete dropId.
+export async function mergeItems(keepId: string, dropId: string): Promise<void> {
+  const db = await getDB();
+  const [keep, drop] = await Promise.all([db.get('items', keepId), db.get('items', dropId)]);
+  if (!keep || !drop) return;
+
+  // Deduplicate locations by name
+  const existingLocNames = new Set(keep.locations.map((l) => l.name));
+  const newLocs = drop.locations.filter((l) => !existingLocNames.has(l.name));
+
+  // Deduplicate substance by content
+  const existingContent = new Set(keep.substance.map((s) => s.content));
+  const newSubs = drop.substance.filter((s) => !existingContent.has(s.content));
+
+  const merged = {
+    ...keep,
+    locations: [...keep.locations, ...newLocs],
+    substance: [...keep.substance, ...newSubs],
+    activities: Array.from(new Set([...keep.activities, ...drop.activities])),
+    tags: Array.from(new Set([...keep.tags, ...drop.tags])),
+  };
+
+  const tx = db.transaction(['items', 'boards'], 'readwrite');
+  await tx.objectStore('items').put(merged);
+  await tx.objectStore('items').delete(dropId);
+
+  // Remove dropId from any boards that contained it
+  const allBoards = await tx.objectStore('boards').getAll();
+  for (const board of allBoards) {
+    if (board.itemIds.includes(dropId)) {
+      const updated = { ...board, itemIds: board.itemIds.filter((id) => id !== dropId), updatedAt: Date.now() };
+      await tx.objectStore('boards').put(updated);
+    }
+  }
+  await tx.done;
 }

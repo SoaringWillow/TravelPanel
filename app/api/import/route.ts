@@ -84,28 +84,74 @@ async function fetchPageData(url: string) {
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let url: string;
+  let url: string | undefined;
+  let imageBase64: string | undefined;
+  let pastedText: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, text: pastedText } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
+  // Text-paste mode
+  if (pastedText && typeof pastedText === 'string') {
+    const trimmedText = pastedText.trim().slice(0, 8000);
+    const textOnlyPrompt = `You are a travel content analyzer. A user has pasted freeform text (a blog post excerpt, notes, Airbnb description, or travel article). Extract TWO layers:
+
+Text content:
+${trimmedText}
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+If no specific named places are mentioned, return an empty locations array.
+Do NOT invent or guess coordinates.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, warning, or opinion.
+Examples: timing tips, cost info, common mistakes, seasonal advice, hidden gems, opinions.
+Aim for 2–10 items; extract ALL items if the text is list-format.`;
+
+    let claudeResult: z.infer<typeof importSchema> | null = null;
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textOnlyPrompt,
+      });
+      claudeResult = object;
+    } catch { /* fall through */ }
+
+    const result: ImportResult = {
+      platform: 'other',
+      title: (claudeResult?.title || trimmedText.split('\n')[0] || 'Pasted text').slice(0, 200),
+      description: (claudeResult?.description || '').slice(0, 500),
+      thumbnail: undefined,
+      locations: claudeResult?.locations ?? [],
+      activities: claudeResult?.activities ?? [],
+      tags: claudeResult?.tags ?? [],
+      substance: claudeResult?.substance ?? [],
+    };
+    return NextResponse.json(result);
+  }
+
   if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+    return NextResponse.json({ error: 'URL or text required' }, { status: 400 });
   }
 
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const hasImage = typeof imageBase64 === 'string' && imageBase64.length > 0;
+
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page — common for Xiaohongshu/WeChat)'}
+${hasImage ? `\nAn image from the post is included above. Extract everything visible: text overlays, place names on signage, menus, captions, scenery type, and any readable Chinese or English text.` : ''}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,12 +176,35 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (hasImage) {
+      // Multimodal path: image + text (primary for Xiaohongshu/WeChat; supplement for others)
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image' as const,
+                image: imageBase64 as string,
+                mimeType: 'image/jpeg' as const,
+              },
+              { type: 'text' as const, text: textPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text-only path (existing behaviour)
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

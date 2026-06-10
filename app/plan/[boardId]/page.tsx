@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, ClipboardList, Share2, Printer } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { ProBadge } from '@/components/ProBadge';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -16,8 +17,35 @@ import PlanVersionBar from '@/components/PlanVersionBar';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+const DayRouteMap = dynamic(() => import('@/components/DayRouteMap'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
+
+// ─── Sourced tips block (collapsible) ─────────────────────────────────────────
+
+function SourcedTipsBlock({ tips }: { tips: { content: string; sourceTitle: string }[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? tips : tips.slice(0, 1);
+  return (
+    <div className="pt-1 space-y-1">
+      {visible.map((st, i) => (
+        <div key={i} className="bg-amber-50 rounded-lg px-2.5 py-1.5 border-l-2 border-amber-400">
+          <p className="text-xs text-amber-900 leading-snug">💡 {st.content}</p>
+          <p className="text-[10px] text-amber-600 mt-0.5 truncate">from: {st.sourceTitle}</p>
+        </div>
+      ))}
+      {tips.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="text-[10px] text-amber-700 font-semibold hover:text-amber-900 transition-colors"
+        >
+          {expanded ? '▲ Less' : `▼ +${tips.length - 1} more tip${tips.length - 1 !== 1 ? 's' : ''}`}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function PlanPage() {
   const params = useParams();
@@ -29,6 +57,7 @@ export default function PlanPage() {
   const [loadingBoard, setLoadingBoard] = useState(true);
 
   const [stage, setStage] = useState<Stage>('idle');
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [days, setDays] = useState(3);
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
@@ -38,6 +67,22 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+
+  // Load saved preferences on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('planPreferences');
+      if (raw) {
+        const prefs = JSON.parse(raw);
+        if (prefs.days) setDays(prefs.days);
+        if (Array.isArray(prefs.chips)) setSelectedChips(new Set(prefs.chips));
+        if (prefs.notes) setCustomNotes(prefs.notes);
+        setPrefsLoaded(true);
+      }
+    } catch {
+      // ignore malformed
+    }
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -81,6 +126,12 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     recordPlanGeneration();
+    // Save preferences for next time
+    try {
+      localStorage.setItem('planPreferences', JSON.stringify({
+        days, chips: Array.from(selectedChips), notes: customNotes.trim(),
+      }));
+    } catch { /* storage full */ }
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
     const res = await fetch('/api/plan', {
@@ -217,6 +268,131 @@ export default function PlanPage() {
     setCurrentTripId(null);
   }, []);
 
+  const [sharingCard, setSharingCard] = useState(false);
+  const [shareTextSuccess, setShareTextSuccess] = useState(false);
+
+  const handleShareText = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const lines: string[] = [];
+    lines.push(`🗺 ${board.emoji} ${board.name} — ${plan.days.length} Day Itinerary`);
+    if (plan.overview) lines.push(`\n${plan.overview}`);
+    for (const day of plan.days) {
+      lines.push(`\nDay ${day.day} — ${day.theme}`);
+      for (const act of day.activities) {
+        lines.push(`• ${act.time}  ${act.name} (${act.location.name})`);
+        if (act.tips.length > 0) {
+          lines.push(`  Tips: ${act.tips.slice(0, 2).join('; ')}`);
+        }
+        if (act.sourcedTips && act.sourcedTips.length > 0) {
+          lines.push(`  💡 ${act.sourcedTips[0].content} — from: ${act.sourcedTips[0].sourceTitle}`);
+        }
+      }
+    }
+    lines.push(`\nPlanned with TravelPanel`);
+    const text = lines.join('\n');
+    const title = `${board.emoji} ${board.name} Trip Plan`;
+    if (navigator.share) {
+      try { await navigator.share({ title, text }); return; } catch { /* fall through */ }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareTextSuccess(true);
+      setTimeout(() => setShareTextSuccess(false), 2000);
+    } catch { /* ignore */ }
+    track('plan_exported', { format: 'text', boardId });
+  }, [plan, board, boardId]);
+
+  const handleShareCard = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    setSharingCard(true);
+    try {
+      const W = 600, H = 800;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d')!;
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#4f46e5');
+      grad.addColorStop(1, '#312e81');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // White card area
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath();
+      ctx.roundRect(32, 140, W - 64, H - 200, 20);
+      ctx.fill();
+
+      // Header — emoji + title
+      ctx.font = 'bold 52px system-ui, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText(board.emoji, W / 2, 80);
+      ctx.font = 'bold 28px system-ui, sans-serif';
+      ctx.fillText(board.name, W / 2, 120);
+
+      // Stats row
+      const dayCount = plan.days.length;
+      const locCount = plan.totalLocations ?? 0;
+      const tipCount = plan.days.flatMap((d) => d.activities).reduce((n, a) => n + (a.sourcedTips?.length ?? 0), 0);
+      ctx.font = '16px system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      const stats = [
+        `${dayCount} day${dayCount !== 1 ? 's' : ''}`,
+        locCount > 0 ? `${locCount} place${locCount !== 1 ? 's' : ''}` : '',
+        tipCount > 0 ? `${tipCount} tip${tipCount !== 1 ? 's' : ''} from your clips` : '',
+      ].filter(Boolean).join('  ·  ');
+      ctx.fillText(stats, W / 2, 155);
+
+      // Day-by-day list
+      let y = 195;
+      for (const day of plan.days.slice(0, 7)) {
+        const topActivity = day.activities[0];
+        if (!topActivity) continue;
+
+        // Day label
+        ctx.font = 'bold 13px system-ui, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Day ${day.day}`, 56, y);
+
+        // Activity name
+        ctx.font = '15px system-ui, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        const label = `${topActivity.location.name} — ${topActivity.name}`;
+        const maxW = W - 112;
+        const truncated = label.length > 52 ? label.slice(0, 52) + '…' : label;
+        ctx.fillText(truncated, 56, y + 20);
+
+        y += 52;
+        if (y > H - 120) break;
+      }
+
+      // Footer
+      ctx.font = '13px system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.textAlign = 'center';
+      ctx.fillText('Planned with TravelPanel', W / 2, H - 36);
+
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob((b) => resolve(b!), 'image/png'),
+      );
+      const file = new File([blob], `${board.name}-trip.png`, { type: 'image/png' });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${board.name} trip plan` });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name; a.click();
+        URL.revokeObjectURL(url);
+      }
+    } finally {
+      setSharingCard(false);
+    }
+  }, [plan, board]);
+
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
       const next = new Set(prev);
@@ -237,8 +413,8 @@ export default function PlanPage() {
 
   if (loadingBoard) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div className="flex items-center justify-center h-screen bg-gray-50" role="status" aria-label="Loading board…" aria-busy="true">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" aria-hidden="true" />
       </div>
     );
   }
@@ -297,6 +473,24 @@ export default function PlanPage() {
                   {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 </span>
               </div>
+
+              {/* Saved preferences banner */}
+              {prefsLoaded && (
+                <div className="flex items-center justify-between bg-indigo-50 rounded-xl px-3 py-2">
+                  <span className="text-xs text-indigo-700 font-medium">Using your last preferences</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDays(3); setSelectedChips(new Set()); setCustomNotes('');
+                      setPrefsLoaded(false);
+                      try { localStorage.removeItem('planPreferences'); } catch {}
+                    }}
+                    className="text-xs text-indigo-500 hover:text-indigo-700 font-semibold underline"
+                  >
+                    Reset
+                  </button>
+                </div>
+              )}
 
               {/* Days slider */}
               <div className="space-y-2">
@@ -367,9 +561,19 @@ export default function PlanPage() {
 
               {/* Plan rate limit warning */}
               {planLimitError && (
-                <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 text-xs text-indigo-700">
-                  <Lightbulb size={14} className="flex-shrink-0 mt-0.5 text-indigo-500" />
-                  <span>{planLimitError}</span>
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 space-y-2">
+                  <div className="flex items-start gap-2 text-xs text-indigo-700">
+                    <Lightbulb size={14} className="flex-shrink-0 mt-0.5 text-indigo-500" />
+                    <span>{planLimitError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/settings')}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    <span>Upgrade to Pro for unlimited plans</span>
+                    <ProBadge size="xs" />
+                  </button>
                 </div>
               )}
 
@@ -460,22 +664,58 @@ export default function PlanPage() {
 
               {/* Export actions */}
               {planIsComplete(plan) && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExportPDF}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <Download size={14} />
-                    Export PDF
-                  </button>
-                  <button
-                    onClick={handleExportICS}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  >
-                    <CalendarPlus size={14} />
-                    Add to Calendar
-                  </button>
-                </div>
+                <>
+                  {currentTripId && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => router.push(`/trip/${currentTripId}/navigate`)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-sm"
+                      >
+                        <Navigation size={15} />
+                        Start Trip
+                      </button>
+                      <button
+                        onClick={() => router.push(`/trip/${currentTripId}/timeline`)}
+                        className="flex-1 flex items-center justify-center gap-2 border border-indigo-200 text-indigo-600 font-semibold text-sm py-3 rounded-xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
+                      >
+                        <ClipboardList size={15} />
+                        Log Trip
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleShareText}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold py-2 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                    >
+                      <Share2 size={14} />
+                      {shareTextSuccess ? '✓ Copied!' : 'Share'}
+                    </button>
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <Download size={14} />
+                      PDF
+                      <ProBadge size="xs" />
+                    </button>
+                    <button
+                      onClick={handleExportICS}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      <CalendarPlus size={14} />
+                      Calendar
+                      <ProBadge size="xs" />
+                    </button>
+                    <button
+                      onClick={() => window.print()}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all no-print"
+                    >
+                      <Printer size={14} />
+                      Print
+                    </button>
+                  </div>
+                </>
               )}
 
               {/* Saved plan versions */}
@@ -505,12 +745,45 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* Day navigation */}
+              {plan.days && plan.days.length > 1 && (
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDayIndex((i) => Math.max(0, i - 1))}
+                    disabled={activeDayIndex === 0}
+                    aria-label="Previous day"
+                    className="p-2 text-gray-500 hover:text-indigo-600 disabled:opacity-30 transition-colors"
+                  >
+                    ‹
+                  </button>
+                  <span className="text-xs text-gray-500 font-medium">
+                    Day {activeDayIndex + 1} of {plan.days.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDayIndex((i) => Math.min((plan.days?.length ?? 1) - 1, i + 1))}
+                    disabled={activeDayIndex === (plan.days?.length ?? 1) - 1}
+                    aria-label="Next day"
+                    className="p-2 text-gray-500 hover:text-indigo-600 disabled:opacity-30 transition-colors"
+                  >
+                    ›
+                  </button>
+                </div>
+              )}
+
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">
                   <h2 className="text-sm font-bold text-gray-700">
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
+
+                  {/* Mini route map for the day */}
+                  <DayRouteMap
+                    activities={activeDayPlan.activities}
+                    onExpand={currentTripId ? () => router.push(`/trip/${currentTripId}/navigate`) : undefined}
+                  />
 
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div
@@ -544,19 +817,7 @@ export default function PlanPage() {
 
                       {/* Sourced tips — wisdom cited from the user's own clips */}
                       {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
+                        <SourcedTipsBlock tips={activity.sourcedTips} />
                       )}
                     </div>
                   ))}
@@ -580,14 +841,26 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Start Over */}
-              <button
-                onClick={handleStartOver}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                <RotateCcw size={15} />
-                Start Over
-              </button>
+              {/* Share card + Start Over */}
+              <div className="flex gap-2">
+                {planIsComplete(plan) && (
+                  <button
+                    onClick={handleShareCard}
+                    disabled={sharingCard}
+                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 font-semibold text-sm py-2.5 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all disabled:opacity-60"
+                  >
+                    <Share2 size={15} />
+                    {sharingCard ? 'Generating…' : 'Share'}
+                  </button>
+                )}
+                <button
+                  onClick={handleStartOver}
+                  className="flex-1 flex items-center justify-center gap-2 border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  <RotateCcw size={15} />
+                  Start Over
+                </button>
+              </div>
             </div>
           )}
 

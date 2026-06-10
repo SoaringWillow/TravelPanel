@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -8,6 +8,49 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
+
+// ─── POI discovery ────────────────────────────────────────────────────────────
+
+interface PoiResult {
+  id: number;
+  lat: number;
+  lng: number;
+  name: string;
+  type: string;
+}
+
+const MAX_POIS = 20;
+const DISCOVER_STORAGE_KEY = 'mapDiscoverMode';
+const MIN_DISCOVER_ZOOM = 10; // Only fetch at closer zoom levels to avoid huge queries
+
+// ─── Map style cycle ──────────────────────────────────────────────────────────
+
+const MAP_STYLES = [
+  { id: 'liberty',  label: 'Street',    url: 'https://tiles.openfreemap.org/styles/liberty'  },
+  { id: 'positron', label: 'Light',     url: 'https://tiles.openfreemap.org/styles/positron' },
+  { id: 'bright',   label: 'Bright',    url: 'https://tiles.openfreemap.org/styles/bright'   },
+] as const;
+
+type MapStyleId = typeof MAP_STYLES[number]['id'];
+
+// ─── Dark mode map filter ─────────────────────────────────────────────────────
+
+function useDarkMode() {
+  const [dark, setDark] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e: MediaQueryListEvent) => setDark(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return dark;
+}
+
+// Invert the light tile style into a dark style; markers counter-invert back to normal
+const DARK_MAP_FILTER = 'invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.9) saturate(0.85)';
+const COUNTER_FILTER  = 'invert(1) hue-rotate(180deg) brightness(1.1)';
 
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
@@ -86,14 +129,15 @@ interface PinProps {
   item: SavedItem;
   locName: string;
   onClick: () => void;
+  isDark?: boolean;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ item, locName, onClick, isDark }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', filter: isDark ? COUNTER_FILTER : undefined }}>
       {/* Hover label */}
       {hovered && (
         <div
@@ -193,9 +237,10 @@ interface ClusterMarkerProps {
   count: number;
   total: number;
   onClick: () => void;
+  isDark?: boolean;
 }
 
-function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
+function ClusterMarker({ count, total, onClick, isDark }: ClusterMarkerProps) {
   // Scale the bubble with how many pins it holds (relative to the largest group).
   const size = 28 + Math.min(count / total, 1) * 24;
   return (
@@ -203,7 +248,7 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
       type="button"
       onClick={onClick}
       aria-label={`${count} places — zoom in`}
-      style={{
+      style={{ filter: isDark ? COUNTER_FILTER : undefined,
         width: size,
         height: size,
         borderRadius: '50%',
@@ -230,12 +275,97 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  onMapLongPress?: (lat: number, lng: number) => void;
+  onSavePoi?: (lat: number, lng: number, name: string, poiType: string) => void;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+function MapView({ items, onPinClick, flyTo, onMapLongPress, onSavePoi }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const isDark = useDarkMode();
+
+  // ── Discover (POI) mode ──
+  const [discoverMode, setDiscoverMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(DISCOVER_STORAGE_KEY) === 'true';
+  });
+  const [pois, setPois] = useState<PoiResult[]>([]);
+  const [selectedPoi, setSelectedPoi] = useState<PoiResult | null>(null);
+  const poiDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentBoundsRef = useRef<[number, number, number, number] | null>(null);
+  const currentZoomRef = useRef<number>(2);
+
+  function toggleDiscover() {
+    const next = !discoverMode;
+    setDiscoverMode(next);
+    if (typeof window !== 'undefined') localStorage.setItem(DISCOVER_STORAGE_KEY, String(next));
+    if (!next) { setPois([]); setSelectedPoi(null); }
+  }
+
+  const fetchPois = useCallback(async (bounds: [number, number, number, number], zoom: number) => {
+    if (zoom < MIN_DISCOVER_ZOOM) { setPois([]); return; }
+    const [west, south, east, north] = bounds;
+    const query = `[out:json][timeout:8];node["tourism"](${south},${west},${north},${east});out ${MAX_POIS};`;
+    try {
+      const res = await fetch(
+        `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!res.ok) return;
+      const json = await res.json() as { elements: Array<{ id: number; lat: number; lon: number; tags?: Record<string, string> }> };
+      const results: PoiResult[] = json.elements
+        .filter((el) => el.tags?.name)
+        .slice(0, MAX_POIS)
+        .map((el) => ({
+          id: el.id,
+          lat: el.lat,
+          lng: el.lon,
+          name: el.tags!.name!,
+          type: el.tags?.tourism ?? el.tags?.historic ?? 'place',
+        }));
+      setPois(results);
+    } catch { /* network error / timeout — silently skip */ }
+  }, []);
+
+  const schedulePoisFetch = useCallback((bounds: [number, number, number, number], zoom: number) => {
+    if (poiDebounce.current) clearTimeout(poiDebounce.current);
+    poiDebounce.current = setTimeout(() => fetchPois(bounds, zoom), 800);
+  }, [fetchPois]);
+
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressPos   = useRef<{ x: number; y: number } | null>(null);
+
+  function clearLongPress() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }
+
+  function startLongPress(clientX: number, clientY: number) {
+    clearLongPress();
+    longPressPos.current = { x: clientX, y: clientY };
+    longPressTimer.current = setTimeout(() => {
+      if (!mapInstanceRef.current || !longPressPos.current) return;
+      const canvas = mapInstanceRef.current.getCanvas();
+      const rect = canvas.getBoundingClientRect();
+      const px = longPressPos.current.x - rect.left;
+      const py = longPressPos.current.y - rect.top;
+      const lngLat = mapInstanceRef.current.unproject([px, py]);
+      onMapLongPress?.(lngLat.lat, lngLat.lng);
+    }, 500);
+  }
+
+  const [styleId, setStyleId] = useState<MapStyleId>(() => {
+    if (typeof window === 'undefined') return 'liberty';
+    return (localStorage.getItem('mapStyle') as MapStyleId) || 'liberty';
+  });
+  const activeStyle = MAP_STYLES.find((s) => s.id === styleId) ?? MAP_STYLES[0];
+
+  function cycleStyle() {
+    const idx = MAP_STYLES.findIndex((s) => s.id === styleId);
+    const next = MAP_STYLES[(idx + 1) % MAP_STYLES.length];
+    setStyleId(next.id);
+    if (typeof window !== 'undefined') localStorage.setItem('mapStyle', next.id);
+  }
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -246,13 +376,21 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const syncView = useCallback(
     (map: maplibregl.Map) => {
       const b = map.getBounds();
-      setView({
-        zoom: map.getZoom(),
-        bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
-      });
+      const zoom = map.getZoom();
+      const bounds: [number, number, number, number] = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+      currentBoundsRef.current = bounds;
+      currentZoomRef.current = zoom;
+      setView({ zoom, bounds });
     },
     [setView],
   );
+
+  // Re-fetch POIs when discover mode is toggled on, or when map moves while discover is on
+  useEffect(() => {
+    if (!discoverMode || !currentBoundsRef.current) return;
+    schedulePoisFetch(currentBoundsRef.current, currentZoomRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discoverMode]);
 
   const handleLoad = useCallback(
     (e: { target: maplibregl.Map }) => {
@@ -263,15 +401,69 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   );
 
   const handleMove = useCallback(
-    (e: ViewStateChangeEvent) => syncView(e.target as unknown as maplibregl.Map),
-    [syncView],
+    (e: ViewStateChangeEvent) => {
+      syncView(e.target as unknown as maplibregl.Map);
+      if (discoverMode && currentBoundsRef.current) {
+        schedulePoisFetch(currentBoundsRef.current, currentZoomRef.current);
+      }
+    },
+    [syncView, discoverMode, schedulePoisFetch],
   );
 
   return (
-    <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <div
+      style={{
+        position: 'absolute', inset: 0, width: '100%', height: '100%',
+        filter: isDark ? DARK_MAP_FILTER : undefined,
+      }}
+      onMouseDown={(e) => startLongPress(e.clientX, e.clientY)}
+      onMouseUp={clearLongPress}
+      onMouseMove={clearLongPress}
+      onTouchStart={(e) => { const t = e.touches[0]; if (t) startLongPress(t.clientX, t.clientY); }}
+      onTouchEnd={clearLongPress}
+      onTouchMove={clearLongPress}
+    >
+      {/* Map style cycle button */}
+      <button
+        type="button"
+        onClick={cycleStyle}
+        aria-label={`Map style: ${activeStyle.label}. Tap to change.`}
+        title={`Map style: ${activeStyle.label}`}
+        style={{
+          position: 'absolute', top: 8, right: 48, zIndex: 10,
+          background: 'white', border: '1px solid #e5e7eb',
+          borderRadius: 8, padding: '4px 8px',
+          fontSize: 11, fontWeight: 600, color: '#374151',
+          cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+          filter: isDark ? COUNTER_FILTER : undefined,
+        }}
+      >
+        {activeStyle.label}
+      </button>
+
+      {/* Discover (POI) toggle */}
+      <button
+        type="button"
+        onClick={toggleDiscover}
+        aria-label={discoverMode ? 'Discover mode on — tap to turn off' : 'Discover nearby attractions'}
+        title={discoverMode ? 'Discover: ON' : 'Discover nearby'}
+        style={{
+          position: 'absolute', top: 40, right: 48, zIndex: 10,
+          background: discoverMode ? '#6366f1' : 'white',
+          border: `1px solid ${discoverMode ? '#6366f1' : '#e5e7eb'}`,
+          borderRadius: 8, padding: '4px 8px',
+          fontSize: 11, fontWeight: 600,
+          color: discoverMode ? 'white' : '#374151',
+          cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+          filter: isDark && !discoverMode ? COUNTER_FILTER : undefined,
+        }}
+      >
+        🔭 Discover
+      </button>
+
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={activeStyle.url}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps
@@ -295,6 +487,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
                 <ClusterMarker
                   count={count}
                   total={maxClusterCount}
+                  isDark={isDark}
                   onClick={() => {
                     const expansionZoom = getExpansionZoom(clusterId);
                     mapInstanceRef.current?.easeTo({
@@ -320,6 +513,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <Pin
                 item={item}
                 locName={location.name}
+                isDark={isDark}
                 onClick={() => {
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);
@@ -349,7 +543,64 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             </div>
           </Popup>
         )}
+
+        {/* ── Ghost POI pins ── */}
+        {discoverMode && pois.map((poi) => (
+          <Marker key={`poi-${poi.id}`} longitude={poi.lng} latitude={poi.lat} anchor="center">
+            <button
+              type="button"
+              aria-label={poi.name}
+              onClick={() => setSelectedPoi(poi)}
+              style={{
+                filter: isDark ? COUNTER_FILTER : undefined,
+                width: 28, height: 28, borderRadius: '50%',
+                backgroundColor: 'rgba(107,114,128,0.15)',
+                border: '2px solid rgba(107,114,128,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              }}
+            >
+              🔭
+            </button>
+          </Marker>
+        ))}
+
+        {selectedPoi && (
+          <Popup
+            longitude={selectedPoi.lng}
+            latitude={selectedPoi.lat}
+            anchor="top"
+            onClose={() => setSelectedPoi(null)}
+            closeButton
+            closeOnClick={false}
+            offset={[0, -6] as [number, number]}
+          >
+            <div className="max-w-[200px] px-1 py-0.5 space-y-1">
+              <p className="text-xs font-semibold text-gray-800 leading-tight">{selectedPoi.name}</p>
+              <p className="text-[11px] text-gray-400 capitalize">{selectedPoi.type}</p>
+              {onSavePoi && (
+                <button
+                  type="button"
+                  onClick={() => { onSavePoi(selectedPoi.lat, selectedPoi.lng, selectedPoi.name, selectedPoi.type); setSelectedPoi(null); }}
+                  className="w-full text-center text-xs font-semibold text-indigo-600 border border-indigo-200 rounded-lg py-1 hover:bg-indigo-50 transition-colors"
+                >
+                  + Save
+                </button>
+              )}
+            </div>
+          </Popup>
+        )}
       </Map>
     </div>
   );
 }
+
+// Memoize to prevent re-renders when parent re-renders for unrelated state changes
+// (e.g., toggling dark mode CSS class, opening modals, etc.)
+export default memo(MapView, (prev, next) =>
+  prev.items === next.items &&
+  prev.flyTo === next.flyTo &&
+  prev.onPinClick === next.onPinClick &&
+  prev.onSavePoi === next.onSavePoi,
+);
