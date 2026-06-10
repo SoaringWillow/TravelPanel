@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
@@ -188,8 +190,68 @@ export default function InboxCard({
     day: 'numeric',
   });
 
+  return <SwipeToDeleteCard item={item} onDelete={onDelete} onViewOnMap={onViewOnMap} onMoveToBoard={onMoveToBoard} date={date} />;
+}
+
+// ─── SwipeToDeleteCard ────────────────────────────────────────────────────────
+
+function SwipeToDeleteCard({
+  item,
+  onDelete,
+  onViewOnMap,
+  onMoveToBoard,
+  date,
+}: {
+  item: SavedItem;
+  onDelete: (id: string) => void;
+  onViewOnMap: (id: string) => void;
+  onMoveToBoard?: (id: string) => void;
+  date: string;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const x = useMotionValue(0);
+
+  // Background action opacity: visible when card is dragged left
+  const deleteOpacity  = useTransform(x, [-120, -40], [1, 0]);
+  const actionBarWidth = useTransform(x, [-120, 0], [120, 0]);
+
+  function confirmDelete() {
+    setDismissed(true);
+    setTimeout(() => onDelete(item.id), 320);
+  }
+
+  if (dismissed) return null;
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative rounded-2xl overflow-hidden">
+      {/* Action strip revealed by swipe */}
+      <motion.div
+        style={{ width: actionBarWidth, opacity: deleteOpacity }}
+        className="absolute right-0 top-0 bottom-0 bg-red-500 flex items-center justify-center"
+      >
+        <button
+          type="button"
+          onClick={confirmDelete}
+          className="text-white flex flex-col items-center gap-0.5 px-3"
+        >
+          <Trash2 size={18} />
+          <span className="text-xs font-semibold">Delete</span>
+        </button>
+      </motion.div>
+
+      {/* Draggable card */}
+      <motion.div
+        style={{ x }}
+        drag="x"
+        dragConstraints={{ left: -120, right: 0 }}
+        dragElastic={0.05}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -100) confirmDelete();
+          // otherwise spring back (motion handles this via dragConstraints)
+        }}
+        className="relative z-10 cursor-grab active:cursor-grabbing"
+      >
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -302,7 +364,7 @@ export default function InboxCard({
             {/* Delete */}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              onClick={confirmDelete}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               aria-label="Delete"
             >
@@ -311,6 +373,8 @@ export default function InboxCard({
           </div>
         </div>
       </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

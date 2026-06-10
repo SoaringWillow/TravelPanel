@@ -179,6 +179,104 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE D — iOS Polish & Production Ready (Current Sprint)
+
+Goal: make TravelPanel feel like a native, beautiful, production-quality iOS app.
+Work top-to-bottom within this phase.
+
+### D1 — User Location on Map
+**Status**: `[x]` Done  
+**What to do**: Add MapLibre GeolocateControl so users can see and jump to their location on the map.  
+**File**: `components/MapView.tsx` — add `<GeolocateControl position="bottom-right" trackUserLocation showUserHeading />` alongside existing `NavigationControl`.
+
+### D2 — Swipe-to-Delete on Inbox Cards
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Add `framer-motion` drag="x" to the card container (already installed)
+- Swipe left past -80px threshold to reveal red "Delete" action behind the card
+- Swipe back or tap elsewhere to cancel
+- Swipe past -200px or tap Delete to confirm delete with a slide-out animation
+- Keep existing tap-to-open-detail behaviour
+
+### D3 — Board Rename & Delete
+**Status**: `[ ]` Not started  
+**Files**: `components/BoardCard.tsx`, `lib/db.ts`, `app/boards/page.tsx`  
+**What to do**:
+- Long-press (or ⋯ menu) on BoardCard opens an action sheet: "Rename", "Delete"
+- Rename: inline input replaces title text, save on blur / Enter
+- Delete: confirmation alert ("This will not delete the clips inside") → removes board, unassigns items
+- Add `renameBoard(id, name)` to `lib/db.ts`
+
+### D4 — Beautiful Empty States
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Inbox empty: large emoji illustration + "Clip your first travel inspiration" CTA + "Tap + to get started" sub-text
+- Map empty: "No pins yet — clip a travel post to see locations here" floating card
+- Boards empty: "Create your first collection" with + button prompt
+- Animate in with a gentle fade+scale
+
+### D5 — Board Filter on Map
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add a horizontally scrollable board filter chip row just above the bottom nav on the main map view
+- "All" chip (selected by default) + one chip per board that has items with locations
+- Selecting a board chip filters the map to show only that board's pins
+- Selected chip uses the board's emoji + name
+
+### D6 — Share Extension Native Image Capture (Swift)
+**Status**: `[ ]` Not started  
+**Requires**: Xcode (macOS only)  
+**Files**: `ios/App/ShareExtension/ShareViewController.swift`  
+**What to do**:
+- In `itemProvider.loadItem(forTypeIdentifier:)`, check for `kUTTypeImage` attachment
+- If present, write the image as JPEG to App Group shared container (`group.com.travelpanel.app/pendingShareImage.jpg`)
+- In `CapacitorBridge.tsx`, after processing the URL scheme deep link, check App Group for a pending image
+- Read it via a Capacitor plugin (e.g., `@capacitor/filesystem` reading the shared container path)
+- Pass the base64 image to `enrichItem` — web side already handles it (B3)
+
+### D7 — In-App Haptic Feedback
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`, `app/inbox/page.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- Use the Web Vibration API (`navigator.vibrate`) as a thin wrapper
+- Light haptic (10ms) on: clip save success, board select, item delete confirm
+- Medium haptic (30ms) on: plan generation start
+- Only fires on iOS/Android (desktop ignores vibrate)
+- Add `lib/haptics.ts` with `lightHaptic()` and `mediumHaptic()` exports
+
+### D8 — Pull-to-Refresh on Inbox & Boards
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Detect a downward drag from the top of the scroll container
+- Show a spinner that spins while refreshing
+- On release past threshold: re-run `getAllItems()` / `getAllBoards()` and update state
+- On iOS in Capacitor, this should feel native (use `framer-motion` drag detection)
+
+### D9 — Trip Plan Share / Deep Link
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `lib/exportPlan.ts`  
+**What to do**:
+- Add a "Share plan" button to the plan view
+- Generate a self-contained HTML page (single file) with the full itinerary
+- Optionally: generate a shareable URL with plan data encoded (base64 compressed JSON in hash)
+- Use Web Share API (`navigator.share`) if available, fallback to copy-to-clipboard
+
+### D10 — Thumbnail Extraction via Claude Vision (Xiaohongshu)
+**Status**: `[ ]` Not started  
+**Files**: `app/api/import/route.ts`, `lib/types.ts`  
+**What to do**:
+- When vision extraction is used (imageBase64 provided), also extract a thumbnail crop
+- Add `thumbnailCrop?: { x: number; y: number; width: number; height: number }` to `ImportResult`
+- In the API: prompt Claude to identify the best thumbnail region (a landmark or food shot)
+- On the client: use Canvas to crop the original image to that region and store as data URL
+- Fallback: use first 1/3 of the image as thumbnail if no crop is specified
+
+---
+
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode

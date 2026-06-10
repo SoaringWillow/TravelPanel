@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl, GeolocateControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
@@ -279,6 +279,12 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+        <GeolocateControl
+          position="bottom-right"
+          trackUserLocation
+          showUserHeading
+          style={{ marginBottom: '90px' }}
+        />
 
         <MapController flyTo={flyTo} />
 
