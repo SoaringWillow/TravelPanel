@@ -12,6 +12,7 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/li
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { lightHaptic } from '@/lib/haptics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -42,9 +43,49 @@ export default function InboxPage() {
   const [query, setQuery] = useState('');
   const [clipSheetOpen, setClipSheetOpen] = useState(false);
   const [clipUrl, setClipUrl] = useState('');
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkMoving, setBulkMoving] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const clipInputRef = useRef<HTMLInputElement>(null);
   const pullState = usePullToRefresh(scrollRef, refresh);
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function handleLongPressStart(id: string) {
+    longPressTimer.current = setTimeout(() => {
+      lightHaptic();
+      setSelectMode(true);
+      setSelectedIds(new Set([id]));
+    }, 500);
+  }
+
+  function handleLongPressEnd() {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  const handleBulkBoardSelect = useCallback(
+    async (boardId: string | null) => {
+      setBulkMoving(false);
+      if (boardId === null) return;
+      await Promise.all([...selectedIds].map((id) => addItemToBoard(boardId, id)));
+      exitSelectMode();
+      router.refresh();
+    },
+    [selectedIds, router]
+  );
 
   // Pre-fill from clipboard when sheet opens
   useEffect(() => {
@@ -263,14 +304,20 @@ export default function InboxPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
+                  onTouchStart={() => !selectMode && handleLongPressStart(item.id)}
+                  onTouchEnd={handleLongPressEnd}
+                  onTouchMove={handleLongPressEnd}
                 >
                   <InboxCard
                     item={item}
                     onDelete={removeItem}
                     onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
+                    onMoveToBoard={selectMode ? undefined : handleMoveToBoard}
                     onRetry={retryItem}
                     searchQuery={query || undefined}
+                    selectable={selectMode}
+                    selected={selectedIds.has(item.id)}
+                    onSelect={selectMode ? toggleSelect : undefined}
                   />
                 </motion.div>
               ))}
@@ -278,6 +325,93 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+
+      {/* Multi-select action bar */}
+      <AnimatePresence>
+        {selectMode && (
+          <motion.div
+            key="select-bar"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 340 }}
+            className="fixed left-0 right-0 z-[150] bg-white border-t border-gray-100 shadow-lg px-4 py-3 flex items-center gap-3"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 56px)' }}
+          >
+            <button
+              type="button"
+              onClick={exitSelectMode}
+              className="text-sm text-gray-500 font-medium"
+            >
+              Cancel
+            </button>
+            <span className="flex-1 text-center text-sm font-semibold text-gray-800">
+              {selectedIds.size} selected
+            </span>
+            <button
+              type="button"
+              disabled={selectedIds.size === 0}
+              onClick={() => setBulkMoving(true)}
+              className="bg-indigo-600 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-xl"
+            >
+              Move to board
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk move board selector */}
+      <AnimatePresence>
+        {bulkMoving && (
+          <>
+            <motion.div
+              key="bulk-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1999] bg-black/40"
+              onClick={() => setBulkMoving(false)}
+            />
+            <motion.div
+              key="bulk-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
+              style={{ maxHeight: 320 }}
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+              <div className="flex items-center justify-between px-5 py-3">
+                <h3 className="font-semibold text-gray-800">Move {selectedIds.size} clip{selectedIds.size !== 1 ? 's' : ''} to…</h3>
+                <button type="button" onClick={() => setBulkMoving(false)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: 220 }}>
+                <div className="flex flex-wrap gap-2">
+                  {boards.map((board) => (
+                    <button
+                      key={board.id}
+                      type="button"
+                      onClick={() => handleBulkBoardSelect(board.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                    >
+                      <span>{board.emoji}</span>
+                      <span>{board.name}</span>
+                    </button>
+                  ))}
+                  {boards.length === 0 && (
+                    <p className="text-sm text-gray-400 py-2">No boards yet. Create one from the Boards tab.</p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Clip URL FAB */}
       <button

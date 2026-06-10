@@ -17,6 +17,9 @@ interface InboxCardProps {
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
   searchQuery?: string;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
 /** Wrap matching query substrings in a <mark> element */
@@ -61,6 +64,9 @@ export default function InboxCard({
   onMoveToBoard,
   onRetry,
   searchQuery,
+  selectable = false,
+  selected = false,
+  onSelect,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -210,6 +216,31 @@ export default function InboxCard({
     month: 'short',
     day: 'numeric',
   });
+
+  if (selectable) {
+    return (
+      <div
+        className="relative"
+        onClick={() => onSelect?.(item.id)}
+      >
+        <SwipeToDeleteCard item={item} onDelete={onDelete} onViewOnMap={onViewOnMap} onMoveToBoard={onMoveToBoard} date={date} searchQuery={searchQuery} />
+        {/* Selection overlay */}
+        <div className={`absolute inset-0 rounded-2xl pointer-events-none transition-colors ${selected ? 'bg-indigo-500/15 ring-2 ring-indigo-500' : 'bg-transparent'}`} />
+        {/* Checkbox */}
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className={`absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center shadow-sm transition-colors ${selected ? 'bg-indigo-600' : 'bg-white border-2 border-gray-300'}`}
+        >
+          {selected && (
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </motion.div>
+      </div>
+    );
+  }
 
   return <SwipeToDeleteCard item={item} onDelete={onDelete} onViewOnMap={onViewOnMap} onMoveToBoard={onMoveToBoard} date={date} searchQuery={searchQuery} />;
 }

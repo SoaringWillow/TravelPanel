@@ -490,7 +490,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - Show the platform icon (parse URL to detect xiaohongshu/douyin/etc) next to the input
 
 ### G2 — Multi-Select & Bulk Move to Board
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`
 **Why**: Users with 20+ clips need to organize in batches, not one-by-one.
 **What to do**:
