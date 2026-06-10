@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid, Sparkles } from 'lucide-react';
-import { Reorder } from 'framer-motion';
+import { Reorder, AnimatePresence, motion } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { Board } from '@/lib/types';
+import { Board, SavedItem } from '@/lib/types';
+import { saveItem, saveBoard } from '@/lib/db';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
@@ -18,6 +19,8 @@ export default function BoardsPage() {
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [deletedSnapshot, setDeletedSnapshot] = useState<{ board: Board; items: SavedItem[] } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sorted by sortOrder (if set) else createdAt ascending
   const sortedBoards = [...boards].sort((a, b) =>
@@ -48,7 +51,30 @@ export default function BoardsPage() {
   }
 
   async function handleDelete(id: string) {
+    const board = boards.find((b) => b.id === id);
+    if (!board) return;
+    const boardItems = items.filter((i) => board.itemIds.includes(i.id));
+
+    // Optimistic: remove from state immediately
     await removeBoard(id);
+
+    // Store snapshot for undo
+    setDeletedSnapshot({ board, items: boardItems });
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = setTimeout(() => setDeletedSnapshot(null), 5000);
+  }
+
+  async function handleUndoDelete() {
+    if (!deletedSnapshot) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    const { board, items: boardItems } = deletedSnapshot;
+    // Restore board and its items
+    await saveBoard(board);
+    for (const item of boardItems) {
+      await saveItem({ ...item, boardId: board.id });
+    }
+    setDeletedSnapshot(null);
+    refreshBoards();
   }
 
   return (
@@ -150,6 +176,33 @@ export default function BoardsPage() {
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
       />
+
+      {/* Board delete undo toast */}
+      <AnimatePresence>
+        {deletedSnapshot && (
+          <motion.div
+            key="board-undo"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-20 left-4 right-4 z-[3000] flex items-center justify-between bg-gray-900 dark:bg-slate-700 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-xl"
+          >
+            <span>
+              {deletedSnapshot.board.emoji} {deletedSnapshot.board.name} deleted
+            </span>
+            <button
+              type="button"
+              onClick={handleUndoDelete}
+              className="text-indigo-300 hover:text-indigo-200 font-semibold ml-4 shrink-0"
+            >
+              Undo
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <NavBar active="boards" />
     </div>

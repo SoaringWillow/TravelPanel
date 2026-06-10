@@ -428,7 +428,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - On `InboxCard`, when `enrichmentStatus === 'failed'`: show a small amber "Retry" chip in the card footer instead of the current silent failure
 
 ### K3 — Undo for Board Deletion
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Deleting a board currently deletes all its items permanently with no undo. This is a high-severity data loss risk — one tap destroys hours of curation.  
 **Files to change**: `app/boards/page.tsx`, `hooks/useBoards.ts`  
 **What to do**:
