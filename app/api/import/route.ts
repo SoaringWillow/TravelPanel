@@ -81,32 +81,9 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompt builders ─────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
+const SUBSTANCE_INSTRUCTIONS = `
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
 If the post doesn't mention specific named places, return an empty locations array.
@@ -114,7 +91,7 @@ Do NOT invent or guess coordinates.
 
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
-This is what competitors miss. Examples of what to capture:
+This is what competitors miss. Examples:
 - "Arrive before 8am to beat the queue" → tip
 - "The set lunch menu is half the price of dinner" → tip
 - "Cash only, nearest ATM is 10 min walk" → warning
@@ -128,23 +105,103 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+${SUBSTANCE_INSTRUCTIONS}`;
+}
+
+function buildVisionPrompt(platform: string, url?: string) {
+  return `You are a travel content analyzer. The attached image is a screenshot from a travel social media post${url ? ` (${platform} — ${url})` : ` (${platform})`}.
+
+Extract TWO layers of structured travel data from everything visible in the screenshot: post text, captions, comments, overlays, map thumbnails, and location tags.
+${SUBSTANCE_INSTRUCTIONS}`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string | undefined;
+  let image: string | undefined; // base64 data URI or raw base64 JPEG/PNG
+
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    const body = await req.json();
+    url = typeof body.url === 'string' ? body.url : undefined;
+    image = typeof body.image === 'string' ? body.image : undefined;
   } catch {
-    // Fall through to defaults
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url && !image) {
+    return NextResponse.json({ error: 'url or image required' }, { status: 400 });
+  }
+
+  const platform = url ? detectPlatform(url) : 'xiaohongshu';
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  if (image) {
+    // ── Vision path: analyze screenshot directly ─────────────────────────────
+    const dataUri = image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`;
+
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: dataUri },
+              { type: 'text', text: buildVisionPrompt(platform, url) },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
+  } else {
+    // ── Text path: web scraping + prompt ─────────────────────────────────────
+    const page = await fetchPageData(url!);
+
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(platform, url!, page),
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
+
+    const result: ImportResult = {
+      platform,
+      title: (claudeResult?.title || page?.title || url!).slice(0, 200),
+      description: (claudeResult?.description || page?.description || '').slice(0, 500),
+      thumbnail: page?.thumbnail || undefined,
+      locations: claudeResult?.locations ?? [],
+      activities: claudeResult?.activities ?? [],
+      tags: claudeResult?.tags ?? [],
+      substance: claudeResult?.substance ?? [],
+    };
+
+    return NextResponse.json(result);
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
-    thumbnail: page?.thumbnail || undefined,
+    title: (claudeResult?.title || url || 'Travel clip').slice(0, 200),
+    description: (claudeResult?.description || '').slice(0, 500),
+    thumbnail: undefined,
     locations: claudeResult?.locations ?? [],
     activities: claudeResult?.activities ?? [],
     tags: claudeResult?.tags ?? [],

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #0D9488;
+      letter-spacing: -0.5px;
+    }
+
+    h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #94A3B8;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #0F172A;
+      background: #F8FAFC;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus {
+      border-color: #0D9488;
+      box-shadow: 0 0 0 3px rgba(13,148,136,0.1);
+      background: #fff;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    button {
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+    }
+
+    .btn-primary {
+      background: #0D9488;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #0F766E; }
+
+    .btn-ghost {
+      background: #F1F5F9;
+      color: #475569;
+    }
+    .btn-ghost:hover { background: #E2E8F0; }
+
+    .toast {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      color: #15803D;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-top: 14px;
+    }
+    .toast.visible { display: flex; }
+
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .shortcut-row + .shortcut-row {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #F1F5F9;
+    }
+    .key {
+      display: inline-flex;
+      gap: 4px;
+    }
+    kbd {
+      background: #F1F5F9;
+      border: 1px solid #CBD5E1;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #475569;
+    }
+
+    .version-row {
+      font-size: 12px;
+      color: #94A3B8;
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 20 20" fill="none">
+        <path d="M10 2C7.24 2 5 4.24 5 7c0 3.75 5 11 5 11s5-7.25 5-11c0-2.76-2.24-5-5-5zm0 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" fill="#0D9488"/>
+      </svg>
+      TravelPanel Clipper
+    </div>
+  </div>
+
+  <!-- App URL -->
+  <h2>Connection</h2>
+  <div class="card">
+    <label for="app-url">TravelPanel App URL</label>
+    <p class="hint">The URL where your TravelPanel app is deployed (e.g. your Vercel URL).</p>
+    <input type="url" id="app-url" placeholder="https://your-app.vercel.app" autocomplete="off" spellcheck="false">
+    <div class="btn-row">
+      <button class="btn-primary" id="save-btn">Save</button>
+      <button class="btn-ghost" id="test-btn">Test Connection</button>
+    </div>
+    <div class="toast" id="save-toast">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      Settings saved!
+    </div>
+    <div class="toast" id="test-toast" style="background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8">
+      Connection successful!
+    </div>
+    <div class="toast" id="error-toast" style="background:#FEF2F2;border-color:#FECACA;color:#DC2626">
+      Could not reach that URL. Check it's correct and reachable.
+    </div>
+  </div>
+
+  <!-- Keyboard shortcut -->
+  <h2>Keyboard Shortcut</h2>
+  <div class="card">
+    <div class="shortcut-row">
+      <span>Open Clipper</span>
+      <div class="key">
+        <kbd id="shortcut-mac" style="display:none">⌘</kbd><kbd id="shortcut-mac2" style="display:none">⇧</kbd>
+        <kbd id="shortcut-other" style="display:none">Alt</kbd><kbd id="shortcut-other2" style="display:none">Shift</kbd>
+        <kbd>T</kbd>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:10px;margin-bottom:0">
+      You can customise shortcuts at <code>chrome://extensions/shortcuts</code>.
+    </p>
+  </div>
+
+  <div class="version-row" id="version-row">TravelPanel Clipper v1.0</div>
+
+</div>
+<script src="options.js"></script>
+</body>
+</html>
