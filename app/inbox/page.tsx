@@ -220,8 +220,13 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Search results live region for screen readers */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {!loading && query.trim() && `${filtered.length} result${filtered.length !== 1 ? 's' : ''} for ${query.trim()}`}
+      </div>
+
       {/* Content */}
-      <div ref={scrollRef} className="relative flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="relative flex-1 overflow-y-auto px-4 py-4 pb-24" aria-busy={loading}>
         {/* Pull-to-refresh indicator */}
         <div
           className="absolute left-0 right-0 flex justify-center pointer-events-none z-10"

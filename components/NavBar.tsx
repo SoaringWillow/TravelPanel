@@ -17,6 +17,8 @@ const NAV_ITEMS = [
 export default function NavBar({ active }: NavBarProps) {
   return (
     <nav
+      role="navigation"
+      aria-label="Main navigation"
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
       style={{
         boxShadow: '0 -1px 12px rgba(0,0,0,0.08)',
@@ -30,11 +32,13 @@ export default function NavBar({ active }: NavBarProps) {
             <Link
               key={key}
               href={href}
+              aria-label={`Navigate to ${label}`}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
                 isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} aria-hidden="true" />
               <span className="text-xs mt-0.5 font-medium">{label}</span>
               {/* Active indicator dot */}
               <span

@@ -279,15 +279,17 @@ function SwipeToDeleteCard({
   if (dismissed) return null;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden">
+    <div className="relative rounded-2xl overflow-hidden" role="article" aria-label={item.title || 'Saved clip'}>
       {/* Action strip revealed by swipe */}
       <motion.div
         style={{ width: actionBarWidth, opacity: deleteOpacity }}
         className="absolute right-0 top-0 bottom-0 bg-red-500 flex items-center justify-center"
+        aria-hidden="true"
       >
         <button
           type="button"
           onClick={confirmDelete}
+          aria-label={`Delete ${item.title || 'clip'}`}
           className="text-white flex flex-col items-center gap-0.5 px-3"
         >
           <Trash2 size={18} />
@@ -459,8 +461,8 @@ function SwipeToDeleteCard({
             <button
               type="button"
               onClick={confirmDelete}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-              aria-label="Delete"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-red-400 rounded-lg"
+              aria-label={`Delete ${item.title || 'clip'}`}
             >
               <Trash2 size={13} />
             </button>

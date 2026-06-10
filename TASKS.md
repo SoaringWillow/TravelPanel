@@ -570,7 +570,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - This replaces the plain "Going to inbox" text
 
 ### G9 — Accessible Keyboard Navigation & ARIA
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/NavBar.tsx`, `components/InboxCard.tsx`, `components/BoardCard.tsx`, `app/inbox/page.tsx`
 **Why**: Screen reader users and keyboard-only users (iPad with keyboard) currently can't use the app effectively.
 **What to do**:
