@@ -799,7 +799,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a subtle success animation (checkmark) after sharing/copying
 
 ### L7 — Duplicate Merge UI
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Scan inbox items for near-duplicate titles (using simple string similarity > 80%)

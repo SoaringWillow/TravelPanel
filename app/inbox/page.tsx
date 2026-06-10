@@ -18,6 +18,8 @@ import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import BoardSuggestBanner from '@/components/BoardSuggestBanner';
+import DuplicateMergeModal, { findDuplicatePairs } from '@/components/DuplicateMergeModal';
+import { mergeItems, deleteItem } from '@/lib/db';
 
 // ─── Sort options ─────────────────────────────────────────────────────────────
 
@@ -77,6 +79,24 @@ export default function InboxPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isOffline, setIsOffline] = useState(false);
+
+  // Duplicate detection (once per session)
+  type DuplicatePair = { a: import('@/lib/types').SavedItem; b: import('@/lib/types').SavedItem };
+  const [dupPairs, setDupPairs] = useState<DuplicatePair[]>([]);
+  const [activeDupPair, setActiveDupPair] = useState<DuplicatePair | null>(null);
+  const dupScanDone = useRef(false);
+
+  useEffect(() => {
+    if (loading || dupScanDone.current) return;
+    const unboarded = items.filter((i) => i.boardId === undefined);
+    if (unboarded.length < 2) return;
+    if (sessionStorage.getItem('dupScanDone')) { dupScanDone.current = true; return; }
+    dupScanDone.current = true;
+    sessionStorage.setItem('dupScanDone', '1');
+    const pairs = findDuplicatePairs(unboarded);
+    setDupPairs(pairs);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   useEffect(() => {
     setIsOffline(!navigator.onLine);
@@ -164,6 +184,32 @@ export default function InboxPage() {
     await Promise.all(ids.map((id) => addItemToBoard(boardId, id)));
     setSelectedIds(new Set());
     setMovingItemId(null);
+    router.refresh();
+  }
+
+  function dismissDup() {
+    setActiveDupPair(null);
+    setDupPairs((prev) => prev.slice(1));
+  }
+
+  async function handleDupMerge() {
+    if (!activeDupPair) return;
+    await mergeItems(activeDupPair.a.id, activeDupPair.b.id);
+    dismissDup();
+    router.refresh();
+  }
+
+  async function handleDupKeepA() {
+    if (!activeDupPair) return;
+    await deleteItem(activeDupPair.b.id);
+    dismissDup();
+    router.refresh();
+  }
+
+  async function handleDupKeepB() {
+    if (!activeDupPair) return;
+    await deleteItem(activeDupPair.a.id);
+    dismissDup();
     router.refresh();
   }
 
@@ -369,6 +415,24 @@ export default function InboxPage() {
           ) : null;
         })()}
 
+        {/* Duplicate detection chip */}
+        {!loading && dupPairs.length > 0 && !activeDupPair && (
+          <button
+            type="button"
+            onClick={() => setActiveDupPair(dupPairs[0])}
+            className="w-full mb-3 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-left hover:bg-amber-100 transition-colors"
+          >
+            <span className="text-base">🔀</span>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-amber-800">
+                {dupPairs.length} possible duplicate{dupPairs.length !== 1 ? 's' : ''} found
+              </p>
+              <p className="text-[11px] text-amber-600 mt-0.5">Tap to review and merge</p>
+            </div>
+            <span className="text-xs text-amber-500 font-medium">Review →</span>
+          </button>
+        )}
+
         {/* Smart board auto-suggest */}
         {!loading && (
           <BoardSuggestBanner
@@ -552,6 +616,17 @@ export default function InboxPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Duplicate merge modal */}
+      {activeDupPair && (
+        <DuplicateMergeModal
+          pair={activeDupPair}
+          onMerge={handleDupMerge}
+          onKeepA={handleDupKeepA}
+          onKeepB={handleDupKeepB}
+          onDismiss={dismissDup}
+        />
+      )}
 
       <NavBar active="inbox" />
     </div>

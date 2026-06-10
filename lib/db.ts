@@ -284,3 +284,40 @@ export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
 }
+
+// Merge dropId into keepId: copy unique locations+substance, then delete dropId.
+export async function mergeItems(keepId: string, dropId: string): Promise<void> {
+  const db = await getDB();
+  const [keep, drop] = await Promise.all([db.get('items', keepId), db.get('items', dropId)]);
+  if (!keep || !drop) return;
+
+  // Deduplicate locations by name
+  const existingLocNames = new Set(keep.locations.map((l) => l.name));
+  const newLocs = drop.locations.filter((l) => !existingLocNames.has(l.name));
+
+  // Deduplicate substance by content
+  const existingContent = new Set(keep.substance.map((s) => s.content));
+  const newSubs = drop.substance.filter((s) => !existingContent.has(s.content));
+
+  const merged = {
+    ...keep,
+    locations: [...keep.locations, ...newLocs],
+    substance: [...keep.substance, ...newSubs],
+    activities: Array.from(new Set([...keep.activities, ...drop.activities])),
+    tags: Array.from(new Set([...keep.tags, ...drop.tags])),
+  };
+
+  const tx = db.transaction(['items', 'boards'], 'readwrite');
+  await tx.objectStore('items').put(merged);
+  await tx.objectStore('items').delete(dropId);
+
+  // Remove dropId from any boards that contained it
+  const allBoards = await tx.objectStore('boards').getAll();
+  for (const board of allBoards) {
+    if (board.itemIds.includes(dropId)) {
+      const updated = { ...board, itemIds: board.itemIds.filter((id) => id !== dropId), updatedAt: Date.now() };
+      await tx.objectStore('boards').put(updated);
+    }
+  }
+  await tx.done;
+}
