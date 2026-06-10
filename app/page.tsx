@@ -1,12 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, LocateFixed, LocateOff } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
+import { findNearestWithin, formatDistance } from '@/lib/geolocation';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -21,7 +22,6 @@ const MAP_STYLE_DARK  = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/s
 function useMapStyle() {
   const [dark, setDark] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
     setDark(document.documentElement.classList.contains('dark'));
     const observer = new MutationObserver(() => {
       setDark(document.documentElement.classList.contains('dark'));
@@ -35,10 +35,14 @@ function useMapStyle() {
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
-  const [showImport, setShowImport]     = useState(false);
-  const [prefilledUrl, setPrefilledUrl] = useState('');
-  const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
-  const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [showImport, setShowImport]         = useState(false);
+  const [prefilledUrl, setPrefilledUrl]     = useState('');
+  const [selectedItem, setSelectedItem]     = useState<SavedItem | null>(null);
+  const [flyTo, setFlyTo]                   = useState<Location | undefined>(undefined);
+  const [userLocation, setUserLocation]     = useState<{ lat: number; lng: number } | null>(null);
+  const [trackingGPS, setTrackingGPS]       = useState(false);
+  const [nearbyMatch, setNearbyMatch]       = useState<{ item: SavedItem; locationName: string; distanceKm: number } | null>(null);
+  const watchIdRef                          = useRef<number | null>(null);
   const mapStyle = useMapStyle();
 
   // Handle ?import= param — open sheet with pre-filled URL
@@ -71,6 +75,47 @@ function HomePageInner() {
   // Run once when items are loaded and params are present
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length > 0 ? 'loaded' : 'empty', searchParams.toString()]);
+
+  // Update nearby chip whenever user location or items change
+  useEffect(() => {
+    if (!userLocation) { setNearbyMatch(null); return; }
+    const match = findNearestWithin(items, userLocation.lat, userLocation.lng, 0.5);
+    if (match && match.item.id !== selectedItem?.id) {
+      setNearbyMatch({ item: match.item, locationName: match.location.name, distanceKm: match.distanceKm });
+    } else {
+      setNearbyMatch(null);
+    }
+  }, [userLocation, items, selectedItem]);
+
+  // Cleanup watchPosition on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    };
+  }, []);
+
+  function toggleGPS() {
+    if (trackingGPS) {
+      // Stop tracking
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+      setTrackingGPS(false);
+      setUserLocation(null);
+      setNearbyMatch(null);
+    } else {
+      // Start tracking
+      if (!navigator.geolocation) return;
+      setTrackingGPS(true);
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setFlyTo({ lat: pos.coords.latitude, lng: pos.coords.longitude, name: '' });
+        },
+        () => { setTrackingGPS(false); },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 },
+      );
+    }
+  }
 
   function handleItemSaved(item: SavedItem) {
     addItem(item);
@@ -119,18 +164,62 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={handlePinClick} flyTo={flyTo} mapStyle={mapStyle} onSaveLocation={handleSaveLocation} />
+      <MapView
+        items={items}
+        onPinClick={handlePinClick}
+        flyTo={flyTo}
+        mapStyle={mapStyle}
+        onSaveLocation={handleSaveLocation}
+        userLocation={userLocation ?? undefined}
+      />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
         <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
           <span className="font-bold text-gray-800 dark:text-slate-100 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500 dark:text-slate-400">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+          <div className="ml-auto flex items-center gap-2">
+            {/* GPS toggle button */}
+            <button
+              type="button"
+              onClick={toggleGPS}
+              className={`p-2 rounded-xl transition-colors ${
+                trackingGPS
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+              }`}
+              aria-label={trackingGPS ? 'Stop location tracking' : 'Track my location'}
+            >
+              {trackingGPS ? <LocateFixed size={18} /> : <LocateOff size={18} />}
+            </button>
+            <span className="text-sm text-gray-500 dark:text-slate-400">
+              {loading ? 'Loading…' : `${items.length} saved`}
+            </span>
           </div>
         </div>
       </div>
+
+      {/* Nearby chip */}
+      <AnimatePresence>
+        {nearbyMatch && !selectedItem && (
+          <motion.button
+            key="nearby-chip"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.25 }}
+            type="button"
+            onClick={() => { setSelectedItem(nearbyMatch.item); setNearbyMatch(null); }}
+            className="fixed bottom-24 left-4 right-16 z-[900] bg-blue-600 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-left hover:bg-blue-700 active:scale-[0.98] transition-all"
+          >
+            <span className="text-base">📍</span>
+            <span className="flex-1 min-w-0">
+              <span className="font-semibold">You&apos;re near</span> {nearbyMatch.locationName}
+            </span>
+            <span className="text-blue-200 text-xs flex-shrink-0">{formatDistance(nearbyMatch.distanceKm)}</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Selected item detail card */}
       <AnimatePresence>

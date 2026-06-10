@@ -13,6 +13,7 @@ import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import { hapticSuccess } from '@/lib/haptics';
+import { findNearbyItems } from '@/lib/geolocation';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -44,6 +45,8 @@ export default function InboxPage() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [deletedItem, setDeletedItem] = useState<SavedItem | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [nearbyMode, setNearbyMode] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -83,7 +86,28 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const nearbyFiltered =
+    nearbyMode && userCoords
+      ? findNearbyItems(platformFiltered, userCoords.lat, userCoords.lng, 2).map((m) => m.item)
+      : platformFiltered;
+
+  const filtered = searchItems(nearbyFiltered, query);
+
+  function handleNearbyToggle() {
+    if (nearbyMode) {
+      setNearbyMode(false);
+      return;
+    }
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setNearbyMode(true);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -151,11 +175,11 @@ export default function InboxPage() {
               p.key === 'all'
                 ? inboxItems.length
                 : inboxItems.filter((i) => i.platform === p.key).length;
-            const isActive = activePlatform === p.key;
+            const isActive = activePlatform === p.key && !nearbyMode;
             return (
               <button
                 key={p.key}
-                onClick={() => setActivePlatform(p.key)}
+                onClick={() => { setActivePlatform(p.key); setNearbyMode(false); }}
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
@@ -166,6 +190,18 @@ export default function InboxPage() {
               </button>
             );
           })}
+          {/* Nearby filter chip */}
+          <button
+            type="button"
+            onClick={handleNearbyToggle}
+            className={`flex-shrink-0 flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+              nearbyMode
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
+            }`}
+          >
+            📍 Nearby {nearbyMode && userCoords ? `(${filtered.length})` : ''}
+          </button>
         </div>
       </div>
 

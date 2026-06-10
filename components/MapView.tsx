@@ -263,6 +263,7 @@ interface MapViewProps {
   flyTo?: Location;
   mapStyle?: string;
   onSaveLocation?: (lat: number, lng: number, note: string) => void;
+  userLocation?: { lat: number; lng: number };
 }
 
 interface ContextMenu {
@@ -272,7 +273,7 @@ interface ContextMenu {
   y: number;
 }
 
-export default function MapView({ items, onPinClick, flyTo, mapStyle = 'https://tiles.openfreemap.org/styles/liberty', onSaveLocation }: MapViewProps) {
+export default function MapView({ items, onPinClick, flyTo, mapStyle = 'https://tiles.openfreemap.org/styles/liberty', onSaveLocation, userLocation }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [saveNote, setSaveNote] = useState('');
@@ -328,6 +329,23 @@ export default function MapView({ items, onPinClick, flyTo, mapStyle = 'https://
         <NavigationControl position="top-right" />
 
         <MapController flyTo={flyTo} />
+
+        {/* You-are-here blue dot */}
+        {userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng) && (
+          <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
+            <div
+              aria-label="Your location"
+              style={{
+                width:        18,
+                height:       18,
+                borderRadius: '50%',
+                backgroundColor: '#3b82f6',
+                border:       '3px solid white',
+                boxShadow:    '0 0 0 3px rgba(59,130,246,0.30)',
+              }}
+            />
+          </Marker>
+        )}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates;
