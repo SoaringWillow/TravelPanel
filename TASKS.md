@@ -268,7 +268,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `updateBoard(boardId, partial)` helper to `lib/db.ts`
 
 ### D9 — On-Trip GPS Mode (Active Navigation View) 🔴 KEY FEATURE
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: This completes the core use case: user clips destinations → plans a trip → navigates in real-time.  
 **Files**: new `app/trip/[tripId]/navigate/page.tsx`, `components/RouteMapView.tsx`  
 **What to do**:

@@ -212,6 +212,15 @@ export async function saveTrip(trip: Trip): Promise<void> {
   await db.put('trips', trip);
 }
 
+export async function getTripById(id: string): Promise<Trip | undefined> {
+  try {
+    const db = await getDB();
+    return db.get('trips', id);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function deleteTrip(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('trips', id);
