@@ -16,4 +16,8 @@ export const models = {
 
   // Final itinerary stream — complex reasoning, sourced wisdom citation, route optimisation
   planItinerary: anthropic('claude-opus-4-8'),
+
+  // Vision-based enrichment — used when an image is provided (e.g. Xiaohongshu screenshots
+  // that block text scraping). Sonnet handles dense Chinese text in images reliably.
+  visionEnrichment: anthropic('claude-sonnet-4-6'),
 } as const;

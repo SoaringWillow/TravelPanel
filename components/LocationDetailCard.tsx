@@ -5,6 +5,7 @@ import { X, MapPin } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
+import { ZoomableThumbnail } from './ImageViewer';
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -33,6 +34,19 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col">
+          {/* ── Hero thumbnail ─────────────────────────────────────────── */}
+          {item.thumbnail && (
+            <div className="relative flex-shrink-0 h-44">
+              <ZoomableThumbnail
+                src={item.thumbnail}
+                alt={item.title}
+                caption={item.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
+            </div>
+          )}
+
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between p-4 pb-3 flex-shrink-0">
             <div className="flex-1 min-w-0 pr-3">

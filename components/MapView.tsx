@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl, GeolocateControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
@@ -279,6 +279,12 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         onMoveEnd={handleMove}
       >
         <NavigationControl position="top-right" />
+        <GeolocateControl
+          position="bottom-right"
+          trackUserLocation
+          showUserHeading
+          style={{ marginBottom: '90px' }}
+        />
 
         <MapController flyTo={flyTo} />
 
@@ -335,17 +341,43 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
             latitude={popupInfo.latitude}
             anchor="top"
             onClose={() => setPopupInfo(null)}
-            closeButton
-            closeOnClick={false}
-            offset={[0, -6] as [number, number]}
+            closeButton={false}
+            closeOnClick
+            offset={[0, 8] as [number, number]}
+            maxWidth="220px"
           >
-            <div className="max-w-[200px] px-1 py-0.5">
-              <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1">
-                {popupInfo.location.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
-                {popupInfo.item.title}
-              </p>
+            <div
+              className="overflow-hidden rounded-xl"
+              style={{ width: 210, cursor: 'pointer' }}
+              onClick={() => { onPinClick(popupInfo.item); setPopupInfo(null); }}
+            >
+              {/* Thumbnail */}
+              {popupInfo.item.thumbnail && (
+                <img
+                  src={popupInfo.item.thumbnail}
+                  alt=""
+                  className="w-full object-cover"
+                  style={{ height: 100 }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+              {/* Content */}
+              <div className="px-2.5 py-2">
+                <p className="text-xs font-bold text-gray-800 leading-tight line-clamp-1 mb-0.5">
+                  {popupInfo.location.name}
+                </p>
+                <p className="text-xs text-gray-500 leading-snug line-clamp-2">
+                  {popupInfo.item.title}
+                </p>
+                {(popupInfo.item.substance?.length ?? 0) > 0 && (
+                  <p className="text-[10px] text-amber-600 font-medium mt-1">
+                    💡 {popupInfo.item.substance!.length} tip{popupInfo.item.substance!.length !== 1 ? 's' : ''}
+                  </p>
+                )}
+                <p className="text-[10px] text-indigo-500 font-semibold mt-1.5">
+                  Tap to view →
+                </p>
+              </div>
             </div>
           </Popup>
         )}

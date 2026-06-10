@@ -1,18 +1,47 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { successHaptic, lightHaptic } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Stage = 'picking' | 'saving' | 'done';
+type Stage = 'picking' | 'duplicate' | 'saving' | 'done';
+
+// ─── Image helpers ────────────────────────────────────────────────────────────
+
+// Platforms that block server-side scraping — screenshot input is the fallback.
+const VISION_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
+
+function compressImageToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX = 1200;
+        const ratio = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -20,15 +49,24 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const isFromExtension = searchParams.get('source') === 'extension';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
+  const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
+  const [pendingBoardId, setPendingBoardId]   = useState<string | undefined>(undefined);
+  const [pendingBoardName, setPendingBoardName] = useState<string | undefined>(undefined);
+  const [savedItemId, setSavedItemId]         = useState<string | null>(null);
+  const [addedToBoards, setAddedToBoards]     = useState<Set<string>>(new Set());
   const [savedToName, setSavedToName]         = useState('');
   const [newBoardName, setNewBoardName]       = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [imageBase64, setImageBase64]         = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType]     = useState<string>('image/jpeg');
+  const [imagePreview, setImagePreview]       = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,11 +75,35 @@ function SharePageInner() {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
+  const handleImageFile = useCallback(async (file: File) => {
+    try {
+      const { base64, mimeType } = await compressImageToBase64(file);
+      setImageBase64(base64);
+      setImageMimeType(mimeType);
+      setImagePreview(URL.createObjectURL(file));
+    } catch {
+      // Ignore image errors — clip still works without it
+    }
+  }, []);
+
+  // Paste-to-add-screenshot (works on desktop and iOS long-press paste)
+  useEffect(() => {
+    const handler = async (e: ClipboardEvent) => {
+      const imgItem = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'));
+      if (!imgItem) return;
+      const file = imgItem.getAsFile();
+      if (file) await handleImageFile(file);
+    };
+    document.addEventListener('paste', handler);
+    return () => document.removeEventListener('paste', handler);
+  }, [handleImageFile]);
+
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (isFromExtension) window.close();
+        else window.history.back();
       }, 3000);
     }
     return () => {
@@ -60,17 +122,29 @@ function SharePageInner() {
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
-  async function handleSave(selectedBoardId?: string, boardDisplayName?: string) {
+  async function handleSave(selectedBoardId?: string, boardDisplayName?: string, skipDupCheck = false) {
+    if (!skipDupCheck && rawUrl) {
+      const existing = await findItemByUrl(rawUrl);
+      if (existing) {
+        setDuplicateItem(existing);
+        setPendingBoardId(selectedBoardId);
+        setPendingBoardName(boardDisplayName);
+        setStage('duplicate');
+        return;
+      }
+    }
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    setSavedItemId(itemId);
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
       title: sharedTitle,
       platform,
       description: '',
-      thumbnail: undefined,
+      // Use screenshot as initial thumbnail for platforms that block scraping
+      thumbnail: imageBase64 ? `data:${imageMimeType};base64,${imageBase64}` : undefined,
       locations: [],
       activities: [],
       tags: [],
@@ -88,9 +162,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if available (e.g. Xiaohongshu screenshot)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64 ?? undefined, imageMimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -113,6 +187,7 @@ function SharePageInner() {
       });
 
     setSavedToName(boardDisplayName ?? 'Inbox');
+    successHaptic();
     setStage('done');
   }
 
@@ -139,33 +214,169 @@ function SharePageInner() {
     await handleSave(newBoard.id, `${newBoard.emoji} ${newBoard.name}`);
   }
 
+  // ── Stage: duplicate warning ──────────────────────────────────────────────
+
+  if (stage === 'duplicate' && duplicateItem) {
+    const savedDate = new Date(duplicateItem.savedAt).toLocaleDateString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+    });
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 header-pt safe-bottom">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-full max-w-sm"
+        >
+          <div className="text-4xl text-center mb-4">🔁</div>
+          <h2 className="text-xl font-bold text-gray-800 text-center mb-2">Already saved!</h2>
+          <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+            You clipped this URL on <strong>{savedDate}</strong>.
+            <br />
+            {duplicateItem.title && duplicateItem.title !== duplicateItem.url && (
+              <span className="italic">"{duplicateItem.title}"</span>
+            )}
+          </p>
+          <div className="space-y-3">
+            <a
+              href="/inbox"
+              className="block w-full text-center bg-indigo-600 text-white font-semibold py-3.5 rounded-2xl"
+            >
+              Go to existing clip
+            </a>
+            <button
+              type="button"
+              onClick={() => handleSave(pendingBoardId, pendingBoardName, true)}
+              className="w-full text-center bg-gray-100 text-gray-700 font-semibold py-3.5 rounded-2xl"
+            >
+              Save anyway (duplicate)
+            </button>
+            <button
+              type="button"
+              onClick={() => setStage('picking')}
+              className="w-full text-center text-gray-400 text-sm py-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── Stage: saving (full-screen enrichment animation) ──────────────────────
+
+  if (stage === 'saving') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 header-pt safe-bottom">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="flex flex-col items-center gap-4 text-center"
+        >
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
+               style={{ background: `${platformColor}20` }}>
+            🔍
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-800 mb-1">Analyzing your clip…</p>
+            <p className="text-sm text-gray-500">AI is extracting locations and travel wisdom</p>
+          </div>
+          <div className="flex gap-1.5 mt-2">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity }}
+                className="w-2 h-2 rounded-full bg-indigo-400"
+              />
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ── Stage: picking ────────────────────────────────────────────────────────
 
-  if (stage === 'picking' || stage === 'saving') {
+  if (stage === 'picking') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      <div className="min-h-screen bg-white flex flex-col justify-between p-6 header-pt safe-bottom">
         {/* Top section */}
-        <div className="space-y-2 pt-4">
-          {/* Platform chip */}
-          <div className="flex items-center gap-2">
-            <span
-              className="text-white text-xs font-semibold px-3 py-1 rounded-full"
-              style={{ backgroundColor: platformColor }}
+        <div className="space-y-3 pt-4">
+          {/* Link preview card */}
+          {rawUrl && (
+            <div
+              className="flex items-center gap-3 rounded-2xl border border-gray-100 px-4 py-3"
+              style={{ background: `${platformColor}08` }}
             >
-              {platformLabel}
-            </span>
-          </div>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                style={{ background: `${platformColor}20` }}
+              >
+                {platform === 'wechat' ? '💬' :
+                 platform === 'xiaohongshu' ? '📖' :
+                 platform === 'douyin' ? '🎵' :
+                 platform === 'bilibili' ? '📺' : '🌐'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold" style={{ color: platformColor }}>
+                  {platformLabel}
+                </p>
+                <p className="text-xs text-gray-400 truncate mt-0.5">
+                  {(() => { try { return new URL(rawUrl).hostname.replace('www.', ''); } catch { return rawUrl.slice(0, 40); } })()}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2">
+          <h1 className="text-xl font-bold text-gray-900 leading-snug line-clamp-2">
             {sharedTitle}
           </h1>
-
-          {/* URL */}
-          {rawUrl && (
-            <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
-          )}
         </div>
+
+        {/* Screenshot helper — shown for platforms that block scraping */}
+        {VISION_PLATFORMS.has(platform) && (
+          <div className="mt-4">
+            {imagePreview ? (
+              <div className="flex items-center gap-3 bg-indigo-50 rounded-2xl px-4 py-3">
+                <img
+                  src={imagePreview}
+                  alt="Screenshot preview"
+                  className="w-12 h-12 object-cover rounded-lg flex-shrink-0 border border-indigo-200"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-indigo-700">Screenshot added</p>
+                  <p className="text-xs text-indigo-500">Claude will read the image directly</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setImageBase64(null); setImagePreview(null); }}
+                  className="text-indigo-400 hover:text-indigo-600 flex-shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-3 border-2 border-dashed border-gray-200 hover:border-indigo-300 rounded-2xl px-4 py-3 cursor-pointer transition-colors group">
+                <ImagePlus size={20} className="text-gray-400 group-hover:text-indigo-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-700">Add screenshot <span className="font-normal text-gray-400">(optional)</span></p>
+                  <p className="text-xs text-gray-400">Paste or tap — extracts info even without page access</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await handleImageFile(file);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
@@ -247,10 +458,10 @@ function SharePageInner() {
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={() => { if (isFromExtension) window.close(); else window.history.back(); }}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
-          Return to app
+          {isFromExtension ? 'Close tab' : 'Return to app'}
           <ChevronRight size={15} />
         </button>
       </div>
@@ -260,7 +471,7 @@ function SharePageInner() {
   // ── Stage: done ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+    <div className="min-h-screen bg-white flex flex-col justify-between p-6 header-pt safe-bottom">
       {/* Success content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12">
         {/* Animated green checkmark */}
@@ -315,6 +526,43 @@ function SharePageInner() {
           ) : null}
         </motion.div>
 
+        {/* Post-save board assignment */}
+        {boards.length > 0 && savedItemId && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="w-full"
+          >
+            <p className="text-xs font-semibold text-gray-500 mb-2 text-center">Also add to a board:</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {boards.map((board) => {
+                const added = addedToBoards.has(board.id);
+                return (
+                  <button
+                    key={board.id}
+                    type="button"
+                    onClick={async () => {
+                      if (added) return;
+                      await addItemToBoard(board.id, savedItemId);
+                      setAddedToBoards((prev) => new Set([...prev, board.id]));
+                      lightHaptic();
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      added
+                        ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                        : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:border-indigo-300'
+                    }`}
+                  >
+                    {board.emoji} {board.name}
+                    {added && <span className="text-green-600 text-xs">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -330,11 +578,11 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (isFromExtension) window.close(); else window.history.back();
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        {isFromExtension ? 'Close tab →' : 'Return to app →'}
       </button>
     </div>
   );

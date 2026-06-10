@@ -96,3 +96,33 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-10 03:25 | ae68bbb | feat: B2 browser extension — one-click clip to TravelPanel
+2026-06-10 03:30 | c736e1e | feat: B3 Xiaohongshu Vision fix — image-based extraction for blocked platforms
+2026-06-10 03:32 | a0556fc | feat: B5 cloud backup export + settings page
+2026-06-10 03:38 | b5754d7 | feat: D1 user location on map + D2 swipe-to-delete inbox cards
+2026-06-10 03:41 | 4edb0fb | feat: D3 board rename/delete + D4 beautiful empty states
+2026-06-10 03:42 | 6a3dcaf | feat: D5 board filter bar on map
+2026-06-10 03:44 | 5eb1845 | feat: D7 haptic feedback + D9 plan share button
+2026-06-10 03:46 | 646de7f | feat: D10 screenshot thumbnail preservation for Xiaohongshu/WeChat clips
+2026-06-10 03:50 | 24e84b3 | feat(D8): pull-to-refresh on Inbox and Boards
+2026-06-10 03:54 | 09b26ee | feat(E1-E9): Phase E iOS production polish
+2026-06-10 03:57 | c283630 | feat(E5+E8): board thumbnail grid + activity color coding
+2026-06-10 03:58 | 7dc4e51 | feat(E10): pinch-to-zoom full-screen image viewer
+2026-06-10 03:59 | c4e805d | feat(E6): rich map pin popup with thumbnail and substance count
+2026-06-10 04:02 | 31f2649 | feat(F1+F3+F7): board detail polish, stats dashboard, map empty state
+2026-06-10 04:03 | 671e056 | feat(F6): substance quick-peek inline in Inbox cards
+2026-06-10 04:04 | 09a6ab6 | feat(F2): share page enrichment animation + safe area fixes
+2026-06-10 04:05 | 7ff4b51 | feat(F4): search query highlighting in InboxCard title/description
+2026-06-10 04:06 | 75c3567 | feat(F8): URL link preview card on share page
+2026-06-10 04:08 | 5b0a334 | feat(F4+F5+F8+F10): search highlight, URL preview, notifications, safe areas
+2026-06-10 04:12 | 9ee3fb5 | feat(F9): reorder clips in board via drag handles
+2026-06-10 04:16 | 2379a40 | feat(G1+TASKS): clipboard import FAB + Phase G task queue
+2026-06-10 04:17 | 5fdbfbf | feat(G2): multi-select clips & bulk move to board in Inbox
+2026-06-10 04:18 | 2d1445f | feat(G3): PWA add-to-home-screen nudge banner
+2026-06-10 04:19 | 4e86932 | feat(G5): clip deduplication warning on share page
+2026-06-10 04:20 | 77bf855 | feat(G6): batch retry failed enrichments in Inbox
+2026-06-10 04:21 | 01be534 | feat(G7): all-days scrollable view with day tab navigation in plan
+2026-06-10 04:22 | 524f214 | feat(G8): board assignment chips on share success screen
+2026-06-10 04:23 | 3edd0e9 | feat(G10): continue planning smart banner on home map
+2026-06-10 04:24 | e4fd81f | feat(G9): ARIA roles, labels, and live regions for accessibility
+2026-06-10 04:27 | 2b9f7d4 | feat(G4): dark mode support with ThemeProvider + Settings toggle

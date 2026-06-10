@@ -85,8 +85,10 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let mimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, mimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -130,11 +132,31 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
+    const hasImage = !!imageBase64;
+    const { object } = await generateObject(
+      hasImage
+        ? {
+            model: models.visionEnrichment,
+            schema: importSchema,
+            messages: [
+              {
+                role: 'user' as const,
+                content: [
+                  {
+                    type: 'image' as const,
+                    image: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`,
+                  },
+                  { type: 'text' as const, text: prompt },
+                ],
+              },
+            ],
+          }
+        : {
+            model: models.enrichment,
+            schema: importSchema,
+            prompt,
+          }
+    );
     claudeResult = object;
   } catch {
     // Fall through to defaults

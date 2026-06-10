@@ -100,6 +100,11 @@ export async function getPendingItems(): Promise<SavedItem[]> {
   }
 }
 
+export async function findItemByUrl(url: string): Promise<SavedItem | undefined> {
+  const items = await getAllItems();
+  return items.find((i) => i.url === url);
+}
+
 export async function getItemsByStatus(status: EnrichmentStatus): Promise<SavedItem[]> {
   try {
     const db = await getDB();
@@ -147,6 +152,13 @@ export async function saveBoard(board: Board): Promise<void> {
   await db.put('boards', board);
 }
 
+export async function renameBoard(id: string, name: string): Promise<void> {
+  const db = await getDB();
+  const board = await db.get('boards', id);
+  if (!board) return;
+  await db.put('boards', { ...board, name: name.trim(), updatedAt: Date.now() });
+}
+
 export async function deleteBoard(id: string): Promise<void> {
   const db = await getDB();
   const items = await db.getAllFromIndex('items', 'by-board', id);
@@ -190,6 +202,15 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
 }
 
 // ─── Trips ─────────────────────────────────────────────────────────────────
+
+export async function getAllTrips(): Promise<Trip[]> {
+  try {
+    const db = await getDB();
+    return db.getAll('trips');
+  } catch {
+    return [];
+  }
+}
 
 export async function getTripsForBoard(boardId: string): Promise<Trip[]> {
   try {

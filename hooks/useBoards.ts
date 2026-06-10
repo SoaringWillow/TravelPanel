@@ -5,6 +5,7 @@ import {
   getAllBoards,
   saveBoard,
   deleteBoard,
+  renameBoard as dbRenameBoard,
   addItemToBoard as dbAddItemToBoard,
   removeItemFromBoard as dbRemoveItemFromBoard,
 } from '@/lib/db';
@@ -42,6 +43,13 @@ export function useBoards() {
     setBoards((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
+  const renameBoard = useCallback(async (id: string, name: string): Promise<void> => {
+    await dbRenameBoard(id, name);
+    setBoards((prev) =>
+      prev.map((b) => b.id === id ? { ...b, name: name.trim(), updatedAt: Date.now() } : b)
+    );
+  }, []);
+
   const moveItemToBoard = useCallback(async (boardId: string, itemId: string): Promise<void> => {
     await dbAddItemToBoard(boardId, itemId);
   }, []);
@@ -50,5 +58,10 @@ export function useBoards() {
     await dbRemoveItemFromBoard(boardId, itemId);
   }, []);
 
-  return { boards, loading, createBoard, removeBoard, moveItemToBoard, removeItemFromBoard };
+  const refresh = useCallback(async () => {
+    const fetchedBoards = await getAllBoards();
+    setBoards(fetchedBoards);
+  }, []);
+
+  return { boards, loading, createBoard, removeBoard, renameBoard, moveItemToBoard, removeItemFromBoard, refresh };
 }
