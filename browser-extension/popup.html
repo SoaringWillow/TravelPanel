@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper</title>
+  <style>
+    :root {
+      --indigo: #4F46E5;
+      --indigo-dark: #4338CA;
+      --indigo-light: #EEF2FF;
+      --gray-900: #111827;
+      --gray-700: #374151;
+      --gray-500: #6B7280;
+      --gray-300: #D1D5DB;
+      --gray-100: #F3F4F6;
+      --white: #FFFFFF;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-full: 999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--white);
+      width: 340px;
+      min-height: 200px;
+      color: var(--gray-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gray-900);
+      letter-spacing: -0.2px;
+    }
+
+    .brand-icon {
+      width: 22px;
+      height: 22px;
+      background: var(--indigo);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon svg {
+      width: 13px;
+      height: 13px;
+      fill: white;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--gray-500);
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: background 0.15s;
+    }
+
+    .settings-btn:hover {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    /* ── Main ──────────────────────────────────────────────── */
+    .main {
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Page card ─────────────────────────────────────────── */
+    .page-card {
+      background: var(--gray-100);
+      border-radius: var(--radius-md);
+      padding: 11px 13px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .favicon-wrap {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--white);
+      border: 1px solid var(--gray-300);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #favicon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+    }
+
+    .favicon-fallback {
+      font-size: 14px;
+    }
+
+    .page-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .platform-badge {
+      display: inline-block;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      letter-spacing: 0.2px;
+      width: fit-content;
+      margin-bottom: 2px;
+    }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-900);
+      line-height: 1.35;
+      /* clamp to 2 lines */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: var(--gray-500);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Cannot clip notice ────────────────────────────────── */
+    .cannot-clip-notice {
+      display: none;
+      background: #FEF3C7;
+      border: 1px solid #FCD34D;
+      border-radius: var(--radius-sm);
+      padding: 8px 11px;
+      font-size: 12px;
+      color: #92400E;
+    }
+
+    /* ── Setup notice ──────────────────────────────────────── */
+    .setup-notice {
+      display: none;
+      background: var(--indigo-light);
+      border: 1px solid #C7D2FE;
+      border-radius: var(--radius-sm);
+      padding: 10px 11px;
+      font-size: 12px;
+      color: var(--indigo);
+      line-height: 1.4;
+    }
+
+    .setup-notice strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 12px;
+    }
+
+    /* ── Clip button ───────────────────────────────────────── */
+    .clip-btn {
+      width: 100%;
+      background: var(--indigo);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: -0.1px;
+    }
+
+    .clip-btn:hover:not(:disabled) {
+      background: var(--indigo-dark);
+    }
+
+    .clip-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .clip-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .clip-btn svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ── Hint ──────────────────────────────────────────────── */
+    .hint {
+      text-align: center;
+      font-size: 11px;
+      color: var(--gray-500);
+      line-height: 1.4;
+    }
+
+    /* ── Fade-in ───────────────────────────────────────────── */
+    body {
+      animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">
+        <!-- Airplane icon -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+        </svg>
+      </div>
+      TravelPanel
+    </div>
+    <button class="settings-btn" id="settings-btn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Current page card -->
+    <div class="page-card">
+      <div class="favicon-wrap">
+        <img id="favicon" src="" alt="" onerror="this.style.display='none'; document.getElementById('favicon-fallback').style.display='block'">
+        <span id="favicon-fallback" class="favicon-fallback" style="display:none">🌐</span>
+      </div>
+      <div class="page-meta">
+        <span id="platform-badge" class="platform-badge"></span>
+        <p id="page-title" class="page-title">Loading…</p>
+        <p id="page-url" class="page-url"></p>
+      </div>
+    </div>
+
+    <!-- Cannot clip notice (shown for chrome:// etc.) -->
+    <div class="cannot-clip-notice" id="cannot-clip-notice">
+      ⚠️ Can't clip this page — navigate to a travel site first.
+    </div>
+
+    <!-- Setup notice (shown when TravelPanel URL not configured) -->
+    <div class="setup-notice" id="setup-notice">
+      <strong>⚙️ Setup required</strong>
+      Open settings and enter your TravelPanel URL to start clipping.
+    </div>
+
+    <!-- Main action -->
+    <button class="clip-btn" id="clip-btn" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      Clip to TravelPanel
+    </button>
+
+    <!-- Hint -->
+    <p class="hint">Locations &amp; tips will be extracted automatically</p>
+
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>
