@@ -248,7 +248,7 @@ Work top-to-bottom within this phase.
 - Add `lib/haptics.ts` with `lightHaptic()` and `mediumHaptic()` exports
 
 ### D8 — Pull-to-Refresh on Inbox & Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Detect a downward drag from the top of the scroll container
