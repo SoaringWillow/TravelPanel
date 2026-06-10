@@ -335,7 +335,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Use `framer-motion` `Reorder` component if the gesture complexity is too high manually
 
 ### I5 — Map Clustering & Category Color Pins
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (already implemented — MapView.tsx has TAG_COLORS, getPinColor, photo pins, and useSupercluster hook)  
 **Why**: When a board has 20+ clips, the map becomes a sea of identical blue pins. Clustering pins by category (food, nature, culture, etc.) with distinct colors would make the map dramatically more useful for trip planning.  
 **Files to change**: `components/MapView.tsx`  
 **What to do**:
@@ -359,7 +359,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 > First impressions determine retention. The first 90 seconds in the app must show value, not a blank screen.
 
 ### J1 — Animated Onboarding Walkthrough
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: New users open the app and see a map with no content and a + button with no explanation. The 3-step value prop (Clip → Organize → Plan) is never shown. Without onboarding, most users churn in the first session.  
 **Files to create**: `components/OnboardingFlow.tsx`, `app/page.tsx` (add trigger)  
 **What to do**:

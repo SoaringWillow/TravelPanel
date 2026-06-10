@@ -11,6 +11,7 @@ import { saveItem } from '@/lib/db';
 import { findNearestWithin, formatDistance } from '@/lib/geolocation';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
+import OnboardingFlow, { isOnboardingDone } from '@/components/OnboardingFlow';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -44,6 +45,7 @@ function HomePageInner() {
   const [trackingGPS, setTrackingGPS]       = useState(false);
   const [nearbyMatch, setNearbyMatch]       = useState<{ item: SavedItem; locationName: string; distanceKm: number } | null>(null);
   const watchIdRef                          = useRef<number | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDone());
   const mapStyle = useMapStyle();
 
   // Handle ?import= param — open sheet with pre-filled URL
@@ -160,6 +162,15 @@ function HomePageInner() {
     };
     addItem(newItem);
     setFlyTo({ lat, lng, name: pinName });
+  }
+
+  if (showOnboarding) {
+    return (
+      <OnboardingFlow
+        onDone={() => setShowOnboarding(false)}
+        onStartClipping={() => setShowImport(true)}
+      />
+    );
   }
 
   return (
