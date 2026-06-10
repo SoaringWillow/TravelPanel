@@ -7,6 +7,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
+import { haptic } from '@/lib/haptics';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -97,7 +98,7 @@ function HomePageInner() {
       {/* Import FAB */}
       {!selectedItem && (
         <button
-          onClick={() => setShowImport(true)}
+          onClick={() => { haptic('light'); setShowImport(true); }}
           className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
           aria-label="Clip inspiration"
         >

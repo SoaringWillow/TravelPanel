@@ -9,6 +9,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { SavedItem, ImportResult } from '@/lib/types';
+import { haptic } from '@/lib/haptics';
 import {
   detectPlatform,
   PLATFORM_LABELS,
@@ -83,12 +84,14 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
           ? 'Taking too long — the page may be private or unsupported. You can save the URL for later.'
           : 'Could not clip this URL. You can save it for later.'
       );
+      haptic('error');
       setStage('idle');
     }
   }
 
   function handleSave() {
     if (!preview) return;
+    haptic('success');
     const item: SavedItem = {
       id: crypto.randomUUID(),
       url: trimmedUrl,
@@ -112,6 +115,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   function handleSaveUrlAnyway() {
     if (!trimmedUrl) return;
+    haptic('medium');
     const platform = detectPlatform(trimmedUrl);
     const item: SavedItem = {
       id: crypto.randomUUID(),
