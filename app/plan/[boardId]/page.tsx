@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, ClipboardList } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, ClipboardList, Share2 } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { ProBadge } from '@/components/ProBadge';
@@ -217,6 +217,99 @@ export default function PlanPage() {
     setActiveDayIndex(0);
     setCurrentTripId(null);
   }, []);
+
+  const [sharingCard, setSharingCard] = useState(false);
+
+  const handleShareCard = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    setSharingCard(true);
+    try {
+      const W = 600, H = 800;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d')!;
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#4f46e5');
+      grad.addColorStop(1, '#312e81');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // White card area
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath();
+      ctx.roundRect(32, 140, W - 64, H - 200, 20);
+      ctx.fill();
+
+      // Header — emoji + title
+      ctx.font = 'bold 52px system-ui, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText(board.emoji, W / 2, 80);
+      ctx.font = 'bold 28px system-ui, sans-serif';
+      ctx.fillText(board.name, W / 2, 120);
+
+      // Stats row
+      const dayCount = plan.days.length;
+      const locCount = plan.totalLocations ?? 0;
+      const tipCount = plan.days.flatMap((d) => d.activities).reduce((n, a) => n + (a.sourcedTips?.length ?? 0), 0);
+      ctx.font = '16px system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      const stats = [
+        `${dayCount} day${dayCount !== 1 ? 's' : ''}`,
+        locCount > 0 ? `${locCount} place${locCount !== 1 ? 's' : ''}` : '',
+        tipCount > 0 ? `${tipCount} tip${tipCount !== 1 ? 's' : ''} from your clips` : '',
+      ].filter(Boolean).join('  ·  ');
+      ctx.fillText(stats, W / 2, 155);
+
+      // Day-by-day list
+      let y = 195;
+      for (const day of plan.days.slice(0, 7)) {
+        const topActivity = day.activities[0];
+        if (!topActivity) continue;
+
+        // Day label
+        ctx.font = 'bold 13px system-ui, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Day ${day.day}`, 56, y);
+
+        // Activity name
+        ctx.font = '15px system-ui, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        const label = `${topActivity.location.name} — ${topActivity.name}`;
+        const maxW = W - 112;
+        const truncated = label.length > 52 ? label.slice(0, 52) + '…' : label;
+        ctx.fillText(truncated, 56, y + 20);
+
+        y += 52;
+        if (y > H - 120) break;
+      }
+
+      // Footer
+      ctx.font = '13px system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.textAlign = 'center';
+      ctx.fillText('Planned with TravelPanel', W / 2, H - 36);
+
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob((b) => resolve(b!), 'image/png'),
+      );
+      const file = new File([blob], `${board.name}-trip.png`, { type: 'image/png' });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${board.name} trip plan` });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name; a.click();
+        URL.revokeObjectURL(url);
+      }
+    } finally {
+      setSharingCard(false);
+    }
+  }, [plan, board]);
 
   function toggleChip(chip: string) {
     setSelectedChips((prev) => {
@@ -613,14 +706,26 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Start Over */}
-              <button
-                onClick={handleStartOver}
-                className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                <RotateCcw size={15} />
-                Start Over
-              </button>
+              {/* Share card + Start Over */}
+              <div className="flex gap-2">
+                {planIsComplete(plan) && (
+                  <button
+                    onClick={handleShareCard}
+                    disabled={sharingCard}
+                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 font-semibold text-sm py-2.5 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all disabled:opacity-60"
+                  >
+                    <Share2 size={15} />
+                    {sharingCard ? 'Generating…' : 'Share'}
+                  </button>
+                )}
+                <button
+                  onClick={handleStartOver}
+                  className="flex-1 flex items-center justify-center gap-2 border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  <RotateCcw size={15} />
+                  Start Over
+                </button>
+              </div>
             </div>
           )}
 

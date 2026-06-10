@@ -9,6 +9,16 @@ import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
+// ─── Map style cycle ──────────────────────────────────────────────────────────
+
+const MAP_STYLES = [
+  { id: 'liberty',  label: 'Street',    url: 'https://tiles.openfreemap.org/styles/liberty'  },
+  { id: 'positron', label: 'Light',     url: 'https://tiles.openfreemap.org/styles/positron' },
+  { id: 'bright',   label: 'Bright',    url: 'https://tiles.openfreemap.org/styles/bright'   },
+] as const;
+
+type MapStyleId = typeof MAP_STYLES[number]['id'];
+
 // ─── Dark mode map filter ─────────────────────────────────────────────────────
 
 function useDarkMode() {
@@ -259,6 +269,19 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
   const isDark = useDarkMode();
 
+  const [styleId, setStyleId] = useState<MapStyleId>(() => {
+    if (typeof window === 'undefined') return 'liberty';
+    return (localStorage.getItem('mapStyle') as MapStyleId) || 'liberty';
+  });
+  const activeStyle = MAP_STYLES.find((s) => s.id === styleId) ?? MAP_STYLES[0];
+
+  function cycleStyle() {
+    const idx = MAP_STYLES.findIndex((s) => s.id === styleId);
+    const next = MAP_STYLES[(idx + 1) % MAP_STYLES.length];
+    setStyleId(next.id);
+    if (typeof window !== 'undefined') localStorage.setItem('mapStyle', next.id);
+  }
+
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
     (m, c) => (c.properties.cluster ? Math.max(m, (c.properties.point_count as number) || 0) : m),
@@ -296,9 +319,27 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         filter: isDark ? DARK_MAP_FILTER : undefined,
       }}
     >
+      {/* Map style cycle button */}
+      <button
+        type="button"
+        onClick={cycleStyle}
+        aria-label={`Map style: ${activeStyle.label}. Tap to change.`}
+        title={`Map style: ${activeStyle.label}`}
+        style={{
+          position: 'absolute', top: 8, right: 48, zIndex: 10,
+          background: 'white', border: '1px solid #e5e7eb',
+          borderRadius: 8, padding: '4px 8px',
+          fontSize: 11, fontWeight: 600, color: '#374151',
+          cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+          filter: isDark ? COUNTER_FILTER : undefined,
+        }}
+      >
+        {activeStyle.label}
+      </button>
+
       <Map
         id="main-map"
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={activeStyle.url}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 2 }}
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         reuseMaps

@@ -502,7 +502,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show item count with substance count inline ("12 places · 34 tips")
 
 ### H4 — Trip Plan Share Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - When user taps the share icon in the plan view, generate a 600×800px HTML canvas share card:
@@ -544,7 +544,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Page breaks between days
 
 ### H8 — Home Map: Satellite/Terrain Toggle
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`  
 **What to do**:
 - Add a small floating button (top-right of map, below the top bar) that cycles through map styles:
