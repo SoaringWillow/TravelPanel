@@ -739,7 +739,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Max 1 suggestion at a time; don't suggest for countries with <4 clips
 
 ### L2 — Inline Clip Title Edit
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`, `components/InboxCard.tsx`  
 **What to do**:
 - In the LocationDetailCard, make the clip title tappable/editable in-place

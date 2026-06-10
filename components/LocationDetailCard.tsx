@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
-import { X, MapPin, Share2, Globe, Pencil } from 'lucide-react';
+import { X, MapPin, Share2, Globe, Pencil, Plus, Check } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -20,6 +20,46 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
   const [imgError, setImgError] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [noteValue, setNoteValue] = useState(item.notes ?? '');
+
+  // Inline title editing
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState(item.title);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  async function saveTitle() {
+    setEditingTitle(false);
+    const trimmed = titleValue.trim();
+    if (trimmed && trimmed !== item.title) {
+      await saveItem({ ...item, title: trimmed });
+      impact('light');
+    } else {
+      setTitleValue(item.title);
+    }
+  }
+
+  // Editable tags
+  const [tags, setTags] = useState<string[]>(item.tags);
+  const [addingTag, setAddingTag] = useState(false);
+  const [tagInput, setTagInput] = useState('');
+
+  async function removeTag(tag: string) {
+    const next = tags.filter((t) => t !== tag);
+    setTags(next);
+    await saveItem({ ...item, tags: next });
+    impact('light');
+  }
+
+  async function commitTagInput() {
+    const raw = tagInput.trim();
+    if (!raw) { setAddingTag(false); setTagInput(''); return; }
+    const newTags = raw.split(',').map((t) => t.trim()).filter(Boolean);
+    const merged = Array.from(new Set([...tags, ...newTags]));
+    setTags(merged);
+    await saveItem({ ...item, tags: merged });
+    setTagInput('');
+    setAddingTag(false);
+    impact('light');
+  }
 
   async function saveNote() {
     setEditingNote(false);
@@ -110,9 +150,29 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                   {PLATFORM_LABELS[item.platform]}
                 </span>
               )}
-              <h3 className="font-bold text-gray-800 text-base leading-snug line-clamp-2">
-                {item.title}
-              </h3>
+              {editingTitle ? (
+                <input
+                  ref={titleInputRef}
+                  autoFocus
+                  value={titleValue}
+                  onChange={(e) => setTitleValue(e.target.value)}
+                  onBlur={saveTitle}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); saveTitle(); }
+                    if (e.key === 'Escape') { setTitleValue(item.title); setEditingTitle(false); }
+                  }}
+                  className="font-bold text-gray-800 text-base leading-snug w-full border-b-2 border-indigo-400 outline-none bg-transparent pb-0.5"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setEditingTitle(true); }}
+                  className="font-bold text-gray-800 text-base leading-snug line-clamp-2 text-left w-full hover:text-indigo-700 transition-colors"
+                  aria-label="Tap to edit title"
+                >
+                  {titleValue}
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               <button type="button" onClick={handleShare}
@@ -167,13 +227,51 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
 
             <SubstanceList items={item.substance ?? []} />
 
-            {item.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {item.tags.map((t) => (
-                  <span key={t} className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">#{t}</span>
-                ))}
-              </div>
-            )}
+            {/* Editable tags */}
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {tags.map((t) => (
+                <span key={t} className="flex items-center gap-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                  #{t}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(t)}
+                    aria-label={`Remove tag ${t}`}
+                    className="text-gray-400 hover:text-red-400 transition-colors leading-none"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              {addingTag ? (
+                <span className="flex items-center gap-1 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">
+                  <input
+                    autoFocus
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onBlur={commitTagInput}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); commitTagInput(); }
+                      if (e.key === 'Escape') { setAddingTag(false); setTagInput(''); }
+                    }}
+                    placeholder="tag, tag…"
+                    className="text-xs text-indigo-700 outline-none bg-transparent w-20 placeholder-indigo-300"
+                  />
+                  <button type="button" onClick={commitTagInput} aria-label="Save tags" className="text-indigo-500 hover:text-indigo-700">
+                    <Check size={11} />
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingTag(true)}
+                  className="flex items-center gap-0.5 text-xs text-gray-400 hover:text-indigo-500 border border-dashed border-gray-300 hover:border-indigo-300 px-2 py-0.5 rounded-full transition-colors"
+                  aria-label="Add tag"
+                >
+                  <Plus size={11} />
+                  tag
+                </button>
+              )}
+            </div>
 
             {/* Editable personal note */}
             <div className="rounded-xl border border-dashed border-gray-200 overflow-hidden">
