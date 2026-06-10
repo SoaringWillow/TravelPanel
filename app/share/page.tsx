@@ -4,8 +4,9 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
+import { suggestBoard } from '@/lib/suggestBoard';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -29,12 +30,38 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
+  const [duplicateItem, setDuplicateItem]     = useState<{ title: string; savedAt: number; boardName?: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards + check for duplicate URL + consume pending screenshot
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+
+    const img = sessionStorage.getItem('pendingShareImage');
+    if (img) {
+      setPendingImageBase64(img);
+      sessionStorage.removeItem('pendingShareImage');
+    }
+
+    if (rawUrl) {
+      getItemByUrl(rawUrl).then((existing) => {
+        if (existing) {
+          getAllBoards().then((boards) => {
+            const board = existing.boardId ? boards.find((b) => b.id === existing.boardId) : undefined;
+            setDuplicateItem({
+              title: existing.title || rawUrl,
+              savedAt: existing.savedAt,
+              boardName: board ? `${board.emoji} ${board.name}` : 'Inbox',
+            });
+          }).catch(() => {
+            setDuplicateItem({ title: existing.title || rawUrl, savedAt: existing.savedAt });
+          });
+        }
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-dismiss when done
@@ -57,6 +84,14 @@ function SharePageInner() {
   const recentBoards = [...boards]
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 5);
+
+  // Client-side board suggestion from title + platform keywords
+  const suggestedBoard = rawUrl
+    ? suggestBoard(
+        { title: sharedTitle, tags: [platform], description: rawUrl },
+        recentBoards,
+      )
+    : null;
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
@@ -88,9 +123,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass the iOS screenshot when available (e.g. Xiaohongshu)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingImageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -165,6 +200,36 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Duplicate warning */}
+          {duplicateItem && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-1">
+              <p className="text-xs font-semibold text-amber-800 mb-1">
+                ⚠️ Already saved
+              </p>
+              <p className="text-xs text-amber-700 leading-snug line-clamp-2">
+                &ldquo;{duplicateItem.title}&rdquo; was saved to{' '}
+                <strong>{duplicateItem.boardName ?? 'Inbox'}</strong> on{' '}
+                {new Date(duplicateItem.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => window.history.back()}
+                  className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors"
+                >
+                  Skip (already saved)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDuplicateItem(null)}
+                  className="flex-1 text-xs font-semibold py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
+                >
+                  Save again anyway
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Middle section — board picker */}
@@ -183,18 +248,28 @@ function SharePageInner() {
               Inbox
             </button>
 
-            {/* Recent board chips */}
-            {recentBoards.map((board) => (
-              <button
-                key={board.id}
-                type="button"
-                disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
-              >
-                {board.emoji} {board.name}
-              </button>
-            ))}
+            {/* Recent board chips — suggested board gets an indigo highlight */}
+            {recentBoards.map((board) => {
+              const isSuggested = suggestedBoard?.id === board.id;
+              return (
+                <button
+                  key={board.id}
+                  type="button"
+                  disabled={stage === 'saving'}
+                  onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                  className={`flex-shrink-0 text-sm font-semibold px-4 py-2 rounded-full active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap ${
+                    isSuggested
+                      ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 hover:bg-indigo-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {board.emoji} {board.name}
+                  {isSuggested && (
+                    <span className="ml-1.5 text-indigo-200 text-xs font-normal">✦</span>
+                  )}
+                </button>
+              );
+            })}
 
             {/* + New chip */}
             <button

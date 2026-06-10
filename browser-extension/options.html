@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 480px;
+      max-width: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: #ffffff;
+      color: #111827;
+      padding: 32px 28px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    h1 { font-size: 18px; font-weight: 700; }
+
+    .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 28px;
+    }
+
+    /* ── Form ── */
+    .field { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #111827;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="url"]:focus,
+    input[type="text"]:focus { border-color: #6366f1; }
+
+    .hint {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    /* ── Save button ── */
+    .save-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .save-btn {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .save-btn:hover { background: #4f46e5; transform: translateY(-1px); }
+    .save-btn:active { transform: translateY(0); }
+
+    .status {
+      font-size: 12px;
+      font-weight: 600;
+      color: #10b981;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .status.show { opacity: 1; }
+
+    /* ── Divider ── */
+    hr {
+      border: none;
+      border-top: 1px solid #f3f4f6;
+      margin-bottom: 20px;
+    }
+
+    /* ── How-to box ── */
+    .how-to {
+      background: #f5f3ff;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 12px;
+      color: #4c1d95;
+      line-height: 1.6;
+    }
+    .how-to strong { font-weight: 700; }
+    .how-to ol { padding-left: 18px; margin-top: 6px; }
+    .how-to li { margin-bottom: 3px; }
+
+    .how-to-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #5b21b6;
+    }
+
+    /* ── Platform list ── */
+    .platforms {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .platform-chip {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <svg width="24" height="24" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="128" height="128" rx="28" fill="#6366f1"/>
+      <path d="M64 22C50.2 22 39 33.2 39 47c0 20.3 25 59 25 59s25-38.7 25-59c0-13.8-11.2-25-25-25z" fill="white"/>
+      <circle cx="64" cy="46" r="10.5" fill="#6366f1"/>
+    </svg>
+    <h1>TravelPanel Clipper</h1>
+  </div>
+  <p class="subtitle">Configure your connection to TravelPanel.</p>
+
+  <div class="field">
+    <label for="appUrl">TravelPanel App URL</label>
+    <input
+      type="url"
+      id="appUrl"
+      placeholder="https://your-app.vercel.app"
+      spellcheck="false"
+    />
+    <div class="hint">
+      The URL where your TravelPanel instance is deployed, e.g.
+      <strong>https://my-travelpanel.vercel.app</strong>. No trailing slash.
+    </div>
+  </div>
+
+  <div class="save-row">
+    <button class="save-btn" id="saveBtn">Save Settings</button>
+    <span class="status" id="status">✓ Saved!</span>
+  </div>
+
+  <hr />
+
+  <div class="how-to">
+    <div class="how-to-title">How to use the extension</div>
+    <ol>
+      <li>Enter your TravelPanel URL above and save.</li>
+      <li>Browse any travel content online.</li>
+      <li>Click the <strong>TravelPanel icon</strong> in your browser toolbar.</li>
+      <li>Hit <strong>"Clip to TravelPanel"</strong> — a tab opens where you pick a board.</li>
+      <li>AI automatically extracts locations + travel wisdom from the post.</li>
+    </ol>
+
+    <div class="platforms">
+      <span class="platform-chip" style="background:#FF244218;color:#FF2442">Little Red Book</span>
+      <span class="platform-chip" style="background:#07C16018;color:#07C160">WeChat</span>
+      <span class="platform-chip" style="background:#00AEEC18;color:#007db5">Bilibili</span>
+      <span class="platform-chip" style="background:#16182318;color:#444">Douyin / TikTok</span>
+      <span class="platform-chip" style="background:#6366f118;color:#6366f1">Any Website</span>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
