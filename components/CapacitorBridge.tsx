@@ -43,16 +43,24 @@ export function CapacitorBridge() {
           import('@capacitor/splash-screen'),
         ]);
 
-        // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
+        // Handle URL scheme deep links from the iOS Share Extension and Spotlight.
+        // Share Extension fires: travelpanel://share?url=<encoded>&title=<encoded>
+        // Spotlight fires:       travelpanel://clip?id=<clipId>
         const listener = await App.addListener('appUrlOpen', ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const clipId = parsed.searchParams.get('id');
 
-            if (shareUrl) {
+            if (clipId && parsed.pathname === '/clip') {
+              // Opened from Spotlight: navigate to the map with the clip selected
+              router.push(`/?itemId=${encodeURIComponent(clipId)}`);
+            } else if (parsed.pathname.startsWith('/shared/')) {
+              // Universal link or travelpanel://shared/<token>: open the shared board
+              router.push(parsed.pathname);
+            } else if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, List, WifiOff } from 'lucide-react';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import {
   Drawer,
   DrawerContent,
@@ -27,6 +28,13 @@ interface ImportSheetProps {
 
 type Stage = 'idle' | 'loading' | 'preview';
 
+interface BatchUrl {
+  url: string;
+  selected: boolean;
+}
+
+const URL_REGEX = /https?:\/\/[^\s\n\t"'<>()[\]{}]+/gi;
+
 const ALL_PLATFORMS = ['wechat', 'xiaohongshu', 'douyin', 'bilibili', 'other'] as const;
 
 const IMPORT_TIMEOUT_MS = 25_000;
@@ -41,9 +49,30 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [error, setError]     = useState('');
   const abortRef              = useRef<AbortController | null>(null);
 
+  const isOnline = useOnlineStatus();
+
+  // Batch mode state
+  const [batchMode, setBatchMode]   = useState(false);
+  const [batchText, setBatchText]   = useState('');
+  const [batchUrls, setBatchUrls]   = useState<BatchUrl[]>([]);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  const batchAbortRef = useRef<boolean>(false);
+
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
+
+  // When the sheet opens with no pre-filled URL, try to read the clipboard.
+  // On iOS (Capacitor) this may fail silently — always catch.
+  useEffect(() => {
+    if (!open || url.trim()) return;
+    navigator.clipboard?.readText?.()
+      .then(text => {
+        const trimmed = text.trim();
+        if (/^https?:\/\//i.test(trimmed)) setUrl(trimmed);
+      })
+      .catch(() => {});
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const trimmedUrl       = url.trim();
   const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
@@ -102,6 +131,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       substance: preview.substance ?? [],
       savedAt: Date.now(),
       notes: notes.trim() || undefined,
+      sourceAuthor: preview.sourceAuthor,
       enrichmentStatus: 'done',
       retryCount: 0,
       boardId: undefined,
@@ -136,11 +166,112 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   function resetState() {
     abortRef.current?.abort();
+    batchAbortRef.current = true;
     setUrl('');
     setNotes('');
     setPreview(null);
     setStage('idle');
     setError('');
+    setBatchMode(false);
+    setBatchText('');
+    setBatchUrls([]);
+    setBatchProgress(null);
+  }
+
+  function parseBatchUrls() {
+    const found = Array.from(new Set(batchText.match(URL_REGEX) ?? []));
+    setBatchUrls(found.map((u) => ({ url: u, selected: true })));
+  }
+
+  async function handleBatchImport() {
+    const selected = batchUrls.filter((b) => b.selected);
+    if (selected.length === 0) return;
+
+    batchAbortRef.current = false;
+    setBatchProgress({ current: 0, total: selected.length });
+
+    for (let i = 0; i < selected.length; i++) {
+      if (batchAbortRef.current) break;
+
+      setBatchProgress({ current: i + 1, total: selected.length });
+      const rawUrl = selected[i].url;
+
+      try {
+        const ctrl = new AbortController();
+        const timeoutId = setTimeout(() => ctrl.abort(), IMPORT_TIMEOUT_MS);
+        const res = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: rawUrl }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data: ImportResult = await res.json();
+          const item: SavedItem = {
+            id:               crypto.randomUUID(),
+            url:              rawUrl,
+            platform:         data.platform,
+            title:            data.title,
+            description:      data.description,
+            thumbnail:        data.thumbnail,
+            locations:        data.locations,
+            activities:       data.activities,
+            tags:             data.tags,
+            substance:        data.substance ?? [],
+            savedAt:          Date.now(),
+            sourceAuthor:     data.sourceAuthor,
+            enrichmentStatus: 'done',
+            retryCount:       0,
+            boardId:          undefined,
+          };
+          onSaved(item);
+        } else {
+          // Save as pending so the retry queue can pick it up
+          const item: SavedItem = {
+            id:               crypto.randomUUID(),
+            url:              rawUrl,
+            platform:         detectPlatform(rawUrl),
+            title:            rawUrl,
+            description:      '',
+            thumbnail:        undefined,
+            locations:        [],
+            activities:       [],
+            tags:             [],
+            substance:        [],
+            savedAt:          Date.now(),
+            enrichmentStatus: 'pending',
+            retryCount:       0,
+            boardId:          undefined,
+          };
+          onSaved(item);
+        }
+      } catch {
+        // Save as pending on network error
+        const item: SavedItem = {
+          id:               crypto.randomUUID(),
+          url:              rawUrl,
+          platform:         detectPlatform(rawUrl),
+          title:            rawUrl,
+          description:      '',
+          thumbnail:        undefined,
+          locations:        [],
+          activities:       [],
+          tags:             [],
+          substance:        [],
+          savedAt:          Date.now(),
+          enrichmentStatus: 'pending',
+          retryCount:       0,
+          boardId:          undefined,
+        };
+        onSaved(item);
+      }
+    }
+
+    setBatchProgress(null);
+    resetState();
+    onClose();
   }
 
   function handleClose() {
@@ -165,6 +296,130 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
         </DrawerHeader>
 
         <div className="px-4 pb-8 space-y-4">
+          {/* ── Offline banner ───────────────────────────────────────────── */}
+          {!isOnline && (
+            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5">
+              <WifiOff size={14} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-300 leading-snug">
+                You&apos;re offline — clips will save for later and extract when you reconnect.
+              </p>
+            </div>
+          )}
+
+          {/* ── Mode toggle ─────────────────────────────────────────────── */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setBatchMode(false)}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                !batchMode
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
+              }`}
+            >
+              Single URL
+            </button>
+            <button
+              type="button"
+              onClick={() => setBatchMode(true)}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                batchMode
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
+              }`}
+            >
+              <List size={13} />
+              Paste multiple
+            </button>
+          </div>
+
+          {/* ── Batch mode ─────────────────────────────────────────────── */}
+          {batchMode && (
+            <div className="space-y-3">
+              <textarea
+                value={batchText}
+                onChange={(e) => { setBatchText(e.target.value); setBatchUrls([]); }}
+                placeholder="Paste your saved URLs here — one per line or mixed in text. We'll detect them automatically."
+                rows={5}
+                className="w-full border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 rounded-xl px-3 py-2.5 text-sm resize-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none transition-colors"
+              />
+
+              {batchUrls.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={parseBatchUrls}
+                  disabled={!batchText.trim()}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-indigo-700 transition-colors"
+                >
+                  Detect URLs
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    {batchUrls.filter((b) => b.selected).length} of {batchUrls.length} selected
+                  </p>
+
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {batchUrls.map((b, i) => (
+                      <label
+                        key={i}
+                        className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={b.selected}
+                          onChange={(e) => {
+                            setBatchUrls((prev) =>
+                              prev.map((item, j) => j === i ? { ...item, selected: e.target.checked } : item)
+                            );
+                          }}
+                          className="mt-0.5 accent-indigo-600"
+                        />
+                        <span className="text-xs text-gray-600 dark:text-slate-300 break-all leading-relaxed line-clamp-2">
+                          {b.url}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {batchProgress ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400">
+                        <span>Extracting {batchProgress.current} of {batchProgress.total} clips…</span>
+                        <button
+                          type="button"
+                          onClick={() => { batchAbortRef.current = true; }}
+                          className="text-red-400 hover:text-red-600"
+                        >
+                          Stop
+                        </button>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5">
+                        <div
+                          className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500"
+                          style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleBatchImport}
+                      disabled={batchUrls.filter((b) => b.selected).length === 0}
+                      className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 size={15} />
+                      Import {batchUrls.filter((b) => b.selected).length} clips
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Single mode ─────────────────────────────────────────────── */}
+          {!batchMode && <>
+
           {/* ── Platform badge row ───────────────────────────────────────── */}
           <div className="flex flex-wrap gap-1.5">
             {ALL_PLATFORMS.map((p) => (
@@ -203,27 +458,34 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               }}
               placeholder="Paste URL from WeChat, Red Book, Douyin, Bilibili…"
               disabled={stage === 'loading'}
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none transition-colors disabled:opacity-60"
             />
           </div>
 
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (
-            <button
-              type="button"
-              onClick={handleImport}
-              disabled={!trimmedUrl || stage === 'loading'}
-              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              {stage === 'loading' ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Analyzing with AI…
-                </>
-              ) : (
-                'Clip & discover places'
-              )}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={isOnline ? handleImport : handleSaveUrlAnyway}
+                disabled={!trimmedUrl || stage === 'loading'}
+                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {stage === 'loading' ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Analyzing with AI…
+                  </>
+                ) : isOnline ? (
+                  'Clip & discover places'
+                ) : (
+                  <>
+                    <BookmarkPlus size={16} />
+                    Save for later
+                  </>
+                )}
+              </button>
+            </>
           )}
 
           {/* ── Error message + save-anyway fallback ─────────────────────── */}
@@ -265,11 +527,11 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 >
                   {PLATFORM_LABELS[preview.platform]}
                 </span>
-                <h3 className="font-bold text-gray-800 leading-snug">
+                <h3 className="font-bold text-gray-800 dark:text-slate-100 leading-snug">
                   {preview.title}
                 </h3>
                 {preview.description && (
-                  <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">
                     {preview.description}
                   </p>
                 )}
@@ -277,19 +539,19 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
               {/* Locations */}
               {preview.locations.length > 0 ? (
-                <div className="bg-indigo-50 rounded-2xl p-4">
-                  <p className="text-xs font-semibold text-indigo-600 mb-2 flex items-center gap-1.5">
+                <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2 flex items-center gap-1.5">
                     <MapPin size={12} />
                     📍 {preview.locations.length} place{preview.locations.length !== 1 ? 's' : ''} found
                   </p>
                   <div className="space-y-1.5">
                     {preview.locations.map((loc, i) => (
                       <div key={i}>
-                        <span className="text-sm text-indigo-800 font-medium">
+                        <span className="text-sm text-indigo-800 dark:text-indigo-300 font-medium">
                           {loc.name}
                         </span>
                         {loc.address && (
-                          <span className="text-xs text-indigo-500 font-normal ml-1.5">
+                          <span className="text-xs text-indigo-500 dark:text-indigo-400 font-normal ml-1.5">
                             — {loc.address}
                           </span>
                         )}
@@ -313,7 +575,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                     {preview.activities.map((a) => (
                       <span
                         key={a}
-                        className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full"
+                        className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs px-2.5 py-1 rounded-full"
                       >
                         {a}
                       </span>
@@ -328,7 +590,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   {preview.tags.map((t) => (
                     <span
                       key={t}
-                      className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                      className="bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 text-xs px-2 py-0.5 rounded-full"
                     >
                       #{t}
                     </span>
@@ -346,7 +608,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add notes about this place…"
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:border-indigo-400 focus:outline-none transition-colors"
+                  className="w-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 rounded-xl px-3 py-2 text-sm resize-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -358,7 +620,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                     setStage('idle');
                     setPreview(null);
                   }}
-                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-slate-700 text-sm font-medium text-gray-600 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   Try another URL
                 </button>
@@ -373,6 +635,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               </div>
             </div>
           )}
+          </>}
         </div>
       </DrawerContent>
     </Drawer>

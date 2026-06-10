@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Declare which iOS privacy-sensitive APIs this app accesses -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <dict>
+            <!-- UserDefaults: used by the Share Extension to pass URLs to the main app
+                 via App Group shared storage (group.com.travelpanel.app) -->
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- CA92.1: Accessing info from the same app that wrote it -->
+                <string>CA92.1</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Data types collected: none linked to identity -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <!-- If PostHog analytics is enabled, anonymous usage events are collected.
+             These are NOT linked to user identity unless the user signs in (Phase B). -->
+    </array>
+
+    <!-- App does NOT use advertising tracking (ATT) -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <!-- No tracking domains used -->
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+</dict>
+</plist>

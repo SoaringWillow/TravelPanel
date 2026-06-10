@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SavedItem } from '@/lib/types';
 import { getAllItems, saveItem, deleteItem, getItemById } from '@/lib/db';
+import { deindexClip } from '@/lib/spotlight';
 
 export function useSavedItems() {
   const [items, setItems] = useState<SavedItem[]>([]);
@@ -21,7 +22,16 @@ export function useSavedItems() {
 
   const removeItem = useCallback(async (id: string) => {
     await deleteItem(id);
+    deindexClip(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
+  }, []);
+
+  const markVisited = useCallback(async (id: string) => {
+    const item = await getItemById(id);
+    if (!item) return;
+    const updated: SavedItem = { ...item, visitedAt: Date.now() };
+    await saveItem(updated);
+    setItems((prev) => prev.map((i) => (i.id === id ? updated : i)));
   }, []);
 
   // Re-reads a single item from DB and patches React state — used by retry queue
@@ -37,5 +47,5 @@ export function useSavedItems() {
     setItems(fetchedItems.sort((a, b) => b.savedAt - a.savedAt));
   }, []);
 
-  return { items, loading, addItem, removeItem, refreshItem, refresh };
+  return { items, loading, addItem, removeItem, markVisited, refreshItem, refresh };
 }

@@ -96,3 +96,7 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-10 12:27 | 11221e5 | feat: B2 — Chrome/Safari browser extension for URL clipping
+2026-06-10 12:34 | 5eedc63 | feat: B3 — Xiaohongshu fix: captured text + Claude Vision support
+2026-06-10 12:36 | 66aca66 | feat: B5 — settings page with full data export and delete-all
+2026-06-10 12:40 | 02655ac | chore: rebuild TASKS.md with Phase C–E toward beautiful iOS app

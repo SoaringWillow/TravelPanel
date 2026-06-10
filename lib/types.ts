@@ -47,10 +47,12 @@ export interface SavedItem {
   substance: SubstanceItem[]; // wisdom layer — tips, warnings, opinions from the post
   savedAt: number;
   notes?: string;
+  sourceAuthor?: string; // creator attribution extracted from the original post
   enrichmentStatus: EnrichmentStatus;
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
   isDemo?: boolean; // onboarding seed content — removable in one tap
+  visitedAt?: number; // epoch ms when user marked this as visited; undefined = not yet visited
 }
 
 // ─── Board / Collection ─────────────────────────────────────────────────────
@@ -65,6 +67,9 @@ export interface Board {
   createdAt: number;
   updatedAt: number;
   isDemo?: boolean; // onboarding seed content — removable in one tap
+  sortOrder?: number; // user-defined sort position; defaults to createdAt
+  summary?: string; // AI-generated 2-sentence narrative summary (cached)
+  summaryItemCount?: number; // itemIds.length when summary was last generated
 }
 
 // ─── AI Planner types ────────────────────────────────────────────────────────
@@ -137,6 +142,7 @@ export interface ImportResult {
   activities: string[];
   tags: string[];
   substance: SubstanceItem[];
+  sourceAuthor?: string;
 }
 
 // NDJSON messages streamed from /api/plan

@@ -20,6 +20,9 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  // `text` carries the full share-payload text from the iOS Share Extension —
+  // used by the API as content when page scraping fails (Xiaohongshu, WeChat).
+  const capturedText    = searchParams.get('text') ?? undefined;
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -88,9 +91,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass captured share text so the API can use it
+    // when page scraping returns empty (Xiaohongshu, WeChat anti-scraping).
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, capturedText)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -143,7 +147,7 @@ function SharePageInner() {
 
   if (stage === 'picking' || stage === 'saving') {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+      <div className="min-h-screen bg-white dark:bg-slate-900 flex flex-col justify-between p-6 safe-top safe-bottom">
         {/* Top section */}
         <div className="space-y-2 pt-4">
           {/* Platform chip */}
@@ -157,19 +161,19 @@ function SharePageInner() {
           </div>
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-slate-100 leading-snug line-clamp-2">
             {sharedTitle}
           </h1>
 
           {/* URL */}
           {rawUrl && (
-            <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 truncate">{rawUrl}</p>
           )}
         </div>
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
-          <p className="text-sm font-medium text-gray-500 mb-3">Save to:</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-3">Save to:</p>
 
           {/* Horizontally scrollable chip row */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -190,7 +194,7 @@ function SharePageInner() {
                 type="button"
                 disabled={stage === 'saving'}
                 onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                className="flex-shrink-0 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
               >
                 {board.emoji} {board.name}
               </button>
@@ -201,7 +205,7 @@ function SharePageInner() {
               type="button"
               disabled={stage === 'saving'}
               onClick={() => setShowNewBoardInput((v) => !v)}
-              className="flex-shrink-0 border-2 border-dashed border-gray-300 text-gray-500 text-sm font-medium px-4 py-2 rounded-full hover:border-gray-400 hover:text-gray-600 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+              className="flex-shrink-0 border-2 border-dashed border-gray-300 dark:border-slate-600 text-gray-500 dark:text-slate-400 text-sm font-medium px-4 py-2 rounded-full hover:border-gray-400 hover:text-gray-600 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
             >
               + New
             </button>
@@ -260,7 +264,7 @@ function SharePageInner() {
   // ── Stage: done ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
+    <div className="min-h-screen bg-white dark:bg-slate-900 flex flex-col justify-between p-6 safe-top safe-bottom">
       {/* Success content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-5 py-12">
         {/* Animated green checkmark */}
@@ -278,10 +282,10 @@ function SharePageInner() {
           transition={{ delay: 0.2 }}
           className="text-center space-y-1"
         >
-          <p className="text-xl font-bold text-gray-900">
+          <p className="text-xl font-bold text-gray-900 dark:text-slate-100">
             ✅ Saved to {savedToName}!
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             {sharedTitle}
           </p>
         </motion.div>

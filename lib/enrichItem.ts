@@ -4,8 +4,14 @@ import { updateItemEnrichment } from './db';
 import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
+import { indexClip } from './spotlight';
 
-export async function enrichItem(id: string, url: string): Promise<boolean> {
+export async function enrichItem(
+  id: string,
+  url: string,
+  capturedText?: string,
+  imageBase64?: string,
+): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
     // Don't mark as failed — leave as pending so retry queue picks it up later
@@ -21,7 +27,11 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
     const res = await fetch('/api/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({
+        url,
+        ...(capturedText ? { capturedText } : {}),
+        ...(imageBase64  ? { imageBase64  } : {}),
+      }),
       keepalive: true,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -41,6 +51,8 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
       locationCount: data.locations.length,
       substanceCount: data.substance?.length ?? 0,
     });
+    // Index in iOS Spotlight (no-ops on web/Android)
+    indexClip({ id, title: data.title, description: data.description, thumbnail: data.thumbnail, tags: data.tags });
     return true;
   } catch {
     await updateItemEnrichment(id, 'failed');

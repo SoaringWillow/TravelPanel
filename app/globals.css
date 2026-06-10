@@ -26,6 +26,29 @@
     --ring: 240 5.9% 10%;
     --radius: 0.75rem;
   }
+
+  /* Dark mode — slate palette */
+  .dark {
+    --background: 222 47% 11%;   /* slate-900 */
+    --foreground: 214 32% 91%;   /* slate-200 */
+    --card: 215 28% 17%;         /* slate-800 */
+    --card-foreground: 214 32% 91%;
+    --popover: 215 28% 17%;
+    --popover-foreground: 214 32% 91%;
+    --primary: 239 84% 72%;      /* indigo-400 — brighter on dark bg */
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 19% 27%;    /* slate-700 */
+    --secondary-foreground: 214 32% 91%;
+    --muted: 217 19% 27%;
+    --muted-foreground: 215 20% 65%;  /* slate-400 */
+    --accent: 217 19% 27%;
+    --accent-foreground: 214 32% 91%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 214 32% 91%;
+    --border: 217 19% 27%;       /* slate-700 */
+    --input: 217 19% 27%;
+    --ring: 239 84% 72%;
+  }
 }
 
 @layer base {
@@ -54,7 +77,7 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-gray-300 dark:bg-slate-600 rounded-full;
 }
 
 .scrollbar-hide, .scrollbar-none {
@@ -66,8 +89,21 @@
   display: none;
 }
 
-/* iOS safe area utilities */
-.safe-top    { padding-top:    env(safe-area-inset-top); }
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-.safe-left   { padding-left:   env(safe-area-inset-left); }
-.safe-right  { padding-right:  env(safe-area-inset-right); }
+/* iOS safe area utilities — with sensible min fallbacks */
+.safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-left   { padding-left:   env(safe-area-inset-left, 0px); }
+.safe-right  { padding-right:  env(safe-area-inset-right, 0px); }
+
+/* Combined: adds safe-area on top of existing Tailwind padding */
+.pt-safe  { padding-top:    max(env(safe-area-inset-top, 0px), 0px); }
+.pb-safe  { padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px); }
+
+/* NavBar bottom: needs home indicator clearance */
+.pb-nav-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem); }
+
+/* Map top bar: floats below Dynamic Island */
+.top-safe { top: env(safe-area-inset-top, 0px); }
+
+/* Page header top padding: at least 3rem (pt-12), more if notch/island is taller */
+.header-pt-safe { padding-top: max(env(safe-area-inset-top, 0px), 3rem); }

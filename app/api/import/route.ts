@@ -26,6 +26,7 @@ const substanceSchema = z.object({
 const importSchema = z.object({
   title: z.string().describe('Concise descriptive title for this travel content'),
   description: z.string().describe('2-3 sentence summary of the travel content'),
+  sourceAuthor: z.string().optional().describe('Username or display name of the content creator if visible in the URL, title, or content. E.g. "@travel_jane", "旅行博主小王". Omit if not clearly identifiable.'),
   locations: z.array(locationSchema).describe('Real identifiable locations with accurate GPS coordinates. Only include places you are confident about.'),
   activities: z.array(z.string()).describe('Specific things to do at these places'),
   tags: z.array(z.string()).describe('Relevant tags from: food, nature, culture, adventure, relaxation, photography, shopping, nightlife, history, art, architecture, beach, mountain, city, rural'),
@@ -83,29 +84,23 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+// ─── Shared prompt builder ────────────────────────────────────────────────────
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildExtractionPrompt(
+  platform: string,
+  url: string,
+  title: string,
+  description: string,
+  content: string,
+): string {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+Title: ${title}
+Description: ${description}
+Content:
+${content}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -127,15 +122,81 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let capturedText: string | undefined;
+  let imageBase64: string | undefined;
+  try {
+    ({ url, capturedText, imageBase64 } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+
+  // Use captured share text as a fallback when page scraping comes back thin
+  // (Xiaohongshu, WeChat and other anti-scraping platforms return near-empty HTML).
+  // The iOS Share Extension passes the full post text via the deep-link `text` param.
+  const scrapedContent = page?.textContent ?? '';
+  const hasThinContent = scrapedContent.trim().length < 200;
+  const effectiveContent =
+    hasThinContent && capturedText && capturedText.trim().length > 0
+      ? capturedText.slice(0, 3000)
+      : scrapedContent;
+
+  const hasImage = typeof imageBase64 === 'string' && imageBase64.length > 100;
+
+  const textPrompt = buildExtractionPrompt(
+    platform,
+    url,
+    page?.title ?? '(unavailable)',
+    page?.description ?? '(unavailable)',
+    effectiveContent || '(could not fetch page)',
+  );
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (hasImage) {
+      // Vision path — used when the Share Extension provides a screenshot or cover image.
+      // Sonnet is used here (haiku lacks sufficient image understanding for dense travel content).
+      const imageBytes = Uint8Array.from(atob(imageBase64!), c => c.charCodeAt(0));
+      const visionPrompt =
+        `The image above is a screenshot of a ${platform} travel post. ` +
+        `Use both the image content AND the text below to extract travel information.\n\n` +
+        textPrompt;
+
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBytes, mimeType: 'image/jpeg' },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text-only path (standard enrichment)
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
@@ -149,6 +210,7 @@ Never return an empty substance array for a real travel post.`;
     activities: claudeResult?.activities ?? [],
     tags: claudeResult?.tags ?? [],
     substance: claudeResult?.substance ?? [],
+    sourceAuthor: claudeResult?.sourceAuthor,
   };
 
   return NextResponse.json(result);

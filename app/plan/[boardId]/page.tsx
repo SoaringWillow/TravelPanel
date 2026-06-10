@@ -3,10 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, WifiOff, Share2, Check } from 'lucide-react';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
+import { recordPlanGenerated, maybePromptReview } from '@/lib/reviewPrompt';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
@@ -19,10 +21,19 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
 
+function suggestDays(clipCount: number): { days: number; label: string } {
+  if (clipCount <= 5)  return { days: 2,  label: '2–3 days' };
+  if (clipCount <= 15) return { days: 5,  label: '4–6 days' };
+  if (clipCount <= 30) return { days: 8,  label: '7–10 days' };
+  return                      { days: 10, label: '10+ days or split into trips' };
+}
+
 export default function PlanPage() {
   const params = useParams();
   const router = useRouter();
   const boardId = params.boardId as string;
+
+  const isOnline = useOnlineStatus();
 
   const [board, setBoard] = useState<Board | null>(null);
   const [boardItems, setBoardItems] = useState<SavedItem[]>([]);
@@ -36,8 +47,10 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [planShared, setPlanShared] = useState(false);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [daysManuallySet, setDaysManuallySet] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -52,6 +65,9 @@ export default function PlanPage() {
           setBoard(b);
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
+          if (!daysManuallySet) {
+            setDays(suggestDays(filtered.length).days);
+          }
         }
         setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
       } finally {
@@ -66,6 +82,10 @@ export default function PlanPage() {
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
+    if (!isOnline) {
+      setPlanLimitError('No internet connection — connect to generate your trip plan.');
+      return;
+    }
     const limit = checkPlanLimit();
     if (!limit.allowed) {
       setPlanLimitError(
@@ -81,6 +101,7 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     recordPlanGeneration();
+    recordPlanGenerated();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
     const res = await fetch('/api/plan', {
@@ -125,6 +146,9 @@ export default function PlanPage() {
             setSteps((s) => [...s, msg.step]);
             if (msg.step.type === 'done' || msg.step.type === 'error') {
               setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              if (msg.step.type === 'done') {
+                setTimeout(() => maybePromptReview(boardItems.length), 2000);
+              }
             }
             // Persist the finished plan as a new named variant.
             if (msg.step.type === 'done' && latestPlan?.days?.length) {
@@ -182,6 +206,39 @@ export default function PlanPage() {
     if (!planIsComplete(plan) || !board) return;
     exportPlanToICS(plan, board.name);
     track('plan_exported', { format: 'ics', boardId });
+  }, [plan, board, boardId]);
+
+  const handleSharePlan = useCallback(async () => {
+    if (!planIsComplete(plan) || !board) return;
+    const days = plan.days ?? [];
+    const dayThemes = days.map((d) => `Day ${d.day}: ${d.theme}`).join('\n');
+    const text = [
+      `${board.emoji} ${board.name} — ${days.length}-day trip plan`,
+      '',
+      dayThemes,
+      '',
+      `${plan.totalLocations ?? 0} locations · Built with TravelPanel 🗺`,
+    ].join('\n');
+
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { Share } = await import('@capacitor/share');
+        await Share.share({ text, title: `${board.emoji} ${board.name} trip plan`, dialogTitle: 'Share trip plan' });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setPlanShared(true);
+        setTimeout(() => setPlanShared(false), 2000);
+      }
+      track('plan_shared', { boardId, days: days.length });
+    } catch {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(text);
+        setPlanShared(true);
+        setTimeout(() => setPlanShared(false), 2000);
+      } catch { /* silent */ }
+    }
   }, [plan, board, boardId]);
 
   // Load a previously-saved plan variant into view.
@@ -309,7 +366,7 @@ export default function PlanPage() {
                 </div>
                 <Slider
                   value={[days]}
-                  onValueChange={(v) => setDays(v[0])}
+                  onValueChange={(v) => { setDays(v[0]); setDaysManuallySet(true); }}
                   min={1}
                   max={14}
                   step={1}
@@ -319,6 +376,11 @@ export default function PlanPage() {
                   <span>1 day</span>
                   <span>14 days</span>
                 </div>
+                {boardItems.length > 0 && (
+                  <p className="text-xs text-indigo-500 dark:text-indigo-400">
+                    💡 Based on your {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}, we suggest {suggestDays(boardItems.length).label}
+                  </p>
+                )}
               </div>
 
               {/* Preference chips */}
@@ -358,10 +420,34 @@ export default function PlanPage() {
               </div>
 
               {/* Warning if no locations */}
-              {!hasLocations && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+              {!hasLocations && boardItems.length === 0 ? (
+                <div className="flex flex-col items-center py-6 text-center px-2">
+                  <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true" className="mb-3">
+                    {/* Route start */}
+                    <circle cx="16" cy="56" r="5" strokeWidth="2" className="stroke-indigo-400 fill-indigo-50 dark:fill-indigo-900/30" />
+                    {/* Route end */}
+                    <circle cx="56" cy="16" r="5" strokeWidth="2" className="stroke-indigo-400 fill-indigo-50 dark:fill-indigo-900/30" />
+                    {/* Route path */}
+                    <path d="M16 51 C16 28 56 44 56 21" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="4 3" className="stroke-indigo-300 dark:stroke-indigo-600" />
+                    {/* Waypoints */}
+                    <circle cx="30" cy="42" r="3" className="fill-indigo-200 dark:fill-indigo-700" />
+                    <circle cx="44" cy="28" r="3" className="fill-indigo-200 dark:fill-indigo-700" />
+                  </svg>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">No clips in this board</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">Add clips with locations from the Inspiration tab first.</p>
+                </div>
+              ) : !hasLocations ? (
+                <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
                   <MapPin size={14} className="flex-shrink-0 mt-0.5" />
                   <span>Add items with identified locations to plan a trip.</span>
+                </div>
+              ) : null}
+
+              {/* Offline warning */}
+              {!isOnline && (
+                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5 text-xs text-amber-700 dark:text-amber-300">
+                  <WifiOff size={14} className="flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>You&apos;re offline — connect to generate a new plan. Saved plans still available below.</span>
                 </div>
               )}
 
@@ -462,18 +548,25 @@ export default function PlanPage() {
               {planIsComplete(plan) && (
                 <div className="flex gap-2">
                   <button
+                    onClick={handleSharePlan}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-semibold py-2 rounded-xl hover:bg-indigo-100 active:scale-[0.98] transition-all"
+                    aria-label="Share trip plan"
+                  >
+                    {planShared ? <><Check size={14} /> Copied!</> : <><Share2 size={14} /> Share plan</>}
+                  </button>
+                  <button
                     onClick={handleExportPDF}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <Download size={14} />
-                    Export PDF
+                    PDF
                   </button>
                   <button
                     onClick={handleExportICS}
                     className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     <CalendarPlus size={14} />
-                    Add to Calendar
+                    Calendar
                   </button>
                 </div>
               )}

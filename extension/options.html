@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-width: 420px;
+      max-width: 600px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      padding: 32px 24px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    .section {
+      margin-bottom: 28px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 9px 12px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #f8fafc;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus {
+      border-color: #ea580c;
+      box-shadow: 0 0 0 3px rgba(234,88,12,0.15);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    .hint code {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 11px;
+      font-family: 'Menlo', 'Monaco', monospace;
+      color: #94a3b8;
+    }
+
+    .save-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      padding: 9px 22px;
+      background: #ea580c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #c2410c; }
+    button:active { transform: scale(0.98); }
+
+    .saved-msg {
+      font-size: 13px;
+      color: #4ade80;
+      opacity: 0;
+      transition: opacity 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .saved-msg.show { opacity: 1; }
+
+    hr {
+      border: none;
+      border-top: 1px solid #1e293b;
+      margin: 28px 0;
+    }
+
+    .info-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.7;
+    }
+    .info-box strong { color: #cbd5e1; }
+    .info-box .step {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .info-box .step-num {
+      background: #334155;
+      color: #94a3b8;
+      font-weight: 700;
+      font-size: 11px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: inherit;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <h1>✈️ TravelPanel Clipper</h1>
+  <p class="subtitle">Extension settings</p>
+
+  <div class="section">
+    <p class="section-title">App Configuration</p>
+
+    <label for="appUrl">TravelPanel URL</label>
+    <input type="url" id="appUrl" placeholder="http://localhost:3000" autocomplete="off" spellcheck="false" />
+    <p class="hint">
+      Use <code>http://localhost:3000</code> during local development,
+      or your deployed Vercel URL (e.g. <code>https://travelpanel.vercel.app</code>) for production.
+    </p>
+
+    <div class="save-row">
+      <button id="saveBtn">Save</button>
+      <div class="saved-msg" id="savedMsg">✓ Settings saved</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <p class="section-title">Keyboard Shortcut</p>
+    <p class="hint" style="color:#64748b; font-size:13px; line-height:1.6;">
+      Press <kbd id="shortcutDisplay">Ctrl+Shift+S</kbd> on any tab to instantly clip the current page to TravelPanel
+      without opening the popup. You can override this shortcut at
+      <code>chrome://extensions/shortcuts</code>.
+    </p>
+  </div>
+
+  <hr>
+
+  <div class="info-box">
+    <strong>How to use the extension</strong>
+    <br><br>
+    <div class="step">
+      <span class="step-num">1</span>
+      <span>Visit any travel page — Instagram post, YouTube video, Xiaohongshu review, or any URL.</span>
+    </div>
+    <div class="step">
+      <span class="step-num">2</span>
+      <span>Click the TravelPanel icon in your browser toolbar (or press the keyboard shortcut).</span>
+    </div>
+    <div class="step">
+      <span class="step-num">3</span>
+      <span>Click <strong>Clip to TravelPanel</strong>. The app opens with the URL pre-loaded and AI extraction begins.</span>
+    </div>
+    <div class="step">
+      <span class="step-num">4</span>
+      <span>Review the extracted locations and wisdom, then save to a board.</span>
+    </div>
+    <br>
+    You can also <strong>right-click any link</strong> and choose "Clip this link to TravelPanel" to clip without visiting the page first.
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
