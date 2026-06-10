@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    :root {
+      --bg: #0d0d10;
+      --surface: #17171c;
+      --border: #2a2a35;
+      --accent: #4f7ef5;
+      --accent-hover: #3d6de0;
+      --text: #f0f0f4;
+      --text-2: #8e8ea0;
+      --text-3: #5a5a6e;
+      --success: #34d399;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      padding: 40px 0;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--accent);
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-3);
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--text-2);
+      margin-bottom: 8px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    .hint {
+      margin-top: 7px;
+      font-size: 11px;
+      color: var(--text-3);
+      line-height: 1.5;
+    }
+
+    .save-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 9px 20px;
+      border-radius: 6px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      transition: background 0.15s;
+    }
+
+    button:hover { background: var(--accent-hover); }
+
+    #status {
+      font-size: 13px;
+      color: var(--success);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #status.visible { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+      </svg>
+      <h1>TravelPanel Clipper</h1>
+    </div>
+
+    <div class="card">
+      <p class="card-title">App URL</p>
+      <label for="appUrl">Your TravelPanel URL</label>
+      <input
+        id="appUrl"
+        type="url"
+        placeholder="https://your-app.vercel.app"
+        spellcheck="false"
+        autocomplete="off"
+      />
+      <p class="hint">
+        Set this to your deployed Vercel URL (e.g. <code>https://travelpanel-xyz.vercel.app</code>)
+        or <code>http://localhost:3000</code> for local development.
+      </p>
+    </div>
+
+    <div class="save-row">
+      <button id="saveBtn">Save Settings</button>
+      <span id="status">Saved!</span>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
