@@ -273,7 +273,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - No API call needed — pure client-side calculation
 
 ### H3 — Substance Conflict Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When two clips about the same location have conflicting wisdom ("always book in advance" vs "walk-ins accepted"), the user needs to know. Surfacing conflicts prevents bad trip decisions.  
 **Files to change**: `app/boards/[id]/page.tsx`, new component or inline logic  
 **What to do**:

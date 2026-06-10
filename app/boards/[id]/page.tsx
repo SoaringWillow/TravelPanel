@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, Share2, Check, Sparkles, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Rocket, Share2, Check, Sparkles, RefreshCw, AlertTriangle, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -12,6 +12,51 @@ import NavBar from '@/components/NavBar';
 import { encodeShareUrl } from '@/lib/shareBoard';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+// ─── Conflict detection ───────────────────────────────────────────────────────
+
+interface ConflictReport {
+  locationName: string;
+  tips: Array<{ itemTitle: string; content: string }>;
+}
+
+const ADVANCE_BOOKING = ['book', 'reserve', 'reservation', 'advance', 'prebooking'];
+const WALKIN = ['walk-in', 'walk in', 'no reservation', 'no booking', 'just show up', 'drop in'];
+
+function detectConflicts(items: SavedItem[]): ConflictReport[] {
+  // Group substance by location name (case-insensitive)
+  const byLocation = new Map<string, Array<{ itemTitle: string; content: string; lower: string }>>();
+
+  for (const item of items) {
+    for (const substance of item.substance) {
+      const locationKey = (substance.applies_to ?? item.locations[0]?.name ?? '').toLowerCase().trim();
+      if (!locationKey) continue;
+      const entry = { itemTitle: item.title, content: substance.content, lower: substance.content.toLowerCase() };
+      const existing = byLocation.get(locationKey);
+      if (existing) existing.push(entry);
+      else byLocation.set(locationKey, [entry]);
+    }
+  }
+
+  const conflicts: ConflictReport[] = [];
+  byLocation.forEach((tips, locationName) => {
+    if (tips.length < 2) return;
+    const hasAdvance = tips.some((t: { lower: string }) => ADVANCE_BOOKING.some((kw) => t.lower.includes(kw)));
+    const hasWalkin  = tips.some((t: { lower: string }) => WALKIN.some((kw) => t.lower.includes(kw)));
+    if (hasAdvance && hasWalkin) {
+      conflicts.push({
+        locationName,
+        tips: tips
+          .filter((t: { lower: string }) =>
+            ADVANCE_BOOKING.some((kw) => t.lower.includes(kw)) ||
+            WALKIN.some((kw) => t.lower.includes(kw))
+          )
+          .map((t: { itemTitle: string; content: string }) => ({ itemTitle: t.itemTitle, content: t.content })),
+      });
+    }
+  });
+  return conflicts;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -28,6 +73,7 @@ export default function BoardDetailPage() {
   const [summaryText, setSummaryText] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
   const summaryAbortRef = useRef<AbortController | null>(null);
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -35,6 +81,7 @@ export default function BoardDetailPage() {
     : [];
 
   const hasLocations = boardItems.some((item) => item.locations && item.locations.length > 0);
+  const conflicts = detectConflicts(boardItems);
 
   const loading = boardsLoading || itemsLoading;
 
@@ -206,6 +253,18 @@ export default function BoardDetailPage() {
             {copied ? <Check size={18} className="text-green-500" /> : <Share2 size={18} />}
           </button>
 
+          {conflicts.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setConflictModalOpen(true)}
+              aria-label="View conflicting tips"
+              className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-2 py-1 rounded-full flex-shrink-0"
+            >
+              <AlertTriangle size={11} />
+              Conflicting tips
+            </button>
+          )}
+
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
@@ -327,6 +386,51 @@ export default function BoardDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Conflict tips modal */}
+      {conflictModalOpen && (
+        <div
+          className="fixed inset-0 z-[3000] flex items-end justify-center"
+          onClick={() => setConflictModalOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative bg-white dark:bg-slate-900 rounded-t-3xl w-full max-w-lg px-5 pt-5 pb-10 max-h-[70vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} className="text-amber-500" />
+                <h3 className="font-bold text-gray-800 dark:text-slate-100">Conflicting tips</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConflictModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">
+              These clips have contradictory advice about the same location. Read both before visiting.
+            </p>
+            {conflicts.map((c) => (
+              <div key={c.locationName} className="mb-4">
+                <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">
+                  {c.locationName}
+                </p>
+                {c.tips.map((tip, i) => (
+                  <div key={i} className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl px-3 py-2 mb-2">
+                    <p className="text-xs text-gray-500 dark:text-slate-500 mb-1 line-clamp-1">{tip.itemTitle}</p>
+                    <p className="text-sm text-gray-700 dark:text-slate-300">{tip.content}</p>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <NavBar active="boards" />
     </div>
