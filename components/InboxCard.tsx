@@ -263,7 +263,7 @@ export default function InboxCard({
         dragElastic={0.07}
         dragMomentum={false}
         onDragEnd={handleDragEnd}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative z-10 cursor-grab active:cursor-grabbing select-none"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden relative z-10 cursor-grab active:cursor-grabbing select-none"
       >
         {/* Thumbnail */}
         {item.thumbnail ? (
@@ -284,7 +284,7 @@ export default function InboxCard({
             {PLATFORM_LABELS[item.platform]}
           </span>
 
-          <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
             {item.title}
           </h3>
 

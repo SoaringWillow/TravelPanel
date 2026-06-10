@@ -404,7 +404,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add `getItemByUrl(url)` to `lib/db.ts` (use `by-url` index if one exists, else scan all items)
 
 ### G3 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (core UI surfaces)  
 **Files**: `app/globals.css`, all components  
 **What to do**:
 - Add `dark:` variants to all major UI surfaces: backgrounds, text, borders, cards

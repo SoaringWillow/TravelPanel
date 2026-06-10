@@ -98,18 +98,18 @@ export default function SettingsPage() {
     !!process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 safe-top">
-        <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-4 safe-top">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
 
         {/* Data stats */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm border border-transparent dark:border-gray-800">
           <div className="px-4 py-3 border-b border-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Data</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Your Data</p>
           </div>
 
           {loading ? (
@@ -171,9 +171,9 @@ export default function SettingsPage() {
         </div>
 
         {/* Cloud sync */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm border border-transparent dark:border-gray-800">
           <div className="px-4 py-3 border-b border-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Cloud Sync</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cloud Sync</p>
           </div>
           <div className="px-4 py-4 flex items-start gap-3">
             {supabaseConfigured ? (
@@ -195,9 +195,9 @@ export default function SettingsPage() {
         </div>
 
         {/* Browser extension */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm border border-transparent dark:border-gray-800">
           <div className="px-4 py-3 border-b border-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Browser Extension</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Browser Extension</p>
           </div>
           <div className="px-4 py-4 flex items-start gap-3">
             <Info size={20} className="text-indigo-400 mt-0.5 flex-shrink-0" />
@@ -299,9 +299,9 @@ export default function SettingsPage() {
         </div>
 
         {/* About */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm border border-transparent dark:border-gray-800">
           <div className="px-4 py-3 border-b border-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">About</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">About</p>
           </div>
           <div className="px-4 py-4 space-y-2 text-sm text-gray-600">
             <div className="flex justify-between">
