@@ -259,7 +259,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - This section only appears when ≥1 item passes the seasonal relevance filter
 
 ### H2 — Smart Trip Duration Suggestion
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users don't know how many days to plan for. Currently they enter a number manually. Claude can look at the clips in a board and suggest "Based on your 12 clips, we suggest 4–6 days" — reducing decision paralysis.  
 **Files to change**: `app/plan/[boardId]/page.tsx`  
 **What to do**:

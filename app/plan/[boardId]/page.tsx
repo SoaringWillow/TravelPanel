@@ -21,6 +21,13 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
 
+function suggestDays(clipCount: number): { days: number; label: string } {
+  if (clipCount <= 5)  return { days: 2,  label: '2–3 days' };
+  if (clipCount <= 15) return { days: 5,  label: '4–6 days' };
+  if (clipCount <= 30) return { days: 8,  label: '7–10 days' };
+  return                      { days: 10, label: '10+ days or split into trips' };
+}
+
 export default function PlanPage() {
   const params = useParams();
   const router = useRouter();
@@ -43,6 +50,7 @@ export default function PlanPage() {
   const [planShared, setPlanShared] = useState(false);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [daysManuallySet, setDaysManuallySet] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -57,6 +65,9 @@ export default function PlanPage() {
           setBoard(b);
           const filtered = allItems.filter((item) => item.boardId === boardId);
           setBoardItems(filtered);
+          if (!daysManuallySet) {
+            setDays(suggestDays(filtered.length).days);
+          }
         }
         setSavedTrips(trips.sort((a, b) => a.createdAt - b.createdAt));
       } finally {
@@ -355,7 +366,7 @@ export default function PlanPage() {
                 </div>
                 <Slider
                   value={[days]}
-                  onValueChange={(v) => setDays(v[0])}
+                  onValueChange={(v) => { setDays(v[0]); setDaysManuallySet(true); }}
                   min={1}
                   max={14}
                   step={1}
@@ -365,6 +376,11 @@ export default function PlanPage() {
                   <span>1 day</span>
                   <span>14 days</span>
                 </div>
+                {boardItems.length > 0 && (
+                  <p className="text-xs text-indigo-500 dark:text-indigo-400">
+                    💡 Based on your {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}, we suggest {suggestDays(boardItems.length).label}
+                  </p>
+                )}
               </div>
 
               {/* Preference chips */}
