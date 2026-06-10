@@ -247,6 +247,7 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    searchQuery={query || undefined}
                   />
                 </motion.div>
               ))}

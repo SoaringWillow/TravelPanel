@@ -411,7 +411,7 @@ Goal: fill in the remaining gaps — missing features users will hit quickly, de
 - Show "platforms used" mini-bar with wechat/xiaohongshu/douyin/bilibili/other counts
 
 ### F4 — Search Results Text Highlighting
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `lib/searchItems.ts` (or create), `components/InboxCard.tsx`
 **What to do**:
 - When a search query is active, highlight matching substrings in card title/description

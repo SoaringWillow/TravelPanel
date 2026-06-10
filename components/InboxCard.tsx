@@ -16,6 +16,24 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  searchQuery?: string;
+}
+
+/** Wrap matching query substrings in a <mark> element */
+function Highlight({ text, query }: { text: string; query?: string }) {
+  if (!query?.trim()) return <>{text}</>;
+  const q = query.trim().toLowerCase();
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-yellow-100 text-yellow-900 rounded px-0.5 not-italic font-inherit">
+        {text.slice(idx, idx + q.length)}
+      </mark>
+      {text.slice(idx + q.length)}
+    </>
+  );
 }
 
 // ─── Helper: truncate long URL for display ───────────────────────────────────
@@ -42,6 +60,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  searchQuery,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
 
@@ -192,7 +211,7 @@ export default function InboxCard({
     day: 'numeric',
   });
 
-  return <SwipeToDeleteCard item={item} onDelete={onDelete} onViewOnMap={onViewOnMap} onMoveToBoard={onMoveToBoard} date={date} />;
+  return <SwipeToDeleteCard item={item} onDelete={onDelete} onViewOnMap={onViewOnMap} onMoveToBoard={onMoveToBoard} date={date} searchQuery={searchQuery} />;
 }
 
 // ─── SwipeToDeleteCard ────────────────────────────────────────────────────────
@@ -203,12 +222,14 @@ function SwipeToDeleteCard({
   onViewOnMap,
   onMoveToBoard,
   date,
+  searchQuery,
 }: {
   item: SavedItem;
   onDelete: (id: string) => void;
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   date: string;
+  searchQuery?: string;
 }) {
   const [dismissed, setDismissed] = useState(false);
   const [peekOpen, setPeekOpen] = useState(false);
@@ -290,13 +311,13 @@ function SwipeToDeleteCard({
 
         {/* Title */}
         <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
-          {item.title}
+          <Highlight text={item.title} query={searchQuery} />
         </h3>
 
         {/* Description */}
         {item.description && (
           <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
-            {item.description}
+            <Highlight text={item.description} query={searchQuery} />
           </p>
         )}
 
