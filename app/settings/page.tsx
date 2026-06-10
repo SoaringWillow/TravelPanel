@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Cloud, CloudOff, Info, CheckCircle2 } from 'lucide-react';
+import { Download, Cloud, CloudOff, Info, CheckCircle2, Sparkles, Check, X } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { getAllItems, getAllBoards } from '@/lib/db';
 import { SavedItem, Board } from '@/lib/types';
+import { ProBadge } from '@/components/ProBadge';
 
 // ─── Export helpers ───────────────────────────────────────────────────────────
 
@@ -33,6 +34,21 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
+  const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('proWaitlistEmail');
+      if (stored) { setWaitlistEmail(stored); setWaitlistJoined(true); }
+    }
+  }, []);
+
+  function handleJoinWaitlist() {
+    if (!waitlistEmail.includes('@')) return;
+    localStorage.setItem('proWaitlistEmail', waitlistEmail);
+    setWaitlistJoined(true);
+  }
 
   useEffect(() => {
     Promise.all([getAllItems(), getAllBoards()])
@@ -180,6 +196,93 @@ export default function SettingsPage() {
                 to add a one-click clip button to your browser toolbar.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Pro Upgrade */}
+        <div className="rounded-2xl overflow-hidden shadow-sm">
+          {/* Gradient header */}
+          <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 px-4 py-5">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles size={18} className="text-amber-300" />
+              <span className="text-white font-bold text-base">Upgrade to Pro</span>
+              <ProBadge />
+            </div>
+            <p className="text-indigo-200 text-xs leading-relaxed">
+              Unlimited clips, vibe search, cloud sync, and priority AI processing.
+            </p>
+          </div>
+
+          {/* Comparison table */}
+          <div className="bg-white">
+            <div className="grid grid-cols-3 border-b border-gray-100 px-4 py-2">
+              <span className="text-xs font-semibold text-gray-500 col-span-1">Feature</span>
+              <span className="text-xs font-semibold text-gray-500 text-center">Free</span>
+              <span className="text-xs font-bold text-indigo-600 text-center flex items-center justify-center gap-1">
+                Pro <ProBadge size="xs" />
+              </span>
+            </div>
+            {[
+              { label: 'Clips',           free: '50',        pro: 'Unlimited' },
+              { label: 'Boards',          free: '3',         pro: 'Unlimited' },
+              { label: 'Plans / day',     free: '2',         pro: 'Unlimited' },
+              { label: 'Cloud sync',      free: false,       pro: true },
+              { label: 'Vibe search',     free: false,       pro: true },
+              { label: 'Priority AI',     free: false,       pro: true },
+            ].map((row) => (
+              <div key={row.label} className="grid grid-cols-3 px-4 py-2.5 border-b border-gray-50 last:border-0">
+                <span className="text-xs text-gray-700 col-span-1">{row.label}</span>
+                <div className="flex justify-center">
+                  {typeof row.free === 'boolean' ? (
+                    row.free ? <Check size={14} className="text-green-500" /> : <X size={13} className="text-gray-300" />
+                  ) : (
+                    <span className="text-xs text-gray-500">{row.free}</span>
+                  )}
+                </div>
+                <div className="flex justify-center">
+                  {typeof row.pro === 'boolean' ? (
+                    row.pro ? <Check size={14} className="text-indigo-500" /> : <X size={13} className="text-gray-300" />
+                  ) : (
+                    <span className="text-xs font-semibold text-indigo-600">{row.pro}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Waitlist form */}
+          <div className="bg-white px-4 pb-4 pt-2 border-t border-gray-100">
+            {waitlistJoined ? (
+              <div className="flex items-center gap-2 bg-green-50 rounded-xl px-3 py-2.5">
+                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-green-800">You're on the waitlist!</p>
+                  <p className="text-xs text-green-600">{waitlistEmail}</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-gray-500 mb-2">Join the waitlist — be the first to know when Pro launches.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={waitlistEmail}
+                    onChange={(e) => setWaitlistEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleJoinWaitlist()}
+                    placeholder="your@email.com"
+                    className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-gray-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleJoinWaitlist}
+                    disabled={!waitlistEmail.includes('@')}
+                    className="bg-indigo-600 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40"
+                  >
+                    Join
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

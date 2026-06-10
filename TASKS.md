@@ -358,7 +358,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - "Get started" button at the end → sets `hasSeenOnboarding=true`, dismisses to home
 
 ### F3 — Pro Tier UI
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **What to do**:
 - Add "Pro" badge and upgrade prompt to: rate limit messages, plan export, shared boards
 - Settings page: "Upgrade to Pro" section with feature comparison (Free vs Pro)

@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, ClipboardList } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
+import { ProBadge } from '@/components/ProBadge';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
 import { track } from '@/lib/analytics';
@@ -367,9 +368,19 @@ export default function PlanPage() {
 
               {/* Plan rate limit warning */}
               {planLimitError && (
-                <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 text-xs text-indigo-700">
-                  <Lightbulb size={14} className="flex-shrink-0 mt-0.5 text-indigo-500" />
-                  <span>{planLimitError}</span>
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 space-y-2">
+                  <div className="flex items-start gap-2 text-xs text-indigo-700">
+                    <Lightbulb size={14} className="flex-shrink-0 mt-0.5 text-indigo-500" />
+                    <span>{planLimitError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/settings')}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    <span>Upgrade to Pro for unlimited plans</span>
+                    <ProBadge size="xs" />
+                  </button>
                 </div>
               )}
 
@@ -486,6 +497,7 @@ export default function PlanPage() {
                     >
                       <Download size={14} />
                       Export PDF
+                      <ProBadge size="xs" />
                     </button>
                     <button
                       onClick={handleExportICS}
@@ -493,6 +505,7 @@ export default function PlanPage() {
                     >
                       <CalendarPlus size={14} />
                       Add to Calendar
+                      <ProBadge size="xs" />
                     </button>
                   </div>
                 </>
