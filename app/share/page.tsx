@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { tapSuccess, tapLight } from '@/lib/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -16,10 +17,23 @@ type Stage = 'picking' | 'saving' | 'done';
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
+async function getSharedImage(): Promise<string | undefined> {
+  try {
+    const { Preferences } = await import('@capacitor/preferences');
+    const { value } = await Preferences.get({ key: 'pendingShareImage' });
+    if (!value) return undefined;
+    await Preferences.remove({ key: 'pendingShareImage' });
+    return value;
+  } catch {
+    return undefined;
+  }
+}
+
 function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasImage        = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -88,9 +102,10 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — read any image the Share Extension wrote to App Group
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    const imageBase64 = hasImage ? await getSharedImage() : undefined;
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -112,6 +127,7 @@ function SharePageInner() {
         setEnrichmentLoading(false);
       });
 
+    tapSuccess();
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
   }
@@ -177,7 +193,7 @@ function SharePageInner() {
             <button
               type="button"
               disabled={stage === 'saving'}
-              onClick={() => handleSave(undefined, 'Inbox')}
+              onClick={() => { tapLight(); handleSave(undefined, 'Inbox'); }}
               className="flex-shrink-0 bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-indigo-200 active:scale-95 transition-all disabled:opacity-50"
             >
               Inbox

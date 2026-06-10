@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -10,18 +10,28 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { EmptyState } from '@/components/EmptyState';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 // ─── Inner page (needs useSearchParams) ──────────────────────────────────────
 
 function HomePageInner() {
+  const router       = useRouter();
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+
+  // First-launch onboarding redirect
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!localStorage.getItem('hasSeenOnboarding')) {
+      router.replace('/onboarding');
+    }
+  }, [router]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -72,6 +82,22 @@ function HomePageInner() {
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+
+      {/* Empty-map prompt — shown when no clips have any locations */}
+      {!loading && items.filter((i) => i.locations.length > 0).length === 0 && (
+        <div className="absolute inset-0 z-[999] flex items-center justify-center pointer-events-none">
+          <div className="pointer-events-auto mx-6">
+            <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-xl p-2">
+              <EmptyState
+                illustration="compass"
+                headline="No spots on the map yet"
+                subtext="Save a travel post and AI will extract locations to pin here."
+                cta={{ label: '+ Add your first clip', onClick: () => setShowImport(true) }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">

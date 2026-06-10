@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="22" fill="#0284c7"/>
+  <!-- Map pin body -->
+  <path d="M64 20C47.43 20 34 33.43 34 50c0 22.5 30 58 30 58s30-35.5 30-58C94 33.43 80.57 20 64 20z" fill="white"/>
+  <!-- Inner dot -->
+  <circle cx="64" cy="50" r="12" fill="#0284c7"/>
+</svg>

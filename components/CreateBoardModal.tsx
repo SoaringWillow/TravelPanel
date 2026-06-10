@@ -54,8 +54,8 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
               onClick={() => setSelectedEmoji(emoji)}
               className={`text-2xl h-12 rounded-xl flex items-center justify-center transition-all ${
                 selectedEmoji === emoji
-                  ? 'bg-indigo-100 ring-2 ring-indigo-500'
-                  : 'bg-gray-50 hover:bg-gray-100'
+                  ? 'bg-indigo-100 dark:bg-indigo-900/50 ring-2 ring-indigo-500'
+                  : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
             >
               {emoji}
@@ -70,7 +70,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Japan Trip, Weekend Eats…"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleCreate();
             }}
@@ -82,7 +82,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
           <DialogClose asChild>
             <button
               type="button"
-              className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
             >
               Cancel
             </button>

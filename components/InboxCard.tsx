@@ -1,8 +1,11 @@
 'use client';
 
+import { useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { tapError } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -189,7 +192,25 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* Red delete background revealed on swipe */}
+      <div className="absolute inset-0 bg-red-500 rounded-2xl flex items-center justify-end pr-5">
+        <Trash2 size={22} className="text-white" />
+      </div>
+
+      <motion.div
+        drag="x"
+        dragDirectionLock
+        dragConstraints={{ left: -200, right: 0 }}
+        dragElastic={0.08}
+        onDragEnd={(_e, info) => {
+          if (info.offset.x < -90) {
+            tapError();
+            onDelete(item.id);
+          }
+        }}
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden cursor-grab active:cursor-grabbing"
+      >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -201,8 +222,8 @@ export default function InboxCard({
           }}
         />
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
+        <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <Globe size={32} className="text-gray-300 dark:text-gray-500" />
         </div>
       )}
 
@@ -215,13 +236,13 @@ export default function InboxCard({
         </span>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -254,7 +275,7 @@ export default function InboxCard({
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-2 py-0.5 rounded-full"
               >
                 #{tag}
               </span>
@@ -263,8 +284,8 @@ export default function InboxCard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-xs text-gray-400">{date}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-700">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
 
           <div className="flex items-center gap-1">
             {/* View on Map */}
@@ -302,7 +323,7 @@ export default function InboxCard({
             {/* Delete */}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              onClick={() => { tapError(); onDelete(item.id); }}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               aria-label="Delete"
             >
@@ -311,6 +332,7 @@ export default function InboxCard({
           </div>
         </div>
       </div>
+      </motion.div>
     </div>
   );
 }

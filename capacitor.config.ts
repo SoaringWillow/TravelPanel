@@ -10,6 +10,7 @@ const config: CapacitorConfig = {
   appId: 'com.travelpanel.app',
   appName: 'TravelPanel',
   webDir: 'out',
+  // Minimum supported iOS: 16.0 (required for CSS env() safe area and WebKit modernisms)
   server: {
     ...(serverUrl ? { url: serverUrl, cleartext: serverUrl.startsWith('http://') } : {}),
     iosScheme: 'https',

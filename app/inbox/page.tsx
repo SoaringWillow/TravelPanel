@@ -1,20 +1,24 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { EmptyState } from '@/components/EmptyState';
+import { UndoToast } from '@/components/UndoToast';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -33,19 +37,28 @@ export default function InboxPage() {
   const { boards } = useBoards();
   const router = useRouter();
 
-  const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { retryItem, retryAll } = useEnrichmentRetry(refreshItem);
+
+  // Shared scroll container ref — used by both pull-to-refresh and the virtualizer
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { pullY, refreshing } = usePullToRefresh(scrollRef, retryAll);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // Soft-delete + undo state
+  const [deletedItem, setDeletedItem] = useState<SavedItem | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
 
-  // Only unassigned items (boardId === undefined)
-  const inboxItems = items.filter((i) => i.boardId === undefined);
+  // Only unassigned items (boardId === undefined), excluding soft-deleted
+  const inboxItems = items.filter(
+    (i) => i.boardId === undefined && i.id !== deletedItem?.id
+  );
 
   const platformFiltered =
     activePlatform === 'all'
@@ -53,6 +66,37 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  function handleSoftDelete(id: string) {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    // If there was a previous pending delete, commit it immediately
+    if (deletedItem) removeItem(deletedItem.id);
+    setDeletedItem(item);
+  }
+
+  function handleUndoDelete() {
+    if (expireTimerRef.current) clearTimeout(expireTimerRef.current);
+    setDeletedItem(null);
+  }
+
+  function handleExpireDelete() {
+    if (deletedItem) {
+      removeItem(deletedItem.id);
+      setDeletedItem(null);
+    }
+  }
+
+  // Group into rows of 2 for the virtual grid
+  const rows: (typeof filtered)[] = [];
+  for (let i = 0; i < filtered.length; i += 2) rows.push(filtered.slice(i, i + 2));
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 152,
+    overscan: 4,
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -97,12 +141,12 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-status pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
@@ -128,7 +172,7 @@ export default function InboxPage() {
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
                 }`}
               >
                 {p.label} ({count})
@@ -138,47 +182,80 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      {/* Content — virtualised 2-column grid */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto pb-nav">
+        {/* Pull-to-refresh indicator */}
+        {(pullY > 0 || refreshing) && (
+          <div
+            className="flex items-center justify-center overflow-hidden transition-all duration-150"
+            style={{ height: refreshing ? 40 : pullY * 0.5 }}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent ${refreshing ? 'animate-spin' : ''}`} />
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          query.trim() ? (
+            <EmptyState
+              illustration="inbox"
+              headline="No matches found"
+              subtext={`No clips match "${query.trim()}". Try a different search.`}
+            />
+          ) : (
+            <EmptyState
+              illustration="inbox"
+              headline="Your inspiration lives here"
+              subtext={
+                activePlatform === 'all'
+                  ? 'Share any travel post from Instagram, YouTube, or Xiaohongshu to get started.'
+                  : `No ${PLATFORM_LABELS[activePlatform as Platform]} clips in your inbox yet.`
+              }
+            />
+          )
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          /* Virtual rows — only the visible rows are in the DOM */
+          <div
+            style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+            className="pt-2"
+          >
+            {virtualizer.getVirtualItems().map((vRow) => (
+              <div
+                key={vRow.key}
+                data-index={vRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${vRow.start}px)`,
+                }}
+                className="px-4 pb-3"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  {rows[vRow.index].map((item) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18 }}
+                    >
+                      <InboxCard
+                        item={item}
+                        onDelete={handleSoftDelete}
+                        onViewOnMap={handleViewOnMap}
+                        onMoveToBoard={handleMoveToBoard}
+                        onRetry={retryItem}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -259,6 +336,18 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Undo toast */}
+      <AnimatePresence>
+        {deletedItem && (
+          <UndoToast
+            key={deletedItem.id}
+            message="Clip deleted"
+            onUndo={handleUndoDelete}
+            onExpire={handleExpireDelete}
+          />
         )}
       </AnimatePresence>
 
