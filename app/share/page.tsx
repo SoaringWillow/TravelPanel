@@ -9,6 +9,7 @@ import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+import { EnrichImageData } from '@/lib/enrichItem';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasNativeImage  = searchParams.get('hasImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,13 +31,31 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotData, setScreenshotData]   = useState<EnrichImageData | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef    = useRef<HTMLInputElement | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // When iOS Share Extension captured an image, read it from App Group via Capacitor
+  useEffect(() => {
+    if (!hasNativeImage) return;
+    // Capacitor native bridge injects pendingShareImage on window when available
+    const win = window as typeof window & {
+      travelPanelPendingImage?: { base64: string; mimeType: string };
+    };
+    if (win.travelPanelPendingImage) {
+      const { base64, mimeType } = win.travelPanelPendingImage;
+      setScreenshotData({ base64, mimeType });
+      setScreenshotPreview(`data:${mimeType};base64,${base64}`);
+      delete win.travelPanelPendingImage;
+    }
+  }, [hasNativeImage]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -52,6 +72,23 @@ function SharePageInner() {
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
+  // These platforms block server-side scraping; prompt the user for a screenshot
+  const isAntiScrape = platform === 'xiaohongshu' || platform === 'wechat' || platform === 'douyin';
+
+  function handleScreenshotSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      // Split "data:<mime>;base64,<data>"
+      const [header, base64] = dataUrl.split(',');
+      const mimeType = header.replace('data:', '').replace(';base64', '');
+      setScreenshotData({ base64, mimeType });
+      setScreenshotPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
 
   // Most-recently-updated 5 boards for quick-pick
   const recentBoards = [...boards]
@@ -88,9 +125,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot for anti-scrape platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotData ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -165,6 +202,54 @@ function SharePageInner() {
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
+
+          {/* Screenshot prompt — shown for anti-scrape platforms or as opt-in */}
+          <div className="pt-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleScreenshotSelect}
+            />
+            {screenshotPreview ? (
+              <div className="flex items-center gap-2 mt-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={screenshotPreview}
+                  alt="Screenshot preview"
+                  className="h-10 w-10 rounded-lg object-cover border border-gray-200"
+                />
+                <span className="text-xs text-green-600 font-medium">Screenshot attached ✓</span>
+                <button
+                  type="button"
+                  onClick={() => { setScreenshotData(null); setScreenshotPreview(null); }}
+                  className="text-xs text-gray-400 hover:text-gray-600 ml-auto"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : isAntiScrape ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-1 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors"
+              >
+                <span>📸</span>
+                <span>Add screenshot for better extraction</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <span>📸</span>
+                <span>Add screenshot (optional)</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Middle section — board picker */}

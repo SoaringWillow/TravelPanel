@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="options-container">
+    <div class="options-header">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="url(#pinGrad2)"/>
+        <circle cx="12" cy="9" r="2.5" fill="white"/>
+        <defs>
+          <linearGradient id="pinGrad2" x1="5" y1="2" x2="19" y2="22" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#6366f1"/>
+            <stop offset="100%" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span class="options-logo-text">TravelPanel Clipper</span>
+    </div>
+
+    <p class="options-title">Settings</p>
+
+    <div class="form-group">
+      <label for="app-url">TravelPanel App URL</label>
+      <input
+        type="url"
+        id="app-url"
+        placeholder="https://your-app.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="hint">
+        The URL where your TravelPanel app is running.<br>
+        Use <code>http://localhost:3000</code> for local development.
+      </p>
+    </div>
+
+    <div>
+      <button id="save-btn" class="save-btn">Save</button>
+      <span id="save-status" class="save-status"></span>
+    </div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
