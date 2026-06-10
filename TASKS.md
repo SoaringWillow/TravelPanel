@@ -583,7 +583,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a small "note" indicator (📝) on InboxCard if userNote is set
 
 ### I3 — Clipboard URL Auto-Paste on Share Page
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`  
 **What to do**:
 - On mount, call `navigator.clipboard.readText()` and if the clipboard contains a URL
@@ -593,7 +593,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Handles the common case of copying a link then opening TravelPanel directly
 
 ### I4 — Smart Plan Preferences Memory
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`  
 **What to do**:
 - When a user generates a plan, save their last-used preferences (chips + custom notes + days)

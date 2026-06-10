@@ -56,6 +56,7 @@ export default function PlanPage() {
   const [loadingBoard, setLoadingBoard] = useState(true);
 
   const [stage, setStage] = useState<Stage>('idle');
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [days, setDays] = useState(3);
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [customNotes, setCustomNotes] = useState('');
@@ -65,6 +66,22 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+
+  // Load saved preferences on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('planPreferences');
+      if (raw) {
+        const prefs = JSON.parse(raw);
+        if (prefs.days) setDays(prefs.days);
+        if (Array.isArray(prefs.chips)) setSelectedChips(new Set(prefs.chips));
+        if (prefs.notes) setCustomNotes(prefs.notes);
+        setPrefsLoaded(true);
+      }
+    } catch {
+      // ignore malformed
+    }
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -108,6 +125,12 @@ export default function PlanPage() {
     setPlan(null);
     setActiveDayIndex(0);
     recordPlanGeneration();
+    // Save preferences for next time
+    try {
+      localStorage.setItem('planPreferences', JSON.stringify({
+        days, chips: Array.from(selectedChips), notes: customNotes.trim(),
+      }));
+    } catch { /* storage full */ }
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
     const res = await fetch('/api/plan', {
@@ -417,6 +440,24 @@ export default function PlanPage() {
                   {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 </span>
               </div>
+
+              {/* Saved preferences banner */}
+              {prefsLoaded && (
+                <div className="flex items-center justify-between bg-indigo-50 rounded-xl px-3 py-2">
+                  <span className="text-xs text-indigo-700 font-medium">Using your last preferences</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDays(3); setSelectedChips(new Set()); setCustomNotes('');
+                      setPrefsLoaded(false);
+                      try { localStorage.removeItem('planPreferences'); } catch {}
+                    }}
+                    className="text-xs text-indigo-500 hover:text-indigo-700 font-semibold underline"
+                  >
+                    Reset
+                  </button>
+                </div>
+              )}
 
               {/* Days slider */}
               <div className="space-y-2">

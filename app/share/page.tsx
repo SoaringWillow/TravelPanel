@@ -36,6 +36,7 @@ function SharePageInner() {
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [duplicate, setDuplicate] = useState<SavedItem | null>(null);
   const [ignoreDuplicate, setIgnoreDuplicate] = useState(false);
+  const [clipboardUrl, setClipboardUrl] = useState<string | null>(null);
 
   // Load boards + check for duplicate URL on mount
   useEffect(() => {
@@ -45,6 +46,21 @@ function SharePageInner() {
         if (existing) setDuplicate(existing);
       }).catch(() => {});
     }
+  }, [rawUrl]);
+
+  // Check clipboard for a URL different from the current one
+  useEffect(() => {
+    if (!rawUrl) return;
+    if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) return;
+    navigator.clipboard.readText().then((text) => {
+      try {
+        const trimmed = text.trim();
+        new URL(trimmed); // validate it's a URL
+        if (trimmed !== rawUrl) setClipboardUrl(trimmed);
+      } catch {
+        // not a URL
+      }
+    }).catch(() => {});
   }, [rawUrl]);
 
   // Read image payload written by CapacitorBridge (from iOS Share Extension)
@@ -213,6 +229,32 @@ function SharePageInner() {
                     className="text-xs font-semibold text-gray-500 hover:underline"
                   >
                     Save anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Clipboard URL suggestion */}
+          {clipboardUrl && (
+            <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 mt-1">
+              <AlertCircle size={15} className="text-indigo-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-indigo-800">📋 Clipboard has a URL</p>
+                <p className="text-xs text-indigo-700 leading-snug mt-0.5 truncate">{clipboardUrl}</p>
+                <div className="flex gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = `/share?url=${encodeURIComponent(clipboardUrl)}`; }}
+                    className="text-xs font-semibold text-indigo-700 hover:underline"
+                  >
+                    Use instead
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setClipboardUrl(null)}
+                    className="text-xs font-semibold text-gray-400 hover:underline"
+                  >
+                    Ignore
                   </button>
                 </div>
               </div>
