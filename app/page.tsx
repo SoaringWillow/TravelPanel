@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -16,12 +16,21 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 // ─── Inner page (needs useSearchParams) ──────────────────────────────────────
 
 function HomePageInner() {
+  const router       = useRouter();
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+
+  // First-launch onboarding redirect
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!localStorage.getItem('hasSeenOnboarding')) {
+      router.replace('/onboarding');
+    }
+  }, [router]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {

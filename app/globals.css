@@ -83,6 +83,11 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* For pages without NavBar: keep content above home indicator */
+.pb-safe-nav {
+  padding-bottom: max(env(safe-area-inset-bottom), 16px);
+}
+
 /* Sticky page headers sit below the Dynamic Island / notch */
 .pt-status {
   padding-top: max(env(safe-area-inset-top), 44px);

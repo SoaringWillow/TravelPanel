@@ -277,7 +277,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > Every empty state, every transition, every color choice should feel intentional.
 
 ### E1 — Onboarding Flow (3 screens)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/onboarding/page.tsx`, update `app/page.tsx` (check flag)  
 **What to do**:
 - 3 swipeable onboarding cards shown only on first launch (`hasSeenOnboarding` flag in localStorage)
