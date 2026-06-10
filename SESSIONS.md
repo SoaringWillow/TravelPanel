@@ -104,3 +104,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 05:48 | 67c251e | feat(C2): post-trip timeline view on board detail page
 2026-06-10 05:51 | b6e3c99 | feat(C3): shared boards v1 — URL-encoded shareable board links
 2026-06-10 05:56 | f1969fc | feat(C4): Proactive Resurfacing — smart nudge card in Inbox
+2026-06-10 06:03 | 8b8f6c8 | feat(D1-D5): iOS polish — onboarding, safe areas, error boundary, offline, pull-to-refresh

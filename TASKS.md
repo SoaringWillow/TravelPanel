@@ -106,7 +106,7 @@ B4 (Embedding Search) remains blocked on Supabase pgvector — skip until B1 is 
 - Minimum refresh time: 800ms (use `Promise.all([onRefresh(), sleep(800)])`) so spinner doesn't flash
 
 ### D6 — Location Permission Explanation Sheet
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: iOS users see a bare system dialog with no context. Explaining WHY before the dialog shows dramatically improves permission grant rates.
 **Files**: new `components/LocationPermissionSheet.tsx`, `app/page.tsx`
 **What to do**:
@@ -122,7 +122,7 @@ B4 (Embedding Search) remains blocked on Supabase pgvector — skip until B1 is 
 - Add these 3 events to `AnalyticsEvent` union in `lib/analytics.ts`
 
 ### D7 — Haptic Feedback on Key Actions
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: On native iOS, haptics signal successful actions (save, delete, complete). Without them the app feels like a web page, not a native app.
 **Files**: new `lib/haptics.ts`, `app/share/page.tsx`, `components/InboxCard.tsx`, `app/plan/[boardId]/page.tsx`
 **What to do**:
@@ -143,7 +143,7 @@ B4 (Embedding Search) remains blocked on Supabase pgvector — skip until B1 is 
 - Trigger `haptics.impact('light')` on navigation tab switches (in `NavBar.tsx`)
 
 ### D8 — Skeleton Loading States for Map Pins
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: The map shows blank grey until items load from IndexedDB. A subtle loading treatment tells users the app is working.
 **Files**: `components/MapView.tsx`, `app/page.tsx`
 **What to do**:

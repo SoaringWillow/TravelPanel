@@ -6,12 +6,14 @@ import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus, Navigation, X, ChevronRight } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { track } from '@/lib/analytics';
 import { useGeolocation, distanceMetres, formatDistance } from '@/hooks/useGeolocation';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
 import OnboardingSlides from '@/components/OnboardingSlides';
+import { LocationPermissionSheet } from '@/components/LocationPermissionSheet';
 import type { UserLocation } from '@/components/MapView';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -36,6 +38,7 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showLocationSheet, setShowLocationSheet] = useState(false);
 
   // GPS navigate mode
   const geo = useGeolocation();
@@ -106,8 +109,15 @@ function HomePageInner() {
       geo.stop();
       setNavigating(false);
     } else {
-      geo.start();
-      setNavigating(true);
+      const hasDeclined = typeof window !== 'undefined' && localStorage.getItem('tp_location_declined') === '1';
+      const hasAsked = typeof window !== 'undefined' && localStorage.getItem('tp_location_asked') === '1';
+      if (!hasDeclined && !hasAsked) {
+        setShowLocationSheet(true);
+        track('location_permission_shown', {});
+      } else {
+        geo.start();
+        setNavigating(true);
+      }
     }
   }
 
@@ -126,6 +136,7 @@ function HomePageInner() {
         onPinClick={setSelectedItem}
         flyTo={flyTo}
         userLocation={userLocation}
+        loading={loading}
       />
 
       {/* Top bar – floating */}
@@ -285,6 +296,23 @@ function HomePageInner() {
       />
 
       <NavBar active="home" />
+
+      {/* Location permission explanation */}
+      <LocationPermissionSheet
+        open={showLocationSheet}
+        onAllow={() => {
+          localStorage.setItem('tp_location_asked', '1');
+          setShowLocationSheet(false);
+          track('location_permission_granted', {});
+          geo.start();
+          setNavigating(true);
+        }}
+        onDecline={() => {
+          localStorage.setItem('tp_location_declined', '1');
+          setShowLocationSheet(false);
+          track('location_permission_declined', {});
+        }}
+      />
 
       {/* First-launch onboarding */}
       <AnimatePresence>
