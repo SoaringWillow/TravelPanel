@@ -139,3 +139,13 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 22:12 | 4e62721 | feat(L6): enhanced share-a-clip with first tip + checkmark feedback
 2026-06-10 22:15 | 4cd362b | feat(L7): duplicate merge UI in inbox
 2026-06-10 22:17 | c8fef8c | feat(L8): full accessibility pass — ARIA labels, roles, live regions
+2026-06-10 22:18 | 898d086 | chore: update SESSIONS.md with Phase L session log
+2026-06-10 22:19 | cf99720 | chore: add Phase M task definitions (M1–M8)
+2026-06-10 22:20 | 9e2ad10 | feat(M1): clipboard travel URL quick-save banner
+2026-06-10 22:21 | 8ce39bd | feat(M2): tag cloud map filter above NavBar
+2026-06-10 22:23 | f4eec18 | feat(M3): board trip date + countdown
+2026-06-10 22:28 | 9d44404 | feat(M4): substance full-text search with matched tip preview
+2026-06-10 22:29 | 67075ee | feat(M5): itinerary text export with native share sheet
+2026-06-10 22:30 | 19a964a | feat(M6): board stats insight card below Plan CTA
+2026-06-10 22:33 | 003e757 | feat(M7): dark mode polish pass across key components
+2026-06-10 22:35 | 848b8a3 | feat(M8): iOS native feel — safe areas, page transitions, progress bar
