@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -35,7 +36,10 @@ export default function InboxPage() {
   const router = useRouter();
 
   const { retryItem, retryAll } = useEnrichmentRetry(refreshItem);
-  const { containerRef: listRef, pullY, refreshing } = usePullToRefresh(retryAll);
+
+  // Shared scroll container ref — used by both pull-to-refresh and the virtualizer
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { pullY, refreshing } = usePullToRefresh(scrollRef, retryAll);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -55,6 +59,17 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  // Group into rows of 2 for the virtual grid
+  const rows: (typeof filtered)[] = [];
+  for (let i = 0; i < filtered.length; i += 2) rows.push(filtered.slice(i, i + 2));
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 152,
+    overscan: 4,
+  });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -140,8 +155,8 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 pb-nav">
+      {/* Content — virtualised 2-column grid */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto pb-nav">
         {/* Pull-to-refresh indicator */}
         {(pullY > 0 || refreshing) && (
           <div
@@ -151,12 +166,13 @@ export default function InboxPage() {
             <div className={`w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent ${refreshing ? 'animate-spin' : ''}`} />
           </div>
         )}
+
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center">
+          <div className="flex flex-col items-center justify-center h-60 text-center px-4">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
             <h3 className="font-semibold text-gray-700 mb-2">
               {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
@@ -170,26 +186,45 @@ export default function InboxPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <InboxCard
-                    item={item}
-                    onDelete={removeItem}
-                    onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
-                    onRetry={retryItem}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          /* Virtual rows — only the visible rows are in the DOM */
+          <div
+            style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+            className="pt-2"
+          >
+            {virtualizer.getVirtualItems().map((vRow) => (
+              <div
+                key={vRow.key}
+                data-index={vRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${vRow.start}px)`,
+                }}
+                className="px-4 pb-3"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  {rows[vRow.index].map((item) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18 }}
+                    >
+                      <InboxCard
+                        item={item}
+                        onDelete={removeItem}
+                        onViewOnMap={handleViewOnMap}
+                        onMoveToBoard={handleMoveToBoard}
+                        onRetry={retryItem}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

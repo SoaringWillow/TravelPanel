@@ -259,7 +259,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Web fallback: show a "Refresh" button at top of list
 
 ### D6 — Virtualized Inbox List (performance at 200+ clips)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The inbox renders all clips with `map()` — at 200+ saves it jank-scrolls and causes memory pressure. This is a retention killer when users are power users.  
 **Files to change**: `app/inbox/page.tsx`, possibly `components/InboxCard.tsx`  
 **What to do**:

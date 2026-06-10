@@ -1,17 +1,23 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, RefObject } from 'react';
 import { tapLight } from '@/lib/haptics';
 
-const PULL_THRESHOLD = 70; // px of pull needed to trigger refresh
-const MAX_PULL_DISPLAY = 80; // clamp the visual pull indicator
+const PULL_THRESHOLD = 70;
+const MAX_PULL_DISPLAY = 80;
 
-export function usePullToRefresh(onRefresh: () => Promise<void>) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [pullY, setPullY]         = useState(0);   // visual indicator height
+/**
+ * Attach pull-to-refresh to an existing scroll container ref.
+ * Pass the same ref to the virtualizer so both share one scroll element.
+ */
+export function usePullToRefresh(
+  containerRef: RefObject<HTMLDivElement | null>,
+  onRefresh: () => Promise<void>
+) {
+  const [pullY, setPullY]           = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
-  const startYRef  = useRef(-1);
+  const startYRef    = useRef(-1);
   const triggeredRef = useRef(false);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
@@ -20,26 +26,23 @@ export function usePullToRefresh(onRefresh: () => Promise<void>) {
       startYRef.current = -1;
       return;
     }
-    startYRef.current  = e.touches[0].clientY;
+    startYRef.current    = e.touches[0].clientY;
     triggeredRef.current = false;
-  }, [refreshing]);
+  }, [containerRef, refreshing]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (startYRef.current < 0 || refreshing) return;
     const delta = e.touches[0].clientY - startYRef.current;
     if (delta <= 0) return;
 
-    // Rubber-band resistance
     const display = Math.min(Math.sqrt(delta) * 5.5, MAX_PULL_DISPLAY);
     setPullY(display);
 
-    // Haptic click at threshold
     if (!triggeredRef.current && display >= PULL_THRESHOLD) {
       triggeredRef.current = true;
       tapLight();
     }
 
-    // Prevent native over-scroll so our indicator takes over
     if (delta > 5) e.preventDefault();
   }, [refreshing]);
 
@@ -59,17 +62,15 @@ export function usePullToRefresh(onRefresh: () => Promise<void>) {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-
     el.addEventListener('touchstart',  handleTouchStart, { passive: true });
     el.addEventListener('touchmove',   handleTouchMove,  { passive: false });
     el.addEventListener('touchend',    handleTouchEnd,   { passive: true });
-
     return () => {
       el.removeEventListener('touchstart',  handleTouchStart);
       el.removeEventListener('touchmove',   handleTouchMove);
       el.removeEventListener('touchend',    handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [containerRef, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  return { containerRef, pullY, refreshing };
+  return { pullY, refreshing };
 }
