@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Extension Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+    }
+
+    .header-text h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: #1e293b;
+    }
+
+    .header-text p {
+      font-size: 12.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Form ── */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 7px;
+    }
+
+    .label-hint {
+      font-size: 11.5px;
+      color: #94a3b8;
+      font-weight: 400;
+      margin-left: 6px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 13.5px;
+      color: #1e293b;
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+
+    input:focus {
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    .input-hint {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 5px;
+    }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-primary {
+      padding: 9px 18px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      box-shadow: 0 1px 6px rgba(14, 165, 233, 0.3);
+      font-family: inherit;
+    }
+
+    .btn-primary:hover { opacity: 0.9; }
+
+    .btn-secondary {
+      padding: 9px 18px;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    /* ── Status messages ── */
+    .status {
+      display: none;
+      font-size: 12.5px;
+      padding: 8px 12px;
+      border-radius: 7px;
+      margin-top: 12px;
+      font-weight: 500;
+    }
+
+    .status.success {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      display: block;
+    }
+
+    .status.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      display: block;
+    }
+
+    .status.info {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      display: block;
+    }
+
+    /* ── Info section ── */
+    .info-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .info-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12.5px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .info-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand-icon">✈️</div>
+      <div class="header-text">
+        <h1>TravelPanel Settings</h1>
+        <p>Configure your clip extension</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">App Configuration</div>
+
+      <div class="form-group">
+        <label for="appUrl">
+          TravelPanel App URL
+          <span class="label-hint">required</span>
+        </label>
+        <input
+          type="url"
+          id="appUrl"
+          placeholder="https://your-app.vercel.app"
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <div class="input-hint">
+          Your deployed TravelPanel URL. Find this in Vercel after deployment.
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="saveBtn">Save settings</button>
+        <button class="btn-secondary" id="testBtn">Test connection</button>
+      </div>
+
+      <div class="status" id="statusMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">How It Works</div>
+      <ul class="info-list">
+        <li>
+          <span class="info-icon">🖱️</span>
+          <span>Click the extension icon on any travel page to clip it instantly.</span>
+        </li>
+        <li>
+          <span class="info-icon">🖱️</span>
+          <span>Right-click any page or link and choose "Clip to TravelPanel".</span>
+        </li>
+        <li>
+          <span class="info-icon">✂️</span>
+          <span>TravelPanel extracts spots, tips, warnings, and wisdom from the page automatically.</span>
+        </li>
+        <li>
+          <span class="info-icon">📋</span>
+          <span>Clips are saved to your board and enriched with GPS coordinates via AI.</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

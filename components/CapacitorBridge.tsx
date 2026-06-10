@@ -51,10 +51,13 @@ export function CapacitorBridge() {
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            // imageBase64 is set by the Share Extension for Xiaohongshu/WeChat screenshots
+            const imageBase64 = parsed.searchParams.get('imageBase64');
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              if (imageBase64) qs.set('imageBase64', imageBase64);
               router.push(`/share?${qs.toString()}`);
             }
           } catch {

@@ -85,8 +85,10 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,7 +100,28 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  const prompt = imageBase64
+    ? `You are a travel content analyzer. The user shared a screenshot from a social media travel post (${platform}, URL: ${url}).
+Analyze the image carefully and extract TWO layers of travel content from what you see in the screenshot.
+
+${page?.title ? `Page title hint: ${page.title}` : ''}
+${page?.description ? `Page description hint: ${page.description}` : ''}
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations visible in the screenshot — place names, restaurant names, neighbourhood names.
+Only include locations you can confidently identify with GPS coordinates.
+If no specific named places are visible, return an empty locations array.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Read all text visible in the screenshot — captions, overlays, comments, hashtags — and extract every actionable insight:
+- Tips: timing, ordering, access strategies
+- Warnings: crowds, closures, cash-only, scams
+- Recommendations: what to skip, what to order, hidden gems
+- Wisdom: seasonal notes, first-timer mistakes, insider knowledge
+- Context: cultural notes, pricing signals, comparisons
+
+Never return an empty substance array if travel content is visible in the image.`
+    : `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -130,12 +153,34 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      const mimeType = (imageMimeType || 'image/jpeg') as
+        | 'image/jpeg'
+        | 'image/png'
+        | 'image/webp'
+        | 'image/gif';
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: imageBase64, mimeType },
+              { type: 'text', text: prompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
