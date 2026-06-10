@@ -366,7 +366,7 @@ Work top-to-bottom.
 - Enrichment and plan generation should show "Requires internet connection" instead of failing silently
 
 ### E10 — Pinch-to-Zoom & Full-Screen Image Viewer
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: new `components/ImageViewer.tsx`, `components/InboxCard.tsx`, `components/LocationDetailCard.tsx`
 **What to do**:
 - Tapping a clip thumbnail (in detail card or inbox card) opens a full-screen image viewer

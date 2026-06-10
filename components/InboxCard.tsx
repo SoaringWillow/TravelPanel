@@ -6,6 +6,7 @@ import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react'
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
 import { lightHaptic } from '@/lib/haptics';
+import { ZoomableThumbnail } from '@/components/ImageViewer';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -256,13 +257,11 @@ function SwipeToDeleteCard({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Thumbnail or platform-colored gradient placeholder */}
       {item.thumbnail ? (
-        <img
+        <ZoomableThumbnail
           src={item.thumbnail}
           alt={item.title}
+          caption={item.title}
           className="w-full h-32 object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
         />
       ) : (
         <div
