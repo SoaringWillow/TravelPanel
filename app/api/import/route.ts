@@ -83,29 +83,43 @@ async function fetchPageData(url: string) {
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+const BLOCKED_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
+
 export async function POST(req: NextRequest) {
-  let url: string;
+  let url: string | undefined;
+  let imageBase64: string | undefined;
+  let imageMimeType: string = 'image/jpeg';
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  if (!url && !imageBase64) {
+    return NextResponse.json({ error: 'url or imageBase64 required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  const platform = detectPlatform(url ?? '');
+
+  // Fetch page content unless the platform is known to block server-side scraping
+  // and we have an image to fall back on.
+  const skipFetch = imageBase64 && BLOCKED_PLATFORMS.has(platform);
+  const page = url && !skipFetch ? await fetchPageData(url) : null;
+
+  const imageHint = imageBase64
+    ? '\n\nYou have been given a screenshot of the social media post. ' +
+      'Analyze the IMAGE carefully — read ALL visible text, caption, overlays, and location tags. ' +
+      'Extract locations and wisdom from what is visible in the screenshot.'
+    : '';
 
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
-URL: ${url}
+URL: ${url ?? '(screenshot only)'}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page)'}${imageHint}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -133,7 +147,27 @@ Never return an empty substance array for a real travel post.`;
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
-      prompt,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            ...(imageBase64
+              ? [
+                  {
+                    type: 'image' as const,
+                    image: Buffer.from(imageBase64, 'base64'),
+                    mimeType: (imageMimeType || 'image/jpeg') as
+                      | 'image/jpeg'
+                      | 'image/png'
+                      | 'image/gif'
+                      | 'image/webp',
+                  },
+                ]
+              : []),
+            { type: 'text' as const, text: prompt },
+          ],
+        },
+      ],
     });
     claudeResult = object;
   } catch {
@@ -142,7 +176,7 @@ Never return an empty substance array for a real travel post.`;
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
+    title: (claudeResult?.title || page?.title || url || 'Saved clip').slice(0, 200),
     description: (claudeResult?.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],

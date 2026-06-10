@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -13,6 +13,9 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Stage = 'picking' | 'saving' | 'done';
+
+// Platforms that block server-side scraping — suggest screenshot upload for these
+const BLOCKED_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -29,8 +32,30 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  // Image from native Share Extension injection or manual upload
+  const [imageBase64, setImageBase64]         = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType]     = useState<string>('image/jpeg');
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const imageInputRef   = useRef<HTMLInputElement>(null);
+
+  // On mount: pick up image injected by the native AppDelegate bridge
+  useEffect(() => {
+    const w = window as unknown as { __pendingShareImage?: string };
+    if (w.__pendingShareImage) {
+      setImageBase64(w.__pendingShareImage);
+      delete w.__pendingShareImage;
+    }
+
+    // Also listen for the custom event (fired when the page is already mounted
+    // when the native side injects the image)
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (detail) setImageBase64(detail);
+    };
+    window.addEventListener('travelpanel:shareImage', handler);
+    return () => window.removeEventListener('travelpanel:shareImage', handler);
+  }, []);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
@@ -88,9 +113,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if available (bypasses scraping for XHS/WeChat)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64 ?? undefined, imageMimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +189,50 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot upload — for platforms that block server scraping */}
+          {BLOCKED_PLATFORMS.has(platform) && (
+            <div className="mt-3">
+              {imageBase64 ? (
+                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                  <span className="text-green-600 text-sm">📸 Screenshot attached — AI will read the image</span>
+                  <button
+                    type="button"
+                    onClick={() => setImageBase64(null)}
+                    className="ml-auto text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="flex items-center gap-2 w-full bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-700 hover:bg-amber-100 transition-colors"
+                >
+                  <ImagePlus size={15} />
+                  Add screenshot for better extraction
+                </button>
+              )}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setImageMimeType(file.type || 'image/jpeg');
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const result = reader.result as string;
+                    setImageBase64(result.split(',')[1]);
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </div>
           )}
         </div>
 
