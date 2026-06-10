@@ -7,388 +7,309 @@
 
 ---
 
-## ⭐ Recommended Execution Order (revised 2026-06-10)
+## Current State (as of 2026-06-10)
 
-Goal: **a beautiful, fully functional iOS app** that makes the clip-action moat visceral.
+The core clip → extract → board → plan loop works end-to-end. All Phase A–E tasks complete except blocked items (B4/D4 need Supabase, E4 needs Xcode, E5 needs RevenueCat). The app looks and functions like a web prototype wrapped in Capacitor.
 
-Phase C is iOS polish — the raw substance extraction works, but the app still *feels* like a web prototype. These tasks close the gap between "it works" and "I love using this every day."
+**The gap to a beautiful, fully functional iOS app** is now in three areas:
+1. **Native feel**: Safe area, haptics, pull-to-refresh, swipe gestures — things the OS expects
+2. **Ship readiness**: Privacy manifest, App Store metadata, accessibility compliance
+3. **Retention surface**: Widget, smart resurfacing, viral sharing moments
 
-`C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → D1 → D2 → D3 → D4 → E1 → E2`
-
-(D and E tasks add growth surface area; C tasks are the prerequisite for retention.)
-
----
-
-## PHASE A — Bug-Free MVP (Current Sprint)
-
-### A1 — Substance Extraction (2-layer clip schema) 🔴 HIGHEST PRIORITY
-**Status**: `[x]` Done  
-**Why**: This is the #1 strategic moat. Currently `api/import/route.ts` only extracts spots (locations + coordinates). It must ALSO extract substance: tips, warnings, opinions, "go in the morning"-style wisdom from the post content.  
-**File to change**: `app/api/import/route.ts`  
-**What to do**:
-- Extend the Zod schema to add a `substance` array alongside `locations`
-- Each substance item: `{ type: 'tip'|'warning'|'opinion'|'wisdom'|'context'|'recommendation', content: string, applies_to?: string, source_quote?: string }`
-- Update the Claude prompt to explicitly ask for both layers
-- Update the DB schema in `lib/db.ts` to store `substance: SubstanceItem[]` on `SavedItem`
-- Update `lib/types.ts` with the `SubstanceItem` type
-- Update `components/InboxCard.tsx` to show substance count badge (e.g. "3 tips")
-
-### A2 — Enrichment Retry Queue 🔴 HIGH PRIORITY
-**Status**: `[x]` Done  
-**Why**: Enrichment is currently fire-and-forget. Items silently fail to enrich (no error, no retry). Users see empty cards. This is a retention killer.  
-**Files to change**: `app/share/page.tsx`, `lib/db.ts`, possibly a new `lib/retryQueue.ts`  
-**What to do**:
-- On enrichment failure, set `enrichmentStatus: 'failed'` and increment `retryCount`
-- Create a retry mechanism: on app load, find items with `status: 'failed'` and `retryCount < 3`, re-attempt enrichment with exponential backoff (2s, 4s, 8s)
-- Show a subtle "Retrying..." indicator on failed cards
-- After 3 failures, show a "Failed to extract info" state with a manual retry button
-
-### A3 — Error Tracking (PostHog)
-**Status**: `[x]` Done  
-**Needs**: `NEXT_PUBLIC_POSTHOG_KEY` env var (free tier) — but NOT a blocker; wrappers no-op without it  
-**Files to change**: `app/layout.tsx`, new `lib/analytics.ts`  
-**What to do**:
-- Install `posthog-js`
-- Create `lib/analytics.ts` with `track(event, props)` and `identify(userId)` wrappers that no-op if key is missing
-- Add PostHog provider to `app/layout.tsx`
-- Track key events: `clip_saved`, `plan_generated`, `board_created`, `search_performed`
-- If `NEXT_PUBLIC_POSTHOG_KEY` is missing, trigger resource request notification (see A5)
-
-### A4 — AI Cost Guard
-**Status**: `[x]` Done  
-**Why**: Heavy users can spike API spend with no ceiling. No visibility into per-user cost.  
-**Files to change**: `app/api/plan/route.ts`, `app/api/import/route.ts`  
-**What to do**:
-- Add a simple per-session rate limit: max 10 enrichments per hour (track in localStorage), max 5 plan generations per day (track in IndexedDB)
-- When limit is hit, show a friendly message: "You've hit the daily plan limit. Upgrade to Pro for unlimited plans — coming soon."
-- Log token usage per request to console in dev mode (foundation for cost tracking)
-
-### A5 — In-App Resource Request Notifications
-**Status**: `[x]` Done  
-**Files**: new `components/ResourceBanner.tsx`, new `app/api/notify/route.ts`  
-**What to do**:
-- Create a banner component that checks for missing env vars and shows what's needed
-- Create `app/api/notify/route.ts` that sends an email via Resend to jiangnan027@gmail.com when a resource is needed
-- Env vars to check: `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_POSTHOG_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`
-- If `RESEND_API_KEY` is missing, fall back to a mailto: link
-- **NOTE**: Ask user for `RESEND_API_KEY` to enable email notifications (free tier: 100 emails/day)
-
-### A6 — Pin Clustering at Low Zoom
-**Status**: `[x]` Done  
-**Files to change**: `components/MapView.tsx`  
-**What to do**:
-- Enable MapLibre's built-in cluster layer on the locations source
-- Show count badge on clustered pins
-- On click of cluster, zoom in to reveal individual pins
-- Individual pin color should reflect tag category (food=orange, nature=green, culture=purple, etc.)
-
-### A7 — Full-Text Search on Clips
-**Status**: `[x]` Done  
-**Files**: new `components/SearchBar.tsx`, `app/page.tsx` or `app/inbox/page.tsx`  
-**What to do**:
-- Add a search bar to the main board/inbox view
-- Client-side search across clip title + description + tags + substance content (if present)
-- Debounced (300ms), highlights matching text
-- Empty state: "No clips match '[query]'. Try a different search."
-- Foundation for embedding search in Phase B
-
-### A8 — Onboarding Seed Boards
-**Status**: `[x]` Done  
-**Files**: new `lib/seedData.ts`, `app/page.tsx`  
-**What to do**:
-- Create 3 seed boards with real-looking clip data (Tokyo, Kyoto, Bali or similar)
-- Each seed board has 4–6 clips with locations, tags, and substance items
-- Show these on first launch (detect via a `hasSeenOnboarding` flag in localStorage)
-- User can dismiss ("I'll add my own clips") or keep them
-- Seed data should showcase the substance layer: each clip has at least 2 substance items
-
-### A9 — Plan Export (PDF + Calendar)
-**Status**: `[x]` Done  
-**Files**: `app/plan/[boardId]/page.tsx`, new `lib/exportPlan.ts`  
-**What to do**:
-- Add Export button to the plan view
-- PDF: use `jspdf` to generate a clean print-layout PDF with day-by-day itinerary
-- Calendar: generate `.ics` file (RFC 5545) with one event per activity, including location coordinates for Apple Maps deep link
-- Both exports include source citations from substance items
-
-### A10 — Multi-Version Plan Support
-**Status**: `[x]` Done  
-**Files**: `app/plan/[boardId]/page.tsx`, `lib/db.ts`  
-**What to do**:
-- Allow saving a named plan variant ("Relaxed pace", "Budget version")
-- Store multiple plans per board in IndexedDB (`trips` store)
-- Show plan version selector at top of plan view
-- "Regenerate" creates a new version (doesn't overwrite current)
-
-### A11 — Surface Substance in Clip Detail (the "Wisdom view") 🔴 HIGHEST PRIORITY
-**Status**: `[x]` Done  
-**Why**: A1 extracts substance but `LocationDetailCard` never shows it — the moat is invisible. This is the payoff for the count badge users already see.  
-**Files to change**: `components/LocationDetailCard.tsx`, possibly a new `components/SubstanceList.tsx`  
-**What to do**:
-- Add a "Wisdom" section to the detail card rendering `item.substance`
-- Group by type with an icon/color per type: tip 💡, warning ⚠️, opinion 💬, wisdom 🧠, context 🌍, recommendation ⭐
-- Show `content`; if `source_quote` present, show it as a subtle italic citation under the content
-- Extract a reusable `SubstanceList` so the plan view (A12) can reuse it
-- Empty state: don't render the section if `substance` is empty
-
-### A12 — Thread Substance into Trip Plans (sourced itineraries) 🔴 HIGHEST PRIORITY
-**Why**: The strategic promise is "the trip planner generates an itinerary that *cites the source clips inline*." Currently `/api/plan` builds `contentSummary` from only `title/activities/tags` — substance is dropped, so plans can't cite wisdom. This wires the moat end-to-end.  
-**Status**: `[x]` Done  
-**Files to change**: `app/api/plan/route.ts`, `lib/types.ts` (Activity/DayPlan), `components/DayStripCard.tsx` or plan view  
-**What to do**:
-- Include each item's `substance` (with source title) in the `contentSummary` passed to the planner
-- Update the planner prompt: when an activity is informed by a clip's tip/warning, surface that wisdom in the activity's `tips` and note which saved clip it came from
-- Add an optional `sourcedTips?: { content: string; sourceTitle: string }[]` to the `Activity` type so citations render distinctly from generic tips
-- In the day plan UI, render sourced tips with a "from your clip: <title>" attribution
-- Keep it graceful: items without substance still plan fine
+North Star metric: **Weekly clips per active user**. Every task below is measured against this.
 
 ---
 
-## PHASE B — Cloud Sync + Auth (Next Sprint)
+## ⭐ Recommended Execution Order
 
-### B1 — Supabase Setup
-**Status**: `[~]` Scaffolded, dormant until keys  
-**Needs**: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (request from user)  
-**Done** (no-op-until-keyed, same pattern as PostHog A3 — activates the moment keys are pasted):
-- `lib/supabase.ts` — lazy client + auth (magic link, Google OAuth, session, auth-change sub); `cloudEnabled` flag
-- `supabase/schema.sql` — Postgres mirror of IndexedDB (items/boards/trips as JSONB) + per-user RLS + indexes
-- `lib/cloudSync.ts` — `pushToCloud`/`pullFromCloud`/`syncNow`, last-write-wins, demo content excluded
-- `.env.local.example` — documents the two Supabase vars
-- `@supabase/supabase-js` added to deps + lockfile
-**Remaining to fully activate** (next session, once keys exist): create Supabase project, run `schema.sql`,
-add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
+`F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → G1 → G2 → G3 → G4 → H1 → H2 → H3`
 
-### B2 — Browser Extension
-**Status**: `[x]` Done  
-**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
+---
 
-### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[x]` Done  
-**What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
+## PHASE F — iOS Native Feel & Ship Readiness
+
+> These tasks close the gap between "web app in a WebView" and "native iOS product". They are table-stakes for App Store approval and for surviving a first-week retention cohort.
+
+### F1 — Safe Area & Dynamic Island Support
+**Status**: `[ ]` Not started  
+**Why**: iOS 14+ devices have notches and Dynamic Islands. Without `env(safe-area-inset-*)`, the top navbar overlaps the status bar and the bottom FAB hides behind the home indicator. This is the most visually jarring issue on a real device.  
+**Files to change**: `app/globals.css`, `app/layout.tsx`, `components/NavBar.tsx`, `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Add `viewport-fit=cover` to the viewport meta tag in `app/layout.tsx` — this tells iOS to render edge-to-edge
+- Add Tailwind safe-area utilities to `app/globals.css`:
+  ```css
+  .pt-safe-top    { padding-top: env(safe-area-inset-top, 0px); }
+  .pb-safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pl-safe-left   { padding-left: env(safe-area-inset-left, 0px); }
+  .pr-safe-right  { padding-right: env(safe-area-inset-right, 0px); }
+  ```
+- Apply `pt-safe-top` to the top bar in `app/page.tsx` (already has `pt-12`, replace with `pt-safe-top` dynamic value)
+- Apply `pb-safe-bottom` to the NavBar's bottom padding so the home indicator doesn't overlap icons
+- In the map view, the floating top bar should start at `top: env(safe-area-inset-top, 0px)` not fixed `top-0`
+- Test with the Simulator's device frame to verify there's no overlap at notch/island area
+
+### F2 — iOS Privacy Manifest
+**Status**: `[ ]` Not started  
+**Why**: Apple requires a privacy manifest (`PrivacyInfo.xcprivacy`) for all new App Store submissions since May 2024. Without it, the app will be rejected. It declares which iOS APIs we use and why.  
+**File to create**: `ios/App/App/PrivacyInfo.xcprivacy`  
+**What to do**:
+- Create the XML privacy manifest declaring these accessed API categories:
+  - `NSPrivacyAccessedAPICategoryUserDefaults` — we use UserDefaults for App Group Share Extension fallback (reason: `CA92.1` — storing user preferences)
+  - `NSPrivacyCollectedDataTypes` — if PostHog is enabled: analytics events (not linked to identity unless user logs in)
+- Content template:
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+  <dict>
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+      <dict>
+        <key>NSPrivacyAccessedAPIType</key>
+        <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+        <key>NSPrivacyAccessedAPITypeReasons</key>
+        <array>
+          <string>CA92.1</string>
+        </array>
+      </dict>
+    </array>
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+    <key>NSPrivacyTracking</key>
+    <false/>
+  </dict>
+  </plist>
+  ```
+- Note: This file must also be added to the Xcode project via the Xcode GUI — document this in `ios/App/XCODE_SETUP.md`
+
+### F3 — Offline & Error States
+**Status**: `[ ]` Not started  
+**Why**: When the user's internet is spotty (on a plane, in a tunnel), every API call silently fails. There's no "you're offline" indicator, no retry button, and no cached content fallback. This is a critical retention risk for a travel app (used internationally, often with poor connectivity).  
+**Files to change**: `components/ImportSheet.tsx`, `app/plan/[boardId]/page.tsx`, `app/inbox/page.tsx`  
+**What to do**:
+- Create a `useOnlineStatus()` hook in `hooks/useOnlineStatus.ts` that listens to `window.addEventListener('online'/'offline')` and returns `{ isOnline: boolean }`
+- In `ImportSheet`: when offline, disable the import button and show a `"You're offline — clips will save for later"` banner above the URL input
+- In `app/plan/`: show a `"No internet connection"` amber warning if offline; still allow viewing existing saved plans
+- In `app/inbox/`: show a subtle offline indicator dot in the header when offline
+- The map (MapLibre) has its own tile caching — don't change map behavior, just UI components
+- On `fetch` error (network error vs. API error), distinguish the two and show different messages:
+  - Network error: "No connection — check your internet and try again"
+  - API error (4xx/5xx): "Something went wrong — tap to retry"
+
+### F4 — Pull-to-Refresh in Inbox & Boards
+**Status**: `[ ]` Not started  
+**Why**: iOS users instinctively pull down to refresh. Without it, the app feels static and stale. This is a P0 UX expectation from App Store reviewers and users alike.  
+**Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
+**What to do**:
+- Use the Capacitor `@capacitor/app` plugin's `pause`/`resume` events OR use pure CSS/JS overscroll detection
+- Simplest approach: add a `TouchStart`/`TouchMove` listener on the scroll container — if `scrollTop === 0` and user drags down, show a refresh spinner and call `refresh()` from `useSavedItems`
+- Alternatively, install `@capacitor/haptics` (already installed) and trigger a light haptic when pull-to-refresh activates
+- Show a spinner with `"Refreshing…"` text while loading, then snap back
+- Must feel native: the spinner should appear ABOVE the first list item, not push content down
+
+### F5 — Accessibility (VoiceOver + Dynamic Type)
+**Status**: `[ ]` Not started  
+**Why**: App Store review team tests with VoiceOver. Failing accessibility review causes rejection. Additionally, many travel users are older — Dynamic Type support is retention-critical for them.  
+**Files to change**: Most components  
+**What to do**:
+- Audit and add `aria-label` to every `<button>` that has only an icon (no text):
+  - GPS toggle, close buttons, share button, regenerate summary button, navigation button
+- Add `role="list"` and `role="listitem"` to the inbox grid and board list
+- Add `aria-live="polite"` to the undo toast and nearby chip (screen reader will announce them)
+- For Dynamic Type: replace hardcoded `text-sm`, `text-xs` in key areas with CSS `clamp()` or Tailwind `text-base` minimum — most important in `LocationDetailCard` and `InboxCard`
+- Add `aria-busy="true"` to skeleton loaders
+- Test with iOS Simulator > Accessibility Inspector > Audit
+
+### F6 — Virtualized Infinite Scroll for Large Collections
+**Status**: `[ ]` Not started  
+**Why**: At 200+ clips, the DOM has 200+ card components, each with motion listeners and image loads. This causes frame drops and scroll jank — especially on older iPhones. The app's North Star is clip accumulation, so this will hit every power user.  
+**Files to change**: `app/inbox/page.tsx`  
+**What to do**:
+- Install `@tanstack/react-virtual` (lightweight, no peer dep conflicts): `npm install @tanstack/react-virtual`
+- Replace the flat `items.map()` list in inbox with a virtualized list using `useVirtualizer`
+- Each row: 2 cards side-by-side (current grid layout)
+- The virtualizer should measure row heights dynamically since skeleton cards differ from loaded cards
+- Threshold: only activate virtualization when `items.length > 50` — below that the DOM cost is negligible
+- Keep the existing filter/search logic intact; pass the filtered array to the virtualizer
+
+### F7 — Universal Links (apple-app-site-association)
+**Status**: `[ ]` Not started  
+**Why**: Currently deep links use the `travelpanel://` custom URL scheme. Universal links (`https://travelpanel.app/...`) are the standard — they work on first install without the app needing to be open, they appear as normal web URLs in iMessage, and they fall back to the web app if not installed.  
+**Files to create**: `public/.well-known/apple-app-site-association`  
+**What to do**:
+- Create `public/.well-known/apple-app-site-association` with the AASA JSON:
+  ```json
+  {
+    "applinks": {
+      "apps": [],
+      "details": [{
+        "appID": "TEAMID.com.travelpanel.app",
+        "paths": ["/shared/*", "/inbox", "/boards/*", "/plan/*"]
+      }]
+    }
+  }
+  ```
+- Note: Replace `TEAMID` with the actual Apple Team ID — document this placeholder clearly
+- Update `ios/App/App/Info.plist` to add `com.apple.developer.associated-domains` with `applinks:travelpanel.app`
+- Update `CapacitorBridge.tsx` to handle incoming universal link paths (route `/shared/TOKEN` → decode and show the board)
+- Document the entitlement that must be enabled in Xcode: **Signing & Capabilities → Associated Domains**
+
+### F8 — App Store Submission Checklist & TestFlight Setup
+**Status**: `[ ]` Not started  
+**Why**: The app needs a proper submission checklist so a human can complete the Xcode/App Store Connect steps that can't be automated. Clear documentation prevents launch-day scramble.  
+**File to create**: `ios/App/APP_STORE_CHECKLIST.md`  
+**What to do**:
+- Create `ios/App/APP_STORE_CHECKLIST.md` that documents every manual step:
+  1. Xcode signing (bundle ID, provisioning profile, team ID)
+  2. App icon: place the 1024×1024 PNG in `Assets.xcassets/AppIcon.appiconset/`
+  3. Launch screen: update `Assets.xcassets/Splash.imageset/` with brand splash
+  4. Privacy manifest: add `PrivacyInfo.xcprivacy` to the Xcode project target
+  5. Associated Domains capability: `applinks:travelpanel.app`
+  6. Share Extension App Group: `group.com.travelpanel.app` — add to both targets
+  7. `pod install` in `ios/App/`
+  8. Archive → Upload to App Store Connect
+  9. App Store metadata: title, subtitle, description (template included in the doc)
+  10. Screenshots: required sizes (6.7", 6.5", 5.5", iPad 12.9")
+  11. Age rating: 4+ (no user-generated content moderation needed yet)
+  12. Export compliance: No encryption used → select "No" for encryption
+- Also include the production build command: `CAPACITOR_SERVER_URL=https://your-app.vercel.app npm run ios:build`
+
+---
+
+## PHASE G — Viral Growth Surface
+
+> Features that expand reach without ads. The best travel apps grow because users share their trips.
+
+### G1 — Smart "Share this Trip Plan" Card
+**Status**: `[ ]` Not started  
+**Why**: A generated trip plan is a shareable moment. Currently there's no way to share a plan — only boards (via D2). A "Share plan" action generates a visually rich summary card that users can screenshot and share on social.  
+**Files to change**: `app/plan/[boardId]/page.tsx`, new `components/PlanShareCard.tsx`  
+**What to do**:
+- After a plan is generated, add a "Share" button in the plan header
+- Tapping it renders a full-screen "plan summary card" modal:
+  - Board emoji + name at top
+  - "X days in [destination]" tagline
+  - Day themes listed in a timeline (Day 1: Food & history → Day 2: Mountains & temples → ...)
+  - Number of locations + source clips
+  - TravelPanel branding at bottom: "Built with TravelPanel 🗺"
+- On iOS: use `@capacitor/share` plugin (`Share.share({ text, url })`) to open the native iOS share sheet
+- On web: copy a summary text to clipboard
+- The card component should be self-contained so it can be screenshotted easily (no nav bars overlapping)
+- Style: white background, large fonts, indigo accents — looks great as a screenshot
+
+### G2 — "Import Friend's Board" Deep Link
+**Status**: `[ ]` Not started  
+**Why**: D2 added board sharing (base64 URL). But when a friend taps the link on iOS, there's no obvious prompt to "Save to my TravelPanel". The import experience needs to be more intentional and conversion-optimized.  
+**Files to change**: `app/shared/[token]/page.tsx`, `components/CapacitorBridge.tsx`  
+**What to do**:
+- On the shared board page, add a prominent "Save to my TravelPanel" button that:
+  - Decodes the board + items from the token
+  - Saves all items to IndexedDB via `addItem()`
+  - Creates a new board with the same name/emoji
+  - Navigates to the newly created board
+- Show a "X clips saved!" success toast after import
+- In `CapacitorBridge.tsx`, handle the `travelpanel://shared/TOKEN` scheme to open the shared board view directly if the app is installed
+- Track this event: `track('board_imported_from_share_link')`
+
+### G3 — Clip Count Milestone Celebrations
+**Status**: `[ ]` Not started  
+**Why**: Celebrating milestones (5th clip, 25th clip, first plan) creates dopamine moments that increase weekly retention. Apps like Duolingo live by this.  
+**Files to change**: `app/inbox/page.tsx`, `app/plan/[boardId]/page.tsx`, new `lib/milestones.ts`  
+**What to do**:
+- Create `lib/milestones.ts` with `checkMilestone(clipCount: number): string | null` that returns a celebration message at counts: 1, 5, 10, 25, 50, 100
+  - 1: "First clip saved! 🎉 Your adventure collection starts here."
+  - 5: "5 places saved! You're building something special ✈️"
+  - 10: "10 clips — enough to plan a trip! 🗺 Try the trip planner."
+  - 25: "25 places! You're a seasoned explorer 🏔"
+  - 50: "50 clips! Power user mode activated 🔥"
+  - 100: "100 places saved 🌏 That's a lifetime of adventures."
+- After each `addItem()` call in `app/inbox/page.tsx`, check if a milestone is hit and show a full-screen `AnimatePresence` confetti modal (use `framer-motion` to animate emoji confetti)
+- The modal auto-dismisses after 3 seconds or on tap
+- Track: `track('milestone_hit', { count: clipCount })`
+- Gate per milestone: only show each milestone once (localStorage flag)
+
+### G4 — "Inspiration From" Attribution on Import
+**Status**: `[ ]` Not started  
+**Why**: When a clip is imported from a specific creator's video/post, the "Inspired by [creator]" attribution is valuable context — both for the user's memory and for potential future social features.  
+**Files to change**: `app/api/import/route.ts`, `lib/types.ts`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- In the Claude extraction prompt, add optional `sourceAuthor?: string` and `sourceDate?: string` fields to the schema
+- Example: a Xiaohongshu post by "旅行博主小王" → `sourceAuthor: "旅行博主小王"`
+- Add `sourceAuthor?: string` to `SavedItem` type
+- In `LocationDetailCard`, if `sourceAuthor` is present, show a subtle "Inspired by [author]" line in grey below the platform badge
+- This sets up future social features (follow your favorite travel creators' clips)
+
+---
+
+## PHASE H — AI Intelligence Layer
+
+> These features use AI to make the app smarter over time — turning a clip library into a contextual travel assistant.
+
+### H1 — Contextual Clip Resurfacing ("Good time to go")
+**Status**: `[ ]` Not started  
+**Why**: The best moment to use a saved Tokyo clip is when the user is planning a Japan trip, not 6 months after they saved it. The "Good time to go" feature resurfaces clips based on season, events, or user behavior patterns.  
+**Files to change**: `app/inbox/page.tsx`, new `lib/resurface.ts`  
+**What to do**:
+- Create `lib/resurface.ts` with `getResurfaceRecommendations(items, signals)`:
+  - Take the current month/season as a signal
+  - For each item, check if any substance items mention a season (e.g. "cherry blossoms peak April", "avoid July humidity")
+  - Return up to 3 clips that are seasonally relevant right now
+- Add a "Good time to go" section at the TOP of the inbox (above the filter chips), showing the relevant clips in a horizontal scroll row
+- Each resurfaced clip has a seasonal context chip: "🌸 Cherry season in 3 weeks" or "☀️ Perfect weather now"
+- This section only appears when ≥1 item passes the seasonal relevance filter
+
+### H2 — Smart Trip Duration Suggestion
+**Status**: `[ ]` Not started  
+**Why**: Users don't know how many days to plan for. Currently they enter a number manually. Claude can look at the clips in a board and suggest "Based on your 12 clips, we suggest 4–6 days" — reducing decision paralysis.  
+**Files to change**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- When the plan modal opens, calculate a suggested duration:
+  - If ≤5 clips: suggest 2–3 days
+  - If 6–15 clips: suggest 4–6 days  
+  - If 16–30 clips: suggest 7–10 days
+  - If >30 clips: suggest "10+ days or split into multiple trips"
+- Show this as a subtle suggestion text below the duration input: "💡 Based on your 12 places, we suggest 5 days"
+- Pre-fill the input with the suggested value but let user override
+- No API call needed — pure client-side calculation
+
+### H3 — Substance Conflict Detection
+**Status**: `[ ]` Not started  
+**Why**: When two clips about the same location have conflicting wisdom ("always book in advance" vs "walk-ins accepted"), the user needs to know. Surfacing conflicts prevents bad trip decisions.  
+**Files to change**: `app/boards/[id]/page.tsx`, new component or inline logic  
+**What to do**:
+- When a board has ≥2 clips about the same location (name overlap), scan their substance items for potential conflicts
+- Simple heuristic: if one substance item contains "book" + "advance" and another contains "walk-in" or "no reservation needed", flag a conflict
+- Show a subtle "⚠️ Conflicting tips" badge in the board detail header, clicking which opens a modal listing the conflicts with their source clips
+- This can be entirely client-side — no API call needed
+
+---
+
+## Blocked (waiting for external resources)
 
 ### B4 — Embedding/Vibe Search
-**Status**: `[ ]` Not started  
-**Needs**: Supabase pgvector (from B1)  
-**What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
-
-### B5 — Cloud Backup Export
-**Status**: `[x]` Done  
-**What to do**: "Download all my data" as JSON from the account settings page
-
----
-
-## PHASE C — iOS Polish & Native Feel
-
-> **Why Phase C is the highest priority now**: The core extraction loop works. The gap between "it works" and "I love using this daily" is almost entirely UI/UX polish and native iOS feel. These tasks are what turn a prototype into a product users recommend.
-
-### C1 — Dark Mode
-**Status**: `[x]` Done  
-**Why**: iOS users expect dark mode. The app is jarring at night on OLED screens. This is a hygiene item that users notice immediately.  
-**Files to change**: `app/globals.css`, `tailwind.config.ts`, every major component  
-**What to do**:
-- Add `darkMode: 'media'` to `tailwind.config.ts` (respects iOS system preference automatically)
-- Audit and add `dark:` variants to all hardcoded `bg-white`, `text-gray-900`, `border-gray-100` classes
-- Key surfaces to darken: NavBar, boards list, inbox card, map overlay, detail card, settings page
-- MapLibre map: switch to a dark base map style when system is dark (OpenFreeMap has a `dark` style)
-- Test on both light and dark to avoid color contrast regressions
-- Dark background target: `#0f172a` (slate-900); card background: `#1e293b` (slate-800)
-
-### C2 — Clipboard Import (Paste URL)
-**Status**: `[x]` Done  
-**Why**: The Share Sheet is iOS-only. Web users and Android users have no way to import URLs. A "Paste URL" button on the main screen gives all users a first-class import path without opening a Share Sheet.  
-**Files to change**: `app/page.tsx` (or `app/inbox/page.tsx`), `components/ImportSheet.tsx`  
-**What to do**:
-- Add a sticky floating action button (FAB) at the bottom-right of the map/inbox view: `+` icon
-- On tap: show a bottom sheet with a URL input field and "Import" button
-- Pre-fill the input if the clipboard contains a URL (check `navigator.clipboard.readText()` on mount, prompt permission if needed)
-- On "Import", call the existing `?import=<url>` flow (same as browser extension)
-- Show loading state while enrichment runs, then show extracted locations count
-- On iOS within the Capacitor app, this complements the Share Sheet (both work simultaneously)
-
-### C3 — Swipe Gestures + Haptics on Clip Cards
-**Status**: `[x]` Done  
-**Why**: Swipe-to-delete is a native iOS pattern users expect. Without it, managing clips feels clunky. Haptics make the app feel native rather than web-ported.  
-**Files to change**: `components/InboxCard.tsx`, `components/CapacitorBridge.tsx`  
-**What to do**:
-- Add swipe-left-to-delete on `InboxCard` using a touch gesture (use `framer-motion` drag or `react-swipeable`)
-- Reveal a red delete background as the card slides left, with a trash icon
-- On release past 40% threshold: delete with a `framer-motion` exit animation
-- Show a toast "Clip deleted — Undo" at the bottom with a 5-second undo window
-- Add haptic feedback using Capacitor's `@capacitor/haptics` plugin:
-  - `HapticsImpactStyle.Light` on swipe threshold reached
-  - `HapticsImpactStyle.Medium` on delete confirm
-  - `HapticsNotificationType.Success` on clip saved
-- Install `@capacitor/haptics`: run `npm install @capacitor/haptics` and add to `capacitor.config.ts`
-- Wrap Haptics calls in `try/catch` since the plugin no-ops on web
-
-### C4 — Skeleton Loaders for Pending Clips
-**Status**: `[x]` Done  
-**Why**: While a clip is enriching (status: 'pending' or 'processing'), the card shows a minimal stub. Users don't know if the app is working. Skeleton loaders signal activity and prevent perceived hangs.  
-**Files to change**: `components/InboxCard.tsx`  
-**What to do**:
-- When `item.enrichmentStatus === 'pending' || 'processing'`: render a pulsing skeleton card instead of the stub
-- Skeleton should match the card's final layout: two-line title placeholder + tag chip placeholders + a subtle "Extracting…" label
-- Use Tailwind `animate-pulse` with `bg-gray-200 dark:bg-gray-700` bars
-- Add a subtle spinning indicator (1rem spinner) in the top-right of the card during processing
-- When enrichment completes, transition from skeleton → real content with a `framer-motion` fade-in
-
-### C5 — Map UX Improvements
-**Status**: `[x]` Done  
-**Why**: The map is the hero surface but has rough edges: no fly-to animation when selecting a clip, no way to navigate to a location, pins feel generic.  
-**Files to change**: `components/MapView.tsx`, `components/LocationDetailCard.tsx`  
-**What to do**:
-- **Fly-to animation**: when the user taps a pin or selects a clip, fly the map to that location with `map.flyTo({ center, zoom: 14, duration: 800 })`
-- **"Navigate" button** in LocationDetailCard: deep-link to Apple Maps (`maps://`) or Google Maps (`comgooglemaps://`) on iOS, Google Maps web on other platforms
-  - Apple Maps URL: `maps://?q=<name>&ll=<lat>,<lng>`
-  - Google Maps URL: `https://maps.google.com/?q=<lat>,<lng>`
-  - Use `Capacitor.getPlatform()` to pick the right URL
-- **Category-colored pins**: each pin's color comes from the clip's first tag (food=orange, nature=green, culture=purple, adventure=red, beach=teal, default=indigo)
-- **Long-press on map**: show a "Save this location" tooltip at that coordinate, prompting a quick note input
-
-### C6 — Empty State Illustrations
-**Status**: `[x]` Done  
-**Why**: An empty app shows a blank white screen. This causes new users to bounce. Good empty states explain the product and give a clear next action.  
-**Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/plan/[boardId]/page.tsx`  
-**What to do**:
-- **Inbox empty state** (no clips yet): SVG illustration of a map pin + phone, headline "Your inspiration, organized", body "Save any travel link from Instagram, YouTube, or the web — AI extracts the locations and wisdom for you.", CTA button "Share a link"
-- **Board empty state** (board with no clips): "No clips in this board yet. Add clips from Inspiration.", with a subtle dashed outline card
-- **Plan empty state** (no plan generated): "Generate a trip plan from your saved clips", with the Generate button front and center
-- All illustrations should be inline SVG (no external deps), stroke-based, monochrome with an indigo accent
-- Dark mode variants using `dark:stroke-slate-400` etc.
-
-### C7 — In-App Review Prompt
-**Status**: `[x]` Done  
-**Why**: App Store ratings drive discovery. The ideal moment to ask is right after a user completes a plan (high-value, high-satisfaction moment).  
-**Files to change**: `app/plan/[boardId]/page.tsx`, new `lib/reviewPrompt.ts`  
-**What to do**:
-- Install `@capacitor-community/app-review`: `npm install @capacitor-community/app-review`
-- Create `lib/reviewPrompt.ts`: exports `maybePromptReview()` that triggers the native review dialog
-- Eligibility: user has ≥5 clips AND has generated ≥1 plan AND hasn't been prompted in the last 60 days (track in localStorage)
-- Call `maybePromptReview()` 2 seconds after a plan is fully generated (in the plan page)
-- Guard with `Capacitor.isNativePlatform()` — only fires in the iOS app, never on web
-
-### C8 — Spotlight Search Integration
-**Status**: `[x]` Done (stub — activates once @capacitor-community/apple-search-api is installed from GitHub)  
-**Why**: iOS users expect saved content to appear in Spotlight (swipe-down search). This is a powerful ambient discovery channel — when a user types "Tokyo" in their phone's search, their TravelPanel clips should appear.  
-**Files to change**: `components/CapacitorBridge.tsx`, `lib/db.ts`  
-**What to do**:
-- Install `@capacitor-community/apple-search-api`: adds Capacitor bindings to Core Spotlight
-- After every successful enrichment in `lib/enrichItem.ts`, index the item: `{ uniqueIdentifier: item.id, domain: 'clips', title: item.title, description: item.description, thumbnailURL: item.thumbnail, keywords: item.tags }`
-- On item delete, remove from Spotlight index
-- Handle the Spotlight open callback in `CapacitorBridge.tsx`: if the app opens from a Spotlight result (`App.addListener('appUrlOpen')` with a spotlight:// scheme), navigate to that clip's detail view
-- No-op on web (guard with `Capacitor.isNativePlatform()`)
-
----
-
-## PHASE D — On-Trip Mode & Social
-
-### D1 — Nearby Clips (On-Trip GPS Mode)
-**Status**: `[x]` Done  
-**Why**: The "I just landed — what's nearby?" use case is the highest-value on-trip moment. When the user is physically close to a saved location, the clip should surface automatically.  
-**Files to change**: `app/page.tsx` (map view), `components/MapView.tsx`  
-**What to do**:
-- Request geolocation permission with `navigator.geolocation.watchPosition()`
-- Show a "You are here" blue dot on the map (standard pattern)
-- When user location is within 500m of a saved clip's location, show a subtle bottom-sheet chip: "📍 You're near [Location Name] — view your tips"
-- Tapping the chip opens the clip's LocationDetailCard
-- Add a "Nearby" filter button in the inbox view that filters clips to those within a configurable radius (start with 2km)
-- Gate geolocation request on user action (button tap), not on mount — iOS requires this for user trust
-
-### D2 — Read-Only Board Sharing
-**Status**: `[x]` Done  
-**Why**: Users want to share their "Tokyo trip" board with a friend planning the same trip. This is a natural virality mechanic.  
-**Needs**: Supabase from B1 (to store shared boards server-side) — OR implement as a local export-to-URL (encode board as compressed JSON in the URL, no backend needed)  
-**Files to change**: `app/boards/[id]/page.tsx`, new `app/shared/[token]/page.tsx`  
-**What to do**:
-- **Option A (no backend, works now)**: Encode the board + its items as a compressed base64 string in a URL hash. Generate a `travelpanel.app/shared#<data>` URL. The `/shared` page decodes and renders a read-only board view.
-- **Option B (needs Supabase)**: POST the board to Supabase and get a short token URL
-- Implement Option A first (no backend dependency)
-- Shared view shows: board name, clip cards (title, thumbnail, tags, location count), but no AI plan
-- Add a "Share board" button in the board header with a copy-link action
-
-### D3 — Post-Trip Timeline
-**Status**: `[x]` Done  
-**Why**: After the trip, the app's job shifts from "planning" to "remembering." A timeline view shows visits in chronological order, turning TravelPanel into a travel diary.  
-**Files to change**: `lib/types.ts`, `lib/db.ts`, new `app/timeline/page.tsx`  
-**What to do**:
-- Add `visitedAt?: number` to `SavedItem` — the user can mark a clip as "visited" from the detail card
-- New `/timeline` page: clips grouped by visit date in reverse chronological order
-- Each timeline entry shows thumbnail, title, date visited, top substance items
-- "Mark as visited" button in LocationDetailCard: sets `visitedAt = Date.now()` and optionally opens the camera to add a photo note (camera via `@capacitor/camera`)
-- Add Timeline as a 5th nav tab (replace or add alongside Settings)
+**Status**: `[ ]` Blocked on Supabase pgvector  
 
 ### D4 — Proactive Resurfacing (Push Notifications)
-**Status**: `[ ]` Not started  
-**Why**: If a user has clips saved for a location they're now physically near, proactively surfacing them turns TravelPanel into an ambient travel companion.  
-**Needs**: `@capacitor/push-notifications` + a server-side trigger (needs Supabase or an alternative)  
-**Files to change**: `components/CapacitorBridge.tsx`, new `app/api/push/route.ts`  
-**What to do**:
-- Register for push notifications on first launch (request permission after first plan is generated)
-- Store push token in Supabase against the user's device
-- Server-side trigger: when a user's GPS location (from D1) matches a saved clip location, send a push: "You saved a tip about [Location] — 📍 500m away"
-- Implement the notification tap handler in CapacitorBridge: open the clip detail directly
-
----
-
-## PHASE E — Growth & Monetization
-
-### E1 — AI Board Summary
-**Status**: `[x]` Done  
-**Why**: Users with 10+ clips in a board can't easily grasp what they've saved. An AI-generated summary ("Your Tokyo collection: 18 clips focused on street food in Shinjuku and day trips to Nikko") acts as ambient organization.  
-**Files to change**: `app/boards/[id]/page.tsx`, new `app/api/summarize/route.ts`  
-**What to do**:
-- New `POST /api/summarize` endpoint: takes board name + top 20 item titles/substance items, calls Claude Haiku to produce a 2-sentence narrative summary
-- In board detail page: show summary card at the top with a "✨ AI summary" badge
-- Cache the summary in the board record (`summary?: string` field) — regenerate only when board has 5+ new clips since last summary
-- Use streaming for a typewriter reveal effect
-
-### E2 — Batch URL Import
-**Status**: `[x]` Done  
-**Why**: Power users have a backlog of saved URLs in their notes. Forcing them to paste one at a time is friction that kills early retention.  
-**Files to change**: `components/ImportSheet.tsx` or new `app/import/page.tsx`  
-**What to do**:
-- Add a "Paste multiple URLs" option (textarea) in the import flow
-- Parse pasted text for URLs using `NSDataDetector`-style regex
-- Show detected URLs as a list with checkboxes — user can deselect before importing
-- Queue all selected URLs as `pending` items, then enrich them sequentially (rate-limit aware)
-- Progress bar: "Extracting 3 of 7 clips…"
-
-### E3 — Real-World Enrichment Signals
-**Status**: `[x]` Done  
-**Why**: A plan for Tokyo in late March without flagging Sakura season is a missed opportunity. Real-world context (festivals, weather, price spikes) is the key differentiator vs. generic AI travel apps.  
-**Files to change**: `app/api/plan/route.ts`, new `app/api/enrich/signals/route.ts`  
-**What to do**:
-- Create a `fetchDestinationSignals(city: string, dates?: string)` helper that calls:
-  - A public holidays/festivals API (e.g. `date.nager.at` for holidays, `opentripmap.io` for events)
-  - Weather API for the destination (OpenMeteo is free, no key needed)
-  - Currency exchange rate (fixer.io or ExchangeRate-API, free tier)
-- Inject signals into the planner prompt: "Note: the trip overlaps with Golden Week (high crowds, +30% hotel prices, 2-3h queue waits at popular sites)"
-- Cache signals per city per week in IndexedDB to avoid re-fetching
+**Status**: `[ ]` Blocked on Supabase  
 
 ### E4 — iOS Home Screen Widget
-**Status**: `[ ]` Not started  
-**Why**: A widget showing "Today's travel inspiration" keeps TravelPanel top-of-mind and drives daily opens.  
-**Files to change**: `ios/App/` (new Xcode widget target)  
-**What to do**:
-- Add a new iOS Widget Extension target in Xcode (SwiftUI)
-- Widget reads from App Group shared UserDefaults — on every clip save, write the latest clip's thumbnail URL + title to App Group
-- Widget design: 2×2 medium widget, shows thumbnail (or a map gradient) + clip title + tag chip
-- Three size variants: small (just thumbnail + title), medium (+ top substance tip), large (+ 3 clips)
-- Timeline provider updates once per day or on new clip saved
+**Status**: `[ ]` Blocked — requires Xcode native SwiftUI widget target (must be done manually)  
 
 ### E5 — Pro Tier Paywall
-**Status**: `[ ]` Not started  
-**Why**: The 12-month goal includes sustainable revenue. The Pro tier should be the natural next step for users who have built a meaningful clip corpus.  
-**Files to change**: `app/settings/page.tsx`, new `app/api/subscription/route.ts`  
-**What to do**:
-- Define Pro features: unlimited plan generations (free: 5/day), cloud sync (B1), priority AI enrichment, batch import (E2), AI board summaries (E1)
-- Add "Upgrade to Pro" section in Settings with feature comparison table
-- Integrate RevenueCat (`@revenuecat/purchases-capacitor`) for iOS in-app purchase — it handles App Store receipts, trial periods, and receipt validation
-- Gate Pro features with `isPro` check from RevenueCat, with graceful fallback (no hard crashes)
-- Show a non-pushy upgrade prompt after 5th plan generation: "Enjoying TravelPanel? Upgrade for unlimited plans."
+**Status**: `[ ]` Blocked — requires RevenueCat setup + Apple Developer account with IAP configured  
 
 ---
 
-## Completed Tasks
+## Completed Tasks (Phases A–E)
 
-*(Claude marks tasks [x] and moves them here when done)*
+*(All Phase A–E tasks are complete as of 2026-06-10. See git log for implementation details.)*
+
+Phase A: Substance extraction, enrichment retry, error tracking, cost guard, resource notifications, pin clustering, full-text search, onboarding seed boards, plan export, multi-version plans, wisdom view, sourced itineraries.
+
+Phase B: Supabase scaffold (dormant), browser extension, Xiaohongshu fix, cloud backup export.
+
+Phase C: Dark mode, clipboard import, swipe gestures + haptics, skeleton loaders, map UX (fly-to, navigate, category pins, long-press), empty state illustrations, in-app review, Spotlight search stub.
+
+Phase D: Nearby GPS mode, read-only board sharing (base64 URL), post-trip timeline.
+
+Phase E: AI board summary (streaming), batch URL import, real-world enrichment signals.
