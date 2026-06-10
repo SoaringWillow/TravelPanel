@@ -281,7 +281,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Auto-opens Maps app with directions when user taps on next-stop pin
 
 ### D10 — Post-Trip Timeline
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/trip/[tripId]/timeline/page.tsx`, `lib/db.ts`  
 **What to do**:
 - After a trip, prompt "Log what you actually visited"

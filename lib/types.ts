@@ -114,6 +114,21 @@ export interface TripPlan {
   tips: string[];
 }
 
+// ─── Post-trip timeline logging ─────────────────────────────────────────────
+
+export type ActivityStatus = 'pending' | 'visited' | 'skipped';
+
+export interface ActivityLog {
+  key: string;          // `d${dayNum}_a${activityIdx}` — stable identifier
+  status: ActivityStatus;
+  note?: string;
+}
+
+export interface ActualTimeline {
+  logs: ActivityLog[];
+  completedAt?: number; // unix ms when user tapped "Done"
+}
+
 export interface Trip {
   id: string;
   boardId: string;
@@ -124,6 +139,7 @@ export interface Trip {
   agentSteps: AgentStep[];
   plan: TripPlan | null;
   createdAt: number;
+  actualTimeline?: ActualTimeline;
 }
 
 // ─── API types ───────────────────────────────────────────────────────────────

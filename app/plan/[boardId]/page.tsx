@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, ClipboardList } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -462,13 +462,22 @@ export default function PlanPage() {
               {planIsComplete(plan) && (
                 <>
                   {currentTripId && (
-                    <button
-                      onClick={() => router.push(`/trip/${currentTripId}/navigate`)}
-                      className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-sm"
-                    >
-                      <Navigation size={15} />
-                      Start Trip
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => router.push(`/trip/${currentTripId}/navigate`)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold text-sm py-3 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-sm"
+                      >
+                        <Navigation size={15} />
+                        Start Trip
+                      </button>
+                      <button
+                        onClick={() => router.push(`/trip/${currentTripId}/timeline`)}
+                        className="flex-1 flex items-center justify-center gap-2 border border-indigo-200 text-indigo-600 font-semibold text-sm py-3 rounded-xl hover:bg-indigo-50 active:scale-[0.98] transition-all"
+                      >
+                        <ClipboardList size={15} />
+                        Log Trip
+                      </button>
+                    </div>
                   )}
                   <div className="flex gap-2">
                     <button

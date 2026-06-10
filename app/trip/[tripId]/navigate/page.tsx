@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Navigation2, ChevronLeft, ChevronRight, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, Navigation2, ChevronLeft, ChevronRight, Map as MapIcon, ClipboardList } from 'lucide-react';
 import { getTripById } from '@/lib/db';
 import type { Trip } from '@/lib/types';
 import type { NavStop } from '@/components/NavigateMapView';
@@ -113,6 +113,13 @@ export default function NavigatePage() {
           <p className="text-white font-semibold text-sm truncate">{trip.boardName}</p>
           <p className="text-white/70 text-xs">{stops.length} stops · {trip.days} day{trip.days !== 1 ? 's' : ''}</p>
         </div>
+        <button
+          onClick={() => router.push(`/trip/${tripId}/timeline`)}
+          className="pointer-events-auto p-2 bg-white/20 backdrop-blur-sm rounded-full text-white active:scale-95 transition-transform"
+          title="Log Trip"
+        >
+          <ClipboardList size={18} />
+        </button>
         {gpsError && (
           <span className="pointer-events-auto text-amber-300 text-xs bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1">
             No GPS

@@ -1,7 +1,7 @@
 'use client';
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { SavedItem, Board, Trip, EnrichmentStatus } from './types';
+import { SavedItem, Board, Trip, EnrichmentStatus, ActualTimeline } from './types';
 
 interface TravelPanelDB extends DBSchema {
   items: {
@@ -219,6 +219,13 @@ export async function getTripById(id: string): Promise<Trip | undefined> {
   } catch {
     return undefined;
   }
+}
+
+export async function updateTripTimeline(tripId: string, timeline: ActualTimeline): Promise<void> {
+  const db = await getDB();
+  const trip = await db.get('trips', tripId);
+  if (!trip) return;
+  await db.put('trips', { ...trip, actualTimeline: timeline });
 }
 
 export async function deleteTrip(id: string): Promise<void> {
