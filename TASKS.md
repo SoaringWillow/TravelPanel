@@ -311,7 +311,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - If `item.notes` is set, always show it expanded (not collapsed)
 
 ### I3 — Swipe-to-Delete in Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (already implemented in InboxCard.tsx with framer-motion drag)  
 **Why**: iOS users expect swipe-left to delete. The current approach (tap card → long-press menu) is not discoverable. Swipe-to-delete is a table-stakes mobile UX pattern.  
 **Files to change**: `components/InboxCard.tsx`  
 **What to do**:
@@ -323,7 +323,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - The existing tap-to-open behavior must still work — only horizontal drag ≥5px should enter swipe mode
 
 ### I4 — Boards List Drag-to-Reorder
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users organize boards by trip priority. Tokyo trip should be at the top when planning Tokyo. Currently boards are creation-order only.  
 **Files to change**: `app/boards/page.tsx`, `hooks/useBoards.ts`, `lib/db.ts`  
 **What to do**:

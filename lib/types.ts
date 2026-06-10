@@ -67,6 +67,7 @@ export interface Board {
   createdAt: number;
   updatedAt: number;
   isDemo?: boolean; // onboarding seed content — removable in one tap
+  sortOrder?: number; // user-defined sort position; defaults to createdAt
   summary?: string; // AI-generated 2-sentence narrative summary (cached)
   summaryItemCount?: number; // itemIds.length when summary was last generated
 }

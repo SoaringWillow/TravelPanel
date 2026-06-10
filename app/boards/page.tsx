@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid } from 'lucide-react';
+import { Reorder } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { Board } from '@/lib/types';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
@@ -12,10 +14,29 @@ import NavBar from '@/components/NavBar';
 import PullToRefresh from '@/components/PullToRefresh';
 
 export default function BoardsPage() {
-  const { boards, loading: boardsLoading, createBoard, removeBoard, refresh: refreshBoards } = useBoards();
+  const { boards, loading: boardsLoading, createBoard, removeBoard, updateBoard, refresh: refreshBoards } = useBoards();
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+
+  // Sorted by sortOrder (if set) else createdAt ascending
+  const sortedBoards = [...boards].sort((a, b) =>
+    (a.sortOrder ?? a.createdAt) - (b.sortOrder ?? b.createdAt)
+  );
+
+  const handleReorder = useCallback(
+    async (reordered: Board[]) => {
+      // Persist new sortOrder for changed items
+      for (let i = 0; i < reordered.length; i++) {
+        const board = reordered[i];
+        const newOrder = i * 1000;
+        if ((board.sortOrder ?? board.createdAt) !== newOrder) {
+          await updateBoard({ ...board, sortOrder: newOrder });
+        }
+      }
+    },
+    [updateBoard]
+  );
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -84,17 +105,24 @@ export default function BoardsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {boards.map((board) => (
-              <BoardCard
-                key={board.id}
-                board={board}
-                itemCount={getItemCount(board.id)}
-                onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
-              />
+          <Reorder.Group
+            axis="y"
+            values={sortedBoards}
+            onReorder={handleReorder}
+            className="grid grid-cols-2 md:grid-cols-3 gap-3"
+            as="div"
+          >
+            {sortedBoards.map((board) => (
+              <Reorder.Item key={board.id} value={board} as="div" className="touch-none">
+                <BoardCard
+                  board={board}
+                  itemCount={getItemCount(board.id)}
+                  onClick={() => router.push(`/boards/${board.id}`)}
+                  onDelete={() => handleDelete(board.id)}
+                />
+              </Reorder.Item>
             ))}
-          </div>
+          </Reorder.Group>
         )}
       </PullToRefresh>
 
