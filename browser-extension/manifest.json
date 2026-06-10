@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "short_name": "TravelPanel",
+  "version": "1.0.0",
+  "description": "Clip travel inspiration from any webpage to your TravelPanel boards",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "windows",
+    "tabs"
+  ],
+  "options_page": "options.html",
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+T",
+        "mac": "Command+Shift+T"
+      },
+      "description": "Clip current page to TravelPanel"
+    }
+  }
+}
