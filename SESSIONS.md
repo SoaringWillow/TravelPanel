@@ -130,3 +130,12 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 21:55 | 5841c78 | feat(K4,K5): Day route mini map + board visited toggle
 2026-06-10 21:57 | 6462eb1 | feat(K6,K7): Offline clip resilience + polished plan streaming UX
 2026-06-10 21:59 | 7d29192 | feat(K8): Long-press map to save a place via reverse geocode
+2026-06-10 22:03 | 30ca8d9 | chore: add Phase L task definitions (L1–L8)
+2026-06-10 22:05 | b0bcad3 | feat(L1): smart board auto-suggest banner in inbox
+2026-06-10 22:06 | eff0316 | feat(L2): inline title edit + editable tag pills in detail card
+2026-06-10 22:08 | 7d059b7 | feat(L3): discover nearby POIs on map via Overpass API
+2026-06-10 22:09 | 6eca0dc | feat(L4): board substance summary "Trip Wisdom" page
+2026-06-10 22:12 | 57f5e8c | feat(L5): import from text / notes paste
+2026-06-10 22:12 | 4e62721 | feat(L6): enhanced share-a-clip with first tip + checkmark feedback
+2026-06-10 22:15 | 4cd362b | feat(L7): duplicate merge UI in inbox
+2026-06-10 22:17 | c8fef8c | feat(L8): full accessibility pass — ARIA labels, roles, live regions
