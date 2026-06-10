@@ -79,16 +79,38 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
     }
   }
 
+  const [shareSuccess, setShareSuccess] = useState(false);
+
   async function handleShare() {
     if (typeof navigator === 'undefined') return;
+
+    const firstTip = item.substance?.find((s) => s.type === 'tip' || s.type === 'recommendation');
+    const shareText = firstTip
+      ? `${firstTip.content}\n\nSaved with TravelPanel`
+      : 'Saved with TravelPanel';
+
+    // Real share URL: skip geo:/text:// synthetic URLs — just share the text
+    const hasRealUrl = item.url && !item.url.startsWith('geo:') && !item.url.startsWith('text://');
+
     try {
       if (navigator.share) {
-        await navigator.share({ title: item.title, url: item.url });
+        await navigator.share({
+          title: item.title,
+          text: shareText,
+          ...(hasRealUrl ? { url: item.url } : {}),
+        });
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 2000);
+        impact('light');
       } else {
-        await navigator.clipboard.writeText(item.url);
+        const clip = [item.title, shareText, hasRealUrl ? item.url : ''].filter(Boolean).join('\n\n');
+        await navigator.clipboard.writeText(clip);
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 2000);
+        impact('light');
       }
     } catch {
-      // share cancelled
+      // share cancelled or clipboard denied
     }
   }
 
@@ -176,8 +198,11 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               <button type="button" onClick={handleShare}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Share">
-                <Share2 size={17} className="text-gray-500" />
+                className={`p-2 rounded-full transition-colors ${shareSuccess ? 'bg-green-50' : 'hover:bg-gray-100'}`}
+                aria-label={shareSuccess ? 'Copied!' : 'Share'}>
+                {shareSuccess
+                  ? <Check size={17} className="text-green-500" />
+                  : <Share2 size={17} className="text-gray-500" />}
               </button>
               <a href={item.url} target="_blank" rel="noopener noreferrer"
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Open original">

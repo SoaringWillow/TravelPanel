@@ -786,7 +786,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Great for capturing info from PDFs, Airbnb descriptions, travel blog excerpts
 
 ### L6 — Share a Clip to Friends (System Share)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`  
 **What to do**:
 - In the LocationDetailCard, the share button currently does nothing useful
