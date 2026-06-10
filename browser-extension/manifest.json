@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "version": "1.0.0",
+  "description": "Clip any travel page to your TravelPanel boards in one click",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["activeTab", "storage"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}

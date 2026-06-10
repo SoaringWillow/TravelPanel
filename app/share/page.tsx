@@ -21,6 +21,8 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  const autoSave        = searchParams.get('autoSave') === 'true';
+  const source          = searchParams.get('source') ?? '';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -37,17 +39,31 @@ function SharePageInner() {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
 
+  // Auto-save to Inbox when extension triggers with autoSave=true
+  useEffect(() => {
+    if (autoSave && rawUrl) {
+      handleSave(undefined, 'Inbox');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-dismiss when done
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        if (source === 'extension') {
+          // Tab was opened by the extension — try to close it, fallback to home
+          window.close();
+          setTimeout(() => { window.location.href = '/'; }, 600);
+        } else {
+          window.history.back();
+        }
       }, 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [stage]);
+  }, [stage, source]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
@@ -142,6 +158,17 @@ function SharePageInner() {
   // ── Stage: picking ────────────────────────────────────────────────────────
 
   if (stage === 'picking' || stage === 'saving') {
+    // Extension auto-save flow: show a clean loading state instead of board picker
+    if (autoSave) {
+      return (
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 p-6">
+          <div className="text-3xl animate-spin" style={{ animationDuration: '1s' }}>⟳</div>
+          <p className="text-sm font-medium text-gray-700">Saving to Inbox…</p>
+          <p className="text-xs text-gray-400 truncate max-w-xs">{rawUrl}</p>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-white flex flex-col justify-between p-6 safe-top safe-bottom">
         {/* Top section */}
@@ -325,16 +352,21 @@ function SharePageInner() {
         </motion.p>
       </div>
 
-      {/* Bottom — return button */}
+      {/* Bottom — return / close button */}
       <button
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          if (source === 'extension') {
+            window.close();
+            setTimeout(() => { window.location.href = '/'; }, 300);
+          } else {
+            window.history.back();
+          }
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >
-        Return to app →
+        {source === 'extension' ? 'Close tab →' : 'Return to app →'}
       </button>
     </div>
   );
