@@ -774,7 +774,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Empty state: "Add clips to this board to see collected wisdom"
 
 ### L5 — Import from Text / Notes Paste
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/ImportSheet.tsx` (or new tab), `app/api/import/route.ts`  
 **What to do**:
 - In the ImportSheet, add a second tab: "Paste text" (alongside "URL")
