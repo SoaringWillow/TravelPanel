@@ -83,7 +83,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Note: This file must also be added to the Xcode project via the Xcode GUI — document this in `ios/App/XCODE_SETUP.md`
 
 ### F3 — Offline & Error States
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: When the user's internet is spotty (on a plane, in a tunnel), every API call silently fails. There's no "you're offline" indicator, no retry button, and no cached content fallback. This is a critical retention risk for a travel app (used internationally, often with poor connectivity).  
 **Files to change**: `components/ImportSheet.tsx`, `app/plan/[boardId]/page.tsx`, `app/inbox/page.tsx`  
 **What to do**:

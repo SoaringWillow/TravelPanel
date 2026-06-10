@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, List, X } from 'lucide-react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, List, WifiOff } from 'lucide-react';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import {
   Drawer,
   DrawerContent,
@@ -47,6 +48,8 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError]     = useState('');
   const abortRef              = useRef<AbortController | null>(null);
+
+  const isOnline = useOnlineStatus();
 
   // Batch mode state
   const [batchMode, setBatchMode]   = useState(false);
@@ -291,6 +294,16 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
         </DrawerHeader>
 
         <div className="px-4 pb-8 space-y-4">
+          {/* ── Offline banner ───────────────────────────────────────────── */}
+          {!isOnline && (
+            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5">
+              <WifiOff size={14} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-300 leading-snug">
+                You&apos;re offline — clips will save for later and extract when you reconnect.
+              </p>
+            </div>
+          )}
+
           {/* ── Mode toggle ─────────────────────────────────────────────── */}
           <div className="flex gap-2">
             <button
@@ -449,21 +462,28 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
           {/* ── Import button (hidden during preview) ───────────────────── */}
           {stage !== 'preview' && (
-            <button
-              type="button"
-              onClick={handleImport}
-              disabled={!trimmedUrl || stage === 'loading'}
-              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              {stage === 'loading' ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Analyzing with AI…
-                </>
-              ) : (
-                'Clip & discover places'
-              )}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={isOnline ? handleImport : handleSaveUrlAnyway}
+                disabled={!trimmedUrl || stage === 'loading'}
+                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {stage === 'loading' ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Analyzing with AI…
+                  </>
+                ) : isOnline ? (
+                  'Clip & discover places'
+                ) : (
+                  <>
+                    <BookmarkPlus size={16} />
+                    Save for later
+                  </>
+                )}
+              </button>
+            </>
           )}
 
           {/* ── Error message + save-anyway fallback ─────────────────────── */}

@@ -3,8 +3,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, WifiOff } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
@@ -33,6 +34,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 
 export default function InboxPage() {
   const { items, loading, addItem, removeItem, refreshItem } = useSavedItems();
+  const isOnline = useOnlineStatus();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -158,9 +160,17 @@ export default function InboxPage() {
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800 dark:text-slate-100">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {!isOnline && (
+              <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                <WifiOff size={12} />
+                Offline
+              </span>
+            )}
+            <span className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 text-xs font-semibold px-2.5 py-1 rounded-full">
+              {inboxItems.length} unsorted
+            </span>
+          </div>
         </div>
 
         {/* Search */}

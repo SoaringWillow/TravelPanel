@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, WifiOff } from 'lucide-react';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -24,6 +25,8 @@ export default function PlanPage() {
   const params = useParams();
   const router = useRouter();
   const boardId = params.boardId as string;
+
+  const isOnline = useOnlineStatus();
 
   const [board, setBoard] = useState<Board | null>(null);
   const [boardItems, setBoardItems] = useState<SavedItem[]>([]);
@@ -67,6 +70,10 @@ export default function PlanPage() {
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
+    if (!isOnline) {
+      setPlanLimitError('No internet connection — connect to generate your trip plan.');
+      return;
+    }
     const limit = checkPlanLimit();
     if (!limit.allowed) {
       setPlanLimitError(
@@ -385,6 +392,14 @@ export default function PlanPage() {
                   <span>Add items with identified locations to plan a trip.</span>
                 </div>
               ) : null}
+
+              {/* Offline warning */}
+              {!isOnline && (
+                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5 text-xs text-amber-700 dark:text-amber-300">
+                  <WifiOff size={14} className="flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>You&apos;re offline — connect to generate a new plan. Saved plans still available below.</span>
+                </div>
+              )}
 
               {/* Plan rate limit warning */}
               {planLimitError && (
