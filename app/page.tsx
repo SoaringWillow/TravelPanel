@@ -1,11 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useBoards } from '@/hooks/useBoards';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
@@ -18,10 +19,28 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
+  const { boards } = useBoards();
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [selectedBoardId, setSelectedBoardId] = useState<string | 'all'>('all');
+
+  // Boards that have at least one item with a map pin
+  const boardsWithPins = useMemo(() => {
+    const itemsByBoard = new Map(items.map((i) => [i.id, i]));
+    return boards.filter((b) =>
+      b.itemIds.some((id) => {
+        const item = itemsByBoard.get(id);
+        return item && item.locations.length > 0;
+      })
+    );
+  }, [boards, items]);
+
+  const mapItems = useMemo(() => {
+    if (selectedBoardId === 'all') return items;
+    return items.filter((i) => i.boardId === selectedBoardId);
+  }, [items, selectedBoardId]);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -71,7 +90,7 @@ function HomePageInner() {
   return (
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      <MapView items={mapItems} onPinClick={setSelectedItem} flyTo={flyTo} />
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
@@ -79,7 +98,10 @@ function HomePageInner() {
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
           <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+            {loading ? 'Loading…' : selectedBoardId === 'all'
+              ? `${items.length} place${items.length !== 1 ? 's' : ''} saved`
+              : `${mapItems.filter(i => i.locations.length > 0).length} pins`
+            }
           </div>
         </div>
       </div>
@@ -94,11 +116,45 @@ function HomePageInner() {
         )}
       </AnimatePresence>
 
+      {/* Board filter chip bar */}
+      {boardsWithPins.length > 0 && (
+        <div className="fixed bottom-[64px] left-0 right-0 z-[999] px-4 pb-2 pt-3">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setSelectedBoardId('all')}
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                selectedBoardId === 'all'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white/95 text-gray-600 border border-gray-200'
+              }`}
+            >
+              All
+            </button>
+            {boardsWithPins.map((board) => (
+              <button
+                key={board.id}
+                onClick={() => setSelectedBoardId(selectedBoardId === board.id ? 'all' : board.id)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm ${
+                  selectedBoardId === board.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white/95 text-gray-600 border border-gray-200'
+                }`}
+              >
+                <span>{board.emoji}</span>
+                <span className="max-w-[72px] truncate">{board.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Import FAB */}
       {!selectedItem && (
         <button
           onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          className={`absolute right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all ${
+            boardsWithPins.length > 0 ? 'bottom-32' : 'bottom-24'
+          }`}
           aria-label="Clip inspiration"
         >
           <Plus size={24} />

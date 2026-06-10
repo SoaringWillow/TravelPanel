@@ -218,7 +218,7 @@ Work top-to-bottom within this phase.
 - Animate in with a gentle fade+scale
 
 ### D5 — Board Filter on Map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`, `app/page.tsx`  
 **What to do**:
 - Add a horizontally scrollable board filter chip row just above the bottom nav on the main map view
