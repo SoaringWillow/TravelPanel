@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import { MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -211,6 +211,7 @@ function SwipeToDeleteCard({
   date: string;
 }) {
   const [dismissed, setDismissed] = useState(false);
+  const [peekOpen, setPeekOpen] = useState(false);
   const x = useMotionValue(0);
 
   // Background action opacity: visible when card is dragged left
@@ -314,12 +315,42 @@ function SwipeToDeleteCard({
               </span>
             )}
             {(item.substance?.length ?? 0) > 0 && (
-              <span className="text-xs text-amber-600 font-medium">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); lightHaptic(); setPeekOpen((o) => !o); }}
+                className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
+                  peekOpen ? 'bg-amber-100 text-amber-700' : 'text-amber-600 hover:bg-amber-50'
+                }`}
+              >
                 💡 {item.substance!.length} tip{item.substance!.length !== 1 ? 's' : ''}
-              </span>
+              </button>
             )}
           </div>
         )}
+
+        {/* Substance quick-peek — expands when tips badge is tapped */}
+        <AnimatePresence>
+          {peekOpen && item.substance && item.substance.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="overflow-hidden mb-2"
+            >
+              <div className="bg-amber-50 rounded-xl p-2 space-y-1.5 border border-amber-100">
+                {item.substance.slice(0, 2).map((s, i) => (
+                  <p key={i} className="text-xs text-amber-800 leading-snug">
+                    {s.type === 'warning' ? '⚠️' : s.type === 'recommendation' ? '⭐' : '💡'} {s.content}
+                  </p>
+                ))}
+                {item.substance.length > 2 && (
+                  <p className="text-xs text-amber-500">+{item.substance.length - 2} more</p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Tags (first 3) */}
         {item.tags.length > 0 && (

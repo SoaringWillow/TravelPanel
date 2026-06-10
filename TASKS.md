@@ -429,7 +429,7 @@ Goal: fill in the remaining gaps — missing features users will hit quickly, de
 - When board has 0 located clips, replace with a friendlier "Add clips with locations first" guide
 
 ### F6 — Substance Quick-Peek in Inbox Grid
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `components/InboxCard.tsx`
 **What to do**:
 - When a card has substance items, tapping the "💡 N tips" badge expands an inline substance preview
