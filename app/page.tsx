@@ -4,13 +4,14 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, ArrowRight, X } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { getTripsForBoard } from '@/lib/db';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -25,6 +26,32 @@ function HomePageInner() {
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
   const [selectedBoardId, setSelectedBoardId] = useState<string | 'all'>('all');
+  const [continuePlanBoard, setContinuePlanBoard] = useState<{ id: string; name: string; emoji: string } | null>(null);
+
+  const DISMISSED_KEY = 'travelpanel_continue_plan_dismissed';
+
+  // Find the best "continue planning" candidate board
+  useEffect(() => {
+    if (loading || boards.length === 0) return;
+
+    const dismissedId = localStorage.getItem(DISMISSED_KEY);
+    async function findCandidate() {
+      for (const board of [...boards].sort((a, b) => b.updatedAt - a.updatedAt)) {
+        if (board.id === dismissedId) continue;
+        const boardItemsWithLoc = items.filter(
+          (i) => board.itemIds.includes(i.id) && i.locations.length > 0
+        );
+        if (boardItemsWithLoc.length < 3) continue;
+        const trips = await getTripsForBoard(board.id);
+        if (trips.length > 0) continue; // already has a plan
+        setContinuePlanBoard({ id: board.id, name: board.name, emoji: board.emoji });
+        return;
+      }
+    }
+    const timer = setTimeout(() => findCandidate(), 1500);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, boards.length, items.length]);
 
   // Boards that have at least one item with a map pin
   const boardsWithPins = useMemo(() => {
@@ -147,6 +174,47 @@ function HomePageInner() {
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Continue planning banner */}
+      <AnimatePresence>
+        {continuePlanBoard && !selectedItem && (
+          <motion.div
+            key="continue-plan"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ delay: 0, duration: 0.3 }}
+            className="fixed z-[998] left-4 right-4"
+            style={{ bottom: `calc(env(safe-area-inset-bottom) + ${boardsWithPins.length > 0 ? '112px' : '72px'})` }}
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-indigo-100 px-4 py-3 flex items-center gap-3">
+              <span className="text-2xl flex-shrink-0">{continuePlanBoard.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-indigo-700">Ready to plan!</p>
+                <p className="text-sm font-semibold text-gray-800 truncate">
+                  {continuePlanBoard.name}
+                </p>
+              </div>
+              <a
+                href={`/boards/${continuePlanBoard.id}`}
+                className="flex-shrink-0 flex items-center gap-1 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl"
+              >
+                Plan <ArrowRight size={12} />
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem(DISMISSED_KEY, continuePlanBoard.id);
+                  setContinuePlanBoard(null);
+                }}
+                className="flex-shrink-0 text-gray-400 hover:text-gray-600 -mr-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

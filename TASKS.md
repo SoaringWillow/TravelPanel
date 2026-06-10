@@ -582,7 +582,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - Skeleton loaders: `aria-busy="true"` on the container while loading
 
 ### G10 — "Continue Planning" Smart Banner on Home
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/page.tsx`, `lib/db.ts`
 **Why**: Users forget which board they were building. A contextual nudge to resume the most recently active board drives plan generation (the North Star metric).
 **What to do**:
