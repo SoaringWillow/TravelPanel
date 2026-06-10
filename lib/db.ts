@@ -153,7 +153,15 @@ export async function getAllBoards(): Promise<Board[]> {
   try {
     const db = await getDB();
     const boards = await db.getAll('boards');
+    const now = Date.now();
     return boards.sort((a, b) => {
+      // Upcoming trips sort first (tripStart set and in the future)
+      const aUpcoming = a.tripStart && a.tripStart > now ? a.tripStart : null;
+      const bUpcoming = b.tripStart && b.tripStart > now ? b.tripStart : null;
+      if (aUpcoming && !bUpcoming) return -1;
+      if (!aUpcoming && bUpcoming) return 1;
+      if (aUpcoming && bUpcoming) return aUpcoming - bUpcoming; // sooner first
+      // Then user-defined order
       if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
       if (a.order !== undefined) return -1;
       if (b.order !== undefined) return 1;

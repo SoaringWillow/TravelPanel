@@ -110,6 +110,27 @@ export default function BoardCard({ board, itemCount, onClick, onDelete, onRenam
           <span className={`mt-1 text-xs font-medium ${hasCover ? 'text-white/80' : 'text-indigo-200'}`}>
             {itemCount} place{itemCount !== 1 ? 's' : ''}
           </span>
+
+          {/* Trip date / countdown */}
+          {board.tripStart && (() => {
+            const now = Date.now();
+            if (board.tripStart > now) {
+              const days = Math.ceil((board.tripStart - now) / 86400000);
+              return (
+                <span className="mt-0.5 text-[10px] font-semibold text-white/90">
+                  {days === 1 ? '✈️ Tomorrow!' : `✈️ in ${days}d`}
+                </span>
+              );
+            }
+            if (board.tripEnd && now <= board.tripEnd) {
+              return <span className="mt-0.5 text-[10px] font-semibold text-white/90">🌍 Now!</span>;
+            }
+            return (
+              <span className="mt-0.5 text-[10px] text-white/60">
+                {new Date(board.tripStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Visited badge */}

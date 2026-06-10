@@ -857,7 +857,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Filter state is ephemeral (no persistence needed)
 
 ### M3 — Board Trip Date + Countdown
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/types.ts`, `lib/db.ts`, `app/boards/[id]/page.tsx`, `components/BoardCard.tsx`  
 **What to do**:
 - Add optional `tripStart?: number` (unix ms) and `tripEnd?: number` to the Board type

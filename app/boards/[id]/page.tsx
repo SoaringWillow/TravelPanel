@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, ArrowUpDown, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ArrowUpDown, CheckCircle2, Calendar, X } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -27,6 +27,7 @@ export default function BoardDetailPage() {
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
   const [sort, setSort] = useState<SortOrder>('date');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const board = boards.find((b) => b.id === boardId);
   const unsortedItems: SavedItem[] = board
@@ -47,6 +48,36 @@ export default function BoardDetailPage() {
   const coverThumbnail = boardItems.find((i) => i.thumbnail)?.thumbnail;
 
   const substanceCount = boardItems.reduce((n, i) => n + (i.substance?.length ?? 0), 0);
+
+  // Countdown / status from tripStart/tripEnd
+  const tripStatus = (() => {
+    if (!board?.tripStart) return null;
+    const now = Date.now();
+    const start = board.tripStart;
+    const end = board.tripEnd;
+    if (now < start) {
+      const days = Math.ceil((start - now) / 86400000);
+      return days === 1 ? '✈️ Tomorrow!' : `✈️ in ${days} days`;
+    }
+    if (end && now <= end) return '🌍 Happening now!';
+    return null;
+  })();
+
+  async function handleSaveDates(start: string, end: string) {
+    if (!board) return;
+    const tripStart = start ? new Date(start).getTime() : undefined;
+    const tripEnd = end ? new Date(end).getTime() : undefined;
+    await updateBoard(board.id, { tripStart, tripEnd });
+    setBoards((prev) => prev.map((b) => b.id === board.id ? { ...b, tripStart, tripEnd } : b));
+    setShowDatePicker(false);
+  }
+
+  async function handleClearDates() {
+    if (!board) return;
+    await updateBoard(board.id, { tripStart: undefined, tripEnd: undefined });
+    setBoards((prev) => prev.map((b) => b.id === board.id ? { ...b, tripStart: undefined, tripEnd: undefined } : b));
+    setShowDatePicker(false);
+  }
 
   function handleViewOnMap(id: string) {
     const item = boardItems.find((i) => i.id === id);
@@ -155,6 +186,20 @@ export default function BoardDetailPage() {
                   View trip wisdom →
                 </button>
               )}
+              {/* Trip date + countdown */}
+              {tripStatus && (
+                <span className={`text-xs font-semibold mt-1 ${
+                  coverThumbnail ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'
+                }`}>
+                  {tripStatus}
+                </span>
+              )}
+              {board.tripStart && !tripStatus && (
+                <span className={`text-xs mt-1 ${coverThumbnail ? 'text-white/70' : 'text-gray-400'}`}>
+                  {new Date(board.tripStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {board.tripEnd ? ` – ${new Date(board.tripEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -189,8 +234,53 @@ export default function BoardDetailPage() {
                   {sort === 'date' ? 'Date' : 'Name'}
                 </button>
               )}
+
+              {/* Trip date picker toggle */}
+              <button
+                type="button"
+                onClick={() => setShowDatePicker((v) => !v)}
+                aria-label="Set trip dates"
+                className={`p-1.5 rounded-lg transition-colors ${
+                  board.tripStart
+                    ? coverThumbnail ? 'bg-indigo-500/60 text-white' : 'bg-indigo-100 text-indigo-600'
+                    : coverThumbnail ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200'
+                }`}
+              >
+                <Calendar size={13} />
+              </button>
             </div>
           </div>
+
+          {/* Date picker inline panel */}
+          {showDatePicker && (
+            <div className="mt-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-2xl px-4 py-3 border border-gray-100 dark:border-gray-700 shadow-lg">
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Trip dates</p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
+                  handleSaveDates(fd.get('start') as string, fd.get('end') as string);
+                }}
+                className="space-y-2"
+              >
+                <div className="flex gap-2 items-center">
+                  <input type="date" name="start" defaultValue={board.tripStart ? new Date(board.tripStart).toISOString().slice(0, 10) : ''}
+                    className="flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-indigo-400" />
+                  <span className="text-xs text-gray-400">to</span>
+                  <input type="date" name="end" defaultValue={board.tripEnd ? new Date(board.tripEnd).toISOString().slice(0, 10) : ''}
+                    className="flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-indigo-400" />
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 bg-indigo-600 text-white text-xs font-semibold py-1.5 rounded-xl hover:bg-indigo-700 transition-colors">Save</button>
+                  {board.tripStart && (
+                    <button type="button" onClick={handleClearDates} className="px-3 text-xs text-red-500 hover:text-red-600 flex items-center gap-1">
+                      <X size={11} />Clear
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       </div>
 
