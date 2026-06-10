@@ -268,7 +268,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Guard with `Capacitor.isNativePlatform()` — only fires in the iOS app, never on web
 
 ### C8 — Spotlight Search Integration
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done (stub — activates once @capacitor-community/apple-search-api is installed from GitHub)  
 **Why**: iOS users expect saved content to appear in Spotlight (swipe-down search). This is a powerful ambient discovery channel — when a user types "Tokyo" in their phone's search, their TravelPanel clips should appear.  
 **Files to change**: `components/CapacitorBridge.tsx`, `lib/db.ts`  
 **What to do**:
