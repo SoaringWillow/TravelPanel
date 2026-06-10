@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 380px;
+      padding: 20px;
+      background: #fff;
+      color: #111827;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .logo-row img {
+      width: 28px;
+      height: 28px;
+    }
+    .logo-row h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #6366F1;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #9CA3AF;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+    .section-desc {
+      font-size: 12px;
+      color: #6B7280;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #111827;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    input:focus { border-color: #6366F1; }
+    input::placeholder { color: #9CA3AF; }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn {
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #6366F1;
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) { background: #4F46E5; }
+
+    .btn-ghost {
+      background: #F3F4F6;
+      color: #374151;
+    }
+    .btn-ghost:hover:not(:disabled) { background: #E5E7EB; }
+
+    .status {
+      font-size: 12px;
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      display: none;
+    }
+    .status.success { background: #F0FDF4; color: #166534; }
+    .status.error   { background: #FEF2F2; color: #991B1B; }
+
+    .hint {
+      font-size: 11px;
+      color: #9CA3AF;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+    .hint a { color: #6366F1; text-decoration: none; }
+    .hint a:hover { text-decoration: underline; }
+
+    .divider { height: 1px; background: #F3F4F6; margin: 16px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="logo-row">
+    <img src="icons/icon.svg" alt="TravelPanel">
+    <h1>TravelPanel Settings</h1>
+  </div>
+
+  <div class="section">
+    <div class="section-label">TravelPanel URL</div>
+    <p class="section-desc">
+      Enter the URL where your TravelPanel app is running — your Vercel deployment
+      or local dev server.
+    </p>
+    <input
+      type="url"
+      id="app-url"
+      placeholder="https://your-app.vercel.app"
+      autocomplete="off"
+      spellcheck="false"
+    >
+    <div class="btn-row">
+      <button id="save-btn" class="btn btn-primary">Save</button>
+      <button id="test-btn" class="btn btn-ghost">Test connection</button>
+    </div>
+    <div id="status" class="status"></div>
+    <p class="hint">
+      Examples:<br>
+      <code>https://your-app.vercel.app</code> (production)<br>
+      <code>http://localhost:3000</code> (local dev)
+    </p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="hint">
+    When you click <strong>Clip to TravelPanel</strong>, the extension opens your
+    TravelPanel app's <code>/share</code> page with the current URL pre-filled —
+    the same flow as the iOS Share Sheet.
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
