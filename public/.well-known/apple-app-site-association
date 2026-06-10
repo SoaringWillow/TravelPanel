@@ -1,0 +1,20 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.travelpanel.app",
+        "paths": [
+          "/shared/*",
+          "/inbox",
+          "/boards/*",
+          "/plan/*",
+          "/timeline"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.com.travelpanel.app"]
+  }
+}

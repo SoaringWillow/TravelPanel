@@ -57,6 +57,9 @@ export function CapacitorBridge() {
             if (clipId && parsed.pathname === '/clip') {
               // Opened from Spotlight: navigate to the map with the clip selected
               router.push(`/?itemId=${encodeURIComponent(clipId)}`);
+            } else if (parsed.pathname.startsWith('/shared/')) {
+              // Universal link or travelpanel://shared/<token>: open the shared board
+              router.push(parsed.pathname);
             } else if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);

@@ -133,7 +133,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Keep the existing filter/search logic intact; pass the filtered array to the virtualizer
 
 ### F7 — Universal Links (apple-app-site-association)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Currently deep links use the `travelpanel://` custom URL scheme. Universal links (`https://travelpanel.app/...`) are the standard — they work on first install without the app needing to be open, they appear as normal web URLs in iMessage, and they fall back to the web app if not installed.  
 **Files to create**: `public/.well-known/apple-app-site-association`  
 **What to do**:

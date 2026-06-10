@@ -82,7 +82,18 @@ CAPACITOR_SERVER_URL=https://your-app.vercel.app npm run ios:build
 # Then archive from Xcode: Product → Archive
 ```
 
-## Step 7: Add Privacy Manifest (required for App Store)
+## Step 7: Enable Associated Domains (Universal Links)
+
+Universal links allow `https://travelpanel.app/shared/*` URLs to open directly in the app.
+
+1. Select the **App** target → **Signing & Capabilities**
+2. Click **+ Capability** → **Associated Domains**
+3. Add the entry: `applinks:travelpanel.app`
+4. The file `public/.well-known/apple-app-site-association` is already deployed — verify it's accessible at `https://travelpanel.app/.well-known/apple-app-site-association`
+
+**Important**: Replace `TEAMID` in `apple-app-site-association` with your actual Apple Team ID (found in developer.apple.com under Membership).
+
+## Step 8: Add Privacy Manifest (required for App Store)
 
 Apple requires a privacy manifest for all new submissions since May 2024.
 
