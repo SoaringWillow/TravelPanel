@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
+import { suggestBoard } from '@/lib/suggestBoard';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -83,6 +84,14 @@ function SharePageInner() {
   const recentBoards = [...boards]
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 5);
+
+  // Client-side board suggestion from title + platform keywords
+  const suggestedBoard = rawUrl
+    ? suggestBoard(
+        { title: sharedTitle, tags: [platform], description: rawUrl },
+        recentBoards,
+      )
+    : null;
 
   // ── Save handler ─────────────────────────────────────────────────────────
 
@@ -239,18 +248,28 @@ function SharePageInner() {
               Inbox
             </button>
 
-            {/* Recent board chips */}
-            {recentBoards.map((board) => (
-              <button
-                key={board.id}
-                type="button"
-                disabled={stage === 'saving'}
-                onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
-                className="flex-shrink-0 bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
-              >
-                {board.emoji} {board.name}
-              </button>
-            ))}
+            {/* Recent board chips — suggested board gets an indigo highlight */}
+            {recentBoards.map((board) => {
+              const isSuggested = suggestedBoard?.id === board.id;
+              return (
+                <button
+                  key={board.id}
+                  type="button"
+                  disabled={stage === 'saving'}
+                  onClick={() => handleSave(board.id, `${board.emoji} ${board.name}`)}
+                  className={`flex-shrink-0 text-sm font-semibold px-4 py-2 rounded-full active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap ${
+                    isSuggested
+                      ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 hover:bg-indigo-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {board.emoji} {board.name}
+                  {isSuggested && (
+                    <span className="ml-1.5 text-indigo-200 text-xs font-normal">✦</span>
+                  )}
+                </button>
+              );
+            })}
 
             {/* + New chip */}
             <button

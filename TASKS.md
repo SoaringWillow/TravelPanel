@@ -207,7 +207,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - If no match: show the normal board picker
 
 ### D3 — Smart Board Suggestion (Auto-categorise)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users pick boards manually. A lightweight AI pass can suggest the right board based on tags + title, reducing friction for power users.  
 **Files**: `app/share/page.tsx`, new `lib/suggestBoard.ts`  
 **What to do**:
