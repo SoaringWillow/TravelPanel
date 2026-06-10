@@ -289,7 +289,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 > The app is functionally complete. Phase I closes the gap between "works" and "feels great". These are the refinements that get 5-star reviews and word-of-mouth.
 
 ### I1 — Board Cover Thumbnail
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The boards list shows only emoji + name. A cover thumbnail derived from the first clip with an image would make the list visually rich and help users find boards at a glance.  
 **Files to change**: `lib/db.ts`, `hooks/useBoards.ts`, `app/boards/page.tsx`, `components/BoardCard.tsx`  
 **What to do**:

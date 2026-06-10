@@ -179,10 +179,22 @@ export async function removeItemFromBoard(boardId: string, itemId: string): Prom
   const db = await getDB();
   const [board, item] = await Promise.all([db.get('boards', boardId), db.get('items', itemId)]);
   if (!board || !item) return;
+
+  const newItemIds = board.itemIds.filter((id) => id !== itemId);
+
+  // Refresh cover thumbnail if the removed item was providing it
+  let coverThumbnail = board.coverThumbnail;
+  if (item.thumbnail && board.coverThumbnail === item.thumbnail) {
+    // Find the next item that has a thumbnail
+    const remaining = await Promise.all(newItemIds.map((id) => db.get('items', id)));
+    coverThumbnail = remaining.find((i) => i?.thumbnail)?.thumbnail ?? undefined;
+  }
+
   const tx = db.transaction(['boards', 'items'], 'readwrite');
   await tx.objectStore('boards').put({
     ...board,
-    itemIds: board.itemIds.filter((id) => id !== itemId),
+    itemIds: newItemIds,
+    coverThumbnail,
     updatedAt: Date.now(),
   });
   await tx.objectStore('items').put({ ...item, boardId: undefined });
