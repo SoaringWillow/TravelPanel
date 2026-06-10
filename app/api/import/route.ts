@@ -81,39 +81,11 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompts ─────────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
-## Layer 1 — Spots (geographic skeleton)
-Extract real, identifiable locations with GPS coordinates you are confident about.
-If the post doesn't mention specific named places, return an empty locations array.
-Do NOT invent or guess coordinates.
-
+const SUBSTANCE_INSTRUCTIONS = `
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
-Extract every piece of actionable insight, advice, warning, or opinion from the post.
+Extract every piece of actionable insight, advice, warning, or opinion visible in the content.
 This is what competitors miss. Examples of what to capture:
 - "Arrive before 8am to beat the queue" → tip
 - "The set lunch menu is half the price of dinner" → tip
@@ -128,14 +100,104 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+If the post doesn't mention specific named places, return an empty locations array.
+Do NOT invent or guess coordinates.
+${SUBSTANCE_INSTRUCTIONS}`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  const platformNames: Record<string, string> = {
+    xiaohongshu: '小红书 (Xiaohongshu / Little Red Book)',
+    wechat: 'WeChat / 微信',
+    douyin: 'Douyin / TikTok',
+    bilibili: 'Bilibili / 哔哩哔哩',
+  };
+  const platformName = platformNames[platform] ?? platform;
+
+  return `You are a travel content analyzer. Analyze this screenshot from a ${platformName} post.
+URL: ${url}
+
+Read ALL visible text carefully — including Chinese characters, captions, comments, and overlays.
+
+## Layer 1 — Spots (geographic skeleton)
+Extract every named location (place names, restaurant names, landmarks, districts, cities) visible in the screenshot.
+Provide accurate GPS coordinates for places you are confident about.
+Do NOT invent or guess coordinates.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Read every line of visible text and extract all travel wisdom, tips, and insights.
+Chinese text is just as important as English — translate and extract it.
+${SUBSTANCE_INSTRUCTIONS}
+
+For the title: write a descriptive English title based on what you see.
+For the description: 2-3 sentences summarizing the post's travel content.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageData: string | undefined;
+  try {
+    ({ url, imageData } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // Use Vision path when an image is provided (bypasses anti-scraping on Chinese platforms)
+  const useVision = !!imageData && typeof imageData === 'string' && imageData.length > 100;
+
+  const page = useVision ? null : await fetchPageData(url);
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision) {
+      // Vision path: Claude reads the screenshot directly
+      const dataUri = imageData!.startsWith('data:')
+        ? imageData!
+        : `data:image/jpeg;base64,${imageData}`;
+
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', image: dataUri },
+              { type: 'text',  text: buildVisionPrompt(platform, url) },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: HTML scraping + text analysis
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(platform, url, page),
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

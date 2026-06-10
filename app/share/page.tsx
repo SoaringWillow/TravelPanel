@@ -30,12 +30,22 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [shareImageData, setShareImageData]   = useState<string>('');
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Pick up any screenshot image written by the Capacitor bridge (iOS Share Extension)
+  useEffect(() => {
+    const image = localStorage.getItem('pendingShareImage');
+    if (image) {
+      setShareImageData(image);
+      localStorage.removeItem('pendingShareImage');
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -89,9 +99,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot image if captured from Share Extension
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, shareImageData || undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

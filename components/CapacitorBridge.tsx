@@ -44,15 +44,32 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>&hasImage=true
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
-            const shareUrl = parsed.searchParams.get('url');
+            const shareUrl   = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage   = parsed.searchParams.get('hasImage') === 'true';
 
             if (shareUrl) {
+              // When the Share Extension captured a screenshot, retrieve it from
+              // App Group storage via the native AppGroupPlugin bridge.
+              if (hasImage) {
+                try {
+                  const { registerPlugin } = await import('@capacitor/core');
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const AppGroupBridge = registerPlugin('AppGroupPlugin') as any;
+                  const { imageBase64 } = await (AppGroupBridge.readPendingImage() as Promise<{ imageBase64: string }>);
+                  if (imageBase64) {
+                    localStorage.setItem('pendingShareImage', imageBase64);
+                  }
+                } catch {
+                  // Plugin not available or image read failed — enrich via text path
+                }
+              }
+
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
               router.push(`/share?${qs.toString()}`);

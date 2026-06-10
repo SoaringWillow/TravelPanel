@@ -16,4 +16,8 @@ export const models = {
 
   // Final itinerary stream — complex reasoning, sourced wisdom citation, route optimisation
   planItinerary: anthropic('claude-opus-4-8'),
+
+  // Vision-based extraction for platforms with anti-scraping (Xiaohongshu, WeChat)
+  // Sonnet chosen over Haiku: busy Chinese social posts need stronger OCR + reasoning
+  visionEnrichment: anthropic('claude-sonnet-4-6'),
 } as const;
