@@ -44,7 +44,14 @@ export async function enrichItem(id: string, url: string, imageBase64?: string):
       substanceCount: data.substance?.length ?? 0,
     });
     return true;
-  } catch {
+  } catch (err) {
+    // Network error (offline) — leave as pending so we retry when online,
+    // don't increment retryCount, don't show the error UI.
+    const isNetworkError = err instanceof TypeError && /fetch|network/i.test((err as TypeError).message);
+    if (isNetworkError || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      await updateItemEnrichment(id, 'pending');
+      return false;
+    }
     await updateItemEnrichment(id, 'failed');
     track('clip_enrich_failed', { url });
     return false;

@@ -75,6 +75,16 @@ export default function InboxPage() {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    setIsOffline(!navigator.onLine);
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
 
   const handlePullRefresh = useCallback(async () => {
     // Retry all failed items on pull-to-refresh
@@ -339,6 +349,19 @@ export default function InboxPage() {
               style={{ transform: `rotate(${pullState.pulling ? pullState.pullY * 3 : 0}deg)` }} />
           </div>
         )}
+        {/* Offline queue banner */}
+        {(() => {
+          const pendingCount = inboxItems.filter((i) => i.enrichmentStatus === 'pending').length;
+          return pendingCount > 0 && isOffline ? (
+            <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
+              <span className="text-base">⏳</span>
+              <p className="text-xs text-amber-800 font-medium">
+                {pendingCount} clip{pendingCount !== 1 ? 's' : ''} queued — will analyze when online
+              </p>
+            </div>
+          ) : null;
+        })()}
+
         {loading ? (
           <div className="mt-4 space-y-3">
             {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}

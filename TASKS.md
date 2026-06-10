@@ -686,7 +686,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Completed boards move to the bottom of the list automatically
 
 ### K6 — Offline Clip Queue
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, new `lib/clipQueue.ts`, `hooks/useClipQueue.ts`  
 **What to do**:
 - When enrichment API call fails with a network error (not a 4xx), save the clip URL to an
@@ -698,7 +698,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This makes the Share Sheet flow truly resilient: sharing on airplane mode works
 
 ### K7 — Plan Streaming UX: Visible Agent Steps
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `app/api/plan/route.ts`  
 **What to do**:
 - During plan generation, show a live "thinking" view with animated step cards:
