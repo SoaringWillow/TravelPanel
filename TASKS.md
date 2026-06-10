@@ -298,7 +298,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use inline SVG illustrations (no external assets) — simple, single-color line art in indigo
 
 ### E3 — Clip Card Swipe-to-Delete
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
 **What to do**:
 - Add swipe-left gesture on inbox cards to reveal a red "Delete" action button
@@ -307,7 +307,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Undo toast: "Clip deleted · Undo" appears for 4 seconds, tapping Undo re-inserts the item
 
 ### E4 — Dark Mode Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/globals.css`, `tailwind.config.js`, all components  
 **What to do**:
 - Enable Tailwind `darkMode: 'media'` (system-respecting)

@@ -141,12 +141,12 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-status pb-0 z-10">
+      <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-status pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
@@ -172,7 +172,7 @@ export default function InboxPage() {
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
                 }`}
               >
                 {p.label} ({count})

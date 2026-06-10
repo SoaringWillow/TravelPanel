@@ -209,7 +209,7 @@ export default function InboxCard({
             onDelete(item.id);
           }
         }}
-        className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-grab active:cursor-grabbing"
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden cursor-grab active:cursor-grabbing"
       >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
@@ -222,8 +222,8 @@ export default function InboxCard({
           }}
         />
       ) : (
-        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
-          <Globe size={32} className="text-gray-300" />
+        <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <Globe size={32} className="text-gray-300 dark:text-gray-500" />
         </div>
       )}
 
@@ -236,13 +236,13 @@ export default function InboxCard({
         </span>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 mb-1">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
           {item.title}
         </h3>
 
         {/* Description */}
         {item.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
             {item.description}
           </p>
         )}
@@ -275,7 +275,7 @@ export default function InboxCard({
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-2 py-0.5 rounded-full"
               >
                 #{tag}
               </span>
@@ -284,8 +284,8 @@ export default function InboxCard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-xs text-gray-400">{date}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-700">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
 
           <div className="flex items-center gap-1">
             {/* View on Map */}
