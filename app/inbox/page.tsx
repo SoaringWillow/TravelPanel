@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Plus } from 'lucide-react';
@@ -12,6 +12,7 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/li
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { hapticSuccess } from '@/lib/haptics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
@@ -41,11 +42,38 @@ export default function InboxPage() {
   const [query, setQuery] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
+  const [deletedItem, setDeletedItem] = useState<SavedItem | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      const item = items.find((i) => i.id === id);
+      if (!item) return;
+
+      // Commit any previous pending undo immediately
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+
+      removeItem(id);
+      setDeletedItem(item);
+
+      undoTimerRef.current = setTimeout(() => {
+        setDeletedItem(null);
+      }, 5000);
+    },
+    [items, removeItem]
+  );
+
+  const handleUndo = useCallback(() => {
+    if (!deletedItem) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    addItem(deletedItem);
+    setDeletedItem(null);
+  }, [deletedItem, addItem]);
 
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
@@ -174,7 +202,7 @@ export default function InboxPage() {
                 >
                   <InboxCard
                     item={item}
-                    onDelete={removeItem}
+                    onDelete={handleDelete}
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
@@ -279,9 +307,32 @@ export default function InboxPage() {
       <ImportSheet
         open={showImport}
         onClose={() => { setShowImport(false); setPrefilledUrl(''); }}
-        onSaved={(item: SavedItem) => { addItem(item); setShowImport(false); setPrefilledUrl(''); router.refresh(); }}
+        onSaved={(item: SavedItem) => { addItem(item); hapticSuccess(); setShowImport(false); setPrefilledUrl(''); router.refresh(); }}
         initialUrl={prefilledUrl}
       />
+
+      {/* Undo toast */}
+      <AnimatePresence>
+        {deletedItem && (
+          <motion.div
+            key="undo-toast"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-20 left-4 right-4 z-[3000] flex items-center justify-between bg-gray-900 dark:bg-slate-700 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-xl"
+          >
+            <span>Clip deleted</span>
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="text-indigo-300 hover:text-indigo-200 font-semibold ml-4 shrink-0"
+            >
+              Undo
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <NavBar active="inbox" />
     </div>
