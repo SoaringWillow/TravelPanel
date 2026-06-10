@@ -555,6 +555,77 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE I — UX Depth & Retention
+
+> Goal: Features that deepen daily engagement — notes, smart defaults, empty states, and
+> rich clipboard/URL handling that make every interaction feel thoughtful.
+> Execution order: I1 → I2 → I3 → I4 → I5 → I6
+
+### I1 — Home Map Empty State
+**Status**: `[x]` Done  
+**Files**: `app/page.tsx`, `components/MapView.tsx`  
+**What to do**:
+- When `items.length === 0` and not loading, overlay a gentle CTA on the map:
+  "📍 Save your first inspiration" card with a short subtitle and a "+ Clip something" button
+- Animate in with opacity fade (framer-motion)
+- Dismiss when the first item is saved
+- Show a subtle background map (centered on world view, low opacity markers)
+
+### I2 — Personal Notes on Clips
+**Status**: `[x]` Done  
+**Files**: `lib/types.ts`, `lib/db.ts`, `components/LocationDetailCard.tsx`  
+**What to do**:
+- Add `userNote?: string` field to `SavedItem` in `lib/types.ts`
+- In `LocationDetailCard`, add a "My note" section with a pencil icon:
+  - If no note: show "Add a note…" in light gray
+  - Tap to open an inline textarea; on blur or Enter, auto-save via `saveItem()`
+  - Note persists in IndexedDB with the clip
+- Show a small "note" indicator (📝) on InboxCard if userNote is set
+
+### I3 — Clipboard URL Auto-Paste on Share Page
+**Status**: `[ ]` Not started  
+**Files**: `app/share/page.tsx`  
+**What to do**:
+- On mount, call `navigator.clipboard.readText()` and if the clipboard contains a URL
+  that differs from the current `?url=` param, show a small banner:
+  "📋 Clipboard has a URL — use it instead?" with Yes/No buttons
+- "Yes" replaces the current URL in the flow and re-runs enrichment
+- Handles the common case of copying a link then opening TravelPanel directly
+
+### I4 — Smart Plan Preferences Memory
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- When a user generates a plan, save their last-used preferences (chips + custom notes + days)
+  to `localStorage` under `planPreferences`
+- On the plan page, if `planPreferences` exists, pre-fill the form with last-used values
+- Add a "Reset preferences" link to clear them
+- Show a "Using your last preferences" banner if they were loaded
+
+### I5 — Map Performance: Stable References
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Wrap `MapView` in `React.memo()` so it only re-renders when `items` or `flyTo` actually change
+- Use `useMemo` in `app/page.tsx` to keep the `items` array reference stable:
+  filter once and memoize instead of re-computing every render
+- Use `useCallback` on `onPinClick` handler
+- Measure: toggle dark mode → map should not flicker or re-mount
+
+### I6 — Your Travel Stats Page
+**Status**: `[ ]` Not started  
+**Files**: new `app/stats/page.tsx`, `components/NavBar.tsx`  
+**What to do**:
+- A new page at `/stats` showing:
+  - Total clips saved, boards created, plans generated
+  - Clips by platform (pie/bar chart using simple CSS + Tailwind)
+  - Most-saved countries/cities (from clip location data)
+  - Clips saved per month (sparkline using SVG path)
+  - "You've saved X places across Y countries"
+- Add as a 5th nav item (replace Settings? or add) — or accessible from Settings
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*

@@ -317,6 +317,9 @@ export default function InboxCard({
                   #{tag}
                 </span>
               ))}
+              {item.notes && (
+                <span className="bg-amber-50 text-amber-600 text-xs px-2 py-0.5 rounded-full">📝</span>
+              )}
             </div>
           )}
 

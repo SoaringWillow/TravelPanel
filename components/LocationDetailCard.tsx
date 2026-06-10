@@ -2,11 +2,12 @@
 
 import { useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
-import { X, MapPin, Share2, Globe } from 'lucide-react';
+import { X, MapPin, Share2, Globe, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
 import { impact } from '@/lib/haptics';
+import { saveItem } from '@/lib/db';
 
 interface LocationDetailCardProps {
   item: SavedItem;
@@ -17,6 +18,16 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
   const dragY = useMotionValue(0);
   const opacity = useTransform(dragY, [0, 180], [1, 0]);
   const [imgError, setImgError] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteValue, setNoteValue] = useState(item.notes ?? '');
+
+  async function saveNote() {
+    setEditingNote(false);
+    const trimmed = noteValue.trim();
+    if (trimmed !== (item.notes ?? '')) {
+      await saveItem({ ...item, notes: trimmed || undefined });
+    }
+  }
 
   async function handleDragEnd(_: PointerEvent, info: PanInfo) {
     if (info.offset.y > 100 || info.velocity.y > 700) {
@@ -164,12 +175,44 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
               </div>
             )}
 
-            {item.notes && (
-              <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{item.notes}</p>
+            {/* Editable personal note */}
+            <div className="rounded-xl border border-dashed border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">My Note</p>
+                <button
+                  type="button"
+                  onClick={() => setEditingNote(true)}
+                  aria-label="Edit note"
+                  className="p-1 text-gray-300 hover:text-indigo-400 transition-colors rounded-md"
+                >
+                  <Pencil size={12} />
+                </button>
               </div>
-            )}
+              {editingNote ? (
+                <textarea
+                  autoFocus
+                  value={noteValue}
+                  onChange={(e) => setNoteValue(e.target.value)}
+                  onBlur={saveNote}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveNote(); } if (e.key === 'Escape') { setNoteValue(item.notes ?? ''); setEditingNote(false); } }}
+                  rows={3}
+                  placeholder="Add a personal note…"
+                  className="w-full px-3 pb-2.5 text-sm text-gray-700 placeholder-gray-300 resize-none outline-none bg-transparent"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditingNote(true)}
+                  className="w-full text-left px-3 pb-2.5 text-sm leading-relaxed"
+                >
+                  {noteValue ? (
+                    <span className="text-gray-700">{noteValue}</span>
+                  ) : (
+                    <span className="text-gray-300">Add a personal note…</span>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

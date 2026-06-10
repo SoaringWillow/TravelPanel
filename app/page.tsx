@@ -96,6 +96,30 @@ function HomePageInner() {
         <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
       </div>
 
+      {/* Empty state overlay */}
+      {!loading && items.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 z-[900] flex items-center justify-center pointer-events-none"
+        >
+          <div className="pointer-events-auto bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl px-7 py-8 max-w-xs mx-6 text-center">
+            <div className="text-5xl mb-3">📍</div>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">Save your first inspiration</h2>
+            <p className="text-xs text-gray-500 leading-relaxed mb-5">
+              Share any travel post from Instagram, YouTube, or Xiaohongshu. AI extracts the places and tips automatically.
+            </p>
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-2 mx-auto bg-indigo-600 text-white font-semibold text-sm px-5 py-2.5 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all shadow-md"
+            >
+              <Plus size={16} />
+              Clip something
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Top bar – floating (phone only) */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pointer-events-none md:hidden">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 pointer-events-auto">
