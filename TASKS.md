@@ -455,7 +455,7 @@ Goal: fill in the remaining gaps — missing features users will hit quickly, de
 - Makes the "saving" experience feel more concrete and native
 
 ### F9 — Reorder Clips in Board
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/boards/[id]/page.tsx`, `lib/db.ts`
 **What to do**:
 - Long-press on a clip card in the board detail view enters reorder mode
