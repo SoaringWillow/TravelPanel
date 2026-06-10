@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
-import { MapPin, Lightbulb, CalendarRange, ArrowRight, X } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence, useMotionValue, animate, type PanInfo } from 'framer-motion';
+import { MapPin, Lightbulb, CalendarRange, Bell, ArrowRight, X, Check } from 'lucide-react';
 
 interface OnboardingFlowProps {
   onDone: () => void;
@@ -104,6 +104,46 @@ function SubstanceMockup() {
   );
 }
 
+function NotificationMockup() {
+  return (
+    <div className="w-64 mx-auto select-none space-y-3">
+      {/* Notification banner */}
+      <div className="bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <span className="text-xl">📍</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-gray-900 leading-snug">Nearby saved spot</p>
+            <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
+              You're near Senso-ji — saved 3 weeks ago
+            </p>
+          </div>
+        </div>
+      </div>
+      {/* Second notification */}
+      <div className="bg-white rounded-2xl shadow-md p-4 border border-gray-100 opacity-70">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <span className="text-xl">📍</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-gray-900 leading-snug">Nearby saved spot</p>
+            <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
+              You're near Tsukiji Market — saved 2 months ago
+            </p>
+          </div>
+        </div>
+      </div>
+      {/* Map hint */}
+      <div className="flex items-center gap-2 justify-center">
+        <div className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
+        <span className="text-[10px] text-white/70 font-medium">500 m radius · max 1 per day</span>
+      </div>
+    </div>
+  );
+}
+
 function PlanMockup() {
   const days = [
     { day: 1, theme: 'Shibuya & Harajuku', activities: ['Meiji Shrine', 'Takeshita St.', 'Shibuya Crossing'] },
@@ -160,18 +200,52 @@ const SLIDES = [
     subtitle: 'Turn your clips into a day-by-day itinerary with every tip traced back to the post that inspired it.',
     illustration: <PlanMockup />,
   },
-];
+  {
+    icon: Bell,
+    color: 'from-violet-600 to-indigo-700',
+    title: 'Never miss\na saved spot',
+    subtitle: 'Get a nudge when you wander near a place you saved — so your clips are useful in the moment.',
+    illustration: <NotificationMockup />,
+    isNotificationSlide: true,
+  },
+] as const;
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function OnboardingFlow({ onDone }: OnboardingFlowProps) {
   const [idx, setIdx] = useState(0);
+  const [notifGranted, setNotifGranted] = useState(false);
   const dragX = useMotionValue(0);
   const W = typeof window !== 'undefined' ? window.innerWidth : 390;
 
   function advance() {
     if (idx < SLIDES.length - 1) setIdx(idx + 1);
     else onDone();
+  }
+
+  async function enableNotifications() {
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const result = await LocalNotifications.requestPermissions();
+      if (result.display === 'granted') {
+        localStorage.setItem('geofenceEnabled', '1');
+        setNotifGranted(true);
+        setTimeout(onDone, 800);
+        return;
+      }
+    } catch {
+      // web fallback
+      if ('Notification' in window) {
+        const result = await Notification.requestPermission();
+        if (result === 'granted') {
+          localStorage.setItem('geofenceEnabled', '1');
+          setNotifGranted(true);
+          setTimeout(onDone, 800);
+          return;
+        }
+      }
+    }
+    onDone();
   }
 
   async function handleDragEnd(_: PointerEvent, info: PanInfo) {
@@ -191,6 +265,7 @@ export default function OnboardingFlow({ onDone }: OnboardingFlowProps) {
 
   const slide = SLIDES[idx];
   const isLast = idx === SLIDES.length - 1;
+  const isNotifSlide = 'isNotificationSlide' in slide && slide.isNotificationSlide;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-white flex flex-col overflow-hidden">
@@ -251,15 +326,35 @@ export default function OnboardingFlow({ onDone }: OnboardingFlowProps) {
           ))}
         </div>
 
-        {/* Next / Get Started */}
-        <button
-          type="button"
-          onClick={advance}
-          className="flex items-center gap-2 bg-indigo-600 text-white font-semibold text-sm px-6 py-3 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all shadow-lg"
-        >
-          {isLast ? 'Get started' : 'Next'}
-          <ArrowRight size={16} />
-        </button>
+        {/* Next / Get Started / Enable notifications */}
+        {isNotifSlide ? (
+          <div className="flex flex-col gap-2 flex-1">
+            <button
+              type="button"
+              onClick={enableNotifications}
+              className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold text-sm px-6 py-3 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all shadow-lg"
+            >
+              {notifGranted ? <Check size={16} /> : <Bell size={16} />}
+              {notifGranted ? 'Enabled!' : 'Enable Nearby Alerts'}
+            </button>
+            <button
+              type="button"
+              onClick={onDone}
+              className="text-xs text-gray-400 font-medium py-1 hover:text-gray-600 transition-colors"
+            >
+              Skip for now
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={advance}
+            className="flex items-center gap-2 bg-indigo-600 text-white font-semibold text-sm px-6 py-3 rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all shadow-lg"
+          >
+            {isLast ? 'Get started' : 'Next'}
+            <ArrowRight size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

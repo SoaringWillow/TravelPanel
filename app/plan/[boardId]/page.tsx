@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, ClipboardList, Share2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Navigation, ClipboardList, Share2, Printer } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { ProBadge } from '@/components/ProBadge';
@@ -19,6 +19,32 @@ const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: f
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
+
+// ─── Sourced tips block (collapsible) ─────────────────────────────────────────
+
+function SourcedTipsBlock({ tips }: { tips: { content: string; sourceTitle: string }[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? tips : tips.slice(0, 1);
+  return (
+    <div className="pt-1 space-y-1">
+      {visible.map((st, i) => (
+        <div key={i} className="bg-amber-50 rounded-lg px-2.5 py-1.5 border-l-2 border-amber-400">
+          <p className="text-xs text-amber-900 leading-snug">💡 {st.content}</p>
+          <p className="text-[10px] text-amber-600 mt-0.5 truncate">from: {st.sourceTitle}</p>
+        </div>
+      ))}
+      {tips.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="text-[10px] text-amber-700 font-semibold hover:text-amber-900 transition-colors"
+        >
+          {expanded ? '▲ Less' : `▼ +${tips.length - 1} more tip${tips.length - 1 !== 1 ? 's' : ''}`}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function PlanPage() {
   const params = useParams();
@@ -600,6 +626,13 @@ export default function PlanPage() {
                       Add to Calendar
                       <ProBadge size="xs" />
                     </button>
+                    <button
+                      onClick={() => window.print()}
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-medium py-2 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all no-print"
+                    >
+                      <Printer size={14} />
+                      Print
+                    </button>
                   </div>
                 </>
               )}
@@ -670,19 +703,7 @@ export default function PlanPage() {
 
                       {/* Sourced tips — wisdom cited from the user's own clips */}
                       {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
+                        <SourcedTipsBlock tips={activity.sourcedTips} />
                       )}
                     </div>
                   ))}

@@ -515,7 +515,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Shows a loading state while generating
 
 ### H5 — Enhanced Onboarding: Notification Permission
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/OnboardingFlow.tsx`  
 **What to do**:
 - Add a 4th onboarding screen (after "Plan your trip") explaining nearby alerts:
@@ -525,7 +525,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only show this screen if `@capacitor/local-notifications` is available (i.e., running natively)
 
 ### H6 — Substance Callout Chips in Trip Plan
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx` (or wherever activities render)  
 **What to do**:
 - In the trip plan day-by-day view, each activity that has `sourcedTips` should show them as
@@ -535,7 +535,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This surfaces the substance-over-spots moat directly in the plan output
 
 ### H7 — Plan View Print Styles
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, new `app/plan/[boardId]/print.css`  
 **What to do**:
 - Add a "Print" button to the plan view (uses `window.print()`)

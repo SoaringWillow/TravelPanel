@@ -112,3 +112,13 @@
     background-size: 200% 100%;
   }
 }
+
+/* ── Print layout for trip plans ────────────────────────────────────────── */
+@media print {
+  body { background: white !important; color: #111 !important; font-size: 12pt; }
+  nav, button, .no-print { display: none !important; }
+  .print-page-break { page-break-before: always; }
+  /* Force all cards to show fully */
+  * { overflow: visible !important; }
+  .line-clamp-1, .line-clamp-2 { -webkit-line-clamp: unset !important; overflow: visible !important; }
+}
