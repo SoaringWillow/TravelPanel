@@ -112,7 +112,7 @@ export default function SettingsPage() {
     !!process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20 md:pl-16">
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-4 safe-top">
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>

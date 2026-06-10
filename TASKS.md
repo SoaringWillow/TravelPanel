@@ -444,7 +444,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test with VoiceOver in Simulator: navigate through the inbox, verify each element is readable
 
 ### G7 — iPad Split-View Layout
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - On iPad (detect via `window.innerWidth > 768`), show a two-column layout:

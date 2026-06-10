@@ -90,13 +90,15 @@ function HomePageInner() {
   }
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden">
-      {/* Map fills entire screen */}
-      <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+    <main className="relative h-screen w-screen overflow-hidden md:pl-16 md:flex">
+      {/* Map — fills screen on phone, takes 60% on iPad */}
+      <div className="absolute inset-0 md:relative md:flex-1 md:inset-auto">
+        <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+      </div>
 
-      {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
+      {/* Top bar – floating (phone only) */}
+      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pointer-events-none md:hidden">
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 pointer-events-auto">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
           <div className="ml-auto text-sm text-gray-500">
@@ -105,21 +107,64 @@ function HomePageInner() {
         </div>
       </div>
 
-      {/* Selected item detail card */}
-      <AnimatePresence>
-        {selectedItem && (
-          <LocationDetailCard
-            item={selectedItem}
-            onClose={() => setSelectedItem(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* iPad right panel (40%) */}
+      <div className="hidden md:flex md:w-[360px] md:flex-col md:bg-gray-50 dark:md:bg-gray-950 md:border-l md:border-gray-100 dark:md:border-gray-800 md:overflow-hidden">
+        {/* Panel header */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Globe2 className="text-indigo-600" size={18} />
+            <span className="font-bold text-gray-800 dark:text-gray-100">TravelPanel</span>
+          </div>
+          <div className="text-xs text-gray-400">
+            {loading ? 'Loading…' : `${items.length} saved`}
+          </div>
+        </div>
 
-      {/* Import FAB */}
+        {/* Detail card or empty state */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {selectedItem ? (
+            <LocationDetailCard
+              item={selectedItem}
+              onClose={() => setSelectedItem(null)}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 gap-2">
+              <Globe2 size={36} className="opacity-30" />
+              <p className="text-sm">Tap a pin to see details</p>
+            </div>
+          )}
+        </div>
+
+        {/* Import button at bottom of panel */}
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
+          <button
+            onClick={() => setShowImport(true)}
+            className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold text-sm px-4 py-3 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
+            aria-label="Clip inspiration"
+          >
+            <Plus size={18} />
+            Clip inspiration
+          </button>
+        </div>
+      </div>
+
+      {/* Selected item detail card (phone only) */}
+      <div className="md:hidden">
+        <AnimatePresence>
+          {selectedItem && (
+            <LocationDetailCard
+              item={selectedItem}
+              onClose={() => setSelectedItem(null)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Import FAB (phone only) */}
       {!selectedItem && (
         <button
           onClick={() => setShowImport(true)}
-          className="absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+          className="md:hidden absolute bottom-24 right-4 z-[1000] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
           aria-label="Clip inspiration"
         >
           <Plus size={24} />

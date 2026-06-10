@@ -36,7 +36,7 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950 md:pl-16">
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 shadow-sm border-b border-transparent dark:border-gray-800 px-4 pt-12 pb-4 z-10">
         <div className="flex items-center justify-between">
@@ -61,7 +61,7 @@ export default function BoardsPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {boardsLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="rounded-2xl overflow-hidden min-h-[160px] shimmer" />
             ))}
@@ -83,7 +83,7 @@ export default function BoardsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {boards.map((board) => (
               <BoardCard
                 key={board.id}
