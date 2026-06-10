@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 480px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #111827;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .header-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-title { font-size: 20px; font-weight: 700; }
+    .card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .field-input {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #111827;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-input:focus { border-color: #6366f1; }
+    .field-hint { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+    .btn-save {
+      width: 100%;
+      margin-top: 16px;
+      padding: 11px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .btn-save:hover { opacity: 0.88; }
+    .status {
+      text-align: center;
+      font-size: 13px;
+      color: #059669;
+      font-weight: 600;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .kbd {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-family: monospace;
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5"/>
+      </svg>
+    </div>
+    <span class="header-title">TravelPanel Clipper</span>
+  </div>
+
+  <div class="card">
+    <div class="field-label">TravelPanel App URL</div>
+    <input class="field-input" id="appUrl" type="url" placeholder="https://your-app.vercel.app" />
+    <div class="field-hint">Your deployed TravelPanel URL, or <code>http://localhost:3000</code> for local dev.</div>
+    <button class="btn-save" id="saveBtn">Save Settings</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card">
+    <div class="field-label">Keyboard Shortcut</div>
+    <div class="shortcut-row">
+      <span style="font-size:13px;color:#374151;">Open clipper popup</span>
+      <span><kbd class="kbd">⌘⇧S</kbd> / <kbd class="kbd">Ctrl+Shift+S</kbd></span>
+    </div>
+    <div class="field-hint" style="margin-top:8px;">
+      To customize, visit <strong>chrome://extensions/shortcuts</strong>.
+    </div>
+  </div>
+
+  <script>
+    const appUrlInput = document.getElementById('appUrl');
+    const saveBtn = document.getElementById('saveBtn');
+    const status = document.getElementById('status');
+
+    chrome.storage.sync.get(['appUrl'], (stored) => {
+      appUrlInput.value = stored.appUrl || '';
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const val = appUrlInput.value.trim().replace(/\/$/, '');
+      chrome.storage.sync.set({ appUrl: val }, () => {
+        status.textContent = 'Settings saved!';
+        setTimeout(() => { status.textContent = ''; }, 2000);
+      });
+    });
+
+    appUrlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveBtn.click();
+    });
+  </script>
+</body>
+</html>
