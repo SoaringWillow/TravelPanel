@@ -49,6 +49,32 @@ export default function BoardDetailPage() {
 
   const substanceCount = boardItems.reduce((n, i) => n + (i.substance?.length ?? 0), 0);
 
+  const totalLocations = boardItems.reduce((n, i) => n + i.locations.length, 0);
+  const estimatedLength =
+    totalLocations <= 3 ? 'Day trip' : totalLocations <= 8 ? 'Weekend' : 'Full trip';
+
+  const topTag = (() => {
+    const tally = new Map<string, number>();
+    for (const item of boardItems) for (const tag of item.tags) tally.set(tag, (tally.get(tag) ?? 0) + 1);
+    if (tally.size === 0) return null;
+    return Array.from(tally).sort((a, b) => b[1] - a[1])[0][0];
+  })();
+
+  const geoSpread = (() => {
+    const coords = boardItems.flatMap((i) =>
+      i.locations.filter((l) => l.lat && l.lng).map((l) => ({ lat: l.lat!, lng: l.lng! }))
+    );
+    if (coords.length < 2) return null;
+    const lats = coords.map((c) => c.lat);
+    const lngs = coords.map((c) => c.lng);
+    const latSpan = (Math.max(...lats) - Math.min(...lats)) * 111;
+    const lngSpan = (Math.max(...lngs) - Math.min(...lngs)) * 85;
+    const km = Math.max(latSpan, lngSpan);
+    if (km <= 50) return 'Compact area';
+    if (km <= 200) return 'Regional trip';
+    return 'Multi-city trip';
+  })();
+
   // Countdown / status from tripStart/tripEnd
   const tripStatus = (() => {
     if (!board?.tripStart) return null;
@@ -330,6 +356,46 @@ export default function BoardDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Stats insight card */}
+          {boardItems.length > 0 && (
+            <div className="mb-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 py-3 shadow-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📍</span>
+                  <div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Locations</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{totalLocations}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base">💡</span>
+                  <div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Tips & warnings</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{substanceCount}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🗓</span>
+                  <div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Estimated</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{estimatedLength}</p>
+                  </div>
+                </div>
+                {(topTag || geoSpread) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{geoSpread ? '🗺' : '✨'}</span>
+                    <div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{geoSpread ? 'Spread' : 'Vibe'}</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                        {geoSpread ?? topTag}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Items list */}
           {boardItems.length === 0 ? (

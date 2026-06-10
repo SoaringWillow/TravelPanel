@@ -898,7 +898,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Fall back to `navigator.clipboard.writeText()` with a "Copied!" toast if share unavailable
 
 ### M6 — Board Stats Insight Card
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`  
 **What to do**:
 - Below the "Plan this trip" CTA button, add a compact stats card
