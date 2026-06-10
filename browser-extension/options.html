@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper — Options</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+<div class="container">
+
+  <div class="logo-row">
+    <div class="logo-box">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+      </svg>
+    </div>
+    <div>
+      <h1>TravelPanel Clipper</h1>
+      <p>Extension settings</p>
+    </div>
+  </div>
+
+  <!-- TravelPanel URL -->
+  <div class="card">
+    <h2>Connection</h2>
+    <label for="urlInput">TravelPanel URL</label>
+    <input
+      type="url"
+      id="urlInput"
+      placeholder="https://your-app.vercel.app"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <p class="hint">
+      The URL where TravelPanel is deployed.
+      <br>Quick presets:
+    </p>
+    <div class="presets">
+      <button class="preset-btn" data-url="http://localhost:3000">localhost:3000</button>
+      <button class="preset-btn" data-url="http://localhost:3001">localhost:3001</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="saveBtn">Save</button>
+      <button class="btn-secondary" id="testBtn">Test connection</button>
+    </div>
+    <div class="status" id="status">
+      <span id="statusText"></span>
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="card">
+    <h2>About</h2>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">
+      TravelPanel Clipper sends any web page URL to TravelPanel's share flow,
+      where Claude extracts locations, tips, warnings, and travel wisdom from
+      the page.<br><br>
+      <strong style="color:var(--text)">Supported:</strong> Instagram, YouTube, Xiaohongshu, TikTok, Bilibili, and any web page.<br>
+      <strong style="color:var(--text)">Right-click</strong> any link or image to clip it without opening the popup.
+    </p>
+  </div>
+
+  <p class="version">TravelPanel Clipper v1.0.0</p>
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>

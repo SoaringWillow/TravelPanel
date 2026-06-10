@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+    </svg>
+  </div>
+  <div class="header-text">
+    <div class="header-title">TravelPanel Clipper</div>
+    <div class="header-sub" id="headerSub">Save travel inspiration</div>
+  </div>
+  <button class="settings-btn" id="settingsBtn" title="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14M12 2v2M12 20v2M2 12h2M20 12h2"/>
+    </svg>
+  </button>
+</header>
+
+<!-- Config warning (shown when TravelPanel URL not set) -->
+<div class="config-warn" id="configWarn">
+  ⚙️ TravelPanel URL not configured. <a href="#" id="configLink">Set it in settings →</a>
+</div>
+
+<!-- Page preview (populated by JS) -->
+<div id="pagePreview" class="preview" style="display:none">
+  <img id="previewThumb" class="preview-thumb hidden" alt="" />
+  <div class="preview-body">
+    <div class="preview-title" id="previewTitle">Loading…</div>
+    <div class="preview-url"  id="previewUrl"></div>
+    <span class="platform-badge" id="platformBadge"></span>
+  </div>
+</div>
+
+<!-- No-URL state -->
+<div id="noUrl" class="no-url" style="display:none">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+  Navigate to a travel page first,<br>then click the extension icon.
+</div>
+
+<!-- Board selector -->
+<div class="section" id="boardSection" style="display:none">
+  <div class="section-label">Save to board</div>
+  <select class="board-select" id="boardSelect">
+    <option value="">📥 Inbox (default)</option>
+  </select>
+</div>
+
+<!-- Clip button -->
+<button class="clip-btn" id="clipBtn" style="display:none">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+  </svg>
+  <span id="clipBtnLabel">Clip this page</span>
+</button>
+
+<!-- Status feedback -->
+<div class="status-bar" id="statusBar">
+  <svg id="statusIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+  <span id="statusText"></span>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <a href="#" id="openAppLink">Open TravelPanel ↗</a>
+  <a href="#" id="footerSettings">Options</a>
+</footer>
+
+<script src="popup.js"></script>
+</body>
+</html>
