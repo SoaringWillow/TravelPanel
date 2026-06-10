@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
@@ -105,6 +105,40 @@ function HomePageInner() {
           </div>
         </div>
       </div>
+
+      {/* First-launch empty state */}
+      <AnimatePresence>
+        {!loading && items.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+            className="absolute bottom-28 left-4 right-4 z-[900]"
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl px-5 py-5 border border-white/50">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-2xl flex-shrink-0">
+                  ✈️
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-800 mb-0.5">Pin your first spot</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    Share a travel post from any app — AI extracts the locations and wisdom instantly.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowImport(true)}
+                className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-3 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200"
+              >
+                <Plus size={16} />
+                Add your first clip
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Selected item detail card */}
       <AnimatePresence>

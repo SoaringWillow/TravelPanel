@@ -377,6 +377,103 @@ Work top-to-bottom.
 
 ---
 
+## PHASE F — App Quality & Depth (Next Sprint)
+
+Goal: fill in the remaining gaps — missing features users will hit quickly, deeper polish on high-traffic screens.
+
+### F1 — Board Detail Page Polish
+**Status**: `[x]` Done
+**Files**: `app/boards/[id]/page.tsx`
+**What to do**:
+- Replace spinner loading state with a skeleton (reuse InboxSkeleton)
+- Apply `header-pt` class to header for Dynamic Island support
+- Add `onRetry` prop to InboxCard so failed clips can be retried from board view
+- Enhance empty-board state with a "Move clips here" CTA linking to Inbox
+- Add a stats bar under the map: "X pins · Y tips · Z activities"
+
+### F2 — Share Page UX Polish
+**Status**: `[ ]` Not started
+**Files**: `app/share/page.tsx`
+**What to do**:
+- Show a more prominent loading animation while enriching ("Analyzing your clip...")
+- If enrichment succeeds, show a success preview (thumbnail + title) before auto-dismiss
+- Add a "Add to board immediately" button on the success screen (instead of just going to inbox)
+- Improve the error state: show what the app extracted (title, URL) even if enrichment failed
+- Apply header safe area for standalone PWA / Capacitor mode
+
+### F3 — Statistics Dashboard on Settings
+**Status**: `[x]` Done
+**Files**: `app/settings/page.tsx`
+**What to do**:
+- Add a "My TravelPanel" stats card at the top of Settings
+- Show: total clips, total boards, total locations pinned, total wisdom tips extracted
+- Animate the numbers counting up on first view (framer-motion stagger)
+- Show "platforms used" mini-bar with wechat/xiaohongshu/douyin/bilibili/other counts
+
+### F4 — Search Results Text Highlighting
+**Status**: `[ ]` Not started
+**Files**: `lib/searchItems.ts` (or create), `components/InboxCard.tsx`
+**What to do**:
+- When a search query is active, highlight matching substrings in card title/description
+- Use a `<mark>` element with `bg-yellow-100 text-yellow-900 rounded px-0.5` styling
+- Keep the existing search logic but add highlighted JSX output option
+- Only highlight in the done state (not pending/failed)
+
+### F5 — Animated Board Plan CTA
+**Status**: `[ ]` Not started
+**Files**: `app/boards/[id]/page.tsx`
+**What to do**:
+- The "Plan this trip" button should pulse/glow when the board has ≥3 clips with locations
+- Add a subtle "AI-powered" label below the button
+- Show estimated plan generation time: "~30 seconds"
+- When board has 0 located clips, replace with a friendlier "Add clips with locations first" guide
+
+### F6 — Substance Quick-Peek in Inbox Grid
+**Status**: `[ ]` Not started
+**Files**: `components/InboxCard.tsx`
+**What to do**:
+- When a card has substance items, tapping the "💡 N tips" badge expands an inline substance preview
+- Show first 2 substance items inline below the tags row
+- Collapse on tap-outside or second tap on the badge
+- Use framer-motion AnimatePresence for smooth expand/collapse
+
+### F7 — Map First-Launch Empty State
+**Status**: `[x]` Done
+**Files**: `app/page.tsx`
+**What to do**:
+- When `items.length === 0` and not loading: show a floating card over the world map
+- Card: "Pin your first spot — share a travel post to get started"
+- Show a pulsing indigo dot at a landmark (e.g. Tokyo Tower at 35.6586, 139.7454) as a visual hint
+- Animate in with a gentle scale+fade
+
+### F8 — Clip Source URL Preview Card
+**Status**: `[ ]` Not started
+**Files**: `app/share/page.tsx`, `components/ImportSheet.tsx`
+**What to do**:
+- Before enrichment starts, show a link-preview card (favicon + domain + page title)
+- Extract these from the URL client-side (no API call needed — just parse the URL)
+- Makes the "saving" experience feel more concrete and native
+
+### F9 — Reorder Clips in Board
+**Status**: `[ ]` Not started
+**Files**: `app/boards/[id]/page.tsx`, `lib/db.ts`
+**What to do**:
+- Long-press on a clip card in the board detail view enters reorder mode
+- Show drag handles, use a simple drag-to-reorder interaction
+- Persist reordered `itemIds` array on the Board object via `saveBoard`
+- On iOS, this should feel like the iOS home screen reorder
+
+### F10 — Daily Inspiration Notification (PWA Push)
+**Status**: `[ ]` Not started
+**Files**: `public/sw.js`, `app/settings/page.tsx`
+**What to do**:
+- Add a toggle in Settings: "Daily inspiration reminder" (default off)
+- Request push notification permission on toggle-on
+- Service worker sends a scheduled notification every morning at 9am: "You have X travel ideas waiting — plan your next trip!"
+- Deep links to the boards view
+
+---
+
 ## PHASE C — On-Trip Mode (Future)
 
 ### C1 — On-Trip GPS Mode

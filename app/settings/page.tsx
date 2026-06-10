@@ -1,20 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, CheckCircle2, AlertTriangle, Database, Puzzle, ExternalLink } from 'lucide-react';
+import { Download, CheckCircle2, AlertTriangle, Database, Puzzle, BarChart2 } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { exportAndDownload } from '@/lib/exportData';
+import { getAllItems, getAllBoards } from '@/lib/db';
+import { PLATFORM_LABELS } from '@/lib/parse-url';
+import { Platform } from '@/lib/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type ExportState = 'idle' | 'exporting' | 'done' | 'error';
+
+interface AppStats {
+  clips: number;
+  boards: number;
+  pins: number;
+  tips: number;
+  platforms: Partial<Record<Platform, number>>;
+}
 
 // ─── Settings Page ────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const [exportState, setExportState] = useState<ExportState>('idle');
   const [exportCounts, setExportCounts] = useState<{ items: number; boards: number; trips: number } | null>(null);
+  const [stats, setStats] = useState<AppStats | null>(null);
+
+  useEffect(() => {
+    async function loadStats() {
+      const [items, boards] = await Promise.all([getAllItems(), getAllBoards()]);
+      const doneItems = items.filter((i) => i.enrichmentStatus === 'done');
+      const platforms: Partial<Record<Platform, number>> = {};
+      for (const item of doneItems) {
+        platforms[item.platform] = (platforms[item.platform] ?? 0) + 1;
+      }
+      setStats({
+        clips: items.length,
+        boards: boards.length,
+        pins: doneItems.reduce((n, i) => n + i.locations.length, 0),
+        tips: doneItems.reduce((n, i) => n + (i.substance?.length ?? 0), 0),
+        platforms,
+      });
+    }
+    loadStats();
+  }, []);
 
   async function handleExport() {
     if (exportState === 'exporting') return;
@@ -31,12 +62,64 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-5 pt-14 pb-5 safe-top">
+      <div className="bg-white border-b border-gray-100 px-5 header-pt pb-5">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">Manage your data and preferences</p>
       </div>
 
       <div className="px-4 py-5 space-y-4">
+
+        {/* ── Stats card ──────────────────────────────────────────────────── */}
+        {stats && (
+          <>
+            <SectionHeader icon={BarChart2} title="My TravelPanel" />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4">
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {[
+                  { label: 'Clips', value: stats.clips },
+                  { label: 'Boards', value: stats.boards },
+                  { label: 'Pins', value: stats.pins },
+                  { label: 'Tips', value: stats.tips },
+                ].map(({ label, value }) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                    className="text-center"
+                  >
+                    <p className="text-xl font-bold text-indigo-600">{value}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+                  </motion.div>
+                ))}
+              </div>
+              {/* Platform mini-bar */}
+              {Object.entries(stats.platforms).length > 0 && (
+                <div className="space-y-1.5">
+                  {(Object.entries(stats.platforms) as Array<[Platform, number]>)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([platform, count]) => (
+                      <div key={platform} className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 w-28 flex-shrink-0">
+                          {PLATFORM_LABELS[platform]}
+                        </span>
+                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(count / stats.clips) * 100}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                            className="h-full bg-indigo-400 rounded-full"
+                          />
+                        </div>
+                        <span className="text-xs text-gray-400 w-6 text-right flex-shrink-0">{count}</span>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* ── Data & Backup ────────────────────────────────────────────────── */}
         <SectionHeader icon={Database} title="Data &amp; Backup" />
