@@ -100,3 +100,43 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 12:34 | 5eedc63 | feat: B3 — Xiaohongshu fix: captured text + Claude Vision support
 2026-06-10 12:36 | 66aca66 | feat: B5 — settings page with full data export and delete-all
 2026-06-10 12:40 | 02655ac | chore: rebuild TASKS.md with Phase C–E toward beautiful iOS app
+2026-06-10 12:46 | 19fa101 | feat: C1 — system-aware dark mode across all key surfaces
+2026-06-10 12:51 | c23987e | feat(C2): add clip FAB + ImportSheet to inbox, dark mode ImportSheet
+2026-06-10 12:57 | 760116b | feat(C3): swipe-to-delete on InboxCard with haptics and undo toast
+2026-06-10 12:59 | 87221f7 | feat(C4): improved skeleton loaders with tag chips, top-right spinner, and fade-in
+2026-06-10 13:03 | 14dd3a9 | feat(C5): map UX improvements — fly-to on pin click, Navigate button, category pins, long-press
+2026-06-10 13:07 | 827fd07 | feat(C6): SVG empty state illustrations across inbox, boards, board detail, plan
+2026-06-10 13:09 | 2586dae | feat(C7): in-app review prompt after plan generation
+2026-06-10 13:10 | 7168c61 | feat(C8): iOS Spotlight search indexing (ready-to-wire implementation)
+2026-06-10 13:11 | eeca23c | chore: mark all Phase C tasks complete in TASKS.md
+2026-06-10 13:13 | a7839c5 | feat(D1): nearby clips GPS mode — blue dot, nearby chip, and Nearby filter
+2026-06-10 13:18 | 9ca1fd3 | feat(D2): read-only board sharing via base64 URL
+2026-06-10 13:20 | 296fd61 | feat(D3): post-trip timeline with visited tracking
+2026-06-10 13:22 | 374ef48 | feat(E1): AI board summary with streaming typewriter reveal
+2026-06-10 13:24 | 3578a85 | feat(E2): batch URL import with sequential enrichment
+2026-06-10 13:26 | 49dd1b5 | feat(E3): real-world enrichment signals in trip plans
+2026-06-10 13:30 | 314da18 | chore: new TASKS.md phases F-H for iOS ship readiness + growth
+2026-06-10 13:31 | 92f88cd | feat(F1): safe area + Dynamic Island support
+2026-06-10 13:32 | 02e9f69 | feat(F2): iOS privacy manifest (required for App Store submission)
+2026-06-10 13:34 | f3dcedb | feat(F3): offline detection + graceful error states
+2026-06-10 13:36 | ab38dfd | feat(F4): pull-to-refresh in inbox and boards
+2026-06-10 13:38 | 56bbb75 | feat(F5): accessibility improvements (VoiceOver + screen readers)
+2026-06-10 13:39 | dbed1ca | feat(F6): infinite scroll pagination for large clip collections
+2026-06-10 13:40 | 4d5a6a7 | feat(F7): universal links + AASA for deep linking
+2026-06-10 13:41 | 17a2f56 | feat(F8): App Store submission checklist + TestFlight guide
+2026-06-10 13:44 | 688e9bd | feat(G1): share trip plan button with native iOS share sheet
+2026-06-10 13:48 | 4c99c5a | feat(G2): import friend's board from share link
+2026-06-10 13:50 | d7ab432 | feat(G3): clip count milestone celebrations
+2026-06-10 13:53 | 4012217 | feat(G4): creator attribution on imported clips
+2026-06-10 13:54 | d5372cf | feat(H1): contextual clip resurfacing — good time to go
+2026-06-10 13:56 | d151174 | feat(H2): smart trip duration suggestion
+2026-06-10 13:58 | 8937466 | feat(H3): substance conflict detection for boards
+2026-06-10 14:01 | afc84d2 | chore: new TASKS.md phases I-K — UI polish, onboarding, robustness
+2026-06-10 14:03 | 57df2a7 | feat(I1): board cover thumbnail with gradient fallbacks
+2026-06-10 14:05 | 8f9fcf2 | feat(I2): editable clip notes in LocationDetailCard
+2026-06-10 14:07 | e716538 | feat(I4): drag-to-reorder boards list
+2026-06-10 14:10 | ac897fc | feat(J1): animated 3-step onboarding walkthrough
+2026-06-10 14:13 | bf66930 | feat(J2,J3): zero-state home card + rich empty states
+2026-06-10 14:15 | 3a3c6de | feat(K1): JSON backup import in Settings
+2026-06-10 14:16 | 1e58883 | feat(K2): enrichment retry queue visibility
+2026-06-10 14:18 | 72be162 | feat(K3): undo board deletion with 5-second grace window
