@@ -558,7 +558,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - Bonus: add a "jump to today" button if the trip has started (compare today's date to trip start)
 
 ### G8 — Post-Save Board Assignment on Share Page
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/share/page.tsx`, `lib/db.ts`
 **Why**: Currently every saved clip lands in the inbox and users must manually move to boards. Adding the assignment immediately after save (while the clip is top-of-mind) dramatically improves organization rates.
 **What to do**:

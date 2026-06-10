@@ -57,6 +57,8 @@ function SharePageInner() {
   const [duplicateItem, setDuplicateItem]     = useState<SavedItem | null>(null);
   const [pendingBoardId, setPendingBoardId]   = useState<string | undefined>(undefined);
   const [pendingBoardName, setPendingBoardName] = useState<string | undefined>(undefined);
+  const [savedItemId, setSavedItemId]         = useState<string | null>(null);
+  const [addedToBoards, setAddedToBoards]     = useState<Set<string>>(new Set());
   const [savedToName, setSavedToName]         = useState('');
   const [newBoardName, setNewBoardName]       = useState('');
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
@@ -134,6 +136,7 @@ function SharePageInner() {
     setStage('saving');
 
     const itemId = crypto.randomUUID();
+    setSavedItemId(itemId);
     const item: SavedItem = {
       id: itemId,
       url: rawUrl,
@@ -522,6 +525,43 @@ function SharePageInner() {
             </div>
           ) : null}
         </motion.div>
+
+        {/* Post-save board assignment */}
+        {boards.length > 0 && savedItemId && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="w-full"
+          >
+            <p className="text-xs font-semibold text-gray-500 mb-2 text-center">Also add to a board:</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {boards.map((board) => {
+                const added = addedToBoards.has(board.id);
+                return (
+                  <button
+                    key={board.id}
+                    type="button"
+                    onClick={async () => {
+                      if (added) return;
+                      await addItemToBoard(board.id, savedItemId);
+                      setAddedToBoards((prev) => new Set([...prev, board.id]));
+                      lightHaptic();
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      added
+                        ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                        : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:border-indigo-300'
+                    }`}
+                  >
+                    {board.emoji} {board.name}
+                    {added && <span className="text-green-600 text-xs">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         <motion.p
           initial={{ opacity: 0 }}
