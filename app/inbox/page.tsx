@@ -154,7 +154,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-800 border-b border-transparent dark:border-slate-800 px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-800 border-b border-transparent dark:border-slate-800 px-4 header-pt-safe pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800 dark:text-slate-100">Inbox</h1>

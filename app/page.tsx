@@ -173,8 +173,8 @@ function HomePageInner() {
         userLocation={userLocation ?? undefined}
       />
 
-      {/* Top bar – floating */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
+      {/* Top bar – floating, respects Dynamic Island / notch */}
+      <div className="absolute top-0 left-0 right-0 z-[1000] pt-safe px-4 pb-4" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 1rem)' }}>
         <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
           <Globe2 className="text-indigo-600 dark:text-indigo-400" size={22} />
           <span className="font-bold text-gray-800 dark:text-slate-100 text-lg">TravelPanel</span>

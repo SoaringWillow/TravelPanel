@@ -31,7 +31,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 > These tasks close the gap between "web app in a WebView" and "native iOS product". They are table-stakes for App Store approval and for surviving a first-week retention cohort.
 
 ### F1 — Safe Area & Dynamic Island Support
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS 14+ devices have notches and Dynamic Islands. Without `env(safe-area-inset-*)`, the top navbar overlaps the status bar and the bottom FAB hides behind the home indicator. This is the most visually jarring issue on a real device.  
 **Files to change**: `app/globals.css`, `app/layout.tsx`, `components/NavBar.tsx`, `app/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
