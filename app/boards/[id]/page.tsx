@@ -144,6 +144,17 @@ export default function BoardDetailPage() {
                 {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
                 {substanceCount > 0 && ` · ${substanceCount} tip${substanceCount !== 1 ? 's' : ''}`}
               </p>
+              {substanceCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/boards/${boardId}/wisdom`)}
+                  className={`text-xs mt-1 font-medium flex items-center gap-0.5 hover:underline ${
+                    coverThumbnail ? 'text-white/80' : 'text-indigo-500'
+                  }`}
+                >
+                  View trip wisdom →
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">

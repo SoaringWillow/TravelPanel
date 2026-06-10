@@ -762,7 +762,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Store toggle state in localStorage
 
 ### L4 — Board Substance Summary ("Trip Wisdom")
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/boards/[id]/wisdom/page.tsx`, `app/boards/[id]/page.tsx`  
 **What to do**:
 - New page at `/boards/[id]/wisdom` that aggregates ALL substance items from all
