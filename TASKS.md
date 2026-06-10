@@ -418,7 +418,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Add a "Last exported: [date]" sublabel to the Export row using `localStorage`
 
 ### K2 — Enrichment Retry Queue Visibility
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Items with `enrichmentStatus: 'failed'` or `'pending'` silently sit in the inbox with no indication to the user that something went wrong. If the network was flaky during import, users lose tips without knowing.  
 **Files to change**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:

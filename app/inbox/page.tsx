@@ -54,8 +54,11 @@ export default function InboxPage() {
   const [nearbyMode, setNearbyMode] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [milestoneMessage, setMilestoneMessage] = useState<string | null>(null);
+  const [showRetrySheet, setShowRetrySheet] = useState(false);
+  const [retryingAll, setRetryingAll] = useState(false);
 
   const resurfaced: ResurfaceResult[] = loading ? [] : getResurfaceRecommendations(items);
+  const pendingItems = items.filter((i) => i.enrichmentStatus === 'pending' || i.enrichmentStatus === 'failed');
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -103,6 +106,16 @@ export default function InboxPage() {
   const filtered = searchItems(nearbyFiltered, query);
   // Paginate for performance with large collections; only activates when >40 items
   const { visible, hasMore, sentinelRef } = usePagedItems(filtered);
+
+  async function handleRetryAll() {
+    setRetryingAll(true);
+    for (const item of pendingItems) {
+      await retryItem(item.id, item.url);
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    setRetryingAll(false);
+    setShowRetrySheet(false);
+  }
 
   function handleNearbyToggle() {
     if (nearbyMode) {
@@ -170,6 +183,15 @@ export default function InboxPage() {
           <span className="text-2xl">📥</span>
           <h1 className="text-xl font-bold text-gray-800 dark:text-slate-100">Inbox</h1>
           <div className="ml-auto flex items-center gap-2">
+            {pendingItems.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowRetrySheet(true)}
+                className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full"
+              >
+                ⏳ {pendingItems.length} pending
+              </button>
+            )}
             {!isOnline && (
               <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                 <WifiOff size={12} />
@@ -490,6 +512,67 @@ export default function InboxPage() {
               Undo
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Retry queue sheet */}
+      <AnimatePresence>
+        {showRetrySheet && (
+          <>
+            <motion.div
+              key="retry-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1999] bg-black/40"
+              onClick={() => setShowRetrySheet(false)}
+            />
+            <motion.div
+              key="retry-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 rounded-t-3xl px-5 pb-10"
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-gray-200 dark:bg-slate-700 rounded-full" />
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <h3 className="font-semibold text-gray-800 dark:text-slate-100">
+                  {pendingItems.length} clip{pendingItems.length !== 1 ? 's' : ''} pending analysis
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowRetrySheet(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                {pendingItems.slice(0, 10).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-2 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2">
+                    <p className="text-sm text-gray-700 dark:text-slate-300 line-clamp-1 flex-1">{item.title || item.url}</p>
+                    <span className="text-xs text-amber-600 dark:text-amber-400 flex-shrink-0">
+                      {item.enrichmentStatus === 'failed' ? 'failed' : 'pending'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleRetryAll}
+                disabled={retryingAll || !isOnline}
+                className="w-full bg-indigo-600 text-white text-sm font-semibold py-3 rounded-2xl hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                {retryingAll ? 'Retrying…' : `Retry all ${pendingItems.length} clips`}
+              </button>
+              {!isOnline && (
+                <p className="text-xs text-center text-amber-600 mt-2">Connect to the internet to retry</p>
+              )}
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
