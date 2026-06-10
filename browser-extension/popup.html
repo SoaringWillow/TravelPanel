@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #ffffff;
+      color: #111827;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid #F3F4F6;
+      gap: 8px;
+    }
+    .header-logo {
+      width: 26px; height: 26px;
+      background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      flex: 1;
+      letter-spacing: -0.01em;
+    }
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9CA3AF;
+      padding: 4px;
+      border-radius: 5px;
+      font-size: 16px;
+      line-height: 1;
+      transition: background 0.15s, color 0.15s;
+    }
+    .settings-btn:hover { background: #F3F4F6; color: #6B7280; }
+
+    /* ── Page info ──────────────────────────────────────────────── */
+    .page-info {
+      padding: 14px 14px 10px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .favicon-wrap {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: #F3F4F6;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .favicon-wrap img {
+      width: 34px; height: 34px;
+      object-fit: contain;
+    }
+    .favicon-emoji { font-size: 16px; }
+    .page-text { flex: 1; min-width: 0; }
+    .page-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #111827;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.45;
+    }
+    .page-domain {
+      font-size: 11px;
+      color: #9CA3AF;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Platform chip ──────────────────────────────────────────── */
+    .platform-wrap { padding: 0 14px 12px; }
+    .platform-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px 3px 7px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1.5px solid transparent;
+    }
+
+    /* ── Not-configured banner ──────────────────────────────────── */
+    .config-banner {
+      margin: 0 14px 12px;
+      padding: 10px 12px;
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-radius: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .config-banner-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .config-banner-text { flex: 1; }
+    .config-banner-text p {
+      font-size: 12px;
+      color: #92400E;
+      line-height: 1.4;
+    }
+    .config-banner-text p strong { font-weight: 600; }
+    .config-setup-btn {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #D97706;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    /* ── Actions ────────────────────────────────────────────────── */
+    .actions { padding: 0 14px 14px; }
+    .save-btn {
+      width: 100%;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      letter-spacing: -0.01em;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .save-btn:hover { opacity: 0.92; }
+    .save-btn:active { transform: scale(0.98); }
+    .save-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .save-btn .btn-icon { font-size: 14px; }
+
+    /* ── Success state ──────────────────────────────────────────── */
+    .success-section {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 14px 20px;
+      gap: 6px;
+    }
+    .success-icon { font-size: 36px; }
+    .success-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      margin-top: 4px;
+    }
+    .success-sub {
+      font-size: 12px;
+      color: #6B7280;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .success-progress {
+      width: 100%;
+      height: 3px;
+      background: #F3F4F6;
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .success-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3B82F6, #8B5CF6);
+      border-radius: 2px;
+      animation: progress 1.5s linear forwards;
+    }
+    @keyframes progress {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    .footer {
+      padding: 8px 14px 10px;
+      border-top: 1px solid #F3F4F6;
+      display: flex;
+      justify-content: center;
+    }
+    .footer-link {
+      font-size: 11px;
+      color: #9CA3AF;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .footer-link:hover { color: #6B7280; background: #F9FAFB; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">✈</div>
+    <h1>TravelPanel Clipper</h1>
+    <button class="settings-btn" id="settingsBtn" title="Configure app URL">⚙</button>
+  </div>
+
+  <!-- Page info -->
+  <div class="page-info" id="pageInfo">
+    <div class="favicon-wrap" id="faviconWrap">
+      <span class="favicon-emoji">🌐</span>
+    </div>
+    <div class="page-text">
+      <div class="page-title" id="pageTitle">Loading…</div>
+      <div class="page-domain" id="pageDomain"></div>
+    </div>
+  </div>
+
+  <!-- Platform chip (shown if detected) -->
+  <div class="platform-wrap" id="platformWrap" style="display:none">
+    <div class="platform-chip" id="platformChip"></div>
+  </div>
+
+  <!-- Not-configured banner (shown if app URL not set) -->
+  <div class="config-banner" id="configBanner" style="display:none">
+    <span class="config-banner-icon">⚠️</span>
+    <div class="config-banner-text">
+      <p><strong>App URL not set.</strong> Tell the extension where your TravelPanel is deployed.</p>
+      <button class="config-setup-btn" id="configSetupBtn">Open Settings →</button>
+    </div>
+  </div>
+
+  <!-- Save action -->
+  <div class="actions" id="actionsSection">
+    <button class="save-btn" id="saveBtn" disabled>
+      <span class="btn-icon">✈</span>
+      <span>Save to TravelPanel</span>
+    </button>
+  </div>
+
+  <!-- Success state -->
+  <div class="success-section" id="successSection">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">Saved!</div>
+    <div class="success-sub">Pick your board in TravelPanel</div>
+    <div class="success-progress">
+      <div class="success-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button class="footer-link" id="footerConfigLink">Configure app URL</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
