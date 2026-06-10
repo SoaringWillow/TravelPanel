@@ -218,7 +218,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - No AI call needed; pure client-side string matching
 
 ### D4 — Wisdom Board Tab
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Substance extraction (A1) and the Wisdom detail view (A11) exist, but there's no way to browse ALL the wisdom from a board in one place — the strategic "third surface."  
 **Files**: `app/boards/[id]/page.tsx`, `components/SubstanceList.tsx`  
 **What to do**:
