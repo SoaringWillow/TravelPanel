@@ -1,7 +1,14 @@
-import { SavedItem } from './types';
+import { SavedItem, SubstanceItem } from './types';
 
 export interface SearchOptions {
   byLocation?: boolean;
+  bySubstance?: boolean; // search only through substance content
+}
+
+// When bySubstance mode is active, return matched substance items alongside the clip
+export interface SubstanceSearchResult {
+  item: SavedItem;
+  matchedSubstance: SubstanceItem[];
 }
 
 // Weighted search: title matches rank highest, then description, tags, locations, substance.
@@ -17,12 +24,30 @@ export function searchItems(items: SavedItem[], query: string, opts: SearchOptio
   for (const item of items) {
     const score = opts.byLocation
       ? scoreLocation(item, terms)
+      : opts.bySubstance
+      ? scoreSubstanceOnly(item, terms)
       : scoreItem(item, terms);
     if (score > 0) scored.push({ item, score });
   }
 
   scored.sort((a, b) => b.score - a.score);
   return scored.map((s) => s.item);
+}
+
+// Returns matched substance items per clip for the bySubstance mode UI
+export function searchSubstance(items: SavedItem[], query: string): SubstanceSearchResult[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const terms = q.split(/\s+/).filter(Boolean);
+  const results: SubstanceSearchResult[] = [];
+  for (const item of items) {
+    const matched = (item.substance ?? []).filter((s) =>
+      terms.every((t) => s.content.toLowerCase().includes(t) || (s.applies_to ?? '').toLowerCase().includes(t))
+    );
+    if (matched.length > 0) results.push({ item, matchedSubstance: matched });
+  }
+  results.sort((a, b) => b.matchedSubstance.length - a.matchedSubstance.length);
+  return results;
 }
 
 // Score an item across all fields — title weighs most.
@@ -60,4 +85,16 @@ function scoreLocation(item: SavedItem, terms: string[]): number {
     .toLowerCase();
   if (!haystack.trim()) return 0;
   return terms.every((t) => haystack.includes(t)) ? 50 : 0;
+}
+
+// Substance-only mode: match against substance content + applies_to.
+function scoreSubstanceOnly(item: SavedItem, terms: string[]): number {
+  const subs = item.substance ?? [];
+  if (subs.length === 0) return 0;
+  let hits = 0;
+  for (const sub of subs) {
+    const hay = `${sub.content} ${sub.applies_to ?? ''}`.toLowerCase();
+    if (terms.every((t) => hay.includes(t))) hits++;
+  }
+  return hits * 30; // 30 per matching substance item
 }

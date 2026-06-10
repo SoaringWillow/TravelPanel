@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink, Copy, ArrowRight } from 'lucide-react';
-import { SavedItem } from '@/lib/types';
+import { SavedItem, SubstanceItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import { impact, notification, selection } from '@/lib/haptics';
 import ContextMenu, { useLongPress } from './ContextMenu';
@@ -22,6 +22,8 @@ interface InboxCardProps {
   isSelected?: boolean;
   onToggleSelect?: () => void;
   onEnterMultiSelect?: () => void;
+  // Substance search matched tips
+  substanceMatchedTips?: SubstanceItem[];
 }
 
 // ─── Highlight helper ────────────────────────────────────────────────────────
@@ -85,6 +87,7 @@ export default function InboxCard({
   isSelected,
   onToggleSelect,
   onEnterMultiSelect,
+  substanceMatchedTips,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
   const cardRef = useRef<HTMLDivElement>(null);
@@ -376,17 +379,35 @@ export default function InboxCard({
             </div>
           )}
 
-          {/* First substance tip preview */}
-          {(() => {
-            const tip = item.substance?.find((s) => s.type === 'tip' || s.type === 'recommendation');
-            if (!tip) return null;
-            const preview = tip.content.length > 52 ? tip.content.slice(0, 52) + '…' : tip.content;
-            return (
-              <div className="bg-amber-50 rounded-lg px-2.5 py-1.5 mb-2 border-l-2 border-amber-300">
-                <p className="text-[10px] text-amber-800 leading-snug">💡 {preview}</p>
-              </div>
-            );
-          })()}
+          {/* Substance tip preview — matched tips in search mode, else first tip */}
+          {substanceMatchedTips && substanceMatchedTips.length > 0 ? (
+            <div className="space-y-1 mb-2">
+              {substanceMatchedTips.slice(0, 2).map((s, i) => (
+                <div key={i} className="bg-amber-50 rounded-lg px-2.5 py-1.5 border-l-2 border-amber-400">
+                  <p className="text-[10px] text-amber-800 leading-snug">
+                    💡 <Highlight text={s.content} query={highlightQuery} />
+                  </p>
+                  {s.applies_to && (
+                    <p className="text-[9px] text-amber-500 mt-0.5 truncate">re: {s.applies_to}</p>
+                  )}
+                </div>
+              ))}
+              {substanceMatchedTips.length > 2 && (
+                <p className="text-[9px] text-amber-500 px-1">+{substanceMatchedTips.length - 2} more matched tips</p>
+              )}
+            </div>
+          ) : (
+            (() => {
+              const tip = item.substance?.find((s) => s.type === 'tip' || s.type === 'recommendation');
+              if (!tip) return null;
+              const preview = tip.content.length > 52 ? tip.content.slice(0, 52) + '…' : tip.content;
+              return (
+                <div className="bg-amber-50 rounded-lg px-2.5 py-1.5 mb-2 border-l-2 border-amber-300">
+                  <p className="text-[10px] text-amber-800 leading-snug">💡 {preview}</p>
+                </div>
+              );
+            })()
+          )}
 
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
             <span className="text-xs text-gray-400">{date}</span>

@@ -10,7 +10,7 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
-import { searchItems } from '@/lib/searchItems';
+import { searchItems, searchSubstance } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SkeletonCard from '@/components/SkeletonCard';
@@ -64,6 +64,7 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [locationMode, setLocationMode] = useState(false);
+  const [substanceMode, setSubstanceMode] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem(SORT_STORAGE_KEY) as SortKey) ?? 'newest';
@@ -115,7 +116,7 @@ export default function InboxPage() {
   }, [items, retryItem, router]);
 
   // Reset visible window when query, filter, or sort changes
-  useEffect(() => { setVisibleCount(30); }, [query, activePlatform, locationMode, sortKey]);
+  useEffect(() => { setVisibleCount(30); }, [query, activePlatform, locationMode, substanceMode, sortKey]);
 
   // Expand window as sentinel scrolls into view
   useEffect(() => {
@@ -157,9 +158,16 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const searched = searchItems(platformFiltered, query, { byLocation: locationMode });
+  const substanceResults = substanceMode && query.trim() ? searchSubstance(platformFiltered, query) : null;
+  const searched = substanceResults
+    ? substanceResults.map((r) => r.item)
+    : searchItems(platformFiltered, query, { byLocation: locationMode });
   // Apply sort after search (search already scores by relevance; only sort when no active query)
   const filtered = query.trim() ? searched : applySortKey(searched, sortKey);
+  // Map item id → matched substance snippets for display
+  const substanceMap = substanceResults
+    ? new Map(substanceResults.map((r) => [r.item.id, r.matchedSubstance]))
+    : null;
 
   function handleEnterMultiSelect(id: string) {
     setSelectedIds(new Set([id]));
@@ -311,6 +319,8 @@ export default function InboxPage() {
               onSearch={handleSearch}
               onLocationModeChange={setLocationMode}
               locationMode={locationMode}
+              onSubstanceModeChange={setSubstanceMode}
+              substanceMode={substanceMode}
               resultCount={query.trim() ? filtered.length : undefined}
             />
           </div>
@@ -481,6 +491,7 @@ export default function InboxPage() {
                     isSelected={selectedIds.has(item.id)}
                     onToggleSelect={() => handleToggleSelect(item.id)}
                     onEnterMultiSelect={() => handleEnterMultiSelect(item.id)}
+                    substanceMatchedTips={substanceMap?.get(item.id)}
                   />
                 </motion.div>
               ))}

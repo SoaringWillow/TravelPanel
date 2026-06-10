@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, X, MapPin } from 'lucide-react';
+import { Search, X, MapPin, Lightbulb } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
   onLocationModeChange?: (byLocation: boolean) => void;
   locationMode?: boolean;
+  onSubstanceModeChange?: (bySubstance: boolean) => void;
+  substanceMode?: boolean;
   resultCount?: number;
   placeholder?: string;
 }
@@ -15,6 +17,8 @@ export default function SearchBar({
   onSearch,
   onLocationModeChange,
   locationMode = false,
+  onSubstanceModeChange,
+  substanceMode = false,
   resultCount,
   placeholder = 'Search your clips…',
 }: SearchBarProps) {
@@ -64,21 +68,46 @@ export default function SearchBar({
                 : `${resultCount} match${resultCount !== 1 ? 'es' : ''}`
               : null}
           </span>
-          {onLocationModeChange && (
-            <button
-              type="button"
-              onClick={() => onLocationModeChange(!locationMode)}
-              className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
-                locationMode
-                  ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
-                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-              aria-label="Toggle location-only search"
-            >
-              <MapPin size={11} />
-              By location
-            </button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {onLocationModeChange && (
+              <button
+                type="button"
+                onClick={() => {
+                  onLocationModeChange(!locationMode);
+                  if (!locationMode && substanceMode) onSubstanceModeChange?.(false);
+                }}
+                className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
+                  locationMode
+                    ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+                aria-label="Toggle location-only search"
+                aria-pressed={locationMode}
+              >
+                <MapPin size={11} />
+                By location
+              </button>
+            )}
+            {onSubstanceModeChange && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSubstanceModeChange(!substanceMode);
+                  if (!substanceMode && locationMode) onLocationModeChange?.(false);
+                }}
+                className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
+                  substanceMode
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+                aria-label="Toggle tips-only search"
+                aria-pressed={substanceMode}
+              >
+                <Lightbulb size={11} />
+                Search tips
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
