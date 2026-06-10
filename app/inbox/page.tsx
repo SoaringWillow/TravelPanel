@@ -97,13 +97,13 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 pt-12 pb-0 z-10">
+      <div className="bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-800 border-b border-transparent dark:border-slate-800 px-4 pt-12 pb-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <h1 className="text-xl font-bold text-gray-800 dark:text-slate-100">Inbox</h1>
+          <span className="ml-auto bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 text-xs font-semibold px-2.5 py-1 rounded-full">
             {inboxItems.length} unsorted
           </span>
         </div>
@@ -128,7 +128,7 @@ export default function InboxPage() {
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
                 }`}
               >
                 {p.label} ({count})
@@ -147,10 +147,10 @@ export default function InboxPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-60 text-center">
             <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
+            <h3 className="font-semibold text-gray-700 dark:text-slate-300 mb-2">
               {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
             </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
+            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
               {query.trim()
                 ? `No clips match "${query.trim()}". Try a different search.`
                 : activePlatform === 'all'
@@ -204,21 +204,21 @@ export default function InboxPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white rounded-t-3xl"
+              className="fixed bottom-0 left-0 right-0 z-[2000] bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 rounded-t-3xl"
               style={{ maxHeight: 300 }}
             >
               {/* Handle */}
               <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+                <div className="w-10 h-1 bg-gray-200 dark:bg-slate-700 rounded-full" />
               </div>
 
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3">
-                <h3 className="font-semibold text-gray-800">Move to board</h3>
+                <h3 className="font-semibold text-gray-800 dark:text-slate-100">Move to board</h3>
                 <button
                   type="button"
                   onClick={() => setMovingItemId(null)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -231,7 +231,7 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => handleBoardSelect(null)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-slate-300 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-600 dark:hover:bg-indigo-900/20 transition-colors"
                   >
                     <span>📥</span>
                     <span>Inbox (unassign)</span>
@@ -243,7 +243,7 @@ export default function InboxPage() {
                       key={board.id}
                       type="button"
                       onClick={() => handleBoardSelect(board.id)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-slate-300 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-600 dark:hover:bg-indigo-900/20 transition-colors"
                     >
                       <span>{board.emoji}</span>
                       <span>{board.name}</span>

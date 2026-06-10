@@ -11,10 +11,10 @@ import { getAllItems, getAllBoards, deleteItem, deleteBoard } from '@/lib/db';
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-6">
-      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 px-4 mb-1">
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 px-4 mb-1">
         {title}
       </p>
-      <div className="bg-white rounded-2xl overflow-hidden divide-y divide-gray-100 mx-0">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden divide-y divide-gray-100 dark:divide-slate-700 mx-0">
         {children}
       </div>
     </div>
@@ -46,22 +46,22 @@ function Row({
       onClick={onClick}
       disabled={disabled}
       className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors
-        ${onClick && !disabled ? 'active:bg-gray-50 hover:bg-gray-50 cursor-pointer' : 'cursor-default'}
-        ${danger ? 'text-red-600' : 'text-gray-900'}
+        ${onClick && !disabled ? 'active:bg-gray-50 dark:active:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer' : 'cursor-default'}
+        ${danger ? 'text-red-600' : 'text-gray-900 dark:text-slate-100'}
         ${disabled ? 'opacity-50' : ''}`}
     >
-      <span className={`flex-shrink-0 ${danger ? 'text-red-500' : 'text-gray-400'}`}>
+      <span className={`flex-shrink-0 ${danger ? 'text-red-500' : 'text-gray-400 dark:text-slate-500'}`}>
         {icon}
       </span>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium leading-tight ${danger ? 'text-red-600' : 'text-gray-900'}`}>
+        <p className={`text-sm font-medium leading-tight ${danger ? 'text-red-600' : 'text-gray-900 dark:text-slate-100'}`}>
           {label}
         </p>
         {sublabel && (
-          <p className="text-xs text-gray-400 mt-0.5 leading-tight">{sublabel}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 leading-tight">{sublabel}</p>
         )}
       </div>
-      {right ?? (onClick && <ChevronRight size={15} className="text-gray-300 flex-shrink-0" />)}
+      {right ?? (onClick && <ChevronRight size={15} className="text-gray-300 dark:text-slate-600 flex-shrink-0" />)}
     </button>
   );
 }
@@ -115,10 +115,10 @@ export default function SettingsPage() {
     'Export all data (JSON)';
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4 safe-top">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+      <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 px-4 pt-12 pb-4 safe-top">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Settings</h1>
       </div>
 
       <div className="px-4 pt-5">
@@ -177,12 +177,12 @@ export default function SettingsPage() {
           className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="text-center">
               <div className="text-4xl mb-3">⚠️</div>
-              <h2 className="text-lg font-bold text-gray-900">Delete everything?</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">Delete everything?</h2>
               {stats && (
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
                   This will permanently delete {stats.items} clip{stats.items !== 1 ? 's' : ''} and{' '}
                   {stats.boards} board{stats.boards !== 1 ? 's' : ''}. This cannot be undone.
                 </p>
@@ -195,7 +195,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-slate-600 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
               >
                 Cancel
               </button>

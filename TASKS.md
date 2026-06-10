@@ -182,7 +182,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 > **Why Phase C is the highest priority now**: The core extraction loop works. The gap between "it works" and "I love using this daily" is almost entirely UI/UX polish and native iOS feel. These tasks are what turn a prototype into a product users recommend.
 
 ### C1 — Dark Mode
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: iOS users expect dark mode. The app is jarring at night on OLED screens. This is a hygiene item that users notice immediately.  
 **Files to change**: `app/globals.css`, `tailwind.config.ts`, every major component  
 **What to do**:
