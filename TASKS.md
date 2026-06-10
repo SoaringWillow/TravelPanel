@@ -249,7 +249,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Update `Contents.json` in `AppIcon.appiconset/` to reference the new files
 
 ### D5 — Pull-to-Refresh on Inbox & Boards
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users naturally pull to refresh on mobile. Currently the only way to retry failed enrichments is to wait for the retry queue.  
 **Files to change**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:

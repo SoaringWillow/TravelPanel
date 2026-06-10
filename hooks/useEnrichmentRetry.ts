@@ -45,14 +45,25 @@ export function useEnrichmentRetry(onItemUpdated: (id: string) => void) {
     runRetries();
   }, []); // intentionally empty — runs once on mount
 
-  // Manual retry triggered by the user clicking "Retry" on a card
+  // Manual retry for a single card
   const retryItem = useCallback(async (id: string, url: string) => {
-    // Temporarily mark as processing so the card shows a spinner
     await updateItemEnrichment(id, 'processing');
     callbackRef.current(id);
     await enrichItem(id, url);
     callbackRef.current(id);
   }, []);
 
-  return { retryItem };
+  // Triggered by pull-to-refresh — re-runs the full retry queue
+  const retryAll = useCallback(async () => {
+    const failedItems = await getItemsByStatus('failed');
+    const retryable   = failedItems.filter((i) => (i.retryCount ?? 0) < MAX_RETRIES);
+    for (const item of retryable) {
+      await updateItemEnrichment(item.id, 'processing');
+      callbackRef.current(item.id);
+      await enrichItem(item.id, item.url);
+      callbackRef.current(item.id);
+    }
+  }, []);
+
+  return { retryItem, retryAll };
 }

@@ -10,6 +10,7 @@ import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
@@ -33,7 +34,8 @@ export default function InboxPage() {
   const { boards } = useBoards();
   const router = useRouter();
 
-  const { retryItem } = useEnrichmentRetry(refreshItem);
+  const { retryItem, retryAll } = useEnrichmentRetry(refreshItem);
+  const { containerRef: listRef, pullY, refreshing } = usePullToRefresh(retryAll);
 
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
@@ -139,7 +141,16 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-nav">
+      <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 pb-nav">
+        {/* Pull-to-refresh indicator */}
+        {(pullY > 0 || refreshing) && (
+          <div
+            className="flex items-center justify-center overflow-hidden transition-all duration-150"
+            style={{ height: refreshing ? 40 : pullY * 0.5 }}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent ${refreshing ? 'animate-spin' : ''}`} />
+          </div>
+        )}
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
