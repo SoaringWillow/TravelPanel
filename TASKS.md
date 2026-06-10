@@ -343,7 +343,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use streaming for a typewriter reveal effect
 
 ### E2 — Batch URL Import
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Power users have a backlog of saved URLs in their notes. Forcing them to paste one at a time is friction that kills early retention.  
 **Files to change**: `components/ImportSheet.tsx` or new `app/import/page.tsx`  
 **What to do**:

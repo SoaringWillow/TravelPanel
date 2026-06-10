@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus } from 'lucide-react';
+import { Link2, Loader2, MapPin, CheckCircle2, BookmarkPlus, List, X } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -27,6 +27,13 @@ interface ImportSheetProps {
 
 type Stage = 'idle' | 'loading' | 'preview';
 
+interface BatchUrl {
+  url: string;
+  selected: boolean;
+}
+
+const URL_REGEX = /https?:\/\/[^\s\n\t"'<>()[\]{}]+/gi;
+
 const ALL_PLATFORMS = ['wechat', 'xiaohongshu', 'douyin', 'bilibili', 'other'] as const;
 
 const IMPORT_TIMEOUT_MS = 25_000;
@@ -40,6 +47,13 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError]     = useState('');
   const abortRef              = useRef<AbortController | null>(null);
+
+  // Batch mode state
+  const [batchMode, setBatchMode]   = useState(false);
+  const [batchText, setBatchText]   = useState('');
+  const [batchUrls, setBatchUrls]   = useState<BatchUrl[]>([]);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  const batchAbortRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
@@ -148,11 +162,111 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
   function resetState() {
     abortRef.current?.abort();
+    batchAbortRef.current = true;
     setUrl('');
     setNotes('');
     setPreview(null);
     setStage('idle');
     setError('');
+    setBatchMode(false);
+    setBatchText('');
+    setBatchUrls([]);
+    setBatchProgress(null);
+  }
+
+  function parseBatchUrls() {
+    const found = Array.from(new Set(batchText.match(URL_REGEX) ?? []));
+    setBatchUrls(found.map((u) => ({ url: u, selected: true })));
+  }
+
+  async function handleBatchImport() {
+    const selected = batchUrls.filter((b) => b.selected);
+    if (selected.length === 0) return;
+
+    batchAbortRef.current = false;
+    setBatchProgress({ current: 0, total: selected.length });
+
+    for (let i = 0; i < selected.length; i++) {
+      if (batchAbortRef.current) break;
+
+      setBatchProgress({ current: i + 1, total: selected.length });
+      const rawUrl = selected[i].url;
+
+      try {
+        const ctrl = new AbortController();
+        const timeoutId = setTimeout(() => ctrl.abort(), IMPORT_TIMEOUT_MS);
+        const res = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: rawUrl }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data: ImportResult = await res.json();
+          const item: SavedItem = {
+            id:               crypto.randomUUID(),
+            url:              rawUrl,
+            platform:         data.platform,
+            title:            data.title,
+            description:      data.description,
+            thumbnail:        data.thumbnail,
+            locations:        data.locations,
+            activities:       data.activities,
+            tags:             data.tags,
+            substance:        data.substance ?? [],
+            savedAt:          Date.now(),
+            enrichmentStatus: 'done',
+            retryCount:       0,
+            boardId:          undefined,
+          };
+          onSaved(item);
+        } else {
+          // Save as pending so the retry queue can pick it up
+          const item: SavedItem = {
+            id:               crypto.randomUUID(),
+            url:              rawUrl,
+            platform:         detectPlatform(rawUrl),
+            title:            rawUrl,
+            description:      '',
+            thumbnail:        undefined,
+            locations:        [],
+            activities:       [],
+            tags:             [],
+            substance:        [],
+            savedAt:          Date.now(),
+            enrichmentStatus: 'pending',
+            retryCount:       0,
+            boardId:          undefined,
+          };
+          onSaved(item);
+        }
+      } catch {
+        // Save as pending on network error
+        const item: SavedItem = {
+          id:               crypto.randomUUID(),
+          url:              rawUrl,
+          platform:         detectPlatform(rawUrl),
+          title:            rawUrl,
+          description:      '',
+          thumbnail:        undefined,
+          locations:        [],
+          activities:       [],
+          tags:             [],
+          substance:        [],
+          savedAt:          Date.now(),
+          enrichmentStatus: 'pending',
+          retryCount:       0,
+          boardId:          undefined,
+        };
+        onSaved(item);
+      }
+    }
+
+    setBatchProgress(null);
+    resetState();
+    onClose();
   }
 
   function handleClose() {
@@ -177,6 +291,120 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
         </DrawerHeader>
 
         <div className="px-4 pb-8 space-y-4">
+          {/* ── Mode toggle ─────────────────────────────────────────────── */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setBatchMode(false)}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                !batchMode
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
+              }`}
+            >
+              Single URL
+            </button>
+            <button
+              type="button"
+              onClick={() => setBatchMode(true)}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                batchMode
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
+              }`}
+            >
+              <List size={13} />
+              Paste multiple
+            </button>
+          </div>
+
+          {/* ── Batch mode ─────────────────────────────────────────────── */}
+          {batchMode && (
+            <div className="space-y-3">
+              <textarea
+                value={batchText}
+                onChange={(e) => { setBatchText(e.target.value); setBatchUrls([]); }}
+                placeholder="Paste your saved URLs here — one per line or mixed in text. We'll detect them automatically."
+                rows={5}
+                className="w-full border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 rounded-xl px-3 py-2.5 text-sm resize-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none transition-colors"
+              />
+
+              {batchUrls.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={parseBatchUrls}
+                  disabled={!batchText.trim()}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-indigo-700 transition-colors"
+                >
+                  Detect URLs
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    {batchUrls.filter((b) => b.selected).length} of {batchUrls.length} selected
+                  </p>
+
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {batchUrls.map((b, i) => (
+                      <label
+                        key={i}
+                        className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={b.selected}
+                          onChange={(e) => {
+                            setBatchUrls((prev) =>
+                              prev.map((item, j) => j === i ? { ...item, selected: e.target.checked } : item)
+                            );
+                          }}
+                          className="mt-0.5 accent-indigo-600"
+                        />
+                        <span className="text-xs text-gray-600 dark:text-slate-300 break-all leading-relaxed line-clamp-2">
+                          {b.url}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {batchProgress ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400">
+                        <span>Extracting {batchProgress.current} of {batchProgress.total} clips…</span>
+                        <button
+                          type="button"
+                          onClick={() => { batchAbortRef.current = true; }}
+                          className="text-red-400 hover:text-red-600"
+                        >
+                          Stop
+                        </button>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5">
+                        <div
+                          className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500"
+                          style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleBatchImport}
+                      disabled={batchUrls.filter((b) => b.selected).length === 0}
+                      className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 size={15} />
+                      Import {batchUrls.filter((b) => b.selected).length} clips
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Single mode ─────────────────────────────────────────────── */}
+          {!batchMode && <>
+
           {/* ── Platform badge row ───────────────────────────────────────── */}
           <div className="flex flex-wrap gap-1.5">
             {ALL_PLATFORMS.map((p) => (
@@ -385,6 +613,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               </div>
             </div>
           )}
+          </>}
         </div>
       </DrawerContent>
     </Drawer>
