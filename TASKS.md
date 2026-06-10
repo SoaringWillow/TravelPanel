@@ -404,7 +404,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 > Users will eventually lose their data if we don't address these gaps. Phase K is defensive engineering.
 
 ### K1 — JSON Export / Import (Backup & Restore)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: All user data is in IndexedDB — one browser clear or device wipe loses everything. There's already an `exportAllData` function in `lib/exportData.ts` but no import path. Backup/restore is the minimum viable data safety net before Supabase sync.  
 **Files to change**: `app/settings/page.tsx`, `lib/db.ts`  
 **What to do**:

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { Download, Trash2, ChevronRight, Database, Info, Shield } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Download, Upload, Trash2, ChevronRight, Database, Info, Shield } from 'lucide-react';
 import NavBar from '@/components/NavBar';
-import { exportAllData } from '@/lib/exportData';
+import { exportAllData, importData } from '@/lib/exportData';
 import { getAllItems, getAllBoards, deleteItem, deleteBoard } from '@/lib/db';
 
 // ─── Section wrapper ─────────────────────────────────────────────────────────
@@ -70,9 +70,13 @@ function Row({
 
 export default function SettingsPage() {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [importState, setImportState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [importResult, setImportResult] = useState<{ itemsImported: number; boardsImported: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState<{ items: number; boards: number } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteState, setDeleteState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const lastExport = typeof window !== 'undefined' ? localStorage.getItem('tp_last_export') : null;
 
   // Load stats on mount for the delete confirmation
   async function loadStats() {
@@ -90,6 +94,23 @@ export default function SettingsPage() {
     } catch {
       setExportState('error');
       setTimeout(() => setExportState('idle'), 3000);
+    }
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportState('loading');
+    try {
+      const result = await importData(file);
+      setImportResult({ itemsImported: result.itemsImported, boardsImported: result.boardsImported });
+      setImportState('done');
+      setTimeout(() => { setImportState('idle'); setImportResult(null); }, 5000);
+    } catch {
+      setImportState('error');
+      setTimeout(() => setImportState('idle'), 3000);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
 
@@ -127,7 +148,7 @@ export default function SettingsPage() {
           <Row
             icon={<Download size={18} />}
             label={exportLabel}
-            sublabel="Saves a JSON file with all your clips, boards, and trips"
+            sublabel={lastExport ? `Last exported ${new Date(lastExport).toLocaleDateString()}` : 'Saves a JSON file with all your clips, boards, and trips'}
             disabled={exportState === 'loading'}
             onClick={handleExport}
             right={exportState === 'loading' ? (
@@ -135,6 +156,28 @@ export default function SettingsPage() {
             ) : exportState === 'done' ? (
               <span className="text-xs text-green-600 flex-shrink-0">✓</span>
             ) : undefined}
+          />
+          <Row
+            icon={<Upload size={18} />}
+            label={
+              importState === 'loading' ? 'Importing…' :
+              importState === 'done' ? `Imported ${importResult?.itemsImported ?? 0} clips ✓` :
+              importState === 'error' ? 'Import failed' :
+              'Import backup'
+            }
+            sublabel="Restore a .json backup file — existing items are skipped"
+            disabled={importState === 'loading'}
+            onClick={() => fileInputRef.current?.click()}
+            right={importState === 'done' ? (
+              <span className="text-xs text-green-600 flex-shrink-0">✓</span>
+            ) : undefined}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleImportFile}
           />
           <Row
             icon={<Database size={18} />}

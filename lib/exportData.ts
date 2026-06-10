@@ -1,6 +1,7 @@
 'use client';
 
-import { getAllItems, getAllBoards, getTripsForBoard } from './db';
+import { getAllItems, getAllBoards, getTripsForBoard, saveItem, saveBoard, saveTrip } from './db';
+import { SavedItem, Board, Trip } from './types';
 
 export interface TravelPanelExport {
   version: '1.0';
@@ -43,4 +44,47 @@ export async function exportAllData(): Promise<void> {
 
   // Revoke after a tick to give the browser time to start the download
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  localStorage.setItem('tp_last_export', new Date().toISOString());
+}
+
+export interface ImportResult {
+  itemsImported: number;
+  boardsImported: number;
+  itemsSkipped: number;
+  boardsSkipped: number;
+}
+
+export async function importData(file: File): Promise<ImportResult> {
+  const text = await file.text();
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+
+  const rawItems  = (parsed.items  as SavedItem[] | undefined)  ?? [];
+  const rawBoards = (parsed.boards as Board[]     | undefined)  ?? [];
+  const rawTrips  = (parsed.trips  as Trip[]      | undefined)  ?? [];
+
+  if (!Array.isArray(rawItems) || !Array.isArray(rawBoards)) {
+    throw new Error('Invalid backup file format');
+  }
+
+  const [existingItems, existingBoards] = await Promise.all([getAllItems(), getAllBoards()]);
+  const existingItemIds  = new Set(existingItems.map((i) => i.id));
+  const existingBoardIds = new Set(existingBoards.map((b) => b.id));
+
+  let itemsImported = 0, boardsImported = 0, itemsSkipped = 0, boardsSkipped = 0;
+
+  for (const item of rawItems) {
+    if (existingItemIds.has(item.id)) { itemsSkipped++; continue; }
+    await saveItem(item);
+    itemsImported++;
+  }
+  for (const board of rawBoards) {
+    if (existingBoardIds.has(board.id)) { boardsSkipped++; continue; }
+    await saveBoard(board);
+    boardsImported++;
+  }
+  for (const trip of rawTrips) {
+    await saveTrip(trip).catch(() => {}); // ignore duplicate trips
+  }
+
+  return { itemsImported, boardsImported, itemsSkipped, boardsSkipped };
 }
