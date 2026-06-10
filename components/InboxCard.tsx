@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { SavedItem } from '@/lib/types';
@@ -53,21 +53,46 @@ export default function InboxCard({
   const bgOpacity = useTransform(x, [0, SWIPE_THRESHOLD], [0, 1]);
   const thresholdHit = useRef(false);
 
+  // Fade-in when enrichment completes (pending/processing → done)
+  const wasLoadingRef = useRef(enrichmentStatus !== 'done');
+  const [justEnriched, setJustEnriched] = useState(false);
+  useEffect(() => {
+    if (enrichmentStatus === 'done' && wasLoadingRef.current) {
+      setJustEnriched(true);
+      wasLoadingRef.current = false;
+      const t = setTimeout(() => setJustEnriched(false), 600);
+      return () => clearTimeout(t);
+    } else if (enrichmentStatus !== 'done') {
+      wasLoadingRef.current = true;
+    }
+  }, [enrichmentStatus]);
+
   // ── Pending / processing state ───────────────────────────────────────────
   const isRetrying = enrichmentStatus === 'processing' && !!item.title && item.title !== item.url;
 
   if (enrichmentStatus === 'pending' || (enrichmentStatus === 'processing' && !isRetrying)) {
     if (!item.title || item.title === item.url) {
       return (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden animate-pulse">
-          <div className="w-full h-32 bg-gray-200 dark:bg-slate-700" />
-          <div className="p-4 space-y-3">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+          {/* Thumbnail skeleton */}
+          <div className="w-full h-32 bg-gray-200 dark:bg-slate-700 animate-pulse relative">
+            <div className="absolute top-2 right-2">
+              <Loader2 size={14} className="text-indigo-400 animate-spin" />
+            </div>
+          </div>
+          <div className="p-4 space-y-3 animate-pulse">
+            {/* Platform badge placeholder */}
+            <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded-full w-16" />
+            {/* Title lines */}
             <div className="h-3.5 bg-gray-200 dark:bg-slate-700 rounded-full w-4/5" />
             <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded-full w-3/5" />
-            <div className="flex items-center gap-2 pt-1">
-              <Loader2 size={14} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+            {/* Tag chip placeholders */}
+            <div className="flex gap-1.5 pt-1">
+              <div className="h-4 w-10 bg-gray-200 dark:bg-slate-700 rounded-full" />
+              <div className="h-4 w-14 bg-gray-200 dark:bg-slate-700 rounded-full" />
+              <div className="h-4 w-8 bg-gray-200 dark:bg-slate-700 rounded-full" />
             </div>
+            <p className="text-xs text-indigo-400 font-medium">Extracting…</p>
           </div>
         </div>
       );
@@ -76,23 +101,30 @@ export default function InboxCard({
     return (
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
         <div className="p-4 space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center justify-between gap-2">
             <span
               className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}
             >
               {PLATFORM_LABELS[item.platform]}
             </span>
+            <Loader2 size={13} className="text-indigo-400 animate-spin flex-shrink-0" />
           </div>
 
           <h3 className="font-semibold text-gray-800 dark:text-slate-200 text-sm leading-snug line-clamp-2">
             {item.title}
           </h3>
 
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-1.5">
-              <Loader2 size={12} className="text-indigo-400 animate-spin flex-shrink-0" />
-              <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
+          {/* Skeleton bars for content not yet loaded */}
+          <div className="space-y-2 animate-pulse pt-1">
+            <div className="h-3 bg-gray-100 dark:bg-slate-700 rounded-full w-4/5" />
+            <div className="flex gap-1.5">
+              <div className="h-4 w-10 bg-gray-100 dark:bg-slate-700 rounded-full" />
+              <div className="h-4 w-14 bg-gray-100 dark:bg-slate-700 rounded-full" />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs text-indigo-400 font-medium">Extracting…</span>
             <div className="flex items-center gap-1">
               <a
                 href={item.url}
@@ -197,7 +229,12 @@ export default function InboxCard({
   });
 
   return (
-    <div className="relative rounded-2xl overflow-hidden">
+    <motion.div
+      initial={justEnriched ? { opacity: 0, scale: 0.97 } : false}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="relative rounded-2xl overflow-hidden"
+    >
       {/* Red delete background — reveals as card slides left */}
       <motion.div
         className="absolute inset-0 bg-red-500 flex items-center justify-end pr-4 rounded-2xl"
@@ -348,6 +385,6 @@ export default function InboxCard({
           </div>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
