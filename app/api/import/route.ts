@@ -81,18 +81,97 @@ async function fetchPageData(url: string) {
   }
 }
 
+// ─── Vision extraction (screenshot path) ────────────────────────────────────
+
+const VISION_PROMPT = `You are a travel content analyzer. The user has shared a screenshot from a social media or travel app (Xiaohongshu, WeChat, Douyin, Instagram, TikTok, YouTube, etc.).
+
+Extract TWO layers from what is visible in the screenshot:
+
+## Layer 1 — Spots (geographic skeleton)
+Real, identifiable locations with GPS coordinates you are confident about.
+Only include places you are sure of. Do NOT invent or guess coordinates.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Every piece of actionable insight visible in the post: tips, warnings, opinions,
+"go in the morning"-style advice, cash-only flags, seasonal warnings, skip-the-tourist-version notes.
+For list-format posts ("10 things to know"), extract ALL items.
+This is what makes clips useful — never return an empty substance array for a travel post.
+
+Also extract:
+- title: Concise description of what this post is about
+- description: 2-3 sentence summary of the travel content visible
+- activities: specific things to do at mentioned locations
+- tags: from this set only — food, nature, culture, adventure, relaxation, photography, shopping, nightlife, history, art, architecture, beach, mountain, city, rural`;
+
+async function extractFromImage(
+  imageBase64: string,
+  imageMediaType: string,
+): Promise<z.infer<typeof importSchema> | null> {
+  try {
+    const { object } = await generateObject({
+      model: models.vision,
+      schema: importSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: imageBase64,
+              mimeType: imageMediaType,
+            },
+            {
+              type: 'text',
+              text: VISION_PROMPT,
+            },
+          ],
+        },
+      ],
+    });
+    return object;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let url: string;
+  let url: string | undefined;
+  let imageBase64: string | undefined;
+  let imageMediaType: string | undefined;
+
   try {
-    ({ url } = await req.json());
+    const body = await req.json();
+    url = body.url;
+    imageBase64 = body.imageBase64;
+    imageMediaType = body.imageMediaType;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
+  // ── Vision path: screenshot provided ──────────────────────────────────────
+  if (imageBase64) {
+    const mediaType = imageMediaType || 'image/jpeg';
+    const claudeResult = await extractFromImage(imageBase64, mediaType);
+
+    const result: ImportResult = {
+      platform: url ? detectPlatform(url) : 'other',
+      title: (claudeResult?.title || url || 'Screenshot').slice(0, 200),
+      description: (claudeResult?.description || '').slice(0, 500),
+      thumbnail: undefined,
+      locations: claudeResult?.locations ?? [],
+      activities: claudeResult?.activities ?? [],
+      tags: claudeResult?.tags ?? [],
+      substance: claudeResult?.substance ?? [],
+    };
+
+    return NextResponse.json(result);
+  }
+
+  // ── URL path: standard scrape + extraction ────────────────────────────────
   if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+    return NextResponse.json({ error: 'url or imageBase64 required' }, { status: 400 });
   }
 
   const platform = detectPlatform(url);
