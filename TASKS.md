@@ -214,7 +214,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Design: white card with rounded corners, TravelPanel sky-blue header, snap-to-dismiss pull handle
 
 ### D2 — iOS Safe Areas & Native Spacing Audit
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app likely clips behind the notch/Dynamic Island and the home indicator on real hardware.  
 **Files to change**: `app/globals.css`, all page layouts in `app/`  
 **What to do**:

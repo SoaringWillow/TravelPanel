@@ -114,7 +114,7 @@ export default function BoardDetailPage() {
       </div>
 
       {/* Scrollable content below header */}
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto pb-nav">
         {/* Map section */}
         {boardItems.length > 0 && (
           <div
