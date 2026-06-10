@@ -659,7 +659,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Subtle transition: framer-motion x-slide between days
 
 ### J3 — Enhanced Fuzzy Search
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `lib/searchItems.ts`, `components/SearchBar.tsx`  
 **What to do**:
 - Replace exact substring match with a fuzzy-ish match:
@@ -680,7 +680,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - This surfaces the moat directly in the list view
 
 ### J5 — Board Reorder via Drag
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Allow drag-and-drop reordering of boards in the grid
@@ -689,7 +689,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Visual indicator: lift effect (scale up + shadow) when dragging
 
 ### J6 — Ambient Home Screen Widgets (Data Context)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`  
 **What to do**:
 - In the floating top bar on the home map, show more context:

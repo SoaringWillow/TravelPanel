@@ -153,9 +153,30 @@ export async function getAllBoards(): Promise<Board[]> {
   try {
     const db = await getDB();
     const boards = await db.getAll('boards');
-    return boards.sort((a, b) => b.createdAt - a.createdAt);
+    return boards.sort((a, b) => {
+      if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
+      if (a.order !== undefined) return -1;
+      if (b.order !== undefined) return 1;
+      return b.createdAt - a.createdAt;
+    });
   } catch {
     return [];
+  }
+}
+
+export async function reorderBoards(orderedIds: string[]): Promise<void> {
+  try {
+    const db = await getDB();
+    const tx = db.transaction('boards', 'readwrite');
+    await Promise.all(
+      orderedIds.map(async (id, i) => {
+        const board = await tx.store.get(id);
+        if (board) await tx.store.put({ ...board, order: i, updatedAt: Date.now() });
+      })
+    );
+    await tx.done;
+  } catch {
+    // non-fatal
   }
 }
 

@@ -2,11 +2,12 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Globe2, Plus, LayoutGrid } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useGeofence } from '@/hooks/useGeofence';
+import { useBoards } from '@/hooks/useBoards';
 import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
@@ -19,8 +20,10 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 function HomePageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { items, loading, addItem } = useSavedItems();
-  useGeofence(items);
+  const { nearbyName } = useGeofence(items);
+  const { boards } = useBoards();
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
 
   useEffect(() => {
@@ -67,6 +70,10 @@ function HomePageInner() {
   const handlePinClick = useCallback((item: SavedItem) => setSelectedItem(item), []);
 
   const mapItems = useMemo(() => items, [items]);
+
+  // Clips added this week
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const thisWeekCount = useMemo(() => items.filter((i) => i.savedAt >= weekAgo).length, [items]);
 
   function handleItemSaved(item: SavedItem) {
     addItem(item);
@@ -126,19 +133,52 @@ function HomePageInner() {
 
       {/* Top bar – floating (phone only) */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 pointer-events-none md:hidden">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 pointer-events-auto">
-          <Globe2 className="text-indigo-600" size={22} />
-          <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto flex items-center gap-2 text-sm text-gray-500">
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-2 pointer-events-auto">
+          <Globe2 className="text-indigo-600 flex-shrink-0" size={20} />
+          <span className="font-bold text-gray-800 text-base">TravelPanel</span>
+
+          <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
             {loading ? (
-              'Loading…'
+              <span className="text-xs text-gray-400">Loading…</span>
             ) : (
               <>
-                <span>{items.length} saved</span>
+                {/* Boards quick link */}
+                {boards.length > 0 && (
+                  <button
+                    onClick={() => router.push('/boards')}
+                    className="flex items-center gap-1 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-1 rounded-full"
+                  >
+                    <LayoutGrid size={11} />
+                    {boards.length} board{boards.length !== 1 ? 's' : ''}
+                  </button>
+                )}
+
+                {/* Clips this week */}
+                <span className="text-xs text-gray-500">
+                  {items.length} saved
+                  {thisWeekCount > 0 && (
+                    <span className="text-indigo-500 font-medium"> ↑{thisWeekCount}</span>
+                  )}
+                </span>
               </>
             )}
           </div>
         </div>
+
+        {/* Nearby pill — shows when geofence finds a match */}
+        <AnimatePresence>
+          {nearbyName && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="mt-2 bg-indigo-600/90 backdrop-blur-md text-white text-xs font-medium px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 pointer-events-auto"
+            >
+              <span>📍</span>
+              <span>Near: {nearbyName}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* iPad right panel (40%) */}
@@ -154,7 +194,7 @@ function HomePageInner() {
           </div>
         </div>
 
-        {/* Detail card or empty state */}
+        {/* Detail card or ambient stats */}
         <div className="flex-1 overflow-y-auto p-4">
           {selectedItem ? (
             <LocationDetailCard
@@ -162,18 +202,51 @@ function HomePageInner() {
               onClose={() => setSelectedItem(null)}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 gap-3 px-6">
-              <Globe2 size={36} className="text-indigo-200" />
-              <p className="text-sm text-gray-400">Tap a pin to see details</p>
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-gray-400 text-center mt-4">Tap a pin to see details</p>
+
               {!loading && items.length > 0 && (
-                <div className="w-full mt-2 bg-indigo-50 rounded-2xl p-4 text-left space-y-1">
-                  <p className="text-xs font-semibold text-indigo-700">
-                    {items.length} place{items.length !== 1 ? 's' : ''} saved
-                  </p>
-                  <p className="text-xs text-indigo-500">
-                    {items.filter((i) => i.enrichmentStatus === 'done').length} analyzed · {items.filter((i) => i.boardId).length} in boards
-                  </p>
-                </div>
+                <>
+                  {/* Mini stats card */}
+                  <div className="bg-indigo-50 dark:bg-indigo-950 rounded-2xl p-4 space-y-2">
+                    <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                      {items.length} place{items.length !== 1 ? 's' : ''} saved
+                    </p>
+                    <p className="text-xs text-indigo-500">
+                      {items.filter((i) => i.enrichmentStatus === 'done').length} analyzed
+                      {' · '}
+                      {items.filter((i) => i.boardId).length} in boards
+                      {thisWeekCount > 0 && ` · ↑${thisWeekCount} this week`}
+                    </p>
+                  </div>
+
+                  {/* Nearby alert */}
+                  {nearbyName && (
+                    <div className="bg-indigo-600 text-white rounded-2xl p-3 flex items-center gap-2">
+                      <span>📍</span>
+                      <div>
+                        <p className="text-xs font-semibold">Nearby saved spot</p>
+                        <p className="text-[11px] opacity-80">{nearbyName}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Boards quick nav */}
+                  {boards.length > 0 && (
+                    <button
+                      onClick={() => router.push('/boards')}
+                      className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+                    >
+                      <LayoutGrid size={18} className="text-indigo-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">
+                          {boards.length} board{boards.length !== 1 ? 's' : ''}
+                        </p>
+                        <p className="text-[11px] text-gray-400">Tap to view</p>
+                      </div>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )}

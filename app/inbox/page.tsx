@@ -40,6 +40,7 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [locationMode, setLocationMode] = useState(false);
   const [visibleCount, setVisibleCount] = useState(30);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +54,7 @@ export default function InboxPage() {
   }, [items, retryItem, router]);
 
   // Reset visible window when query or filter changes
-  useEffect(() => { setVisibleCount(30); }, [query, activePlatform]);
+  useEffect(() => { setVisibleCount(30); }, [query, activePlatform, locationMode]);
 
   // Expand window as sentinel scrolls into view
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function InboxPage() {
       ? inboxItems
       : inboxItems.filter((i) => i.platform === activePlatform);
 
-  const filtered = searchItems(platformFiltered, query);
+  const filtered = searchItems(platformFiltered, query, { byLocation: locationMode });
 
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
@@ -145,7 +146,12 @@ export default function InboxPage() {
 
         {/* Search */}
         <div className="mb-3">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar
+            onSearch={handleSearch}
+            onLocationModeChange={setLocationMode}
+            locationMode={locationMode}
+            resultCount={query.trim() ? filtered.length : undefined}
+          />
         </div>
 
         {/* Platform filter tabs */}
@@ -217,6 +223,7 @@ export default function InboxPage() {
                     onViewOnMap={handleViewOnMap}
                     onMoveToBoard={handleMoveToBoard}
                     onRetry={retryItem}
+                    highlightQuery={query.trim() || undefined}
                   />
                 </motion.div>
               ))}

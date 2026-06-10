@@ -16,6 +16,34 @@ interface InboxCardProps {
   onViewOnMap: (id: string) => void;
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
+  highlightQuery?: string;
+}
+
+// ─── Highlight helper ────────────────────────────────────────────────────────
+
+function Highlight({ text, query }: { text: string; query?: string }) {
+  if (!query?.trim()) return <>{text}</>;
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return <>{text}</>;
+
+  // Build a regex that matches any token
+  const escaped = tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const re = new RegExp(`(${escaped.join('|')})`, 'gi');
+  const parts = text.split(re);
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        re.test(part) ? (
+          <strong key={i} className="font-bold text-indigo-700 dark:text-indigo-400">
+            {part}
+          </strong>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -47,6 +75,7 @@ export default function InboxCard({
   onViewOnMap,
   onMoveToBoard,
   onRetry,
+  highlightQuery,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
   const cardRef = useRef<HTMLDivElement>(null);
@@ -285,11 +314,13 @@ export default function InboxCard({
           </span>
 
           <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">
-            {item.title}
+            <Highlight text={item.title} query={highlightQuery} />
           </h3>
 
           {item.description && (
-            <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">{item.description}</p>
+            <p className="text-sm text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+              <Highlight text={item.description} query={highlightQuery} />
+            </p>
           )}
 
           {(item.locations.length > 0 || item.activities.length > 0 || (item.substance?.length ?? 0) > 0) && (

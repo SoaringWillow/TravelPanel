@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { SavedItem } from '@/lib/types';
 
 const RADIUS_KM = 0.5;
@@ -48,29 +48,37 @@ async function scheduleNotification(title: string, body: string) {
   }
 }
 
-async function checkGeofences(lat: number, lng: number, clips: SavedItem[]) {
+async function checkGeofences(
+  lat: number,
+  lng: number,
+  clips: SavedItem[],
+  onNearby?: (name: string) => void,
+) {
   for (const item of clips) {
-    if (hasFiredToday(item.id)) continue;
     for (const loc of item.locations) {
       if (!Number.isFinite(loc.lat) || !Number.isFinite(loc.lng)) continue;
       const dist = haversineKm(lat, lng, loc.lat, loc.lng);
       if (dist <= RADIUS_KM) {
-        const weeks = Math.round((Date.now() - item.savedAt) / (7 * 24 * 3_600_000));
-        const when = weeks === 0 ? 'recently' : `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
         const place = loc.name || item.title || 'a saved spot';
-        markFired(item.id);
-        await scheduleNotification('📍 Nearby saved spot', `You're near ${place} — saved ${when}`);
+        onNearby?.(place);
+        if (!hasFiredToday(item.id)) {
+          const weeks = Math.round((Date.now() - item.savedAt) / (7 * 24 * 3_600_000));
+          const when = weeks === 0 ? 'recently' : `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
+          markFired(item.id);
+          await scheduleNotification('📍 Nearby saved spot', `You're near ${place} — saved ${when}`);
+        }
         break;
       }
     }
   }
 }
 
-export function useGeofence(items: SavedItem[]) {
+export function useGeofence(items: SavedItem[]): { nearbyName: string | null } {
+  const [nearbyName, setNearbyName] = useState<string | null>(null);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (localStorage.getItem(SETTING_KEY) !== '1') return;
-    // Only run once per browser session
     if (sessionStorage.getItem(SESSION_KEY)) return;
 
     const clips = items.filter(
@@ -87,11 +95,11 @@ export function useGeofence(items: SavedItem[]) {
       try {
         const { Geolocation } = await import('@capacitor/geolocation');
         const pos = await Geolocation.getCurrentPosition({ timeout: 8000, enableHighAccuracy: false });
-        await checkGeofences(pos.coords.latitude, pos.coords.longitude, clips);
+        await checkGeofences(pos.coords.latitude, pos.coords.longitude, clips, setNearbyName);
       } catch {
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
-            (pos) => checkGeofences(pos.coords.latitude, pos.coords.longitude, clips),
+            (pos) => checkGeofences(pos.coords.latitude, pos.coords.longitude, clips, setNearbyName),
             () => {},
             { timeout: 8000, enableHighAccuracy: false },
           );
@@ -103,4 +111,6 @@ export function useGeofence(items: SavedItem[]) {
   // Re-evaluate only when the item set changes from empty → loaded
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length > 0 ? 'loaded' : 'empty']);
+
+  return { nearbyName };
 }
