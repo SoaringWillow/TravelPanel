@@ -121,7 +121,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Test with iOS Simulator > Accessibility Inspector > Audit
 
 ### F6 — Virtualized Infinite Scroll for Large Collections
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: At 200+ clips, the DOM has 200+ card components, each with motion listeners and image loads. This causes frame drops and scroll jank — especially on older iPhones. The app's North Star is clip accumulation, so this will hit every power user.  
 **Files to change**: `app/inbox/page.tsx`  
 **What to do**:

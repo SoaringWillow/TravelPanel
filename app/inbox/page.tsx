@@ -13,6 +13,7 @@ import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/li
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
+import { usePagedItems } from '@/hooks/usePagedItems';
 import { hapticSuccess } from '@/lib/haptics';
 import { findNearbyItems } from '@/lib/geolocation';
 import InboxCard from '@/components/InboxCard';
@@ -95,6 +96,8 @@ export default function InboxPage() {
       : platformFiltered;
 
   const filtered = searchItems(nearbyFiltered, query);
+  // Paginate for performance with large collections; only activates when >40 items
+  const { visible, hasMore, sentinelRef } = usePagedItems(filtered);
 
   function handleNearbyToggle() {
     if (nearbyMode) {
@@ -282,7 +285,7 @@ export default function InboxPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3" role="list" aria-label="Saved clips">
             <AnimatePresence>
-              {filtered.map((item) => (
+              {visible.map((item) => (
                 <motion.div
                   key={item.id}
                   role="listitem"
@@ -301,6 +304,13 @@ export default function InboxPage() {
                 </motion.div>
               ))}
             </AnimatePresence>
+          </div>
+        )}
+
+        {/* Infinite scroll sentinel — loads next page when visible */}
+        {hasMore && (
+          <div ref={sentinelRef} className="h-8 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full border-2 border-indigo-300 border-t-indigo-600 animate-spin" />
           </div>
         )}
       </PullToRefresh>
