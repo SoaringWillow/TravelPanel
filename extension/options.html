@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <svg class="logo-plane" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+      </svg>
+      <div>
+        <h1 class="title">TravelPanel Clipper</h1>
+        <p class="subtitle">Settings</p>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="section">
+        <h2 class="section-title">TravelPanel URL</h2>
+        <p class="section-desc">
+          Enter the URL where your TravelPanel app is deployed (e.g. your Vercel URL).
+          The extension opens this URL with <code>?import=&lt;page-url&gt;</code> appended.
+        </p>
+        <div class="field-row">
+          <input
+            class="url-input"
+            id="appUrl"
+            type="url"
+            placeholder="https://your-app.vercel.app"
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button class="save-btn" id="saveBtn">Save</button>
+        </div>
+        <p class="field-hint" id="hint"></p>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Keyboard shortcut</h2>
+        <p class="section-desc">
+          Press <kbd>⌘ Shift S</kbd> (Mac) or <kbd>Ctrl Shift S</kbd> (Windows/Linux) on any
+          travel page to clip it instantly — no popup needed. You can change this in
+          <a href="chrome://extensions/shortcuts" target="_blank">Chrome keyboard shortcuts</a>.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Context menu</h2>
+        <p class="section-desc">
+          Right-click any link or page and choose <strong>Clip link to TravelPanel</strong>
+          or <strong>Clip this page to TravelPanel</strong> to save it directly.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>TravelPanel Clipper v1.0.0</span>
+    </footer>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

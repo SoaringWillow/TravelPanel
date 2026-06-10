@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -14,12 +14,16 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 type Stage = 'picking' | 'saving' | 'done';
 
+// Platforms that block URL scraping — show screenshot upload prompt for these
+const ANTI_SCRAPING_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function SharePageInner() {
   const searchParams    = useSearchParams();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
+  const hasPendingImage = searchParams.get('hasPendingImage') === '1';
   const sharedTitle     = rawTitle || 'New inspiration';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
@@ -29,6 +33,9 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotBase64, setScreenshotBase64] = useState<string | undefined>(undefined);
+  const [screenshotMime, setScreenshotMime]   = useState<string>('image/jpeg');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +43,21 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read pending image injected by CapacitorBridge into sessionStorage
+  useEffect(() => {
+    if (!hasPendingImage) return;
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      const mime   = sessionStorage.getItem('pendingShareImageMime') || 'image/jpeg';
+      sessionStorage.removeItem('pendingShareImage');
+      sessionStorage.removeItem('pendingShareImageMime');
+      if (stored) {
+        setScreenshotBase64(stored);
+        setScreenshotMime(mime);
+      }
+    } catch { /* sessionStorage unavailable */ }
+  }, [hasPendingImage]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -52,6 +74,21 @@ function SharePageInner() {
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
   const platformLabel = PLATFORM_LABELS[platform];
+  const showScreenshotUpload = ANTI_SCRAPING_PLATFORMS.has(platform) && !screenshotBase64;
+
+  function handleScreenshotFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      // Strip the data URI prefix, keep only the base64 payload
+      const base64 = dataUrl.split(',')[1];
+      if (base64) {
+        setScreenshotBase64(base64);
+        setScreenshotMime(file.type || 'image/jpeg');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
 
   // Most-recently-updated 5 boards for quick-pick
   const recentBoards = [...boards]
@@ -88,9 +125,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — use vision path if a screenshot was provided
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotBase64, screenshotBase64 ? screenshotMime : undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -164,6 +201,64 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Screenshot upload hint for anti-scraping platforms */}
+          {showScreenshotUpload && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 rounded-xl border-2 border-dashed border-amber-200 bg-amber-50 px-3 py-2.5"
+            >
+              <p className="text-xs text-amber-700 font-medium mb-2">
+                📷 {platformLabel} blocks link previews — add a screenshot for better AI extraction
+              </p>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 bg-white border border-amber-200 rounded-lg px-3 py-1.5 hover:bg-amber-50 active:scale-95 transition-all"
+              >
+                <Camera size={13} />
+                Upload screenshot
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleScreenshotFile(file);
+                }}
+              />
+            </motion.div>
+          )}
+
+          {/* Screenshot preview once uploaded */}
+          {screenshotBase64 && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 rounded-xl overflow-hidden border border-green-200 bg-green-50 px-3 py-2 flex items-center gap-2"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`data:${screenshotMime};base64,${screenshotBase64}`}
+                alt="Screenshot preview"
+                className="w-10 h-10 rounded object-cover flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-green-700">Screenshot ready</p>
+                <p className="text-xs text-green-600">AI will extract from the image</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setScreenshotBase64(undefined)}
+                className="text-green-500 hover:text-green-700 text-xs"
+              >
+                ✕
+              </button>
+            </motion.div>
           )}
         </div>
 
