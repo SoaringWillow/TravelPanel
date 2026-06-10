@@ -3,10 +3,10 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import ImportSheet from '@/components/ImportSheet';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, addItem, removeItem, refreshItem } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -38,6 +39,8 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const [prefilledUrl, setPrefilledUrl] = useState('');
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -261,6 +264,24 @@ export default function InboxPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Clip FAB */}
+      <button
+        type="button"
+        onClick={() => setShowImport(true)}
+        className="fixed bottom-20 right-4 z-[500] bg-indigo-600 text-white rounded-full p-4 shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
+        aria-label="Clip inspiration"
+      >
+        <Plus size={24} />
+      </button>
+
+      {/* Import Sheet */}
+      <ImportSheet
+        open={showImport}
+        onClose={() => { setShowImport(false); setPrefilledUrl(''); }}
+        onSaved={(item: SavedItem) => { addItem(item); setShowImport(false); setPrefilledUrl(''); router.refresh(); }}
+        initialUrl={prefilledUrl}
+      />
 
       <NavBar active="inbox" />
     </div>

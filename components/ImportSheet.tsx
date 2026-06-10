@@ -45,6 +45,18 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
 
+  // When the sheet opens with no pre-filled URL, try to read the clipboard.
+  // On iOS (Capacitor) this may fail silently — always catch.
+  useEffect(() => {
+    if (!open || url.trim()) return;
+    navigator.clipboard?.readText?.()
+      .then(text => {
+        const trimmed = text.trim();
+        if (/^https?:\/\//i.test(trimmed)) setUrl(trimmed);
+      })
+      .catch(() => {});
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const trimmedUrl       = url.trim();
   const detectedPlatform = trimmedUrl ? detectPlatform(trimmedUrl) : null;
 
@@ -203,7 +215,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
               }}
               placeholder="Paste URL from WeChat, Red Book, Douyin, Bilibili…"
               disabled={stage === 'loading'}
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none transition-colors disabled:opacity-60"
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none transition-colors disabled:opacity-60"
             />
           </div>
 
@@ -265,11 +277,11 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                 >
                   {PLATFORM_LABELS[preview.platform]}
                 </span>
-                <h3 className="font-bold text-gray-800 leading-snug">
+                <h3 className="font-bold text-gray-800 dark:text-slate-100 leading-snug">
                   {preview.title}
                 </h3>
                 {preview.description && (
-                  <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">
                     {preview.description}
                   </p>
                 )}
@@ -277,19 +289,19 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
 
               {/* Locations */}
               {preview.locations.length > 0 ? (
-                <div className="bg-indigo-50 rounded-2xl p-4">
-                  <p className="text-xs font-semibold text-indigo-600 mb-2 flex items-center gap-1.5">
+                <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2 flex items-center gap-1.5">
                     <MapPin size={12} />
                     📍 {preview.locations.length} place{preview.locations.length !== 1 ? 's' : ''} found
                   </p>
                   <div className="space-y-1.5">
                     {preview.locations.map((loc, i) => (
                       <div key={i}>
-                        <span className="text-sm text-indigo-800 font-medium">
+                        <span className="text-sm text-indigo-800 dark:text-indigo-300 font-medium">
                           {loc.name}
                         </span>
                         {loc.address && (
-                          <span className="text-xs text-indigo-500 font-normal ml-1.5">
+                          <span className="text-xs text-indigo-500 dark:text-indigo-400 font-normal ml-1.5">
                             — {loc.address}
                           </span>
                         )}
@@ -313,7 +325,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                     {preview.activities.map((a) => (
                       <span
                         key={a}
-                        className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full"
+                        className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs px-2.5 py-1 rounded-full"
                       >
                         {a}
                       </span>
@@ -328,7 +340,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   {preview.tags.map((t) => (
                     <span
                       key={t}
-                      className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full"
+                      className="bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 text-xs px-2 py-0.5 rounded-full"
                     >
                       #{t}
                     </span>
@@ -346,7 +358,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add notes about this place…"
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:border-indigo-400 focus:outline-none transition-colors"
+                  className="w-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 rounded-xl px-3 py-2 text-sm resize-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -358,7 +370,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
                     setStage('idle');
                     setPreview(null);
                   }}
-                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-slate-700 text-sm font-medium text-gray-600 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   Try another URL
                 </button>
