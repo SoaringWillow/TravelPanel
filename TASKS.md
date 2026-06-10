@@ -196,7 +196,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Once logged in, Settings page shows the user's email and a "Sign out" button
 
 ### D2 — Swipe Gestures on Clip Cards 🔴 HIGH PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Swipe-to-delete and swipe-to-move are the standard iOS UX pattern. Without them, the app feels like a web page, not an app.  
 **Files**: `components/InboxCard.tsx`, `app/inbox/page.tsx`  
 **What to do**:
@@ -207,7 +207,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use `useMotionValue` + `useTransform` from framer-motion for smooth gesture tracking
 
 ### D3 — Haptic Feedback Throughout 🔴 HIGH PRIORITY
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Every iOS app uses haptics for confirmation. Without them, interactions feel unresponsive.  
 **Files**: new `lib/haptics.ts`, `components/InboxCard.tsx`, `app/share/page.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
@@ -219,7 +219,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - `selection()` — swipe gesture threshold crossed, context menu opened
 
 ### D4 — Shimmer Skeleton Loaders
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Spinners feel dated; skeletons show shape and reduce perceived load time.  
 **Files**: new `components/SkeletonCard.tsx`, `app/inbox/page.tsx`, `app/boards/page.tsx`, `app/settings/page.tsx`  
 **What to do**:
