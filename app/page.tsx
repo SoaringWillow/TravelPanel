@@ -129,8 +129,14 @@ function HomePageInner() {
         <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 pointer-events-auto">
           <Globe2 className="text-indigo-600" size={22} />
           <span className="font-bold text-gray-800 text-lg">TravelPanel</span>
-          <div className="ml-auto text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} place${items.length !== 1 ? 's' : ''} saved`}
+          <div className="ml-auto flex items-center gap-2 text-sm text-gray-500">
+            {loading ? (
+              'Loading…'
+            ) : (
+              <>
+                <span>{items.length} saved</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -156,9 +162,19 @@ function HomePageInner() {
               onClose={() => setSelectedItem(null)}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 gap-2">
-              <Globe2 size={36} className="opacity-30" />
-              <p className="text-sm">Tap a pin to see details</p>
+            <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 gap-3 px-6">
+              <Globe2 size={36} className="text-indigo-200" />
+              <p className="text-sm text-gray-400">Tap a pin to see details</p>
+              {!loading && items.length > 0 && (
+                <div className="w-full mt-2 bg-indigo-50 rounded-2xl p-4 text-left space-y-1">
+                  <p className="text-xs font-semibold text-indigo-700">
+                    {items.length} place{items.length !== 1 ? 's' : ''} saved
+                  </p>
+                  <p className="text-xs text-indigo-500">
+                    {items.filter((i) => i.enrichmentStatus === 'done').length} analyzed · {items.filter((i) => i.boardId).length} in boards
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

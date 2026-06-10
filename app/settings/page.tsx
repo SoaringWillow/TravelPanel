@@ -369,6 +369,10 @@ export default function SettingsPage() {
               <a href="/stats" className="text-indigo-500 hover:underline">View</a>
             </div>
             <div className="flex justify-between">
+              <span>Trip History</span>
+              <a href="/trips" className="text-indigo-500 hover:underline">View</a>
+            </div>
+            <div className="flex justify-between">
               <span>Privacy Policy</span>
               <a href="/privacy" className="text-indigo-500 hover:underline">View</a>
             </div>

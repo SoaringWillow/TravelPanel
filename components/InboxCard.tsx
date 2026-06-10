@@ -311,7 +311,7 @@ export default function InboxCard({
           )}
 
           {item.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
+            <div className="flex flex-wrap gap-1 mb-2">
               {item.tags.slice(0, 3).map((tag) => (
                 <span key={tag} className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">
                   #{tag}
@@ -322,6 +322,18 @@ export default function InboxCard({
               )}
             </div>
           )}
+
+          {/* First substance tip preview */}
+          {(() => {
+            const tip = item.substance?.find((s) => s.type === 'tip' || s.type === 'recommendation');
+            if (!tip) return null;
+            const preview = tip.content.length > 52 ? tip.content.slice(0, 52) + '…' : tip.content;
+            return (
+              <div className="bg-amber-50 rounded-lg px-2.5 py-1.5 mb-2 border-l-2 border-amber-300">
+                <p className="text-[10px] text-amber-800 leading-snug">💡 {preview}</p>
+              </div>
+            );
+          })()}
 
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
             <span className="text-xs text-gray-400">{date}</span>

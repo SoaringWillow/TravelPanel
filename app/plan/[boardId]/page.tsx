@@ -705,6 +705,33 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {/* Day navigation */}
+              {plan.days && plan.days.length > 1 && (
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDayIndex((i) => Math.max(0, i - 1))}
+                    disabled={activeDayIndex === 0}
+                    aria-label="Previous day"
+                    className="p-2 text-gray-500 hover:text-indigo-600 disabled:opacity-30 transition-colors"
+                  >
+                    ‹
+                  </button>
+                  <span className="text-xs text-gray-500 font-medium">
+                    Day {activeDayIndex + 1} of {plan.days.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDayIndex((i) => Math.min((plan.days?.length ?? 1) - 1, i + 1))}
+                    disabled={activeDayIndex === (plan.days?.length ?? 1) - 1}
+                    aria-label="Next day"
+                    className="p-2 text-gray-500 hover:text-indigo-600 disabled:opacity-30 transition-colors"
+                  >
+                    ›
+                  </button>
+                </div>
+              )}
+
               {/* Active day activities */}
               {activeDayPlan && (
                 <div className="space-y-3">

@@ -629,3 +629,71 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
+
+---
+
+## PHASE J — Polish & Delight (Final Layer)
+
+> Every detail matters. Phase J is about micro-interactions, smart defaults, and the
+> subtle touches that make users say "this was made by people who care".
+> Execution order: J1 → J2 → J3 → J4 → J5 → J6
+
+### J1 — Trip History Page
+**Status**: `[x]` Done  
+**Files**: new `app/trips/page.tsx`, `components/NavBar.tsx` (optional)  
+**What to do**:
+- New page at `/trips` showing all saved Trip objects (from the `trips` IndexedDB store)
+- Each trip card shows: board emoji + name, trip date, # days, # activities
+- Tap a trip card to open the plan view with that trip loaded
+- Delete trip button (with swipe-to-delete gesture)
+- Link from the plan view: "View all trips" link under the PlanVersionBar
+- Empty state: "No trips planned yet — go to a board and generate your first plan"
+
+### J2 — Plan View: Day Navigation Arrows
+**Status**: `[x]` Done  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- Add prev/next arrow buttons below the day strip to advance the active day
+- Show day X of Y count in between (e.g. "Day 2 of 4")
+- Swipe left/right on the day plan section to navigate days
+- Subtle transition: framer-motion x-slide between days
+
+### J3 — Enhanced Fuzzy Search
+**Status**: `[ ]` Not started  
+**Files**: `lib/searchItems.ts`, `components/SearchBar.tsx`  
+**What to do**:
+- Replace exact substring match with a fuzzy-ish match:
+  - Split query into tokens, require all tokens to match in the combined text
+  - Prioritize title matches > description > tags > substance content
+- Add a "by location" toggle: filter to items that have a location matching the query
+- Show number of results: "3 matches" in search bar when active
+- Highlight matching tokens in the result list (bold the matched part)
+
+### J4 — Substance Highlights in Inbox Card
+**Status**: `[x]` Done  
+**Files**: `components/InboxCard.tsx`  
+**What to do**:
+- Instead of just showing "💡 3 tips" count, show the first tip text preview
+  as a small amber pill below the tag row: "💡 'Go before 8am to beat crowds'"
+- Truncate to ~50 chars with ellipsis
+- Only show if substance has at least 1 item with type 'tip' or 'recommendation'
+- This surfaces the moat directly in the list view
+
+### J5 — Board Reorder via Drag
+**Status**: `[ ]` Not started  
+**Files**: `app/boards/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Allow drag-and-drop reordering of boards in the grid
+- Use framer-motion `Reorder` component
+- Persist new order to IndexedDB (add `order` field to Board or use array position)
+- Visual indicator: lift effect (scale up + shadow) when dragging
+
+### J6 — Ambient Home Screen Widgets (Data Context)
+**Status**: `[ ]` Not started  
+**Files**: `app/page.tsx`  
+**What to do**:
+- In the floating top bar on the home map, show more context:
+  - Total clip count with a subtle "↑2 this week" indicator
+  - "🗺 3 boards" quick link to boards page
+  - If currently near a saved spot (from geofence data), show a subtle "📍 Near: <name>" pill
+- On iPad (right panel when no item selected), show a mini stats summary instead of the empty state

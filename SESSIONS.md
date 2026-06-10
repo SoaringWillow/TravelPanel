@@ -96,3 +96,30 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-10 20:28 | 22c9c0b | feat(B2): add browser extension for one-click page clipping
+2026-06-10 20:33 | 856f56b | feat(B3): Claude Vision extraction for Xiaohongshu/WeChat clips
+2026-06-10 20:35 | 0ffd394 | feat(B5): settings page with JSON data export and cloud sync status
+2026-06-10 20:38 | 75475e5 | chore: new phase D/E/F task plan for beautiful functional iOS app
+2026-06-10 20:42 | 7ddb3ec | feat(D2/D3/D4): swipe gestures, haptic feedback, shimmer skeletons
+2026-06-10 20:44 | 31eafaa | feat(D5/D6): pull-to-refresh on inbox + detail card hero/swipe-close
+2026-06-10 20:46 | 441ca28 | feat(D7/D8): context menus on long-press + full-bleed board covers
+2026-06-10 20:53 | 339a2d8 | feat(D9): On-Trip GPS Mode — real-time navigation view
+2026-06-10 20:56 | c1106e3 | feat(D10): Post-Trip Timeline — log and share what you visited
+2026-06-10 20:58 | 1febf3a | feat(F2): 3-screen swipeable onboarding flow for first launch
+2026-06-10 21:00 | bafe351 | feat(F3): Pro Tier UI — upgrade section, badges, waitlist capture
+2026-06-10 21:02 | b5ebf68 | feat(E4): Import from Google Maps, browser bookmarks, and Maps links
+2026-06-10 21:05 | aa47f8b | feat(F1): App Store assets — icons, metadata, and screenshots guide
+2026-06-10 21:07 | 34791a8 | feat(G1): Privacy policy page + Phase G task roadmap
+2026-06-10 21:08 | 6317fd4 | feat(G2): Duplicate URL detection in share flow
+2026-06-10 21:11 | 8c9820c | feat(G3): Dark mode support — CSS vars + key UI surfaces
+2026-06-10 21:13 | baee743 | feat(G6): Accessibility pass — aria-labels, roles, keyboard nav
+2026-06-10 21:16 | 153e97c | feat(G8): TestFlight beta setup guide
+2026-06-10 21:18 | 90ca566 | feat(G4): Geofence resurfacing with local notifications
+2026-06-10 21:19 | 787451d | feat(G5): Inbox virtualization via IntersectionObserver
+2026-06-10 21:21 | 23a74a3 | feat(G7): iPad split-view layout and sidebar NavBar
+2026-06-10 21:26 | c1b3d3f | feat(H1-H3): Map dark mode, offline banner, board detail polish
+2026-06-10 21:27 | dc5caee | feat(H4,H8): Trip plan share card + map style toggle
+2026-06-10 21:29 | b33d439 | feat(H5-H7): Notification onboarding, sourced tip callouts, print layout
+2026-06-10 21:31 | cd81383 | feat(I1,I2): Empty state CTA + personal notes on clips
+2026-06-10 21:32 | 57a832e | feat(I3,I4): Clipboard URL suggestion + plan preferences memory
+2026-06-10 21:34 | 3fe59d7 | feat(I5,I6): Map memoization + travel stats dashboard
