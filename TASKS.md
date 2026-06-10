@@ -197,7 +197,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Skeleton should include the thumbnail placeholder, title bar, and tag strip shapes
 
 ### D2 — Duplicate Detection on Save
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users who share the same URL twice (e.g. resharing a link later) get silent duplicates. Discovered at ~30+ clips, ruins trust in organisation.  
 **Files to change**: `app/share/page.tsx`, `lib/db.ts`  
 **What to do**:

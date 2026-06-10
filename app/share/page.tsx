@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, getItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
@@ -30,10 +30,11 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>(undefined);
+  const [duplicateItem, setDuplicateItem]     = useState<{ title: string; savedAt: number; boardName?: string } | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load boards + consume any pending screenshot passed by the iOS Share Extension
+  // Load boards + check for duplicate URL + consume pending screenshot
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
 
@@ -42,6 +43,24 @@ function SharePageInner() {
       setPendingImageBase64(img);
       sessionStorage.removeItem('pendingShareImage');
     }
+
+    if (rawUrl) {
+      getItemByUrl(rawUrl).then((existing) => {
+        if (existing) {
+          getAllBoards().then((boards) => {
+            const board = existing.boardId ? boards.find((b) => b.id === existing.boardId) : undefined;
+            setDuplicateItem({
+              title: existing.title || rawUrl,
+              savedAt: existing.savedAt,
+              boardName: board ? `${board.emoji} ${board.name}` : 'Inbox',
+            });
+          }).catch(() => {
+            setDuplicateItem({ title: existing.title || rawUrl, savedAt: existing.savedAt });
+          });
+        }
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-dismiss when done
@@ -171,6 +190,36 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Duplicate warning */}
+          {duplicateItem && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-1">
+              <p className="text-xs font-semibold text-amber-800 mb-1">
+                ⚠️ Already saved
+              </p>
+              <p className="text-xs text-amber-700 leading-snug line-clamp-2">
+                &ldquo;{duplicateItem.title}&rdquo; was saved to{' '}
+                <strong>{duplicateItem.boardName ?? 'Inbox'}</strong> on{' '}
+                {new Date(duplicateItem.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => window.history.back()}
+                  className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors"
+                >
+                  Skip (already saved)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDuplicateItem(null)}
+                  className="flex-1 text-xs font-semibold py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
+                >
+                  Save again anyway
+                </button>
+              </div>
+            </div>
           )}
         </div>
 

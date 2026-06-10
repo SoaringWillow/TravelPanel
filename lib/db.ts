@@ -76,6 +76,16 @@ export async function getItemById(id: string): Promise<SavedItem | undefined> {
   return db.get('items', id);
 }
 
+export async function getItemByUrl(url: string): Promise<SavedItem | undefined> {
+  try {
+    const db = await getDB();
+    const all = await db.getAll('items');
+    return all.find((item) => item.url === url);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function saveItem(item: SavedItem): Promise<void> {
   const db = await getDB();
   await db.put('items', item);
