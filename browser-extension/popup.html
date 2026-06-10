@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      width: 320px;
+      background: #ffffff;
+      color: #111827;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .header-logo {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .header-logo svg { color: white; }
+    .header-title { font-weight: 700; font-size: 15px; color: #111827; }
+    .header-settings {
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9ca3af;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    .header-settings:hover { color: #6366f1; background: #eef2ff; }
+
+    /* ── Content ─────────────────────────────────────────────────────────── */
+    .content { padding: 14px 16px; }
+
+    .platform-chip {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 99px;
+      color: white;
+      margin-bottom: 8px;
+    }
+
+    .page-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 14px;
+    }
+
+    /* ── Note field ─────────────────────────────────────────────────────── */
+    .note-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .note-input {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #111827;
+      font-family: inherit;
+      resize: none;
+      transition: border-color 0.15s;
+      outline: none;
+      height: 64px;
+    }
+    .note-input:focus { border-color: #6366f1; }
+    .note-input::placeholder { color: #d1d5db; }
+
+    /* ── Actions ─────────────────────────────────────────────────────────── */
+    .actions { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+    .btn-clip {
+      width: 100%;
+      padding: 11px 16px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: opacity 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+    .btn-clip:hover { opacity: 0.92; }
+    .btn-clip:active { transform: scale(0.98); }
+    .btn-clip:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Success state ──────────────────────────────────────────────────── */
+    .success-state {
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+    }
+    .success-icon {
+      width: 52px;
+      height: 52px;
+      background: #dcfce7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .success-title { font-size: 15px; font-weight: 700; color: #111827; }
+    .success-sub { font-size: 12px; color: #6b7280; }
+
+    /* ── Error state ────────────────────────────────────────────────────── */
+    .error-banner {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #dc2626;
+      margin-bottom: 10px;
+    }
+
+    /* ── Settings panel ─────────────────────────────────────────────────── */
+    .settings-panel {
+      padding: 14px 16px 16px;
+      border-top: 1px solid #f3f4f6;
+      background: #fafafa;
+      display: none;
+    }
+    .settings-panel.visible { display: block; }
+    .settings-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .settings-input {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #374151;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .settings-input:focus { border-color: #6366f1; }
+    .settings-hint {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 5px;
+    }
+    .settings-save {
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .settings-save:hover { opacity: 0.88; }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    .footer {
+      padding: 8px 16px 12px;
+      border-top: 1px solid #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .footer-link {
+      font-size: 11px;
+      color: #9ca3af;
+      text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+    .footer-link:hover { color: #6366f1; }
+
+    /* ── Loading spinner ─────────────────────────────────────────────────── */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Loading skeleton ─────────────────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    .skeleton-line { height: 14px; margin-bottom: 6px; }
+    .skeleton-short { width: 60%; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="header-logo">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5"/>
+      </svg>
+    </div>
+    <span class="header-title">TravelPanel</span>
+    <button class="header-settings" id="settingsToggle" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── Main clip view ── -->
+  <div id="mainView">
+    <div class="content" id="clipContent">
+      <!-- Platform chip + page info loaded by popup.js -->
+      <div id="pageInfo">
+        <div class="skeleton skeleton-line skeleton-short" style="width:80px;height:20px;border-radius:99px;margin-bottom:10px;"></div>
+        <div class="skeleton skeleton-line" style="width:100%;"></div>
+        <div class="skeleton skeleton-line skeleton-short"></div>
+      </div>
+
+      <div id="errorBanner" class="error-banner" style="display:none;"></div>
+
+      <div class="note-label">Note (optional)</div>
+      <textarea class="note-input" id="noteInput" placeholder="Add a note…"></textarea>
+    </div>
+
+    <div class="actions">
+      <button class="btn-clip" id="clipBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Clip to TravelPanel
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Success view ── -->
+  <div id="successView" style="display:none;">
+    <div class="success-state">
+      <div class="success-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="success-title">Clipped!</div>
+      <div class="success-sub" id="successSub">Saved to TravelPanel. AI is finding locations…</div>
+    </div>
+    <div class="actions">
+      <button class="btn-clip" id="openAppBtn" style="background:linear-gradient(135deg,#059669 0%,#047857 100%);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        Open TravelPanel
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Settings panel ── -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-label">TravelPanel URL</div>
+    <input class="settings-input" id="appUrlInput" type="url" placeholder="https://your-app.vercel.app" />
+    <div class="settings-hint">Your deployed TravelPanel app URL (or http://localhost:3000 for local dev)</div>
+    <button class="settings-save" id="saveSettingsBtn">Save</button>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <button class="footer-link" id="footerSettingsToggle">Settings · TravelPanel</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
