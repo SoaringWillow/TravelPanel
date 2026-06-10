@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, ChevronDown } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
@@ -39,6 +40,7 @@ export default function PlanPage() {
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [expandedActivity, setExpandedActivity] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -240,7 +242,7 @@ export default function PlanPage() {
 
   if (loadingBoard) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
       </div>
     );
@@ -248,7 +250,7 @@ export default function PlanPage() {
 
   if (!board) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 gap-4">
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-gray-900 gap-4">
         <p className="text-gray-500 text-sm">Board not found.</p>
         <button
           onClick={() => router.back()}
@@ -261,7 +263,7 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Top map section — always visible once stage != idle */}
       <div
         className="relative flex-shrink-0 bg-gray-200"
@@ -501,81 +503,132 @@ export default function PlanPage() {
                         day={day}
                         index={idx}
                         isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
+                        onSelect={() => { setActiveDayIndex(idx); setExpandedActivity(null); }}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Active day activities */}
-              {activeDayPlan && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
-                  </h2>
+              {/* Active day activities — animated on day change */}
+              <AnimatePresence mode="wait">
+                {activeDayPlan && (
+                  <motion.div
+                    key={activeDayIndex}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
+                    <h2 className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                      Day {activeDayIndex + 1} — {activeDayPlan.theme}
+                    </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-1"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
-                        </div>
-                        <span className="flex-shrink-0 bg-indigo-50 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {activity.duration}
-                        </span>
-                      </div>
+                    {activeDayPlan.activities.map((activity, aIdx) => {
+                      const isExpanded = expandedActivity === aIdx;
+                      const hasTips = activity.tips.length > 0 || (activity.sourcedTips?.length ?? 0) > 0;
+                      return (
+                        <div
+                          key={aIdx}
+                          className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+                        >
+                          {/* Gradient header strip */}
+                          <div className="h-0.5 bg-gradient-to-r from-indigo-500 to-sky-400" />
 
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
+                          <div className="p-3 space-y-1.5">
+                            <div className="flex items-start gap-2">
+                              <span className="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                {activity.time}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 truncate">
+                                  {activity.location.name}
+                                </p>
+                                <p className="text-sm text-gray-800 dark:text-gray-100">{activity.name}</p>
+                              </div>
+                              <span className="flex-shrink-0 bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 text-xs font-medium px-2 py-0.5 rounded-full">
+                                {activity.duration}
+                              </span>
                             </div>
-                          ))}
+
+                            {/* Expand/collapse toggle */}
+                            {hasTips && (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedActivity(isExpanded ? null : aIdx)}
+                                className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-500 transition-colors"
+                              >
+                                <motion.span
+                                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="inline-flex"
+                                >
+                                  <ChevronDown size={13} />
+                                </motion.span>
+                                {isExpanded ? 'Less' : `${activity.tips.length + (activity.sourcedTips?.length ?? 0)} tip${(activity.tips.length + (activity.sourcedTips?.length ?? 0)) !== 1 ? 's' : ''}`}
+                              </button>
+                            )}
+
+                            {/* Expandable tips */}
+                            <AnimatePresence>
+                              {isExpanded && hasTips && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="pt-1 space-y-1.5">
+                                    {activity.tips.length > 0 && (
+                                      <ul className="space-y-0.5 pl-1">
+                                        {activity.tips.map((tip, tIdx) => (
+                                          <li key={tIdx} className="text-xs text-gray-500 dark:text-gray-400 leading-snug">
+                                            · {tip}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+
+                                    {/* Sourced tips — amber callout */}
+                                    {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                                      <div className="space-y-1">
+                                        {activity.sourcedTips.map((st, sIdx) => (
+                                          <div
+                                            key={sIdx}
+                                            className="bg-amber-50 dark:bg-amber-900/30 rounded-lg px-2.5 py-2 border-l-2 border-amber-400"
+                                          >
+                                            <p className="text-xs text-amber-900 dark:text-amber-200 leading-snug">💡 {st.content}</p>
+                                            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 truncate">
+                                              from your clip: {st.sourceTitle}
+                                            </p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Trip tips */}
               {plan.tips && plan.tips.length > 0 && (
-                <div className="bg-amber-50 rounded-2xl p-3 border border-amber-100">
+                <div className="bg-amber-50 dark:bg-amber-900/30 rounded-2xl p-3 border border-amber-100 dark:border-amber-800">
                   <div className="flex items-center gap-1.5 mb-2">
                     <Lightbulb size={14} className="text-amber-500" />
-                    <span className="text-xs font-semibold text-amber-700">Trip Tips</span>
+                    <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Trip Tips</span>
                   </div>
                   <ul className="space-y-1">
                     {plan.tips.map((tip, tIdx) => (
-                      <li key={tIdx} className="text-xs text-amber-800 leading-snug">
+                      <li key={tIdx} className="text-xs text-amber-800 dark:text-amber-200 leading-snug">
                         · {tip}
                       </li>
                     ))}

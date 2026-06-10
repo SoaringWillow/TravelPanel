@@ -317,7 +317,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test on iPhone with system dark mode enabled
 
 ### E5 — Trip Plan Day-Strip Visual Redesign
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The current day strip is functional but plain. The plan view is where users spend the most time post-clip — it needs to feel premium.  
 **Files**: `components/DayStripCard.tsx`, `app/plan/[boardId]/page.tsx`  
 **What to do**:
