@@ -502,7 +502,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - Animate checkboxes in/out with framer-motion scale
 
 ### G3 — PWA Add-to-Home-Screen Nudge
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: new `components/InstallBanner.tsx`, `app/layout.tsx`
 **Why**: iOS Safari users need a nudge to install — the "Add to Home Screen" shortcut is hidden in the share sheet and most users miss it. Without installation, there's no standalone mode, no safe-area insets, and no Share Extension.
 **What to do**:

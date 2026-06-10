@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageTransition } from '@/components/PageTransition';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { NotificationScheduler } from '@/components/NotificationScheduler';
+import { InstallBanner } from '@/components/InstallBanner';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -33,6 +34,7 @@ export default function RootLayout({
         <ResourceBanner />
         <OfflineBanner />
         <NotificationScheduler />
+        <InstallBanner />
         <ErrorBoundary>
           <PageTransition>
             {children}
