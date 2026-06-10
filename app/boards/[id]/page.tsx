@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, LayoutGrid, AlignLeft, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
 import InboxCard from '@/components/InboxCard';
+import TripTimeline from '@/components/TripTimeline';
 import NavBar from '@/components/NavBar';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -22,7 +23,9 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
+  const [flyTo, setFlyTo]           = useState<Location | undefined>(undefined);
+  const [viewMode, setViewMode]     = useState<'grid' | 'timeline'>('grid');
+  const [shareStatus, setShareStatus] = useState<'' | 'copied' | 'shared'>('');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -107,6 +110,28 @@ export default function BoardDetailPage() {
             </h1>
           </div>
 
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={async () => {
+                const { shareBoard } = await import('@/lib/shareBoard');
+                const result = await shareBoard(board, items);
+                if (result === 'copied') {
+                  setShareStatus('copied');
+                  setTimeout(() => setShareStatus(''), 2500);
+                } else if (result === 'shared') {
+                  setShareStatus('shared');
+                  setTimeout(() => setShareStatus(''), 2500);
+                }
+              }}
+              className="flex items-center gap-1 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 active:scale-95 transition-all flex-shrink-0"
+              aria-label="Share board"
+            >
+              <Share2 size={13} />
+              {shareStatus === 'copied' ? 'Copied!' : shareStatus === 'shared' ? 'Shared!' : 'Share'}
+            </button>
+          )}
+
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
           </span>
@@ -164,7 +189,7 @@ export default function BoardDetailPage() {
             )}
           </div>
 
-          {/* Items grid */}
+          {/* View mode toggle + items */}
           {boardItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <MapPin className="text-gray-300 mb-3" size={40} />
@@ -176,16 +201,59 @@ export default function BoardDetailPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {boardItems.map((item) => (
-                <InboxCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDelete}
-                  onViewOnMap={handleViewOnMap}
+            <>
+              {/* View toggle pills */}
+              <div className="flex items-center gap-1.5 mb-4 bg-gray-100 rounded-xl p-1 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    viewMode === 'grid'
+                      ? 'bg-white text-gray-800 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <LayoutGrid size={13} />
+                  Grid
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('timeline')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    viewMode === 'timeline'
+                      ? 'bg-white text-gray-800 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <AlignLeft size={13} />
+                  Timeline
+                </button>
+              </div>
+
+              {/* Grid view */}
+              {viewMode === 'grid' && (
+                <div className="grid grid-cols-2 gap-3">
+                  {boardItems.map((item) => (
+                    <InboxCard
+                      key={item.id}
+                      item={item}
+                      onDelete={handleDelete}
+                      onViewOnMap={handleViewOnMap}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Timeline view */}
+              {viewMode === 'timeline' && (
+                <TripTimeline
+                  items={boardItems}
+                  onItemClick={(item) => {
+                    if (item.locations.length > 0) setFlyTo(item.locations[0]);
+                  }}
                 />
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>

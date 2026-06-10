@@ -3,12 +3,31 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
+
+// Platforms that block web scraping — prompt user to add a screenshot for better extraction.
+const SCREENSHOT_HINT_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
+
+// Convert a File to a base64 string (without the data: prefix).
+function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const [header, base64] = dataUrl.split(',');
+      const mimeType = header.match(/data:([^;]+)/)?.[1] ?? 'image/jpeg';
+      resolve({ base64, mimeType });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,12 +48,33 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshotBase64, setScreenshotBase64] = useState<string | undefined>(undefined);
+  const [screenshotMime, setScreenshotMime]   = useState<string>('image/jpeg');
+  const [screenshotPreview, setScreenshotPreview] = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Read a pending screenshot that CapacitorBridge may have stored in sessionStorage
+  // (placed there after reading from the iOS Share Extension App Group).
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('pendingShareImage');
+      const storedMime = sessionStorage.getItem('pendingShareImageType');
+      if (stored) {
+        setScreenshotBase64(stored);
+        setScreenshotMime(storedMime ?? 'image/jpeg');
+        setScreenshotPreview(`data:${storedMime ?? 'image/jpeg'};base64,${stored}`);
+        sessionStorage.removeItem('pendingShareImage');
+        sessionStorage.removeItem('pendingShareImageType');
+      }
+    } catch {
+      // sessionStorage not available (e.g. cross-origin context)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +128,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if available (helps anti-scraping platforms)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshotBase64, screenshotMime)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -114,6 +154,7 @@ function SharePageInner() {
 
     setSavedToName(boardDisplayName ?? 'Inbox');
     setStage('done');
+    void haptics.notification('success');
   }
 
   // ── Create new board + save ───────────────────────────────────────────────
@@ -166,6 +207,54 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Screenshot hint for anti-scraping platforms */}
+        {SCREENSHOT_HINT_PLATFORMS.has(platform) && (
+          <div className="mt-3">
+            {screenshotPreview ? (
+              <div className="relative rounded-xl overflow-hidden border border-indigo-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={screenshotPreview}
+                  alt="Screenshot for AI extraction"
+                  className="w-full max-h-40 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScreenshotBase64(undefined);
+                    setScreenshotPreview(undefined);
+                  }}
+                  className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
+                  aria-label="Remove screenshot"
+                >
+                  <X size={14} />
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 px-3 py-2">
+                  <p className="text-white text-xs font-medium">📸 Screenshot added — AI will read it directly</p>
+                </div>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 text-sm text-indigo-600 font-medium cursor-pointer bg-indigo-50 rounded-xl px-4 py-3 hover:bg-indigo-100 transition-colors">
+                <ImagePlus size={16} />
+                <span>Add a screenshot for better AI extraction</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const { base64, mimeType } = await fileToBase64(file);
+                    setScreenshotBase64(base64);
+                    setScreenshotMime(mimeType);
+                    setScreenshotPreview(`data:${mimeType};base64,${base64}`);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">

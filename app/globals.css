@@ -71,3 +71,25 @@
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .safe-left   { padding-left:   env(safe-area-inset-left); }
 .safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* iOS scroll feel */
+.overflow-y-auto,
+.overflow-y-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent 300ms tap delay on iOS */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Prevent text selection on interactive elements */
+button,
+nav,
+[role="tab"],
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}

@@ -81,37 +81,9 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Prompt helpers ───────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
-
-Platform: ${platform}
-URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
-
-## Layer 1 — Spots (geographic skeleton)
-Extract real, identifiable locations with GPS coordinates you are confident about.
-If the post doesn't mention specific named places, return an empty locations array.
-Do NOT invent or guess coordinates.
-
+const SUBSTANCE_INSTRUCTIONS = `
 ## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
 Extract every piece of actionable insight, advice, warning, or opinion from the post.
 This is what competitors miss. Examples of what to capture:
@@ -124,20 +96,116 @@ This is what competitors miss. Examples of what to capture:
 - "If you're visiting in August, be aware it's typhoon season" → context
 - "The 'mistake' everyone makes is booking accommodation in tourist district" → warning
 
-For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
-A post with no specific location can still have 5–10 substance items.
+For list-format content, extract ALL items. A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
+
+Platform: ${platform}
+URL: ${url}
+Title: ${page?.title ?? '(unavailable)'}
+Description: ${page?.description ?? '(unavailable)'}
+Page content:
+${page?.textContent ?? '(could not fetch page)'}
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+If the post doesn't mention specific named places, return an empty locations array.
+Do NOT invent or guess coordinates.
+${SUBSTANCE_INSTRUCTIONS}`;
+}
+
+function buildVisionPrompt(platform: string, url: string) {
+  return `You are analyzing a screenshot of a travel social media post. Extract TWO layers.
+
+Platform: ${platform}
+URL: ${url}
+
+Read all visible text, captions, comments, and overlaid text in the image carefully.
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+Return an empty locations array if no specific named places are visible.
+Do NOT invent or guess coordinates.
+${SUBSTANCE_INSTRUCTIONS}
+
+Also extract the title (post heading or first line) and a 2–3 sentence description summarising what the post is about.`;
+}
+
+// Platforms that block web scraping — vision is preferred when an image is provided.
+const ANTI_SCRAPING_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
+
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    ({ url, imageBase64, imageMimeType } = await req.json());
   } catch {
-    // Fall through to defaults
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const page = await fetchPageData(url);
+
+  // Use vision when: an image is provided AND (platform blocks scraping OR page returned nothing useful)
+  const pageIsEmpty = !page?.textContent || page.textContent.trim().length < 100;
+  const preferVision = !!imageBase64 && (ANTI_SCRAPING_PLATFORMS.has(platform) || pageIsEmpty);
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+
+  if (preferVision && imageBase64) {
+    // ── Vision path: analyse the screenshot directly ──────────────────────
+    try {
+      const mime = (imageMimeType || 'image/jpeg') as
+        'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+      const { object } = await generateObject({
+        model: models.vision,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                // AI SDK DataContent: pass raw base64 string + mediaType (no Buffer needed)
+                type: 'image',
+                image: imageBase64,
+                mediaType: mime,
+              },
+              {
+                type: 'text',
+                text: buildVisionPrompt(platform, url),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Vision failed — fall through to text extraction below
+    }
+  }
+
+  if (!claudeResult) {
+    // ── Text path: use scraped page content ──────────────────────────────
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(platform, url, page),
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {

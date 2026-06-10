@@ -1,23 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { Globe2, Inbox, LayoutGrid } from 'lucide-react';
+import { Globe2, Inbox, LayoutGrid, Settings } from 'lucide-react';
+import { haptics } from '@/lib/haptics';
 
 interface NavBarProps {
-  active: 'home' | 'inbox' | 'boards';
+  active: 'home' | 'inbox' | 'boards' | 'settings';
 }
 
 const NAV_ITEMS = [
-  { key: 'home',   label: 'Map',         icon: Globe2,     href: '/'       },
-  { key: 'inbox',  label: 'Inspiration', icon: Inbox,      href: '/inbox'  },
-  { key: 'boards', label: 'Collections', icon: LayoutGrid, href: '/boards' },
+  { key: 'home',     label: 'Map',         icon: Globe2,     href: '/'         },
+  { key: 'inbox',    label: 'Inspiration', icon: Inbox,      href: '/inbox'    },
+  { key: 'boards',   label: 'Collections', icon: LayoutGrid, href: '/boards'   },
+  { key: 'settings', label: 'Settings',    icon: Settings,   href: '/settings' },
 ] as const;
 
 export default function NavBar({ active }: NavBarProps) {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md"
-      style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
+      style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-stretch">
         {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {
@@ -26,6 +28,7 @@ export default function NavBar({ active }: NavBarProps) {
             <Link
               key={key}
               href={href}
+              onClick={() => { if (!isActive) void haptics.impact('light'); }}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
                 isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
               }`}
