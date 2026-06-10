@@ -37,7 +37,8 @@ export async function enrichItem(
     await updateItemEnrichment(id, 'done', {
       title: data.title,
       description: data.description,
-      thumbnail: data.thumbnail,
+      // Only overwrite thumbnail if the API returned one — preserves screenshot thumbnails
+      ...(data.thumbnail ? { thumbnail: data.thumbnail } : {}),
       locations: data.locations,
       activities: data.activities,
       tags: data.tags,

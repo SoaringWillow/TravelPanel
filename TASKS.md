@@ -266,7 +266,7 @@ Work top-to-bottom within this phase.
 - Use Web Share API (`navigator.share`) if available, fallback to copy-to-clipboard
 
 ### D10 — Thumbnail Extraction via Claude Vision (Xiaohongshu)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/api/import/route.ts`, `lib/types.ts`  
 **What to do**:
 - When vision extraction is used (imageBase64 provided), also extract a thumbnail crop

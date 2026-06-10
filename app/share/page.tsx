@@ -127,7 +127,8 @@ function SharePageInner() {
       title: sharedTitle,
       platform,
       description: '',
-      thumbnail: undefined,
+      // Use screenshot as initial thumbnail for platforms that block scraping
+      thumbnail: imageBase64 ? `data:${imageMimeType};base64,${imageBase64}` : undefined,
       locations: [],
       activities: [],
       tags: [],
