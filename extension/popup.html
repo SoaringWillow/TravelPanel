@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Clipper</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 320px;
+      min-height: 180px;
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #1e2438;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 15px;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #475569;
+      padding: 5px;
+      border-radius: 6px;
+      font-size: 15px;
+      line-height: 1;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .settings-btn:hover {
+      color: #94a3b8;
+      background: #1e2438;
+    }
+
+    .content {
+      padding: 14px 16px 16px;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #475569;
+      font-size: 13px;
+      padding: 12px 0;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #1e2438;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #1e2438;
+      border: 1px solid #2a3347;
+      border-radius: 20px;
+      padding: 3px 10px 3px 8px;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 11px;
+    }
+
+    .page-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f1f5f9;
+      line-height: 1.45;
+      margin-bottom: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .page-url {
+      font-size: 11px;
+      color: #334155;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 14px;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      letter-spacing: 0.01em;
+    }
+
+    .save-btn:hover:not(:disabled) {
+      opacity: 0.88;
+    }
+
+    .save-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .save-btn:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .btn-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .success-state {
+      text-align: center;
+      padding: 12px 0 6px;
+    }
+
+    .success-icon {
+      font-size: 30px;
+      margin-bottom: 8px;
+      display: block;
+      animation: pop 0.3s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .success-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: #4ade80;
+    }
+
+    .success-sub {
+      font-size: 12px;
+      color: #334155;
+      margin-top: 4px;
+    }
+
+    .error-msg {
+      background: #1c0a0a;
+      border: 1px solid #7f1d1d;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 12px;
+      color: #fca5a5;
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+
+    .restricted-msg {
+      color: #475569;
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 4px 0 2px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-icon">🗺</div>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings">⚙️</button>
+  </div>
+
+  <div class="content">
+    <div id="loadingState" class="loading">
+      <div class="spinner"></div>
+      <span>Loading…</span>
+    </div>
+
+    <div id="mainState" style="display:none">
+      <div class="platform-badge">
+        <span id="platformEmoji">🌐</span>
+        <span id="platformName">Web</span>
+      </div>
+      <div class="page-title" id="pageTitle"></div>
+      <div class="page-url" id="pageUrl"></div>
+      <button class="save-btn" id="saveBtn">
+        <span>📌</span>
+        <span>Save to TravelPanel</span>
+      </button>
+      <div id="errorMsg" class="error-msg" style="display:none"></div>
+    </div>
+
+    <div id="successState" style="display:none">
+      <div class="success-state">
+        <span class="success-icon">✅</span>
+        <div class="success-text">Saved!</div>
+        <div class="success-sub">Opening TravelPanel…</div>
+      </div>
+    </div>
+
+    <div id="restrictedState" style="display:none">
+      <p class="restricted-msg">
+        This page can't be clipped<br>(browser internal page)
+      </p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

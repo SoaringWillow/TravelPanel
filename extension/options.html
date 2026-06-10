@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 360px;
+      padding: 20px;
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .logo-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 7px;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1a1f2e;
+      border: 1px solid #252f47;
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #334155;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .hint code {
+      background: #1a1f2e;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 11px;
+      color: #818cf8;
+    }
+
+    .save-btn {
+      margin-top: 6px;
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 9px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      letter-spacing: 0.01em;
+    }
+
+    .save-btn:hover {
+      opacity: 0.88;
+    }
+
+    .save-btn:active {
+      transform: scale(0.98);
+    }
+
+    .saved-msg {
+      display: none;
+      margin-top: 10px;
+      text-align: center;
+      color: #4ade80;
+      font-size: 13px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .divider {
+      height: 1px;
+      background: #1e2438;
+      margin: 20px 0;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    .tip-box {
+      background: #111827;
+      border: 1px solid #1e2438;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .tip-box p {
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .tip-box a {
+      color: #818cf8;
+      text-decoration: none;
+    }
+
+    .tip-box a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-icon">🗺</div>
+    <h1>TravelPanel Settings</h1>
+  </div>
+
+  <div class="field">
+    <label for="urlInput">TravelPanel URL</label>
+    <input
+      type="url"
+      id="urlInput"
+      placeholder="http://localhost:3000"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <p class="hint">
+      Your TravelPanel app URL. Use <code>http://localhost:3000</code> for local dev,
+      or your deployed Vercel URL for production.
+    </p>
+  </div>
+
+  <button class="save-btn" id="saveBtn">Save Settings</button>
+  <div class="saved-msg" id="savedMsg">✅ Saved!</div>
+
+  <div class="divider"></div>
+
+  <div class="section-title">About</div>
+  <div class="tip-box">
+    <p>
+      TravelPanel Clipper saves travel posts from any website — Instagram, YouTube, Xiaohongshu,
+      TikTok and more — directly into your TravelPanel boards.<br><br>
+      Right-click any page or link and choose <strong>Save to TravelPanel</strong>,
+      or click the toolbar icon to clip the current page.
+    </p>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
