@@ -7,7 +7,7 @@ import { X } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
-import { Platform } from '@/lib/types';
+import { Platform, SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
@@ -18,6 +18,7 @@ import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
 import { EmptyState } from '@/components/EmptyState';
+import { UndoToast } from '@/components/UndoToast';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -46,13 +47,18 @@ export default function InboxPage() {
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
+  // Soft-delete + undo state
+  const [deletedItem, setDeletedItem] = useState<SavedItem | null>(null);
+
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
 
-  // Only unassigned items (boardId === undefined)
-  const inboxItems = items.filter((i) => i.boardId === undefined);
+  // Only unassigned items (boardId === undefined), excluding soft-deleted
+  const inboxItems = items.filter(
+    (i) => i.boardId === undefined && i.id !== deletedItem?.id
+  );
 
   const platformFiltered =
     activePlatform === 'all'
@@ -60,6 +66,26 @@ export default function InboxPage() {
       : inboxItems.filter((i) => i.platform === activePlatform);
 
   const filtered = searchItems(platformFiltered, query);
+
+  function handleSoftDelete(id: string) {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    // If there was a previous pending delete, commit it immediately
+    if (deletedItem) removeItem(deletedItem.id);
+    setDeletedItem(item);
+  }
+
+  function handleUndoDelete() {
+    if (expireTimerRef.current) clearTimeout(expireTimerRef.current);
+    setDeletedItem(null);
+  }
+
+  function handleExpireDelete() {
+    if (deletedItem) {
+      removeItem(deletedItem.id);
+      setDeletedItem(null);
+    }
+  }
 
   // Group into rows of 2 for the virtual grid
   const rows: (typeof filtered)[] = [];
@@ -220,7 +246,7 @@ export default function InboxPage() {
                     >
                       <InboxCard
                         item={item}
-                        onDelete={removeItem}
+                        onDelete={handleSoftDelete}
                         onViewOnMap={handleViewOnMap}
                         onMoveToBoard={handleMoveToBoard}
                         onRetry={retryItem}
@@ -310,6 +336,18 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Undo toast */}
+      <AnimatePresence>
+        {deletedItem && (
+          <UndoToast
+            key={deletedItem.id}
+            message="Clip deleted"
+            onUndo={handleUndoDelete}
+            onExpire={handleExpireDelete}
+          />
         )}
       </AnimatePresence>
 

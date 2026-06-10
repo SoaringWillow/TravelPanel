@@ -1,8 +1,11 @@
 'use client';
 
+import { useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Globe, MapPin, Trash2, LayoutGrid, Loader2, ExternalLink } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
+import { tapError } from '@/lib/haptics';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -189,7 +192,25 @@ export default function InboxCard({
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* Red delete background revealed on swipe */}
+      <div className="absolute inset-0 bg-red-500 rounded-2xl flex items-center justify-end pr-5">
+        <Trash2 size={22} className="text-white" />
+      </div>
+
+      <motion.div
+        drag="x"
+        dragDirectionLock
+        dragConstraints={{ left: -200, right: 0 }}
+        dragElastic={0.08}
+        onDragEnd={(_e, info) => {
+          if (info.offset.x < -90) {
+            tapError();
+            onDelete(item.id);
+          }
+        }}
+        className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-grab active:cursor-grabbing"
+      >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
         <img
@@ -302,7 +323,7 @@ export default function InboxCard({
             {/* Delete */}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              onClick={() => { tapError(); onDelete(item.id); }}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               aria-label="Delete"
             >
@@ -311,6 +332,7 @@ export default function InboxCard({
           </div>
         </div>
       </div>
+      </motion.div>
     </div>
   );
 }
