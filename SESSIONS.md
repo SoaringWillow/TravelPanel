@@ -129,3 +129,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 21:52 | 02b0c6c | feat(K3): Multi-select batch actions in inbox
 2026-06-10 21:55 | 5841c78 | feat(K4,K5): Day route mini map + board visited toggle
 2026-06-10 21:57 | 6462eb1 | feat(K6,K7): Offline clip resilience + polished plan streaming UX
+2026-06-10 21:59 | 7d29192 | feat(K8): Long-press map to save a place via reverse geocode

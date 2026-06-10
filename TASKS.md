@@ -721,6 +721,110 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE L — Intelligence & Discovery
+
+> Goal: Make TravelPanel feel like a smart travel companion that learns from your
+> clips and proactively surfaces insights. Differentiating features that competitors don't have.
+> Execution order: L1 → L2 → L3 → L4 → L5 → L6 → L7 → L8
+
+### L1 — Smart Board Auto-Suggest
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, new `components/BoardSuggestBanner.tsx`  
+**What to do**:
+- After a user has ≥4 unboarded clips with locations in the same country/region,
+  show a dismissable banner: "You have 5 Japan clips — create a Japan board?"
+- Detect country from location data using the first word of location addresses
+- Banner appears at the top of the inbox, can be dismissed (persists to localStorage)
+- Tap "Create" → creates a board and moves all matching clips into it
+- Max 1 suggestion at a time; don't suggest for countries with <4 clips
+
+### L2 — Inline Clip Title Edit
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`, `components/InboxCard.tsx`  
+**What to do**:
+- In the LocationDetailCard, make the clip title tappable/editable in-place
+  (tap title → turns into an inline input; blur/Enter saves via `saveItem`)
+- Similarly, show an "Edit title" option in the InboxCard context menu
+- Also allow editing tags: show existing tags as editable pills in the detail card,
+  with an "+" button to add new tags (comma-separated input)
+- Changes persist to IndexedDB immediately
+
+### L3 — Discover Nearby POIs on Map
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`, `app/page.tsx`  
+**What to do**:
+- Add a "Discover" toggle button to the map (near the style button)
+- When on: query the Overpass API for tourist attractions within the current map bounds
+  (`https://overpass-api.de/api/interpreter?data=[out:json];node["tourism"](bbox);out;`)
+- Show results as gray ghost pins (distinct from saved clip pins)
+- Tapping a ghost pin shows its name + type and a "+ Save" button
+- Limit to 20 POIs at a time; auto-refresh on map move (debounced 800ms)
+- Store toggle state in localStorage
+
+### L4 — Board Substance Summary ("Trip Wisdom")
+**Status**: `[ ]` Not started  
+**Files**: new `app/boards/[id]/wisdom/page.tsx`, `app/boards/[id]/page.tsx`  
+**What to do**:
+- New page at `/boards/[id]/wisdom` that aggregates ALL substance items from all
+  clips in the board into a single scannable document
+- Group by type: ⚠️ Warnings first, 💡 Tips, 🧠 Wisdom, ⭐ Recommendations, 💬 Opinions
+- Each item shows the substance content + clip it came from (tappable to open clip)
+- "Copy all tips" button copies the entire wisdom document as text
+- Link from the board detail page header: "View trip wisdom →"
+- Empty state: "Add clips to this board to see collected wisdom"
+
+### L5 — Import from Text / Notes Paste
+**Status**: `[ ]` Not started  
+**Files**: `components/ImportSheet.tsx` (or new tab), `app/api/import/route.ts`  
+**What to do**:
+- In the ImportSheet, add a second tab: "Paste text" (alongside "URL")
+- User can paste any text (blog post excerpt, notes, copied article) into a textarea
+- On submit: POST to `/api/import` with `{ text: ... }` instead of URL
+- API route detects text-mode input and adjusts the Claude prompt to extract
+  places and substance from freeform text (not a specific URL)
+- Result creates a SavedItem with `url: 'text://import/<id>'` and platform `'other'`
+- Great for capturing info from PDFs, Airbnb descriptions, travel blog excerpts
+
+### L6 — Share a Clip to Friends (System Share)
+**Status**: `[ ]` Not started  
+**Files**: `components/LocationDetailCard.tsx`  
+**What to do**:
+- In the LocationDetailCard, the share button currently does nothing useful
+- Update it to call `navigator.share()` with:
+  - `title`: clip title
+  - `text`: first tip from substance + "Saved with TravelPanel"  
+  - `url`: the original clip URL
+- If no `url`, share just the title + substance text
+- Gracefully fall back to copy-to-clipboard if `navigator.share` is unavailable
+- Add a subtle success animation (checkmark) after sharing/copying
+
+### L7 — Duplicate Merge UI
+**Status**: `[ ]` Not started  
+**Files**: `app/inbox/page.tsx`, `lib/db.ts`  
+**What to do**:
+- Scan inbox items for near-duplicate titles (using simple string similarity > 80%)
+- Show a "2 possible duplicates" chip at the top of the inbox when detected
+- Tapping it opens a side-by-side review modal: shows both clips, allows picking
+  which to keep (or merge: combine locations + substance from both into one clip)
+- `mergeItems(keepId, dropId)` in `lib/db.ts`: copies locations+substance from drop
+  to keep, deletes drop
+- Run the scan at most once per session (sessionStorage flag)
+
+### L8 — Full Accessibility Pass
+**Status**: `[ ]` Not started  
+**Files**: All interactive components  
+**What to do**:
+- Add proper `aria-label` to every icon-only button in the app
+- Ensure all interactive elements have `role` attributes where `<div onClick>` used
+- Add `alt` text to all `<img>` tags
+- Keyboard navigation: Tab order through the main UI is logical
+- Focus management: when a modal/sheet opens, focus moves into it; when it closes,
+  focus returns to the trigger element
+- Test with VoiceOver on iOS Simulator; narrate the inbox, boards, and plan flows
+- Add `aria-live="polite"` regions for loading states and notifications
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
