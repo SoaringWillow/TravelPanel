@@ -155,7 +155,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Document the entitlement that must be enabled in Xcode: **Signing & Capabilities → Associated Domains**
 
 ### F8 — App Store Submission Checklist & TestFlight Setup
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: The app needs a proper submission checklist so a human can complete the Xcode/App Store Connect steps that can't be automated. Clear documentation prevents launch-day scramble.  
 **File to create**: `ios/App/APP_STORE_CHECKLIST.md`  
 **What to do**:
