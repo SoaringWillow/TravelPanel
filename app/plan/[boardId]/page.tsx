@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, Share2, Copy, Check } from 'lucide-react';
@@ -51,6 +51,7 @@ export default function PlanPage() {
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const dayRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
@@ -274,7 +275,6 @@ export default function PlanPage() {
     { label: 'Interests', chips: ['📸 Photography', '🏛 Culture', '🌿 Nature', '🛍 Shopping', '🎨 Art', '🌃 Nightlife', '🏖 Beach'] },
   ];
 
-  const activeDayPlan = plan?.days?.[activeDayIndex] ?? null;
 
   if (loadingBoard) {
     return (
@@ -546,72 +546,82 @@ export default function PlanPage() {
                         day={day}
                         index={idx}
                         isActive={activeDayIndex === idx}
-                        onSelect={() => setActiveDayIndex(idx)}
+                        onSelect={() => {
+                          setActiveDayIndex(idx);
+                          dayRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Active day activities */}
-              {activeDayPlan && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-bold text-gray-700">
-                    Day {activeDayIndex + 1} — {activeDayPlan.theme}
+              {/* All days — each section has a ref for scrollIntoView */}
+              {plan.days && plan.days.map((dayPlan, dayIdx) => (
+                <div
+                  key={dayPlan.day}
+                  ref={(el) => { dayRefs.current[dayIdx] = el; }}
+                  className="space-y-3 scroll-mt-4"
+                >
+                  <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0 ${activeDayIndex === dayIdx ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                      {dayIdx + 1}
+                    </span>
+                    {dayPlan.theme}
                   </h2>
 
-                  {activeDayPlan.activities.map((activity, aIdx) => {
+                  {dayPlan.activities.map((activity, aIdx) => {
                     const accent = getActivityAccent(activity.name);
                     return (
-                    <div
-                      key={aIdx}
-                      className={`rounded-2xl p-3 shadow-sm border border-gray-100 border-l-4 space-y-1 ${accent.border} ${accent.bg}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 bg-white/70 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full border border-gray-100">
-                          {activity.time}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {activity.location.name}
-                          </p>
-                          <p className="text-sm text-gray-800">{activity.name}</p>
+                      <div
+                        key={aIdx}
+                        className={`rounded-2xl p-3 shadow-sm border border-gray-100 border-l-4 space-y-1 ${accent.border} ${accent.bg}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="flex-shrink-0 bg-white/70 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full border border-gray-100">
+                            {activity.time}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-indigo-600 truncate">
+                              {activity.location.name}
+                            </p>
+                            <p className="text-sm text-gray-800">{activity.name}</p>
+                          </div>
+                          <span className="flex-shrink-0 bg-white/70 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full border border-indigo-100">
+                            {activity.duration}
+                          </span>
                         </div>
-                        <span className="flex-shrink-0 bg-white/70 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full border border-indigo-100">
-                          {activity.duration}
-                        </span>
+
+                        {activity.tips.length > 0 && (
+                          <ul className="space-y-0.5 pl-1">
+                            {activity.tips.slice(0, 2).map((tip, tIdx) => (
+                              <li key={tIdx} className="text-xs text-gray-500 leading-snug">
+                                · {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {activity.sourcedTips && activity.sourcedTips.length > 0 && (
+                          <div className="space-y-1 pt-1">
+                            {activity.sourcedTips.map((st, sIdx) => (
+                              <div
+                                key={sIdx}
+                                className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
+                              >
+                                <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
+                                <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
+                                  from your clip: {st.sourceTitle}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-
-                      {activity.tips.length > 0 && (
-                        <ul className="space-y-0.5 pl-1">
-                          {activity.tips.slice(0, 2).map((tip, tIdx) => (
-                            <li key={tIdx} className="text-xs text-gray-500 leading-snug">
-                              · {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {/* Sourced tips — wisdom cited from the user's own clips */}
-                      {activity.sourcedTips && activity.sourcedTips.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          {activity.sourcedTips.map((st, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="bg-emerald-50 rounded-lg px-2 py-1.5 border-l-2 border-emerald-300"
-                            >
-                              <p className="text-xs text-emerald-900 leading-snug">💡 {st.content}</p>
-                              <p className="text-[10px] text-emerald-600 mt-0.5 truncate">
-                                from your clip: {st.sourceTitle}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ); })}
+                    );
+                  })}
                 </div>
-              )}
+              ))}
 
               {/* Trip tips */}
               {plan.tips && plan.tips.length > 0 && (

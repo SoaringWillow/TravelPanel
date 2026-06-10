@@ -547,7 +547,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - Disable button during retrying with a spinner
 
 ### G7 — Swipeable Day Navigation in Trip Plan
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/plan/[boardId]/page.tsx`
 **Why**: Long trips (7+ days) require heavy scrolling. Day tabs + swipe feel native.
 **What to do**:
