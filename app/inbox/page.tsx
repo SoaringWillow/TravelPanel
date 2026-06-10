@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -16,6 +16,7 @@ import InboxCard from '@/components/InboxCard';
 import SkeletonCard from '@/components/SkeletonCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -39,6 +40,20 @@ export default function InboxPage() {
   const [activePlatform, setActivePlatform] = useState<Platform | 'all'>('all');
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handlePullRefresh = useCallback(async () => {
+    // Retry all failed items on pull-to-refresh
+    const failedItems = items.filter((i) => i.enrichmentStatus === 'failed' && (i.retryCount ?? 0) < 3);
+    await Promise.allSettled(failedItems.map((i) => retryItem(i.id, i.url)));
+    router.refresh();
+  }, [items, retryItem, router]);
+
+  const pullState = usePullToRefresh(scrollRef as React.RefObject<HTMLElement>, {
+    onRefresh: handlePullRefresh,
+    threshold: 68,
+  });
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
@@ -140,9 +155,16 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ paddingTop: Math.max(16, pullState.pullY) }}>
+        {/* Pull-to-refresh indicator */}
+        {(pullState.pulling || pullState.refreshing) && (
+          <div className="flex justify-center mb-2 -mt-2 transition-all">
+            <div className={`w-7 h-7 rounded-full border-2 border-indigo-600 border-t-transparent ${pullState.refreshing ? 'animate-spin' : ''}`}
+              style={{ transform: `rotate(${pullState.pulling ? pullState.pullY * 3 : 0}deg)` }} />
+          </div>
+        )}
         {loading ? (
-          <div className="space-y-3">
+          <div className="mt-4 space-y-3">
             {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
           </div>
         ) : filtered.length === 0 ? (

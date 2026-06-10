@@ -230,7 +230,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Shimmer animation: `background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)` with `backgroundSize: 200% 100%` animated
 
 ### D5 — Pull-to-Refresh on All Lists
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Add a pull-to-refresh gesture on the inbox and boards list (use a simple touch event handler or a small library)
@@ -239,7 +239,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - On boards: re-fetch board list + trigger a sync if Supabase is connected
 
 ### D6 — Detail Card Polish (Hero Image + Swipe-to-Close)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/LocationDetailCard.tsx`  
 **What to do**:
 - If the clip has a `thumbnail`, show it as a full-width hero image at the top of the detail card (max 180px height, `object-cover`, slight rounded-top corners)
