@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Globe2, Inbox, LayoutGrid, Settings2 } from 'lucide-react';
 
 interface NavBarProps {
@@ -23,7 +24,7 @@ export default function NavBar({ active }: NavBarProps) {
         className="md:hidden fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-transparent dark:border-gray-800"
         style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
       >
-        <div className="flex items-stretch">
+        <div className="flex items-stretch safe-bottom">
           {NAV_ITEMS.map(({ key, label, icon: Icon, href }) => {
             const isActive = active === key;
             return (
@@ -38,11 +39,15 @@ export default function NavBar({ active }: NavBarProps) {
               >
                 <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} aria-hidden="true" />
                 <span className="text-xs mt-0.5 font-medium" aria-hidden="true">{label}</span>
-                <span
-                  className={`mt-0.5 rounded-full transition-all duration-200 ${
-                    isActive ? 'w-1 h-1 bg-indigo-600' : 'w-0 h-1 bg-transparent'
-                  }`}
-                />
+                <span className="mt-0.5 h-1 w-1 relative" aria-hidden="true">
+                  {isActive && (
+                    <motion.span
+                      layoutId="nav-indicator-mobile"
+                      className="absolute inset-0 rounded-full bg-indigo-600 dark:bg-indigo-400"
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                    />
+                  )}
+                </span>
               </Link>
             );
           })}

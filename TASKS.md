@@ -922,7 +922,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test by toggling `prefers-color-scheme: dark` in browser DevTools
 
 ### M8 — iOS Native Feel: Safe Area + Transitions
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/layout.tsx`, `app/page.tsx`, `components/NavBar.tsx`, global CSS  
 **What to do**:
 - Add `padding-bottom: env(safe-area-inset-bottom)` to NavBar so it sits above the iOS home
