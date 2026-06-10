@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, LayoutGrid, GripVertical } from 'lucide-react';
-import { Reorder, useDragControls } from 'framer-motion';
+import { Reorder, useDragControls, AnimatePresence, motion } from 'framer-motion';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board } from '@/lib/types';
@@ -46,6 +46,8 @@ export default function BoardsPage() {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
+  type BoardFilter = 'all' | 'planning' | 'visited';
+  const [boardFilter, setBoardFilter] = useState<BoardFilter>('all');
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -105,6 +107,26 @@ export default function BoardsPage() {
       {/* First-launch demo seed banner */}
       {!reorderMode && <OnboardingSeed />}
 
+      {/* Filter tabs */}
+      {!reorderMode && boards.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pb-2 flex gap-2">
+          {(['all', 'planning', 'visited'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setBoardFilter(f)}
+              className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+                boardFilter === f
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
+              }`}
+            >
+              {f === 'all' ? 'All' : f === 'planning' ? '🗺 Planning' : '✓ Visited'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         {boardsLoading ? (
@@ -153,18 +175,33 @@ export default function BoardsPage() {
           </Reorder.Group>
         ) : (
           /* ── Normal grid ── */
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {boards.map((board) => (
-              <BoardCard
-                key={board.id}
-                board={board}
-                itemCount={getItemCount(board.id)}
-                onClick={() => router.push(`/boards/${board.id}`)}
-                onDelete={() => handleDelete(board.id)}
-                onRename={(name) => handleRename(board.id, name)}
-              />
-            ))}
-          </div>
+          (() => {
+            const visibleBoards = boards.filter((b) =>
+              boardFilter === 'all' ? true :
+              boardFilter === 'visited' ? !!b.completedAt :
+              !b.completedAt
+            );
+            return visibleBoards.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 text-center px-6">
+                <p className="text-sm text-gray-400">
+                  {boardFilter === 'visited' ? 'No visited boards yet.' : 'No boards in planning.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {visibleBoards.map((board) => (
+                  <BoardCard
+                    key={board.id}
+                    board={board}
+                    itemCount={getItemCount(board.id)}
+                    onClick={() => router.push(`/boards/${board.id}`)}
+                    onDelete={() => handleDelete(board.id)}
+                    onRename={(name) => handleRename(board.id, name)}
+                  />
+                ))}
+              </div>
+            );
+          })()
         )}
       </div>
 

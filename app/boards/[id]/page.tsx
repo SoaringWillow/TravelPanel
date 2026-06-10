@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, ArrowUpDown } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, ArrowUpDown, CheckCircle2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
+import { updateBoard } from '@/lib/db';
 import InboxCard from '@/components/InboxCard';
 import NavBar from '@/components/NavBar';
 
@@ -21,7 +22,7 @@ export default function BoardDetailPage() {
   const boardId = params.id as string;
   const router = useRouter();
 
-  const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
+  const { boards, loading: boardsLoading, removeItemFromBoard, setBoards } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
   const [flyTo, setFlyTo] = useState<Location | undefined>(undefined);
@@ -52,6 +53,13 @@ export default function BoardDetailPage() {
     if (item && item.locations.length > 0) {
       setFlyTo(item.locations[0]);
     }
+  }
+
+  async function handleToggleVisited() {
+    if (!board) return;
+    const now = board.completedAt ? undefined : Date.now();
+    await updateBoard(board.id, { completedAt: now });
+    setBoards((prev) => prev.map((b) => b.id === board.id ? { ...b, completedAt: now } : b));
   }
 
   async function handleDelete(id: string) {
@@ -138,22 +146,39 @@ export default function BoardDetailPage() {
               </p>
             </div>
 
-            {/* Sort toggle */}
-            {boardItems.length > 1 && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Visited toggle */}
               <button
                 type="button"
-                onClick={() => setSort((s) => (s === 'date' ? 'name' : 'date'))}
-                aria-label={`Sort by ${sort === 'date' ? 'name' : 'date'}`}
+                onClick={handleToggleVisited}
                 className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
-                  coverThumbnail
-                    ? 'bg-white/20 text-white hover:bg-white/30'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                  board.completedAt
+                    ? coverThumbnail ? 'bg-green-500/80 text-white' : 'bg-green-100 text-green-700'
+                    : coverThumbnail ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
                 }`}
+                aria-label={board.completedAt ? 'Mark as not visited' : 'Mark as visited'}
               >
-                <ArrowUpDown size={12} />
-                {sort === 'date' ? 'Date' : 'Name'}
+                <CheckCircle2 size={12} />
+                {board.completedAt ? 'Visited' : 'Mark visited'}
               </button>
-            )}
+
+              {/* Sort toggle */}
+              {boardItems.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setSort((s) => (s === 'date' ? 'name' : 'date'))}
+                  aria-label={`Sort by ${sort === 'date' ? 'name' : 'date'}`}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
+                    coverThumbnail
+                      ? 'bg-white/20 text-white hover:bg-white/30'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                  }`}
+                >
+                  <ArrowUpDown size={12} />
+                  {sort === 'date' ? 'Date' : 'Name'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -65,6 +65,7 @@ export interface Board {
   createdAt: number;
   updatedAt: number;
   order?: number;          // user-defined sort order; lower = appears first
+  completedAt?: number;    // unix ms when user marked the trip as visited
   isDemo?: boolean; // onboarding seed content — removable in one tap
 }
 

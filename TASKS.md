@@ -666,7 +666,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Use existing `removeItem` and `addItemToBoard` from db
 
 ### K4 — Plan Day Mini Route Map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/plan/[boardId]/page.tsx`, new `components/DayRouteMap.tsx`  
 **What to do**:
 - In the trip plan day view, show a compact MapLibre map (200px tall) above the activity list
@@ -676,7 +676,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - If an activity has no location data, skip it in the route (don't break the map)
 
 ### K5 — Board Visited / Trip Completed Toggle
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/boards/[id]/page.tsx`, `lib/types.ts`, `lib/db.ts`  
 **What to do**:
 - Add a "Mark as completed" button to the board detail page (and board context menu)

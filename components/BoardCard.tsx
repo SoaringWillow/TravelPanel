@@ -112,6 +112,13 @@ export default function BoardCard({ board, itemCount, onClick, onDelete, onRenam
           </span>
         </div>
 
+        {/* Visited badge */}
+        {board.completedAt && (
+          <div className="absolute top-3 left-3 bg-green-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+            ✓ Visited
+          </div>
+        )}
+
         {/* Item count badge in top-right */}
         {itemCount > 0 && (
           <div className="absolute top-3 right-3 bg-white/25 backdrop-blur-sm text-white text-xs font-semibold px-2 py-0.5 rounded-full">

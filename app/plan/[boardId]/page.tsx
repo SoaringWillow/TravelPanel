@@ -17,6 +17,7 @@ import PlanVersionBar from '@/components/PlanVersionBar';
 
 const RouteMapView = dynamic(() => import('@/components/RouteMapView'), { ssr: false });
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+const DayRouteMap = dynamic(() => import('@/components/DayRouteMap'), { ssr: false });
 
 type Stage = 'idle' | 'generating' | 'complete';
 
@@ -738,6 +739,12 @@ export default function PlanPage() {
                   <h2 className="text-sm font-bold text-gray-700">
                     Day {activeDayIndex + 1} — {activeDayPlan.theme}
                   </h2>
+
+                  {/* Mini route map for the day */}
+                  <DayRouteMap
+                    activities={activeDayPlan.activities}
+                    onExpand={currentTripId ? () => router.push(`/trip/${currentTripId}/navigate`) : undefined}
+                  />
 
                   {activeDayPlan.activities.map((activity, aIdx) => (
                     <div
