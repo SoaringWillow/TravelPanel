@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Globe2, Plus, LocateFixed, LocateOff } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
+import { saveItem } from '@/lib/db';
 import { findNearestWithin, formatDistance } from '@/lib/geolocation';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
@@ -230,6 +231,10 @@ function HomePageInner() {
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
             onMarkVisited={() => markVisited(selectedItem.id)}
+            onSaveNote={async (note) => {
+              await saveItem({ ...selectedItem, notes: note || undefined });
+              setSelectedItem((prev) => prev ? { ...prev, notes: note || undefined } : prev);
+            }}
           />
         )}
       </AnimatePresence>

@@ -300,7 +300,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Auto-update cover: after `addItemToBoard` or `removeItemFromBoard`, refresh the board's `coverThumbnail` by re-scanning `itemIds`
 
 ### I2 — Clip Notes (User Annotations)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Users want to annotate clips with personal context: "Book 3 months ahead!", "Dad loves sushi — perfect for his trip", "Visited but want to return". The `notes` field already exists on `SavedItem` but is never surfaced in the UI.  
 **Files to change**: `components/LocationDetailCard.tsx`, `lib/db.ts`  
 **What to do**:

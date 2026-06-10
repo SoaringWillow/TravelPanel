@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, Navigation, CheckCircle2, Circle } from 'lucide-react';
+import { X, MapPin, Navigation, CheckCircle2, Circle, Pencil } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -10,6 +11,7 @@ interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
   onMarkVisited?: () => void;
+  onSaveNote?: (note: string) => void;
 }
 
 function openNavigate(lat: number, lng: number, name: string) {
@@ -31,7 +33,17 @@ function openNavigate(lat: number, lng: number, name: string) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-export default function LocationDetailCard({ item, onClose, onMarkVisited }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onMarkVisited, onSaveNote }: LocationDetailCardProps) {
+  const [noteText, setNoteText] = useState(item.notes ?? '');
+  const [noteExpanded, setNoteExpanded] = useState(!!item.notes);
+
+  function handleNoteBlur() {
+    const trimmed = noteText.trim();
+    if (trimmed !== (item.notes ?? '').trim()) {
+      onSaveNote?.(trimmed);
+    }
+  }
+
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -164,13 +176,38 @@ export default function LocationDetailCard({ item, onClose, onMarkVisited }: Loc
               </div>
             )}
 
-            {/* Notes */}
-            {item.notes && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Notes</p>
-                <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">{item.notes}</p>
+            {/* Notes — editable annotation */}
+            {onSaveNote ? (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl overflow-hidden">
+                {noteExpanded ? (
+                  <textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    onBlur={handleNoteBlur}
+                    placeholder="Add a personal note…"
+                    rows={3}
+                    className="w-full px-3 pt-3 pb-2 text-sm text-yellow-900 dark:text-yellow-200 bg-transparent placeholder-yellow-400 dark:placeholder-yellow-600 resize-none outline-none leading-relaxed"
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setNoteExpanded(true)}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+                  >
+                    <Pencil size={13} className="text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
+                    <span className="text-sm text-yellow-600 dark:text-yellow-400">
+                      {noteText || 'Add a personal note…'}
+                    </span>
+                  </button>
+                )}
               </div>
-            )}
+            ) : item.notes ? (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3">
+                <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-0.5">Note</p>
+                <p className="text-sm text-yellow-800 dark:text-yellow-300 leading-relaxed">{item.notes}</p>
+              </div>
+            ) : null}
 
             {/* Mark as visited */}
             {onMarkVisited && (
