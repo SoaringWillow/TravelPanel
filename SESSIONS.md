@@ -106,3 +106,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 05:56 | f1969fc | feat(C4): Proactive Resurfacing — smart nudge card in Inbox
 2026-06-10 06:03 | 8b8f6c8 | feat(D1-D5): iOS polish — onboarding, safe areas, error boundary, offline, pull-to-refresh
 2026-06-10 06:08 | 2d57f7f | feat(D6-D8): location permission sheet, haptics, map loading states
+2026-06-10 06:11 | 3ed3438 | feat(G1-G2): Privacy Policy, Terms of Service, App Store screenshots
