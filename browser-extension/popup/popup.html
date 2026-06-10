@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Setup state: app URL not yet configured ─────────────────────── -->
+  <div id="setup-state" class="state hidden">
+    <div class="setup-logo">✈️</div>
+    <h2>Connect TravelPanel</h2>
+    <p class="subtitle">Enter your TravelPanel URL to start saving travel posts from any website.</p>
+    <div class="input-wrap">
+      <input type="url" id="setup-url" placeholder="https://your-app.vercel.app" autocomplete="off" />
+      <button class="btn-primary" id="setup-save-btn">Connect →</button>
+      <span class="input-hint">Find your URL in Vercel dashboard</span>
+    </div>
+  </div>
+
+  <!-- ── Main state: ready to save ─────────────────────────────────────── -->
+  <div id="main-state" class="state hidden">
+    <div class="header">
+      <div class="logo">
+        <img src="../icons/icon.svg" width="18" height="18" alt="" />
+        TravelPanel
+      </div>
+      <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+    </div>
+
+    <!-- Page preview card -->
+    <div class="page-preview">
+      <div class="favicon-wrap" id="favicon-wrap">🌐</div>
+      <div class="page-info">
+        <div class="page-title" id="page-title">Loading…</div>
+        <div class="page-url"  id="page-url">…</div>
+      </div>
+      <span class="platform-badge hidden" id="platform-badge"></span>
+    </div>
+
+    <!-- Board picker -->
+    <div class="section-label">Save to board</div>
+    <div class="board-list" id="board-list">
+      <span class="loading-boards">
+        <span class="spinner" style="border-color:rgba(99,102,241,.25);border-top-color:#6366F1;"></span>
+        Loading boards…
+      </span>
+    </div>
+
+    <!-- Save button -->
+    <button class="btn-primary" id="save-btn" style="margin-top:auto;">
+      <span id="save-label">Save to TravelPanel</span>
+    </button>
+
+    <div class="error-msg hidden" id="error-msg"></div>
+  </div>
+
+  <!-- ── Success state ──────────────────────────────────────────────────── -->
+  <div id="success-state" class="state hidden">
+    <div class="success-circle">✓</div>
+    <h2>Saved!</h2>
+    <p class="to-board">Added to <strong id="success-board">Inbox</strong></p>
+    <p class="success-hint">TravelPanel is extracting locations and travel wisdom in the background.</p>
+    <button class="btn-secondary" id="open-app-btn">Open TravelPanel →</button>
+  </div>
+
+</div>
+<script src="popup.js"></script>
+</body>
+</html>
