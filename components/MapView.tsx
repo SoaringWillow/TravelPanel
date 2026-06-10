@@ -9,6 +9,25 @@ import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
+// ─── Dark mode map filter ─────────────────────────────────────────────────────
+
+function useDarkMode() {
+  const [dark, setDark] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e: MediaQueryListEvent) => setDark(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return dark;
+}
+
+// Invert the light tile style into a dark style; markers counter-invert back to normal
+const DARK_MAP_FILTER = 'invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.9) saturate(0.85)';
+const COUNTER_FILTER  = 'invert(1) hue-rotate(180deg) brightness(1.1)';
+
 // ─── Tag → emoji map ─────────────────────────────────────────────────────────
 
 const TAG_EMOJI: Record<string, string> = {
@@ -86,14 +105,15 @@ interface PinProps {
   item: SavedItem;
   locName: string;
   onClick: () => void;
+  isDark?: boolean;
 }
 
-function Pin({ item, locName, onClick }: PinProps) {
+function Pin({ item, locName, onClick, isDark }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', filter: isDark ? COUNTER_FILTER : undefined }}>
       {/* Hover label */}
       {hovered && (
         <div
@@ -193,9 +213,10 @@ interface ClusterMarkerProps {
   count: number;
   total: number;
   onClick: () => void;
+  isDark?: boolean;
 }
 
-function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
+function ClusterMarker({ count, total, onClick, isDark }: ClusterMarkerProps) {
   // Scale the bubble with how many pins it holds (relative to the largest group).
   const size = 28 + Math.min(count / total, 1) * 24;
   return (
@@ -203,7 +224,7 @@ function ClusterMarker({ count, total, onClick }: ClusterMarkerProps) {
       type="button"
       onClick={onClick}
       aria-label={`${count} places — zoom in`}
-      style={{
+      style={{ filter: isDark ? COUNTER_FILTER : undefined,
         width: size,
         height: size,
         borderRadius: '50%',
@@ -236,6 +257,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const isDark = useDarkMode();
 
   // Largest cluster size — used to scale bubble radius proportionally.
   const maxClusterCount = clusters.reduce(
@@ -268,7 +290,12 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   );
 
   return (
-    <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <div
+      style={{
+        position: 'absolute', inset: 0, width: '100%', height: '100%',
+        filter: isDark ? DARK_MAP_FILTER : undefined,
+      }}
+    >
       <Map
         id="main-map"
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
@@ -295,6 +322,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
                 <ClusterMarker
                   count={count}
                   total={maxClusterCount}
+                  isDark={isDark}
                   onClick={() => {
                     const expansionZoom = getExpansionZoom(clusterId);
                     mapInstanceRef.current?.easeTo({
@@ -320,6 +348,7 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <Pin
                 item={item}
                 locName={location.name}
+                isDark={isDark}
                 onClick={() => {
                   setPopupInfo({ item, location, longitude: lng, latitude: lat });
                   onPinClick(item);

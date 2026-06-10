@@ -465,6 +465,96 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 
 ---
 
+## PHASE H — Submission Polish & Delight (Final Sprint)
+
+> Goal: Ship a product that earns 5-star App Store reviews. Every screen feels native,
+> every edge case is handled, and the user never feels lost.
+> Execution order: H1 → H2 → H3 → H4 → H5 → H6 → H7 → H8
+
+### H1 — Map Dark Mode Tiles
+**Status**: `[x]` Done  
+**Files**: `components/MapView.tsx`, `app/globals.css`  
+**What to do**:
+- When `prefers-color-scheme: dark`, apply a CSS dark filter to the map container:
+  `filter: invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.9) saturate(0.9)`
+- This inverts the light tile style into a dark style without needing a separate dark tile URL
+- Pin markers and UI overlays should NOT be inverted — apply a counter-invert filter to them
+- Test: switch to dark mode in simulator, map should be dark-themed
+
+### H2 — Offline Detection Banner
+**Status**: `[x]` Done  
+**Files**: new `components/OfflineBanner.tsx`, `app/layout.tsx` or individual pages  
+**What to do**:
+- Create `OfflineBanner` component: listens to `window.addEventListener('online'/'offline')`
+- Banner: amber background, "You're offline — new clips won't be analyzed until you reconnect"
+- Animated slide-in from top (framer-motion), auto-hides when back online
+- Show on: inbox page, share page, home page
+- Also sets `document.documentElement.setAttribute('data-offline', 'true')` for CSS hooks
+
+### H3 — Board Detail Page Polish
+**Status**: `[x]` Done  
+**Files**: `app/boards/[id]/page.tsx`  
+**What to do**:
+- Add `md:pl-16` for iPad sidebar layout
+- Add dark mode classes to all surfaces (`dark:bg-gray-950`, `dark:bg-gray-900`, etc.)
+- Board cover hero: if the board has clips with thumbnails, show a collage or the first thumbnail as a full-width hero behind the header (with a dark gradient overlay)
+- Add a "Sort by" toggle: Date saved vs. Name (client-side sort)
+- Show item count with substance count inline ("12 places · 34 tips")
+
+### H4 — Trip Plan Share Card
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`  
+**What to do**:
+- When user taps the share icon in the plan view, generate a 600×800px HTML canvas share card:
+  - Indigo gradient background
+  - Trip title (board name + emoji)
+  - "X days · Y places · Z tips from your clips"
+  - Day-by-day activity list (day number + top activity per day)
+  - "Planned with TravelPanel" footer
+- Convert canvas to PNG → `navigator.share({ files: [file] })` or download fallback
+- Shows a loading state while generating
+
+### H5 — Enhanced Onboarding: Notification Permission
+**Status**: `[ ]` Not started  
+**Files**: `components/OnboardingFlow.tsx`  
+**What to do**:
+- Add a 4th onboarding screen (after "Plan your trip") explaining nearby alerts:
+  "📍 We'll let you know when you're near a saved spot"
+- Include a "Enable Nearby Alerts" button that triggers `@capacitor/local-notifications` permission request
+- "Skip" button dismisses without requesting
+- Only show this screen if `@capacitor/local-notifications` is available (i.e., running natively)
+
+### H6 — Substance Callout Chips in Trip Plan
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, `components/DayStripCard.tsx` (or wherever activities render)  
+**What to do**:
+- In the trip plan day-by-day view, each activity that has `sourcedTips` should show them as
+  amber/gold callout chips below the activity description
+- Format: "💡 <tip content> — from <sourceTitle>" styled as an amber rounded card
+- Collapsed by default (show first tip), expand to see all on tap
+- This surfaces the substance-over-spots moat directly in the plan output
+
+### H7 — Plan View Print Styles
+**Status**: `[ ]` Not started  
+**Files**: `app/plan/[boardId]/page.tsx`, new `app/plan/[boardId]/print.css`  
+**What to do**:
+- Add a "Print" button to the plan view (uses `window.print()`)
+- Add print-specific CSS: hide NavBar, buttons, FAB; expand day cards; use black text on white
+- Day-by-day layout prints cleanly on A4/letter
+- Page breaks between days
+
+### H8 — Home Map: Satellite/Terrain Toggle
+**Status**: `[ ]` Not started  
+**Files**: `components/MapView.tsx`  
+**What to do**:
+- Add a small floating button (top-right of map, below the top bar) that cycles through map styles:
+  Street → Satellite → Terrain (if available in OpenFreeMap)
+- Available OpenFreeMap styles: `liberty` (street), `fiord` (dark/muted), `positron` (light minimal)
+- Store the selected style in localStorage
+- Button shows a map icon, tooltip on hover
+
+---
+
 ## Completed Tasks
 
 *(Claude marks tasks [x] and moves them here when done)*
