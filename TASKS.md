@@ -289,7 +289,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Final tap → routes to main map with seed boards visible (A8 seed data)
 
 ### E2 — Empty States with Illustrations
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `app/page.tsx`, `app/boards/page.tsx`  
 **What to do**:
 - Map empty state: compass SVG illustration, "No clips yet", "Share any travel post to pin it here" + "Try it →" button that opens the import sheet

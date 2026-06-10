@@ -17,6 +17,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import { EmptyState } from '@/components/EmptyState';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -172,19 +173,23 @@ export default function InboxPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 text-center px-4">
-            <div className="text-5xl mb-4">{query.trim() ? '🔍' : '📥'}</div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              {query.trim() ? 'No matches found.' : 'Your inbox is empty.'}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {query.trim()
-                ? `No clips match "${query.trim()}". Try a different search.`
-                : activePlatform === 'all'
-                ? 'Share content from social apps to get started!'
-                : `No ${PLATFORM_LABELS[activePlatform as Platform]} items in your inbox.`}
-            </p>
-          </div>
+          query.trim() ? (
+            <EmptyState
+              illustration="inbox"
+              headline="No matches found"
+              subtext={`No clips match "${query.trim()}". Try a different search.`}
+            />
+          ) : (
+            <EmptyState
+              illustration="inbox"
+              headline="Your inspiration lives here"
+              subtext={
+                activePlatform === 'all'
+                  ? 'Share any travel post from Instagram, YouTube, or Xiaohongshu to get started.'
+                  : `No ${PLATFORM_LABELS[activePlatform as Platform]} clips in your inbox yet.`
+              }
+            />
+          )
         ) : (
           /* Virtual rows — only the visible rows are in the DOM */
           <div

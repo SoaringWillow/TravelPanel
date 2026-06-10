@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import { EmptyState } from '@/components/EmptyState';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -81,6 +82,22 @@ function HomePageInner() {
     <main className="relative h-screen w-screen overflow-hidden">
       {/* Map fills entire screen */}
       <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+
+      {/* Empty-map prompt — shown when no clips have any locations */}
+      {!loading && items.filter((i) => i.locations.length > 0).length === 0 && (
+        <div className="absolute inset-0 z-[999] flex items-center justify-center pointer-events-none">
+          <div className="pointer-events-auto mx-6">
+            <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-xl p-2">
+              <EmptyState
+                illustration="compass"
+                headline="No spots on the map yet"
+                subtext="Save a travel post and AI will extract locations to pin here."
+                cta={{ label: '+ Add your first clip', onClick: () => setShowImport(true) }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top bar – floating */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4">
