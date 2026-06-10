@@ -365,6 +365,10 @@ export default function SettingsPage() {
               <span className="text-gray-400">Claude (Anthropic)</span>
             </div>
             <div className="flex justify-between">
+              <span>Your Stats</span>
+              <a href="/stats" className="text-indigo-500 hover:underline">View</a>
+            </div>
+            <div className="flex justify-between">
               <span>Privacy Policy</span>
               <a href="/privacy" className="text-indigo-500 hover:underline">View</a>
             </div>

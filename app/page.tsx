@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Globe2, Plus } from 'lucide-react';
@@ -64,6 +64,10 @@ function HomePageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length > 0 ? 'loaded' : 'empty', searchParams.toString()]);
 
+  const handlePinClick = useCallback((item: SavedItem) => setSelectedItem(item), []);
+
+  const mapItems = useMemo(() => items, [items]);
+
   function handleItemSaved(item: SavedItem) {
     addItem(item);
     setShowImport(false);
@@ -93,7 +97,7 @@ function HomePageInner() {
     <main className="relative h-screen w-screen overflow-hidden md:pl-16 md:flex">
       {/* Map — fills screen on phone, takes 60% on iPad */}
       <div className="absolute inset-0 md:relative md:flex-1 md:inset-auto">
-        <MapView items={items} onPinClick={setSelectedItem} flyTo={flyTo} />
+        <MapView items={mapItems} onPinClick={handlePinClick} flyTo={flyTo} />
       </div>
 
       {/* Empty state overlay */}

@@ -603,7 +603,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show a "Using your last preferences" banner if they were loaded
 
 ### I5 — Map Performance: Stable References
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`, `app/page.tsx`  
 **What to do**:
 - Wrap `MapView` in `React.memo()` so it only re-renders when `items` or `flyTo` actually change
@@ -613,7 +613,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Measure: toggle dark mode → map should not flicker or re-mount
 
 ### I6 — Your Travel Stats Page
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/stats/page.tsx`, `components/NavBar.tsx`  
 **What to do**:
 - A new page at `/stats` showing:

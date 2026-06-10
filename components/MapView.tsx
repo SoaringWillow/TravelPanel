@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import type { ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import type maplibregl from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, useMap } from 'react-map-gl/maplibre';
@@ -263,7 +263,7 @@ interface MapViewProps {
   flyTo?: Location;
 }
 
-export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+function MapView({ items, onPinClick, flyTo }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -423,3 +423,11 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
     </div>
   );
 }
+
+// Memoize to prevent re-renders when parent re-renders for unrelated state changes
+// (e.g., toggling dark mode CSS class, opening modals, etc.)
+export default memo(MapView, (prev, next) =>
+  prev.items === next.items &&
+  prev.flyTo === next.flyTo &&
+  prev.onPinClick === next.onPinClick,
+);
