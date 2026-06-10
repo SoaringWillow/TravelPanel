@@ -420,7 +420,7 @@ Goal: fill in the remaining gaps — missing features users will hit quickly, de
 - Only highlight in the done state (not pending/failed)
 
 ### F5 — Animated Board Plan CTA
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done (implemented in F1: pulse, AI-powered label, friendly disabled state)
 **Files**: `app/boards/[id]/page.tsx`
 **What to do**:
 - The "Plan this trip" button should pulse/glow when the board has ≥3 clips with locations
@@ -464,7 +464,7 @@ Goal: fill in the remaining gaps — missing features users will hit quickly, de
 - On iOS, this should feel like the iOS home screen reorder
 
 ### F10 — Daily Inspiration Notification (PWA Push)
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done (client-side: fires on app open during morning hours)
 **Files**: `public/sw.js`, `app/settings/page.tsx`
 **What to do**:
 - Add a toggle in Settings: "Daily inspiration reminder" (default off)

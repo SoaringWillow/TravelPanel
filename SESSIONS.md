@@ -113,3 +113,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 04:03 | 671e056 | feat(F6): substance quick-peek inline in Inbox cards
 2026-06-10 04:04 | 09a6ab6 | feat(F2): share page enrichment animation + safe area fixes
 2026-06-10 04:05 | 7ff4b51 | feat(F4): search query highlighting in InboxCard title/description
+2026-06-10 04:06 | 75c3567 | feat(F8): URL link preview card on share page

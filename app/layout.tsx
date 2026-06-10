@@ -6,6 +6,7 @@ import { AnalyticsProvider } from '@/components/AnalyticsProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageTransition } from '@/components/PageTransition';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { NotificationScheduler } from '@/components/NotificationScheduler';
 
 export const metadata: Metadata = {
   title: 'TravelPanel - AI Trip Planner',
@@ -31,6 +32,7 @@ export default function RootLayout({
         <AnalyticsProvider />
         <ResourceBanner />
         <OfflineBanner />
+        <NotificationScheduler />
         <ErrorBoundary>
           <PageTransition>
             {children}

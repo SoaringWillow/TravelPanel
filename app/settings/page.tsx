@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, CheckCircle2, AlertTriangle, Database, Puzzle, BarChart2 } from 'lucide-react';
+import { Download, CheckCircle2, AlertTriangle, Database, Puzzle, BarChart2, Bell, BellOff } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { exportAndDownload } from '@/lib/exportData';
 import { getAllItems, getAllBoards } from '@/lib/db';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
 import { Platform } from '@/lib/types';
+import {
+  isDailyNotifEnabled,
+  setDailyNotifEnabled,
+  requestNotificationPermission,
+  getNotificationPermission,
+} from '@/lib/notifications';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -27,6 +33,24 @@ export default function SettingsPage() {
   const [exportState, setExportState] = useState<ExportState>('idle');
   const [exportCounts, setExportCounts] = useState<{ items: number; boards: number; trips: number } | null>(null);
   const [stats, setStats] = useState<AppStats | null>(null);
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<string>('default');
+
+  useEffect(() => {
+    setNotifEnabled(isDailyNotifEnabled());
+    setNotifPermission(getNotificationPermission());
+  }, []);
+
+  async function handleToggleNotif() {
+    const next = !notifEnabled;
+    if (next) {
+      const granted = await requestNotificationPermission();
+      setNotifPermission(getNotificationPermission());
+      if (!granted) return;
+    }
+    setDailyNotifEnabled(next);
+    setNotifEnabled(next);
+  }
 
   useEffect(() => {
     async function loadStats() {
@@ -207,6 +231,45 @@ export default function SettingsPage() {
             <SetupStep n={3} text="Open the extension settings and enter this app's URL" />
           </div>
         </div>
+
+        {/* ── Notifications ───────────────────────────────────────────────── */}
+        {notifPermission !== 'unsupported' && (
+          <>
+            <SectionHeader icon={Bell} title="Notifications" />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                    {notifEnabled ? <Bell size={15} className="text-indigo-500" /> : <BellOff size={15} className="text-gray-400" />}
+                    Daily inspiration reminder
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                    {notifPermission === 'denied'
+                      ? 'Blocked — allow notifications in your browser/device settings'
+                      : 'Get a morning nudge when you have clips to review (works best when installed to home screen)'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={notifPermission === 'denied'}
+                  onClick={handleToggleNotif}
+                  className={`flex-shrink-0 w-12 h-6 rounded-full transition-colors relative ${
+                    notifEnabled && notifPermission !== 'denied'
+                      ? 'bg-indigo-500'
+                      : 'bg-gray-200'
+                  } disabled:opacity-40`}
+                  aria-label={notifEnabled ? 'Disable notifications' : 'Enable notifications'}
+                >
+                  <span
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                      notifEnabled && notifPermission !== 'denied' ? 'translate-x-6' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ── About ───────────────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4">
