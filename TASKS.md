@@ -845,7 +845,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Only show once per URL; hide if user navigates away or URL changes in clipboard
 
 ### M2 — Tag Cloud Map Filter
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/page.tsx`, new `components/TagFilter.tsx`  
 **What to do**:
 - Compute the top 10 most-used tags across all saved items

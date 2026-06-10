@@ -17,6 +17,7 @@ import NavBar from '@/components/NavBar';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import AddPlaceSheet from '@/components/AddPlaceSheet';
 import ClipboardBanner from '@/components/ClipboardBanner';
+import TagFilter from '@/components/TagFilter';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -41,6 +42,7 @@ function HomePageInner() {
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
+  const [activeTag, setActiveTag]       = useState<string | null>(null);
 
   // Handle ?import= param — open sheet with pre-filled URL
   useEffect(() => {
@@ -94,7 +96,10 @@ function HomePageInner() {
     }
   }, []);
 
-  const mapItems = useMemo(() => items, [items]);
+  const mapItems = useMemo(
+    () => activeTag ? items.filter((i) => i.tags.some((t) => t.toLowerCase() === activeTag)) : items,
+    [items, activeTag],
+  );
 
   // Clips added this week
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -450,6 +455,15 @@ function HomePageInner() {
           setShowImport(true);
         }}
       />
+
+      {/* Tag cloud filter — sits just above the NavBar */}
+      {items.length > 0 && (
+        <div className="fixed bottom-16 left-0 right-0 z-[1100] md:pl-16 pointer-events-none">
+          <div className="pointer-events-auto">
+            <TagFilter items={items} activeTag={activeTag} onTagChange={setActiveTag} />
+          </div>
+        </div>
+      )}
 
       <NavBar active="home" />
     </main>
