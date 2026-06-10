@@ -350,7 +350,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Privacy policy URL (required for App Store submission)
 
 ### F2 — Onboarding Flow (First-Time Experience)
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: new `app/onboarding/page.tsx`, new `components/OnboardingFlow.tsx`  
 **What to do**:
 - 3-screen swipeable onboarding: (1) "Save travel inspiration from anywhere" (show Share Sheet), (2) "AI extracts the wisdom" (show substance items), (3) "Plan your trip in one tap" (show itinerary)

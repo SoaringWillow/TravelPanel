@@ -10,6 +10,7 @@ import { SavedItem, Location } from '@/lib/types';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
+import OnboardingFlow from '@/components/OnboardingFlow';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -18,6 +19,13 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 function HomePageInner() {
   const searchParams = useSearchParams();
   const { items, loading, addItem } = useSavedItems();
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('hasSeenOnboarding')) {
+      setShowOnboarding(true);
+    }
+  }, []);
   const [showImport, setShowImport]     = useState(false);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
@@ -66,6 +74,17 @@ function HomePageInner() {
   function handleImportClose() {
     setShowImport(false);
     setPrefilledUrl('');
+  }
+
+  if (showOnboarding) {
+    return (
+      <OnboardingFlow
+        onDone={() => {
+          localStorage.setItem('hasSeenOnboarding', '1');
+          setShowOnboarding(false);
+        }}
+      />
+    );
   }
 
   return (
