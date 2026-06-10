@@ -61,6 +61,28 @@ function getDB() {
 
 // ─── Items ─────────────────────────────────────────────────────────────────
 
+function normalizeUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const TRACKING = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid', 'ref', 's'];
+    TRACKING.forEach((p) => u.searchParams.delete(p));
+    return (u.origin + u.pathname).replace(/\/$/, '') + (u.search || '');
+  } catch {
+    return url.toLowerCase().replace(/\/$/, '');
+  }
+}
+
+export async function findItemByUrl(url: string): Promise<SavedItem | undefined> {
+  try {
+    const db = await getDB();
+    const all = await db.getAll('items');
+    const normalized = normalizeUrl(url);
+    return all.find((item) => normalizeUrl(item.url) === normalized);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function getAllItems(): Promise<SavedItem[]> {
   try {
     const db = await getDB();

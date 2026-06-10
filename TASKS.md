@@ -395,7 +395,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Static page at /privacy required for App Store submission. Settings About section links to it.
 
 ### G2 — Duplicate URL Detection
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/share/page.tsx`, `lib/db.ts`  
 **What to do**:
 - Before saving a new clip, check if any existing SavedItem has the same URL (normalize: strip UTM params, trailing slashes)

@@ -4,11 +4,12 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
-import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
+import { getAllBoards, saveBoard, saveItem, addItemToBoard, findItemByUrl } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { notification } from '@/lib/haptics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
+import { AlertCircle } from 'lucide-react';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -33,11 +34,18 @@ function SharePageInner() {
   const [pendingImageBase64, setPendingImageBase64] = useState<string | undefined>();
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [duplicate, setDuplicate] = useState<SavedItem | null>(null);
+  const [ignoreDuplicate, setIgnoreDuplicate] = useState(false);
 
-  // Load boards on mount — no heavy work, just IndexedDB
+  // Load boards + check for duplicate URL on mount
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
-  }, []);
+    if (rawUrl) {
+      findItemByUrl(rawUrl).then((existing) => {
+        if (existing) setDuplicate(existing);
+      }).catch(() => {});
+    }
+  }, [rawUrl]);
 
   // Read image payload written by CapacitorBridge (from iOS Share Extension)
   useEffect(() => {
@@ -180,6 +188,35 @@ function SharePageInner() {
           {/* URL */}
           {rawUrl && (
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
+          )}
+
+          {/* Duplicate warning */}
+          {duplicate && !ignoreDuplicate && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-1">
+              <AlertCircle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-amber-800">Already saved</p>
+                <p className="text-xs text-amber-700 leading-snug mt-0.5">
+                  You saved &ldquo;{duplicate.title}&rdquo; before.
+                </p>
+                <div className="flex gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => window.history.back()}
+                    className="text-xs font-semibold text-amber-700 hover:underline"
+                  >
+                    Go back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIgnoreDuplicate(true)}
+                    className="text-xs font-semibold text-gray-500 hover:underline"
+                  >
+                    Save anyway
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
