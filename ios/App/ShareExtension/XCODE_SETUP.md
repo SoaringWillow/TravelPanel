@@ -81,3 +81,21 @@ CAPACITOR_SERVER_URL=http://192.168.1.100:3000 npm run ios:sync
 CAPACITOR_SERVER_URL=https://your-app.vercel.app npm run ios:build
 # Then archive from Xcode: Product → Archive
 ```
+
+## Step 7: Add Privacy Manifest (required for App Store)
+
+Apple requires a privacy manifest for all new submissions since May 2024.
+
+The file `ios/App/App/PrivacyInfo.xcprivacy` is already created. Add it to the Xcode project:
+
+1. In Xcode, right-click the **App** folder (blue folder icon, not the group)
+2. Select **Add Files to "App"...**
+3. Navigate to `ios/App/App/PrivacyInfo.xcprivacy` and click **Add**
+4. Ensure **"App" target** checkbox is checked, NOT ShareExtension
+5. Verify it appears in the **App** target → **Build Phases → Copy Bundle Resources**
+
+The privacy manifest declares:
+- `NSPrivacyAccessedAPICategoryUserDefaults` (CA92.1): used by the Share Extension for App Group fallback
+- No advertising tracking (`NSPrivacyTracking: false`)
+
+If you add PostHog analytics, update `NSPrivacyCollectedDataTypes` to include anonymous usage analytics.

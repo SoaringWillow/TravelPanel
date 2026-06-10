@@ -49,7 +49,7 @@ North Star metric: **Weekly clips per active user**. Every task below is measure
 - Test with the Simulator's device frame to verify there's no overlap at notch/island area
 
 ### F2 — iOS Privacy Manifest
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: Apple requires a privacy manifest (`PrivacyInfo.xcprivacy`) for all new App Store submissions since May 2024. Without it, the app will be rejected. It declares which iOS APIs we use and why.  
 **File to create**: `ios/App/App/PrivacyInfo.xcprivacy`  
 **What to do**:
