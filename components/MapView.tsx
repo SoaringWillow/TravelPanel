@@ -261,13 +261,35 @@ interface MapViewProps {
   items: SavedItem[];
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
+  onMapLongPress?: (lat: number, lng: number) => void;
 }
 
-function MapView({ items, onPinClick, flyTo }: MapViewProps) {
+function MapView({ items, onPinClick, flyTo, onMapLongPress }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
   const isDark = useDarkMode();
+
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressPos   = useRef<{ x: number; y: number } | null>(null);
+
+  function clearLongPress() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }
+
+  function startLongPress(clientX: number, clientY: number) {
+    clearLongPress();
+    longPressPos.current = { x: clientX, y: clientY };
+    longPressTimer.current = setTimeout(() => {
+      if (!mapInstanceRef.current || !longPressPos.current) return;
+      const canvas = mapInstanceRef.current.getCanvas();
+      const rect = canvas.getBoundingClientRect();
+      const px = longPressPos.current.x - rect.left;
+      const py = longPressPos.current.y - rect.top;
+      const lngLat = mapInstanceRef.current.unproject([px, py]);
+      onMapLongPress?.(lngLat.lat, lngLat.lng);
+    }, 500);
+  }
 
   const [styleId, setStyleId] = useState<MapStyleId>(() => {
     if (typeof window === 'undefined') return 'liberty';
@@ -318,6 +340,12 @@ function MapView({ items, onPinClick, flyTo }: MapViewProps) {
         position: 'absolute', inset: 0, width: '100%', height: '100%',
         filter: isDark ? DARK_MAP_FILTER : undefined,
       }}
+      onMouseDown={(e) => startLongPress(e.clientX, e.clientY)}
+      onMouseUp={clearLongPress}
+      onMouseMove={clearLongPress}
+      onTouchStart={(e) => { const t = e.touches[0]; if (t) startLongPress(t.clientX, t.clientY); }}
+      onTouchEnd={clearLongPress}
+      onTouchMove={clearLongPress}
     >
       {/* Map style cycle button */}
       <button

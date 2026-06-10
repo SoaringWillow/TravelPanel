@@ -709,7 +709,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Replace the current static "Generating..." spinner with this flow
 
 ### K8 — Map: Tap to Save a Place
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`, `app/page.tsx`  
 **What to do**:
 - Long-press on the map (300ms) triggers a reverse geocode via Nominatim

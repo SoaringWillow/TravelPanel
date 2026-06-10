@@ -125,3 +125,7 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-10 21:34 | 3fe59d7 | feat(I5,I6): Map memoization + travel stats dashboard
 2026-06-10 21:39 | 83e27e6 | feat(J1,J2,J4,J6): Trip history, day nav, substance preview, ambient stats
 2026-06-10 21:44 | e555593 | feat(J3,J5,J6): Fuzzy search with location toggle, board drag reorder, ambient home widgets
+2026-06-10 21:50 | a431133 | feat(K1,K2): Add place via geocoder search + inbox smart sort
+2026-06-10 21:52 | 02b0c6c | feat(K3): Multi-select batch actions in inbox
+2026-06-10 21:55 | 5841c78 | feat(K4,K5): Day route mini map + board visited toggle
+2026-06-10 21:57 | 6462eb1 | feat(K6,K7): Offline clip resilience + polished plan streaming UX

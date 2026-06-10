@@ -9,6 +9,8 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { useGeofence } from '@/hooks/useGeofence';
 import { useBoards } from '@/hooks/useBoards';
 import { SavedItem, Location } from '@/lib/types';
+import { saveItem } from '@/lib/db';
+import { impact } from '@/lib/haptics';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -34,6 +36,7 @@ function HomePageInner() {
   }, []);
   const [showImport, setShowImport]     = useState(false);
   const [showAddPlace, setShowAddPlace] = useState(false);
+  const [mapTap, setMapTap] = useState<{ lat: number; lng: number; name: string; loading: boolean } | null>(null);
   const [prefilledUrl, setPrefilledUrl] = useState('');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
   const [flyTo, setFlyTo]               = useState<Location | undefined>(undefined);
@@ -71,6 +74,25 @@ function HomePageInner() {
 
   const handlePinClick = useCallback((item: SavedItem) => setSelectedItem(item), []);
 
+  const handleMapLongPress = useCallback(async (lat: number, lng: number) => {
+    setMapTap({ lat, lng, name: '', loading: true });
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'TravelPanel/1.0' } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const name = (data.namedetails?.name || data.display_name?.split(',')[0] || 'Unknown place').trim();
+        setMapTap({ lat, lng, name, loading: false });
+      } else {
+        setMapTap({ lat, lng, name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`, loading: false });
+      }
+    } catch {
+      setMapTap({ lat, lng, name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`, loading: false });
+    }
+  }, []);
+
   const mapItems = useMemo(() => items, [items]);
 
   // Clips added this week
@@ -106,7 +128,7 @@ function HomePageInner() {
     <main className="relative h-screen w-screen overflow-hidden md:pl-16 md:flex">
       {/* Map — fills screen on phone, takes 60% on iPad */}
       <div className="absolute inset-0 md:relative md:flex-1 md:inset-auto">
-        <MapView items={mapItems} onPinClick={handlePinClick} flyTo={flyTo} />
+        <MapView items={mapItems} onPinClick={handlePinClick} flyTo={flyTo} onMapLongPress={handleMapLongPress} />
       </div>
 
       {/* Empty state overlay */}
@@ -308,6 +330,75 @@ function HomePageInner() {
           </button>
         </div>
       )}
+
+      {/* Map long-press save popover */}
+      <AnimatePresence>
+        {mapTap && (
+          <motion.div
+            key="map-tap"
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-32 left-4 right-4 z-[1100] md:left-auto md:right-4 md:w-72 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 px-4 py-3"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                {mapTap.loading
+                  ? <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                  : <MapPin size={16} className="text-indigo-500" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">
+                  📍 {mapTap.loading ? 'Looking up place…' : (mapTap.name || 'Unnamed place')}
+                </p>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  {mapTap.lat.toFixed(5)}, {mapTap.lng.toFixed(5)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMapTap(null)}
+                className="text-gray-400 hover:text-gray-600 flex-shrink-0 mt-0.5"
+                aria-label="Dismiss"
+              >
+                <Plus size={14} className="rotate-45" />
+              </button>
+            </div>
+            {!mapTap.loading && (
+              <button
+                type="button"
+                onClick={async () => {
+                  impact('medium');
+                  const item: SavedItem = {
+                    id: crypto.randomUUID(),
+                    url: `geo:${mapTap.lat},${mapTap.lng}`,
+                    platform: 'other',
+                    title: mapTap.name || `${mapTap.lat.toFixed(4)}, ${mapTap.lng.toFixed(4)}`,
+                    description: '',
+                    locations: [{ lat: mapTap.lat, lng: mapTap.lng, name: mapTap.name }],
+                    activities: [],
+                    tags: [],
+                    substance: [],
+                    savedAt: Date.now(),
+                    enrichmentStatus: 'done',
+                    retryCount: 0,
+                  };
+                  await saveItem(item);
+                  addItem(item);
+                  setFlyTo(item.locations[0]);
+                  setMapTap(null);
+                }}
+                className="mt-3 w-full bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+              >
+                <Plus size={13} />
+                Save this place
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Import Sheet */}
       <ImportSheet
