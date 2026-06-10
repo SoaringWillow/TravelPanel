@@ -257,7 +257,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Dark mode variants using `dark:stroke-slate-400` etc.
 
 ### C7 — In-App Review Prompt
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: App Store ratings drive discovery. The ideal moment to ask is right after a user completes a plan (high-value, high-satisfaction moment).  
 **Files to change**: `app/plan/[boardId]/page.tsx`, new `lib/reviewPrompt.ts`  
 **What to do**:

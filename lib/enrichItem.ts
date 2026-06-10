@@ -4,6 +4,7 @@ import { updateItemEnrichment } from './db';
 import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
+import { indexClip } from './spotlight';
 
 export async function enrichItem(
   id: string,
@@ -50,6 +51,8 @@ export async function enrichItem(
       locationCount: data.locations.length,
       substanceCount: data.substance?.length ?? 0,
     });
+    // Index in iOS Spotlight (no-ops on web/Android)
+    indexClip({ id, title: data.title, description: data.description, thumbnail: data.thumbnail, tags: data.tags });
     return true;
   } catch {
     await updateItemEnrichment(id, 'failed');

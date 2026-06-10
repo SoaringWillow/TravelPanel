@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SavedItem } from '@/lib/types';
 import { getAllItems, saveItem, deleteItem, getItemById } from '@/lib/db';
+import { deindexClip } from '@/lib/spotlight';
 
 export function useSavedItems() {
   const [items, setItems] = useState<SavedItem[]>([]);
@@ -21,6 +22,7 @@ export function useSavedItems() {
 
   const removeItem = useCallback(async (id: string) => {
     await deleteItem(id);
+    deindexClip(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
   }, []);
 
