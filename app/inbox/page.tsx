@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics';
 import InboxCard from '@/components/InboxCard';
 import SearchBar from '@/components/SearchBar';
 import NavBar from '@/components/NavBar';
+import ResurfaceCard from '@/components/ResurfaceCard';
 
 // ─── Platform filter config ───────────────────────────────────────────────────
 
@@ -140,6 +141,7 @@ export default function InboxPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        <ResurfaceCard boards={boards} items={items} />
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
