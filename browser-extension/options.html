@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="page-header">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#0ea5e9"/>
+        </svg>
+        <h1>TravelPanel Clipper</h1>
+      </div>
+      <p class="tagline">Browser extension settings</p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2 class="card-title">App URL</h2>
+        <p class="card-desc">The URL of your TravelPanel deployment. Change this if you're running a local dev server or a custom Vercel deployment.</p>
+
+        <label class="label" for="urlInput">TravelPanel URL</label>
+        <input
+          type="url"
+          id="urlInput"
+          class="input"
+          placeholder="https://your-app.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        >
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="saveBtn">Save</button>
+          <button class="btn btn-ghost" id="resetBtn">Reset to default</button>
+        </div>
+
+        <div class="feedback" id="feedback" style="display:none"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">How it works</h2>
+        <ol class="how-list">
+          <li>Navigate to any travel page (YouTube, Instagram, blog, etc.)</li>
+          <li>Click the TravelPanel icon in your browser toolbar</li>
+          <li>Hit <strong>Clip to Inbox</strong> — that's it!</li>
+        </ol>
+        <p class="note">TravelPanel's AI will extract locations, tips, and wisdom from the page and save them to your Inbox in the background.</p>
+      </section>
+    </main>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
