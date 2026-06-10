@@ -259,6 +259,33 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Legal */}
+        <section>
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Legal</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+            <a
+              href="/privacy"
+              className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Shield size={18} className="text-indigo-500 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-800">Privacy Policy</span>
+              </div>
+              <ChevronRight size={16} className="text-gray-300" />
+            </a>
+            <a
+              href="/terms"
+              className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Globe2 size={18} className="text-indigo-500 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-800">Terms of Service</span>
+              </div>
+              <ChevronRight size={16} className="text-gray-300" />
+            </a>
+          </div>
+        </section>
+
       </div>
 
       {/* Toasts */}

@@ -193,7 +193,7 @@ B4 (Embedding Search) remains blocked on Supabase pgvector — skip until B1 is 
 ## PHASE G — App Store Launch
 
 ### G1 — Privacy Policy & Terms Pages
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: Required by App Store. Apple will reject without a privacy policy link.
 **Files**: new `app/privacy/page.tsx`, new `app/terms/page.tsx`, `app/settings/page.tsx`
 **What to do**:
@@ -210,7 +210,7 @@ B4 (Embedding Search) remains blocked on Supabase pgvector — skip until B1 is 
 - In `app/settings/page.tsx`: add "Legal" section at the bottom with links to `/privacy` and `/terms`
 
 ### G2 — App Store Screenshot Frames
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Why**: App Store requires polished screenshots. The current UI is good; it just needs framing + captions.
 **Files**: new `app/screenshots/page.tsx`
 **What to do**:
