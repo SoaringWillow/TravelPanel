@@ -96,3 +96,11 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-10 07:25 | 4fb0c5d | feat(B2): add Chrome/Safari browser extension for one-click clipping
+2026-06-10 07:30 | a831ce3 | feat(B3): Claude Vision extraction for Xiaohongshu / anti-scraping platforms
+2026-06-10 07:32 | e7c4503 | feat(B5): settings page with full JSON backup export
+2026-06-10 07:35 | 473ae0b | chore: add detailed Phase C-E task queue for beautiful iOS app
+2026-06-10 07:36 | 3da25ca | feat(D1): skeleton loading screens for inbox and boards
+2026-06-10 07:36 | fc2fea7 | feat(D2): duplicate detection on save
+2026-06-10 07:37 | 5490e73 | feat(D3): smart board suggestion in share picker
+2026-06-10 07:39 | 2d77c21 | feat(D4): Wisdom Board tab — aggregate substance from all clips
