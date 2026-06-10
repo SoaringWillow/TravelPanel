@@ -17,6 +17,11 @@ interface InboxCardProps {
   onMoveToBoard?: (id: string) => void;
   onRetry?: (id: string, url: string) => void;
   highlightQuery?: string;
+  // Multi-select
+  multiSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
+  onEnterMultiSelect?: () => void;
 }
 
 // ─── Highlight helper ────────────────────────────────────────────────────────
@@ -76,14 +81,23 @@ export default function InboxCard({
   onMoveToBoard,
   onRetry,
   highlightQuery,
+  multiSelectMode,
+  isSelected,
+  onToggleSelect,
+  onEnterMultiSelect,
 }: InboxCardProps) {
   const { enrichmentStatus } = item;
   const cardRef = useRef<HTMLDivElement>(null);
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
 
   const longPressProps = useLongPress((point) => {
-    impact('medium');
-    setMenuAnchor(point);
+    if (onEnterMultiSelect) {
+      impact('medium');
+      onEnterMultiSelect();
+    } else {
+      impact('medium');
+      setMenuAnchor(point);
+    }
   });
 
   const contextMenuItems = [
@@ -259,7 +273,11 @@ export default function InboxCard({
   const date = new Date(item.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
   return (
-    <div ref={cardRef} className="relative rounded-2xl overflow-hidden">
+    <div
+      ref={cardRef}
+      className="relative rounded-2xl overflow-hidden"
+      onClick={multiSelectMode ? onToggleSelect : undefined}
+    >
 
       {/* Delete action background (left swipe) */}
       <motion.div
@@ -393,6 +411,31 @@ export default function InboxCard({
       </motion.div>
 
       <ContextMenu items={contextMenuItems} anchor={menuAnchor} onClose={() => setMenuAnchor(null)} />
+
+      {/* Multi-select checkmark overlay */}
+      {multiSelectMode && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="absolute top-2 right-2 z-20 pointer-events-none"
+        >
+          <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+            isSelected
+              ? 'bg-indigo-600 border-indigo-600'
+              : 'bg-white/90 border-gray-300'
+          }`}>
+            {isSelected && (
+              <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+                <path d="M1 5L5 9L12 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </div>
+        </motion.div>
+      )}
+      {/* Selected overlay tint */}
+      {isSelected && (
+        <div className="absolute inset-0 bg-indigo-500/10 rounded-2xl pointer-events-none z-10" />
+      )}
     </div>
   );
 }

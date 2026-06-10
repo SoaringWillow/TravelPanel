@@ -655,7 +655,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Show active sort label: "Sorted by: Most tips" under the filter chips when non-default
 
 ### K3 — Multi-select Batch Actions in Inbox
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `app/inbox/page.tsx`, `components/InboxCard.tsx`  
 **What to do**:
 - Long-press on a card (>500ms) enters multi-select mode

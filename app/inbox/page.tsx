@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, ArrowUpDown } from 'lucide-react';
+import { X, ArrowUpDown, Trash2, LayoutGrid } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
@@ -69,6 +69,9 @@ export default function InboxPage() {
   });
   const [showSort, setShowSort] = useState(false);
   const [visibleCount, setVisibleCount] = useState(30);
+  // Multi-select
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const multiSelectMode = selectedIds.size > 0;
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -127,6 +130,32 @@ export default function InboxPage() {
   // Apply sort after search (search already scores by relevance; only sort when no active query)
   const filtered = query.trim() ? searched : applySortKey(searched, sortKey);
 
+  function handleEnterMultiSelect(id: string) {
+    setSelectedIds(new Set([id]));
+  }
+
+  function handleToggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBatchDelete() {
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map((id) => removeItem(id)));
+    setSelectedIds(new Set());
+  }
+
+  async function handleBatchMove(boardId: string) {
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map((id) => addItemToBoard(boardId, id)));
+    setSelectedIds(new Set());
+    setMovingItemId(null);
+    router.refresh();
+  }
+
   function handleViewOnMap(id: string) {
     const item = items.find((i) => i.id === id);
     if (item && item.locations.length > 0) {
@@ -144,6 +173,13 @@ export default function InboxPage() {
   const handleBoardSelect = useCallback(
     async (boardId: string | null) => {
       if (!movingItemId) return;
+
+      // Batch move
+      if (movingItemId === '__batch__') {
+        if (boardId) await handleBatchMove(boardId);
+        else setMovingItemId(null);
+        return;
+      }
 
       if (boardId === null) {
         // Unassign from any board: find item's current board and remove
@@ -174,11 +210,35 @@ export default function InboxPage() {
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 shadow-sm px-4 pt-12 pb-0 z-10 border-b border-transparent dark:border-gray-800">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
-          <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {inboxItems.length} unsorted
-          </span>
+          {multiSelectMode ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-sm text-gray-500 font-medium"
+              >
+                Cancel
+              </button>
+              <span className="font-bold text-gray-800 dark:text-gray-100">
+                {selectedIds.size} selected
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set(filtered.map((i) => i.id)))}
+                className="ml-auto text-sm text-indigo-600 font-medium"
+              >
+                Select All
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl">📥</span>
+              <h1 className="text-xl font-bold text-gray-800">Inbox</h1>
+              <span className="ml-auto bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                {inboxItems.length} unsorted
+              </span>
+            </>
+          )}
         </div>
 
         {/* Search + Sort row */}
@@ -312,9 +372,13 @@ export default function InboxPage() {
                     item={item}
                     onDelete={removeItem}
                     onViewOnMap={handleViewOnMap}
-                    onMoveToBoard={handleMoveToBoard}
+                    onMoveToBoard={multiSelectMode ? undefined : handleMoveToBoard}
                     onRetry={retryItem}
                     highlightQuery={query.trim() || undefined}
+                    multiSelectMode={multiSelectMode}
+                    isSelected={selectedIds.has(item.id)}
+                    onToggleSelect={() => handleToggleSelect(item.id)}
+                    onEnterMultiSelect={() => handleEnterMultiSelect(item.id)}
                   />
                 </motion.div>
               ))}
@@ -405,6 +469,49 @@ export default function InboxPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Batch action bar */}
+      <AnimatePresence>
+        {multiSelectMode && (
+          <motion.div
+            key="batch-bar"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+            className="fixed bottom-20 left-4 right-4 z-[1500] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3"
+          >
+            <button
+              type="button"
+              onClick={handleBatchDelete}
+              disabled={selectedIds.size === 0}
+              className="flex-1 flex items-center justify-center gap-2 bg-red-500 text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-40 hover:bg-red-600 active:scale-95 transition-all"
+            >
+              <Trash2 size={15} />
+              Delete {selectedIds.size}
+            </button>
+            {boards.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setMovingItemId('__batch__')}
+                disabled={selectedIds.size === 0}
+                className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-40 hover:bg-indigo-700 active:scale-95 transition-all"
+              >
+                <LayoutGrid size={15} />
+                Move {selectedIds.size}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="px-3 py-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+              aria-label="Cancel selection"
+            >
+              <X size={18} />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 
