@@ -536,7 +536,7 @@ Goal: close every remaining gap between this and a native iOS travel app. No Xco
 - "Go to existing clip" navigates to `/inbox` with the existing item highlighted
 
 ### G6 — Batch Retry Failed Enrichments
-**Status**: `[ ]` Not started
+**Status**: `[x]` Done
 **Files**: `app/inbox/page.tsx`, `hooks/useEnrichmentRetry.ts`
 **Why**: After network issues, multiple clips can be in failed state. Users need one tap to retry all, not card-by-card.
 **What to do**:

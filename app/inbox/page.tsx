@@ -107,13 +107,27 @@ export default function InboxPage() {
 
   const detectedPlatform = clipUrl.trim() ? detectPlatform(clipUrl.trim()) : null;
 
+  const [batchRetrying, setBatchRetrying] = useState(false);
+
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim()) track('search_performed', { length: q.trim().length });
   }, []);
 
+  async function handleRetryAll() {
+    const failedItems = inboxItems.filter((i) => i.enrichmentStatus === 'failed');
+    if (failedItems.length === 0 || batchRetrying) return;
+    setBatchRetrying(true);
+    for (const item of failedItems) {
+      retryItem(item.id, item.url);
+      await new Promise((r) => setTimeout(r, 250)); // stagger to avoid hammering
+    }
+    setBatchRetrying(false);
+  }
+
   // Only unassigned items (boardId === undefined)
   const inboxItems = items.filter((i) => i.boardId === undefined);
+  const failedCount = inboxItems.filter((i) => i.enrichmentStatus === 'failed').length;
 
   const platformFiltered =
     activePlatform === 'all'
@@ -235,6 +249,40 @@ export default function InboxPage() {
             )}
           </div>
         </div>
+        {/* Batch retry banner */}
+        <AnimatePresence>
+          {!loading && failedCount > 0 && (
+            <motion.div
+              key="retry-banner"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-3 overflow-hidden"
+            >
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                <span className="text-base">⚠️</span>
+                <p className="flex-1 text-xs text-amber-700 font-medium">
+                  {failedCount} clip{failedCount !== 1 ? 's' : ''} failed to load
+                </p>
+                <button
+                  type="button"
+                  disabled={batchRetrying}
+                  onClick={handleRetryAll}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 disabled:opacity-50 px-3 py-1.5 rounded-xl transition-colors"
+                >
+                  {batchRetrying && (
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  Retry all
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {loading ? (
           <InboxSkeleton />
         ) : filtered.length === 0 ? (
