@@ -307,7 +307,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Add a "Share board" button in the board header with a copy-link action
 
 ### D3 — Post-Trip Timeline
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: After the trip, the app's job shifts from "planning" to "remembering." A timeline view shows visits in chronological order, turning TravelPanel into a travel diary.  
 **Files to change**: `lib/types.ts`, `lib/db.ts`, new `app/timeline/page.tsx`  
 **What to do**:

@@ -51,6 +51,7 @@ export interface SavedItem {
   retryCount: number;
   boardId?: string; // undefined = Inbox (unassigned)
   isDemo?: boolean; // onboarding seed content — removable in one tap
+  visitedAt?: number; // epoch ms when user marked this as visited; undefined = not yet visited
 }
 
 // ─── Board / Collection ─────────────────────────────────────────────────────

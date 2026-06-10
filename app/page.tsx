@@ -34,7 +34,7 @@ function useMapStyle() {
 
 function HomePageInner() {
   const searchParams = useSearchParams();
-  const { items, loading, addItem } = useSavedItems();
+  const { items, loading, addItem, markVisited } = useSavedItems();
   const [showImport, setShowImport]         = useState(false);
   const [prefilledUrl, setPrefilledUrl]     = useState('');
   const [selectedItem, setSelectedItem]     = useState<SavedItem | null>(null);
@@ -227,6 +227,7 @@ function HomePageInner() {
           <LocationDetailCard
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            onMarkVisited={() => markVisited(selectedItem.id)}
           />
         )}
       </AnimatePresence>

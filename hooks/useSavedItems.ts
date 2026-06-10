@@ -26,6 +26,14 @@ export function useSavedItems() {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }, []);
 
+  const markVisited = useCallback(async (id: string) => {
+    const item = await getItemById(id);
+    if (!item) return;
+    const updated: SavedItem = { ...item, visitedAt: Date.now() };
+    await saveItem(updated);
+    setItems((prev) => prev.map((i) => (i.id === id ? updated : i)));
+  }, []);
+
   // Re-reads a single item from DB and patches React state — used by retry queue
   const refreshItem = useCallback(async (id: string) => {
     const updated = await getItemById(id);
@@ -39,5 +47,5 @@ export function useSavedItems() {
     setItems(fetchedItems.sort((a, b) => b.savedAt - a.savedAt));
   }, []);
 
-  return { items, loading, addItem, removeItem, refreshItem, refresh };
+  return { items, loading, addItem, removeItem, markVisited, refreshItem, refresh };
 }

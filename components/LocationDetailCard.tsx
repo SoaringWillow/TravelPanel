@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { X, MapPin, Navigation } from 'lucide-react';
+import { X, MapPin, Navigation, CheckCircle2, Circle } from 'lucide-react';
 import { SavedItem } from '@/lib/types';
 import { PLATFORM_LABELS, PLATFORM_BG } from '@/lib/parse-url';
 import SubstanceList from './SubstanceList';
@@ -9,6 +9,7 @@ import SubstanceList from './SubstanceList';
 interface LocationDetailCardProps {
   item: SavedItem;
   onClose: () => void;
+  onMarkVisited?: () => void;
 }
 
 function openNavigate(lat: number, lng: number, name: string) {
@@ -30,7 +31,7 @@ function openNavigate(lat: number, lng: number, name: string) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-export default function LocationDetailCard({ item, onClose }: LocationDetailCardProps) {
+export default function LocationDetailCard({ item, onClose, onMarkVisited }: LocationDetailCardProps) {
   return (
     <>
       {/* Invisible backdrop — tap to close */}
@@ -162,6 +163,24 @@ export default function LocationDetailCard({ item, onClose }: LocationDetailCard
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Notes</p>
                 <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">{item.notes}</p>
               </div>
+            )}
+
+            {/* Mark as visited */}
+            {onMarkVisited && (
+              <button
+                type="button"
+                onClick={() => { onMarkVisited(); onClose(); }}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold transition-all ${
+                  item.visitedAt
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                    : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {item.visitedAt
+                  ? <><CheckCircle2 size={16} /> Visited {new Date(item.visitedAt).toLocaleDateString()}</>
+                  : <><Circle size={16} /> Mark as visited</>
+                }
+              </button>
             )}
           </div>
         </div>
