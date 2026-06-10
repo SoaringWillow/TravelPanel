@@ -61,6 +61,10 @@ export default function BoardCard({ board, itemCount, onClick, onDelete, onRenam
         {...longPressProps}
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
+        role="button"
+        tabIndex={0}
+        aria-label={`Open ${board.name} board`}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
         className="relative rounded-2xl overflow-hidden cursor-pointer min-h-[160px] flex flex-col select-none"
         style={{ touchAction: 'none' }}
       >

@@ -17,6 +17,7 @@ const NAV_ITEMS = [
 export default function NavBar({ active }: NavBarProps) {
   return (
     <nav
+      aria-label="Main navigation"
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-transparent dark:border-gray-800"
       style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.08)' }}
     >
@@ -27,12 +28,14 @@ export default function NavBar({ active }: NavBarProps) {
             <Link
               key={key}
               href={href}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center py-2 transition-colors ${
                 isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className="text-xs mt-0.5 font-medium">{label}</span>
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} aria-hidden="true" />
+              <span className="text-xs mt-0.5 font-medium" aria-hidden="true">{label}</span>
               {/* Active indicator dot */}
               <span
                 className={`mt-0.5 rounded-full transition-all duration-200 ${

@@ -434,7 +434,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Test performance at 100+ items in Simulator
 
 ### G6 — Accessibility Pass
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/InboxCard.tsx`, `components/BoardCard.tsx`, `components/NavBar.tsx`, all interactive UI  
 **What to do**:
 - Add `aria-label` to all icon-only buttons (delete, move, external link, map buttons)

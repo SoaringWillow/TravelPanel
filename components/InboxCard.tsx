@@ -163,13 +163,13 @@ export default function InboxCard({
               <span className="text-xs text-indigo-400 font-medium">Finding the magic…</span>
             </div>
             <div className="flex items-center gap-1">
-              <a href={item.url} target="_blank" rel="noopener noreferrer"
+              <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open original link"
                 className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
-                <ExternalLink size={13} />
+                <ExternalLink size={13} aria-hidden="true" />
               </a>
-              <button type="button" onClick={() => onDelete(item.id)}
+              <button type="button" aria-label="Delete clip" onClick={() => onDelete(item.id)}
                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                <Trash2 size={13} />
+                <Trash2 size={13} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function InboxCard({
           <span className={`${PLATFORM_BG[item.platform]} text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0`}>
             {PLATFORM_LABELS[item.platform]}
           </span>
-          <a href={item.url} target="_blank" rel="noopener noreferrer"
+          <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open original link"
             className="text-xs text-gray-400 truncate flex-1 min-w-0 hover:text-indigo-500 hover:underline transition-colors">
             {truncateUrl(item.url)}
           </a>
@@ -197,7 +197,7 @@ export default function InboxCard({
         <div className="flex items-center justify-between pt-1">
           {isRetrying ? (
             <span className="text-xs text-indigo-500 font-medium flex items-center gap-1">
-              <Loader2 size={11} className="animate-spin" />Retrying…
+              <Loader2 size={11} className="animate-spin" aria-hidden="true" />Retrying…
             </span>
           ) : exhausted ? (
             <span className="text-xs text-red-500 font-medium">✕ Could not analyze</span>
@@ -205,19 +205,19 @@ export default function InboxCard({
             <span className="text-xs text-amber-600 font-medium">⚠ Analysis failed</span>
           )}
           <div className="flex items-center gap-1.5">
-            <a href={item.url} target="_blank" rel="noopener noreferrer"
+            <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open original link"
               className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
-              <ExternalLink size={14} />
+              <ExternalLink size={14} aria-hidden="true" />
             </a>
             {!isRetrying && onRetry && (
-              <button type="button" onClick={() => onRetry(item.id, item.url)}
+              <button type="button" aria-label="Retry enrichment" onClick={() => onRetry(item.id, item.url)}
                 className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors">
                 Retry
               </button>
             )}
-            <button type="button" onClick={() => onDelete(item.id)}
+            <button type="button" aria-label="Delete clip" onClick={() => onDelete(item.id)}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-              <Trash2 size={13} />
+              <Trash2 size={13} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -323,23 +323,23 @@ export default function InboxCard({
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
             <span className="text-xs text-gray-400">{date}</span>
             <div className="flex items-center gap-1">
-              <button type="button" onClick={() => onViewOnMap(item.id)}
+              <button type="button" aria-label="View on map" onClick={() => onViewOnMap(item.id)}
                 className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors px-1.5 py-1">
                 Map
               </button>
-              <a href={item.url} target="_blank" rel="noopener noreferrer"
+              <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open original link"
                 className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
-                <ExternalLink size={13} />
+                <ExternalLink size={13} aria-hidden="true" />
               </a>
               {onMoveToBoard && (
-                <button type="button" onClick={() => onMoveToBoard(item.id)}
+                <button type="button" aria-label="Move to board" onClick={() => onMoveToBoard(item.id)}
                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                  <LayoutGrid size={13} />
+                  <LayoutGrid size={13} aria-hidden="true" />
                 </button>
               )}
-              <button type="button" onClick={() => onDelete(item.id)}
+              <button type="button" aria-label="Delete clip" onClick={() => onDelete(item.id)}
                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                <Trash2 size={13} />
+                <Trash2 size={13} aria-hidden="true" />
               </button>
             </div>
           </div>
