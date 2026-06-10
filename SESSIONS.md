@@ -96,3 +96,21 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-10 09:26 | 9699aa0 | feat(B2): add browser extension (Chrome MV3) for one-click URL clipping
+2026-06-10 09:32 | d07ce50 | feat(B3): Claude Vision extraction for Xiaohongshu / WeChat (anti-scrape fix)
+2026-06-10 09:34 | 0e285cc | feat(B5): data backup export + Settings page
+2026-06-10 09:36 | da1b617 | chore: add Phase D/E/F task roadmap toward beautiful iOS app
+2026-06-10 09:38 | 058067c | feat(D2): iOS safe area audit — notch / home-indicator / status-bar
+2026-06-10 09:40 | 6fab9eb | feat(D3): haptic feedback for clip save, board create, plan done/error
+2026-06-10 09:42 | 71765ee | feat(D5): pull-to-refresh on inbox — retries failed enrichments
+2026-06-10 09:44 | 2d6a86d | feat(D6): virtualise inbox list with @tanstack/react-virtual
+2026-06-10 09:45 | 2b93558 | feat(E1): onboarding flow — 3 animated screens on first launch
+2026-06-10 09:47 | c82ef69 | feat(E2): empty state illustrations for map / inbox / boards
+2026-06-10 09:52 | 7866390 | E3: swipe-to-delete inbox cards with undo toast
+2026-06-10 09:56 | f71d591 | E4: dark mode support via prefers-color-scheme
+2026-06-10 09:58 | 42123a2 | E5: trip plan day-strip visual redesign
+2026-06-10 10:00 | 3bb2462 | F1: privacy policy and terms pages + settings dark mode
+2026-06-10 10:01 | 8f4d592 | F3: App Store metadata pack
+2026-06-10 10:02 | 270bab7 | F2 + F4: Capacitor plugin audit and Sentry error tracking
+2026-06-10 10:04 | e2be519 | D4: app icon SVG source and generation script
+2026-06-10 10:05 | 1505fb7 | Dark mode polish: plan page + CreateBoardModal
