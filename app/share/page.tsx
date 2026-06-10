@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ImagePlus, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -13,6 +13,34 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Stage = 'picking' | 'saving' | 'done';
+
+// ─── Image helpers ────────────────────────────────────────────────────────────
+
+// Platforms that block server-side scraping — screenshot input is the fallback.
+const VISION_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
+
+function compressImageToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX = 1200;
+        const ratio = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
@@ -30,6 +58,9 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [imageBase64, setImageBase64]         = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType]     = useState<string>('image/jpeg');
+  const [imagePreview, setImagePreview]       = useState<string | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,6 +68,29 @@ function SharePageInner() {
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  const handleImageFile = useCallback(async (file: File) => {
+    try {
+      const { base64, mimeType } = await compressImageToBase64(file);
+      setImageBase64(base64);
+      setImageMimeType(mimeType);
+      setImagePreview(URL.createObjectURL(file));
+    } catch {
+      // Ignore image errors — clip still works without it
+    }
+  }, []);
+
+  // Paste-to-add-screenshot (works on desktop and iOS long-press paste)
+  useEffect(() => {
+    const handler = async (e: ClipboardEvent) => {
+      const imgItem = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'));
+      if (!imgItem) return;
+      const file = imgItem.getAsFile();
+      if (file) await handleImageFile(file);
+    };
+    document.addEventListener('paste', handler);
+    return () => document.removeEventListener('paste', handler);
+  }, [handleImageFile]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -90,9 +144,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass image if available (e.g. Xiaohongshu screenshot)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64 ?? undefined, imageMimeType)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -168,6 +222,49 @@ function SharePageInner() {
             <p className="text-xs text-gray-400 truncate">{rawUrl}</p>
           )}
         </div>
+
+        {/* Screenshot helper — shown for platforms that block scraping */}
+        {VISION_PLATFORMS.has(platform) && (
+          <div className="mt-4">
+            {imagePreview ? (
+              <div className="flex items-center gap-3 bg-indigo-50 rounded-2xl px-4 py-3">
+                <img
+                  src={imagePreview}
+                  alt="Screenshot preview"
+                  className="w-12 h-12 object-cover rounded-lg flex-shrink-0 border border-indigo-200"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-indigo-700">Screenshot added</p>
+                  <p className="text-xs text-indigo-500">Claude will read the image directly</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setImageBase64(null); setImagePreview(null); }}
+                  className="text-indigo-400 hover:text-indigo-600 flex-shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-3 border-2 border-dashed border-gray-200 hover:border-indigo-300 rounded-2xl px-4 py-3 cursor-pointer transition-colors group">
+                <ImagePlus size={20} className="text-gray-400 group-hover:text-indigo-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-700">Add screenshot <span className="font-normal text-gray-400">(optional)</span></p>
+                  <p className="text-xs text-gray-400">Paste or tap — extracts info even without page access</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await handleImageFile(file);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        )}
 
         {/* Middle section — board picker */}
         <div className="flex-1 flex flex-col justify-center py-8">
