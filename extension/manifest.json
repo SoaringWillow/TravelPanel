@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "short_name": "TravelPanel",
+  "description": "Save travel posts from Instagram, YouTube, TikTok and anywhere else into your TravelPanel boards — with AI-extracted tips and location pins.",
+  "version": "1.0.0",
+
+  "permissions": ["activeTab", "storage", "tabs", "contextMenus"],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel"
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "options_page": "options.html",
+
+  "commands": {
+    "clip-page": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Clip current page to TravelPanel"
+    }
+  }
+}

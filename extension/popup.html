@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="shell">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-plane" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+        </svg>
+        <span class="logo-text">TravelPanel</span>
+      </div>
+      <button class="open-app-btn" id="openApp" title="Open TravelPanel app">
+        Open app
+        <svg class="btn-arrow" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- Page preview card -->
+      <div class="page-card" id="pageCard">
+        <div class="page-favicon-wrap" id="faviconWrap">
+          <img class="page-favicon" id="favicon" src="" alt="" />
+          <svg class="page-favicon-fallback" id="faviconFallback" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 .5a9.5 9.5 0 110 19A9.5 9.5 0 0110 .5zm0 2a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm.75 3.25v3.5h3.5a.75.75 0 010 1.5h-3.5v3.5a.75.75 0 01-1.5 0v-3.5h-3.5a.75.75 0 010-1.5h3.5v-3.5a.75.75 0 011.5 0z"/>
+          </svg>
+        </div>
+        <div class="page-meta">
+          <div class="page-title" id="pageTitle">Loading…</div>
+          <div class="page-url" id="pageUrl"></div>
+          <div class="platform-badge" id="platformBadge"></div>
+        </div>
+      </div>
+
+      <!-- Primary action -->
+      <button class="clip-btn" id="clipBtn">
+        <svg class="clip-icon" id="clipIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+        </svg>
+        <span class="clip-text" id="clipText">Clip to TravelPanel</span>
+      </button>
+
+      <!-- Status feedback -->
+      <div class="status" id="status"></div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span class="footer-hint">AI extracts pins &amp; travel tips</span>
+      <button class="settings-link" id="openSettings">Settings</button>
+    </footer>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
