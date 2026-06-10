@@ -354,7 +354,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Progress bar: "Extracting 3 of 7 clips…"
 
 ### E3 — Real-World Enrichment Signals
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Why**: A plan for Tokyo in late March without flagging Sakura season is a missed opportunity. Real-world context (festivals, weather, price spikes) is the key differentiator vs. generic AI travel apps.  
 **Files to change**: `app/api/plan/route.ts`, new `app/api/enrich/signals/route.ts`  
 **What to do**:

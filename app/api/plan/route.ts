@@ -3,6 +3,7 @@ import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import { SavedItem, AgentStep } from '@/lib/types';
 import { models } from '@/lib/models';
+import { fetchDestinationSignals, formatSignalsForPrompt } from '@/lib/destSignals';
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -117,6 +118,20 @@ export async function POST(req: NextRequest) {
 
         step('routing', 'Building optimised route…');
 
+        // ── Step 2.5: Fetch real-world signals ────────────────────────────
+        // Silently fetch weather + holiday context for the primary destination.
+        // Non-blocking: if it fails we just skip the context.
+        let destinationSignals = '';
+        try {
+          const primaryLoc = resolvedLocs.locations[0];
+          if (primaryLoc && Number.isFinite(primaryLoc.lat) && Number.isFinite(primaryLoc.lng)) {
+            const signals = await fetchDestinationSignals(primaryLoc.lat, primaryLoc.lng);
+            destinationSignals = formatSignalsForPrompt(signals);
+          }
+        } catch {
+          // Non-fatal — plan generation continues without signals
+        }
+
         // ── Step 3: Stream full itinerary ────────────────────────────────
         // Include substance (the wisdom layer) so the plan can cite the user's
         // own clips inline — this is the sourced-itinerary moat.
@@ -141,7 +156,7 @@ export async function POST(req: NextRequest) {
 Resolved locations: ${JSON.stringify(resolvedLocs.locations)}
 Day clusters: ${JSON.stringify(clusters.groups)}
 Saved content: ${JSON.stringify(contentSummary)}
-User preferences: ${preferences || 'None specified'}
+User preferences: ${preferences || 'None specified'}${destinationSignals}
 
 Rules:
 - 2-4 activities per day with realistic timing
