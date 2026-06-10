@@ -9,6 +9,20 @@ import { SavedItem, Location } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/parse-url';
 import { useSupercluster } from '@/hooks/useSupercluster';
 
+// ─── POI discovery ────────────────────────────────────────────────────────────
+
+interface PoiResult {
+  id: number;
+  lat: number;
+  lng: number;
+  name: string;
+  type: string;
+}
+
+const MAX_POIS = 20;
+const DISCOVER_STORAGE_KEY = 'mapDiscoverMode';
+const MIN_DISCOVER_ZOOM = 10; // Only fetch at closer zoom levels to avoid huge queries
+
 // ─── Map style cycle ──────────────────────────────────────────────────────────
 
 const MAP_STYLES = [
@@ -262,13 +276,62 @@ interface MapViewProps {
   onPinClick: (item: SavedItem) => void;
   flyTo?: Location;
   onMapLongPress?: (lat: number, lng: number) => void;
+  onSavePoi?: (lat: number, lng: number, name: string, poiType: string) => void;
 }
 
-function MapView({ items, onPinClick, flyTo, onMapLongPress }: MapViewProps) {
+function MapView({ items, onPinClick, flyTo, onMapLongPress, onSavePoi }: MapViewProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const { clusters, getExpansionZoom, setView } = useSupercluster(items);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
   const isDark = useDarkMode();
+
+  // ── Discover (POI) mode ──
+  const [discoverMode, setDiscoverMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(DISCOVER_STORAGE_KEY) === 'true';
+  });
+  const [pois, setPois] = useState<PoiResult[]>([]);
+  const [selectedPoi, setSelectedPoi] = useState<PoiResult | null>(null);
+  const poiDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentBoundsRef = useRef<[number, number, number, number] | null>(null);
+  const currentZoomRef = useRef<number>(2);
+
+  function toggleDiscover() {
+    const next = !discoverMode;
+    setDiscoverMode(next);
+    if (typeof window !== 'undefined') localStorage.setItem(DISCOVER_STORAGE_KEY, String(next));
+    if (!next) { setPois([]); setSelectedPoi(null); }
+  }
+
+  const fetchPois = useCallback(async (bounds: [number, number, number, number], zoom: number) => {
+    if (zoom < MIN_DISCOVER_ZOOM) { setPois([]); return; }
+    const [west, south, east, north] = bounds;
+    const query = `[out:json][timeout:8];node["tourism"](${south},${west},${north},${east});out ${MAX_POIS};`;
+    try {
+      const res = await fetch(
+        `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!res.ok) return;
+      const json = await res.json() as { elements: Array<{ id: number; lat: number; lon: number; tags?: Record<string, string> }> };
+      const results: PoiResult[] = json.elements
+        .filter((el) => el.tags?.name)
+        .slice(0, MAX_POIS)
+        .map((el) => ({
+          id: el.id,
+          lat: el.lat,
+          lng: el.lon,
+          name: el.tags!.name!,
+          type: el.tags?.tourism ?? el.tags?.historic ?? 'place',
+        }));
+      setPois(results);
+    } catch { /* network error / timeout — silently skip */ }
+  }, []);
+
+  const schedulePoisFetch = useCallback((bounds: [number, number, number, number], zoom: number) => {
+    if (poiDebounce.current) clearTimeout(poiDebounce.current);
+    poiDebounce.current = setTimeout(() => fetchPois(bounds, zoom), 800);
+  }, [fetchPois]);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressPos   = useRef<{ x: number; y: number } | null>(null);
@@ -313,13 +376,21 @@ function MapView({ items, onPinClick, flyTo, onMapLongPress }: MapViewProps) {
   const syncView = useCallback(
     (map: maplibregl.Map) => {
       const b = map.getBounds();
-      setView({
-        zoom: map.getZoom(),
-        bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
-      });
+      const zoom = map.getZoom();
+      const bounds: [number, number, number, number] = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+      currentBoundsRef.current = bounds;
+      currentZoomRef.current = zoom;
+      setView({ zoom, bounds });
     },
     [setView],
   );
+
+  // Re-fetch POIs when discover mode is toggled on, or when map moves while discover is on
+  useEffect(() => {
+    if (!discoverMode || !currentBoundsRef.current) return;
+    schedulePoisFetch(currentBoundsRef.current, currentZoomRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discoverMode]);
 
   const handleLoad = useCallback(
     (e: { target: maplibregl.Map }) => {
@@ -330,8 +401,13 @@ function MapView({ items, onPinClick, flyTo, onMapLongPress }: MapViewProps) {
   );
 
   const handleMove = useCallback(
-    (e: ViewStateChangeEvent) => syncView(e.target as unknown as maplibregl.Map),
-    [syncView],
+    (e: ViewStateChangeEvent) => {
+      syncView(e.target as unknown as maplibregl.Map);
+      if (discoverMode && currentBoundsRef.current) {
+        schedulePoisFetch(currentBoundsRef.current, currentZoomRef.current);
+      }
+    },
+    [syncView, discoverMode, schedulePoisFetch],
   );
 
   return (
@@ -363,6 +439,26 @@ function MapView({ items, onPinClick, flyTo, onMapLongPress }: MapViewProps) {
         }}
       >
         {activeStyle.label}
+      </button>
+
+      {/* Discover (POI) toggle */}
+      <button
+        type="button"
+        onClick={toggleDiscover}
+        aria-label={discoverMode ? 'Discover mode on — tap to turn off' : 'Discover nearby attractions'}
+        title={discoverMode ? 'Discover: ON' : 'Discover nearby'}
+        style={{
+          position: 'absolute', top: 40, right: 48, zIndex: 10,
+          background: discoverMode ? '#6366f1' : 'white',
+          border: `1px solid ${discoverMode ? '#6366f1' : '#e5e7eb'}`,
+          borderRadius: 8, padding: '4px 8px',
+          fontSize: 11, fontWeight: 600,
+          color: discoverMode ? 'white' : '#374151',
+          cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+          filter: isDark && !discoverMode ? COUNTER_FILTER : undefined,
+        }}
+      >
+        🔭 Discover
       </button>
 
       <Map
@@ -447,6 +543,54 @@ function MapView({ items, onPinClick, flyTo, onMapLongPress }: MapViewProps) {
             </div>
           </Popup>
         )}
+
+        {/* ── Ghost POI pins ── */}
+        {discoverMode && pois.map((poi) => (
+          <Marker key={`poi-${poi.id}`} longitude={poi.lng} latitude={poi.lat} anchor="center">
+            <button
+              type="button"
+              aria-label={poi.name}
+              onClick={() => setSelectedPoi(poi)}
+              style={{
+                filter: isDark ? COUNTER_FILTER : undefined,
+                width: 28, height: 28, borderRadius: '50%',
+                backgroundColor: 'rgba(107,114,128,0.15)',
+                border: '2px solid rgba(107,114,128,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              }}
+            >
+              🔭
+            </button>
+          </Marker>
+        ))}
+
+        {selectedPoi && (
+          <Popup
+            longitude={selectedPoi.lng}
+            latitude={selectedPoi.lat}
+            anchor="top"
+            onClose={() => setSelectedPoi(null)}
+            closeButton
+            closeOnClick={false}
+            offset={[0, -6] as [number, number]}
+          >
+            <div className="max-w-[200px] px-1 py-0.5 space-y-1">
+              <p className="text-xs font-semibold text-gray-800 leading-tight">{selectedPoi.name}</p>
+              <p className="text-[11px] text-gray-400 capitalize">{selectedPoi.type}</p>
+              {onSavePoi && (
+                <button
+                  type="button"
+                  onClick={() => { onSavePoi(selectedPoi.lat, selectedPoi.lng, selectedPoi.name, selectedPoi.type); setSelectedPoi(null); }}
+                  className="w-full text-center text-xs font-semibold text-indigo-600 border border-indigo-200 rounded-lg py-1 hover:bg-indigo-50 transition-colors"
+                >
+                  + Save
+                </button>
+              )}
+            </div>
+          </Popup>
+        )}
       </Map>
     </div>
   );
@@ -457,5 +601,6 @@ function MapView({ items, onPinClick, flyTo, onMapLongPress }: MapViewProps) {
 export default memo(MapView, (prev, next) =>
   prev.items === next.items &&
   prev.flyTo === next.flyTo &&
-  prev.onPinClick === next.onPinClick,
+  prev.onPinClick === next.onPinClick &&
+  prev.onSavePoi === next.onSavePoi,
 );

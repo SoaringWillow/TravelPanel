@@ -750,7 +750,7 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 - Changes persist to IndexedDB immediately
 
 ### L3 — Discover Nearby POIs on Map
-**Status**: `[ ]` Not started  
+**Status**: `[x]` Done  
 **Files**: `components/MapView.tsx`, `app/page.tsx`  
 **What to do**:
 - Add a "Discover" toggle button to the map (near the style button)

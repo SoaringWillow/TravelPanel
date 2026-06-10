@@ -99,6 +99,27 @@ function HomePageInner() {
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const thisWeekCount = useMemo(() => items.filter((i) => i.savedAt >= weekAgo).length, [items]);
 
+  const handleSavePoi = useCallback(async (lat: number, lng: number, name: string, poiType: string) => {
+    const item: SavedItem = {
+      id: crypto.randomUUID(),
+      url: `geo:${lat},${lng}`,
+      platform: 'other',
+      title: name,
+      description: `${poiType.charAt(0).toUpperCase()}${poiType.slice(1)} discovered via map`,
+      locations: [{ lat, lng, name }],
+      activities: [],
+      tags: [poiType],
+      substance: [],
+      savedAt: Date.now(),
+      enrichmentStatus: 'done',
+      retryCount: 0,
+    };
+    await saveItem(item);
+    addItem(item);
+    setFlyTo({ lat, lng, name });
+    impact('medium');
+  }, [addItem]);
+
   function handleItemSaved(item: SavedItem) {
     addItem(item);
     setShowImport(false);
@@ -128,7 +149,7 @@ function HomePageInner() {
     <main className="relative h-screen w-screen overflow-hidden md:pl-16 md:flex">
       {/* Map — fills screen on phone, takes 60% on iPad */}
       <div className="absolute inset-0 md:relative md:flex-1 md:inset-auto">
-        <MapView items={mapItems} onPinClick={handlePinClick} flyTo={flyTo} onMapLongPress={handleMapLongPress} />
+        <MapView items={mapItems} onPinClick={handlePinClick} flyTo={flyTo} onMapLongPress={handleMapLongPress} onSavePoi={handleSavePoi} />
       </div>
 
       {/* Empty state overlay */}
