@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { haptic } from '@/lib/haptics';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: CreateBoar
 
   function handleCreate() {
     if (!name.trim()) return;
+    haptic('medium');
     onCreate(name.trim(), selectedEmoji);
     setName('');
     setSelectedEmoji('🗺');
