@@ -81,12 +81,16 @@ async function fetchPageData(url: string) {
   }
 }
 
+// Platforms that block server-side scraping — Vision is the only reliable path
+const VISION_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -96,16 +100,40 @@ export async function POST(req: NextRequest) {
   }
 
   const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // For anti-scrape platforms with an image, skip the broken text fetch entirely
+  const useVision = !!(
+    imageBase64 &&
+    typeof imageBase64 === 'string' &&
+    imageBase64.length > 0 &&
+    VISION_PLATFORMS.has(platform)
+  );
+
+  const page = useVision ? null : await fetchPageData(url);
+
+  const platformLabel =
+    platform === 'xiaohongshu' ? 'Xiaohongshu / 小红书 (Chinese travel platform)' :
+    platform === 'wechat'      ? 'WeChat / 微信 (Chinese messaging platform)' :
+    platform === 'douyin'      ? 'Douyin / TikTok (short video platform)' :
+    platform;
+
+  const basePrompt = useVision
+    ? `You are a travel content analyzer. The image is a screenshot from ${platformLabel}.
+
+Read ALL text visible in the screenshot, including Chinese characters (小红书 posts are often in Chinese).
+Extract every location name, travel tip, warning, recommendation, and piece of wisdom you can see.
+
+URL (for context): ${url}`
+    : `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
-${page?.textContent ?? '(could not fetch page)'}
+${page?.textContent ?? '(could not fetch page)'}`;
+
+  const prompt = `${basePrompt}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -130,12 +158,33 @@ Never return an empty substance array for a real travel post.`;
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision) {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'image' as const,
+                image: Buffer.from(imageBase64!, 'base64'),
+                mimeType: 'image/jpeg' as const,
+              },
+              { type: 'text' as const, text: prompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }

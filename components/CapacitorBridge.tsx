@@ -12,11 +12,16 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
     if (!url) return;
 
     const { value: title } = await Preferences.get({ key: 'pendingShareTitle' });
+    // Check if the Share Extension also wrote a preview image (for Xiaohongshu / WeChat)
+    const { value: hasImageFlag } = await Preferences.get({ key: 'pendingShareImage' });
+
     await Preferences.remove({ key: 'pendingShareURL' });
     await Preferences.remove({ key: 'pendingShareTitle' });
+    // pendingShareImage is kept — share/page.tsx reads and deletes it
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
+    if (hasImageFlag) qs.set('hasImage', '1');
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
@@ -51,10 +56,13 @@ export function CapacitorBridge() {
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage = parsed.searchParams.get('hasImage');
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+              // hasImage=1 tells share/page.tsx to read the image from App Group
+              if (hasImage === '1') qs.set('hasImage', '1');
               router.push(`/share?${qs.toString()}`);
             }
           } catch {
