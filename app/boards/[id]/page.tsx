@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Rocket, MapPin, LayoutGrid, AlignLeft } from 'lucide-react';
+import { ArrowLeft, Rocket, MapPin, LayoutGrid, AlignLeft, Share2 } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { Board, SavedItem, Location } from '@/lib/types';
@@ -23,8 +23,9 @@ export default function BoardDetailPage() {
   const { boards, loading: boardsLoading, removeItemFromBoard } = useBoards();
   const { items, loading: itemsLoading, removeItem } = useSavedItems();
 
-  const [flyTo, setFlyTo]         = useState<Location | undefined>(undefined);
-  const [viewMode, setViewMode]   = useState<'grid' | 'timeline'>('grid');
+  const [flyTo, setFlyTo]           = useState<Location | undefined>(undefined);
+  const [viewMode, setViewMode]     = useState<'grid' | 'timeline'>('grid');
+  const [shareStatus, setShareStatus] = useState<'' | 'copied' | 'shared'>('');
 
   const board = boards.find((b) => b.id === boardId);
   const boardItems: SavedItem[] = board
@@ -108,6 +109,28 @@ export default function BoardDetailPage() {
               {board.name}
             </h1>
           </div>
+
+          {boardItems.length > 0 && (
+            <button
+              type="button"
+              onClick={async () => {
+                const { shareBoard } = await import('@/lib/shareBoard');
+                const result = await shareBoard(board, items);
+                if (result === 'copied') {
+                  setShareStatus('copied');
+                  setTimeout(() => setShareStatus(''), 2500);
+                } else if (result === 'shared') {
+                  setShareStatus('shared');
+                  setTimeout(() => setShareStatus(''), 2500);
+                }
+              }}
+              className="flex items-center gap-1 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 active:scale-95 transition-all flex-shrink-0"
+              aria-label="Share board"
+            >
+              <Share2 size={13} />
+              {shareStatus === 'copied' ? 'Copied!' : shareStatus === 'shared' ? 'Shared!' : 'Share'}
+            </button>
+          )}
 
           <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0">
             {boardItems.length} place{boardItems.length !== 1 ? 's' : ''}
