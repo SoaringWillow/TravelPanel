@@ -128,3 +128,4 @@ packages); recovered two commits from a detached HEAD onto the branch.
 - `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` to activate B1
 - `NEXT_PUBLIC_POSTHOG_KEY` to turn the North Star metric on
 - next@14.2.3 has a published security advisory — upgrade to patched 14.2.x soon
+2026-06-11 10:44 | d2005d4 | docs: Phase H hardening log + revised execution order from 2026-06-11 audit
