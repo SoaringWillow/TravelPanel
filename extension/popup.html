@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="10" r="10" fill="#6366f1"/>
+        <path d="M10 4C7.8 4 6 5.8 6 8c0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4zm0 5.5c-.83 0-1.5-.67-1.5-1.5S9.17 6.5 10 6.5 11.5 7.17 11.5 8 10.83 9.5 10 9.5z" fill="white"/>
+      </svg>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+    <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M6.5 1h3l.5 1.5c.3.1.6.3.9.5L12.5 2.5l2.1 2.1-1 1.5c.2.3.4.6.5.9L15.5 7.5v3l-1.4.5c-.1.3-.3.6-.5.9l1 1.5-2.1 2.1-1.5-1c-.3.2-.6.4-.9.5L9.5 16.5h-3l-.5-1.5c-.3-.1-.6-.3-.9-.5L3.5 15.5l-2.1-2.1 1-1.5c-.2-.3-.4-.6-.5-.9L.5 10.5v-3l1.4-.5c.1-.3.3-.6.5-.9l-1-1.5L3.5 2.5l1.5 1c.3-.2.6-.4.9-.5L6.5 1zm1.5 4a3 3 0 100 6 3 3 0 000-6z" fill="#9ca3af"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Page preview -->
+  <div id="page-preview" class="page-preview">
+    <div class="platform-badge" id="platform-badge">Web</div>
+    <div class="page-title" id="page-title">Loading…</div>
+    <div class="page-url" id="page-url"></div>
+  </div>
+
+  <!-- Board picker -->
+  <div class="section-label">Save to board:</div>
+  <div id="boards-row" class="boards-row">
+    <button class="board-chip board-chip--inbox" data-board-id="__inbox__" data-board-name="Inbox">
+      Inbox
+    </button>
+    <div id="boards-loading" class="boards-loading">Loading…</div>
+  </div>
+
+  <!-- New board input (hidden) -->
+  <div id="new-board-section" class="new-board-section" hidden>
+    <input id="new-board-input" class="new-board-input" type="text" placeholder="Board name…" maxlength="50" />
+    <button id="new-board-confirm" class="btn btn--primary btn--sm">Create</button>
+    <button id="new-board-cancel" class="btn btn--ghost btn--sm">✕</button>
+  </div>
+
+  <!-- Add to new board button -->
+  <button id="new-board-btn" class="board-chip board-chip--new">+ New board</button>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- Primary action -->
+  <button id="save-btn" class="btn btn--save" disabled>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 2C5.24 2 3 4.24 3 7c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5c-.83 0-1.5-.67-1.5-1.5S7.17 5.5 8 5.5 9.5 6.17 9.5 7 8.83 8.5 8 8.5z" fill="currentColor"/>
+    </svg>
+    Save to TravelPanel
+  </button>
+
+  <!-- Success state (hidden) -->
+  <div id="success-state" class="success-state" hidden>
+    <div class="success-icon">✓</div>
+    <div class="success-text">
+      <strong id="success-board-name">Saved to Inbox</strong>
+      <span>Opening TravelPanel…</span>
+    </div>
+  </div>
+
+  <!-- Error state (hidden) -->
+  <div id="error-state" class="error-state" hidden>
+    <span id="error-message">Could not detect a URL on this page.</span>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>TravelPanel Browser Extension</span>
+    <a id="open-app-link" href="#" class="footer-link">Open app ↗</a>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
