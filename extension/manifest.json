@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "description": "Save travel inspiration from any webpage directly to TravelPanel with one click.",
+  "version": "1.0.0",
+  "permissions": ["activeTab", "storage", "contextMenus"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel",
+    "default_icon": {
+      "16": "icons/icon.svg",
+      "32": "icons/icon.svg",
+      "48": "icons/icon.svg",
+      "128": "icons/icon.svg"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  },
+  "commands": {
+    "clip-current-page": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Clip the current page to TravelPanel"
+    }
+  }
+}
