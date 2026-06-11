@@ -99,3 +99,4 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-06-11 00:26 | c64f44c | feat(B2): add Chrome/Safari browser extension for one-click URL clipping
 2026-06-11 00:33 | 5415794 | feat(B3): Claude Vision extraction for Xiaohongshu and anti-scrape platforms
 2026-06-11 00:36 | 09b7379 | feat(B5): data export + Settings page with usage limits display
+2026-06-11 00:42 | d853022 | feat(D1): system-preference dark mode across all major views
