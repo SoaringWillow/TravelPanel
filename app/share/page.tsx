@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Camera, X } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
 import { enrichItem } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
@@ -14,6 +14,9 @@ import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-ur
 
 type Stage = 'picking' | 'saving' | 'done';
 
+// Platforms where URL scraping typically fails (anti-scrape measures)
+const SCREENSHOT_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin', 'bilibili']);
+
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function SharePageInner() {
@@ -21,6 +24,9 @@ function SharePageInner() {
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
+  // hasImage=1 means the iOS Share Extension saved a screenshot to the App Group.
+  // Until a custom Capacitor plugin reads it, we show a "paste screenshot" hint.
+  const nativeHasImage  = searchParams.get('hasImage') === '1';
 
   const [boards, setBoards]                   = useState<Board[]>([]);
   const [stage, setStage]                     = useState<Stage>('picking');
@@ -29,13 +35,43 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [screenshot, setScreenshot]           = useState<string | null>(null); // base64 data URL
+  const [screenshotName, setScreenshotName]   = useState('');
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef    = useRef<HTMLInputElement | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
   }, []);
+
+  // Read image file → base64 data URL
+  const readImageFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setScreenshot(result);
+      setScreenshotName(file.name || 'screenshot');
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Paste screenshot from clipboard
+  useEffect(() => {
+    const handler = (e: ClipboardEvent) => {
+      if (stage !== 'picking') return;
+      const item = Array.from(e.clipboardData?.items ?? []).find((i) =>
+        i.type.startsWith('image/')
+      );
+      if (item) {
+        const file = item.getAsFile();
+        if (file) readImageFile(file);
+      }
+    };
+    window.addEventListener('paste', handler);
+    return () => window.removeEventListener('paste', handler);
+  }, [stage, readImageFile]);
 
   // Auto-dismiss when done
   useEffect(() => {
@@ -88,9 +124,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot if user provided one (for anti-scrape platforms)
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, screenshot ?? undefined)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
@@ -205,6 +241,60 @@ function SharePageInner() {
             >
               + New
             </button>
+          </div>
+
+          {/* Screenshot picker — shown prominently for anti-scrape platforms, subtly for others */}
+          <div className="mt-4">
+            {nativeHasImage && !screenshot && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-2">
+                📱 Screenshot detected — paste it below for better extraction (iOS feature coming soon)
+              </p>
+            )}
+            {screenshot ? (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                <span className="text-green-600 text-sm">📸</span>
+                <span className="text-sm text-green-700 font-medium flex-1 truncate">{screenshotName}</span>
+                <button
+                  type="button"
+                  onClick={() => { setScreenshot(null); setScreenshotName(''); }}
+                  className="text-green-500 hover:text-green-700 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : SCREENSHOT_PLATFORMS.has(platform) ? (
+              <button
+                type="button"
+                disabled={stage === 'saving'}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-orange-200 bg-orange-50 text-orange-600 text-sm font-medium px-4 py-3 rounded-xl hover:border-orange-300 hover:bg-orange-100 active:scale-95 transition-all disabled:opacity-50"
+              >
+                <Camera size={15} />
+                Add screenshot for better extraction
+                <span className="text-orange-400 text-xs">(paste or tap)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={stage === 'saving'}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
+              >
+                <Camera size={12} />
+                Add screenshot (optional)
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) readImageFile(file);
+                e.target.value = '';
+              }}
+            />
           </div>
 
           {/* New board input */}
