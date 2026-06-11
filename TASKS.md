@@ -161,8 +161,9 @@ until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
-**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
+**Status**: `[x]` Done  
+**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel  
+**Implemented**: `browser-extension/` — Manifest V3 extension with popup UI, context menus (right-click page/link), settings page (configurable app URL), PNG icon generator. Opens `/share?url=…` flow in TravelPanel to reuse existing clip UI. Safari: run `xcrun safari-web-extension-converter browser-extension/`.
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
 **Status**: `[ ]` Not started  
