@@ -97,3 +97,34 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
 2026-06-11 10:39 | 7bd0956 | fix(P0): enrichment retry integrity, app-wide services, AI failure visibility, plan abort + citation guard
+2026-06-11 10:43 | 537a0e0 | feat(sprint-2): data backup/restore, empty-map onboarding, visible moat, metric integrity
+
+---
+
+## Session: 2026-06-11 — Full audit + hardening sprint
+
+**Branch**: `claude/social-travel-ai-planner-jiVDe`
+
+### What happened
+Ran a deep full-codebase audit (Opus agent, every file) against the product goals,
+then executed the resulting plan in two commits:
+
+1. **P0 fixes** (`7bd0956`): retry-budget double-burn, app-wide retry/seed services,
+   AI-key failure visibility (503/502 instead of silent empty results), abortable
+   plan generation, sourced-citation validation, share-page cold-launch return fix.
+2. **Sprint 2** (`537a0e0`): JSON backup/restore (B5 shipped early), empty-map
+   onboarding, 💡 wisdom badges on pins, North Star metric fix (ImportSheet now
+   tracks clip_saved), inbox move refresh fix, token-usage telemetry, model routing
+   revised (Sonnet extraction/itinerary, Haiku resolve/cluster).
+
+Also: node_modules had been wiped by an earlier failed install — restored (724
+packages); recovered two commits from a detached HEAD onto the branch.
+
+### Verification
+`tsc --noEmit` clean; `next build` clean (10/10 pages).
+
+### Open items / needs user
+- Verify on real iPhone (H7) — gates everything commercial
+- `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` to activate B1
+- `NEXT_PUBLIC_POSTHOG_KEY` to turn the North Star metric on
+- next@14.2.3 has a published security advisory — upgrade to patched 14.2.x soon

@@ -7,17 +7,66 @@
 
 ---
 
-## ⭐ Recommended Execution Order (revised 2026-05-31)
+## ⭐ Recommended Execution Order (revised 2026-06-11)
 
-The moat is **Substance over Spots**. A1 made the app *extract* substance, but it's
-currently invisible (only a count badge) and the trip planner throws it away. The two
-highest-value tasks are surfacing substance (A11) and threading it into plans (A12) —
-do these before clustering/search polish.
+Phase A is complete and a full-codebase audit (2026-06-11, Opus deep review) has been
+executed — see PHASE H below for what it found and fixed. Remaining priority:
 
-`A11 → A12 → A3 → A7 → A8 → A6 → A9 → A10`
+`H7 (verify on device) → B3 (Xiaohongshu Vision) → B1 activation (needs keys) → B2 → B4`
 
-(A3 is NOT blocked — it no-ops without a key. Build it now; it just stays dormant
-until `NEXT_PUBLIC_POSTHOG_KEY` is provided.)
+**Model routing (revised)**: extraction = Sonnet (the moat deserves quality; volume is
+rate-limited), resolve/cluster = Haiku (mechanical), itinerary = Sonnet (structured
+assembly; streams faster + ~5x cheaper than Opus). See `lib/models.ts`.
+
+---
+
+## PHASE H — Hardening (from the 2026-06-11 audit)
+
+### H1 — Enrichment retry integrity 🔴
+**Status**: `[x]` Done  
+Retry budget was double-burned (each failure incremented twice → items died after ~1–2
+attempts, not 3); crash recovery silently ate retry slots; rate-limited and
+"save URL for later" items stayed `pending` forever (queue only polled `failed`).
+Fixed: `markEnrichmentFailed()` is the single increment point; queue also drains
+`pending`; halts the pass when the rate-limit window is exhausted.
+
+### H2 — App-wide background services 🔴
+**Status**: `[x]` Done  
+Retry queue + demo seeding only ran on `/boards`//`inbox` — never on `/` (default
+route AND Share-Sheet return target). Now mounted once in the root layout
+(`components/AppServices.tsx`), propagating updates via `lib/appEvents.ts`.
+
+### H3 — Honest AI failure states 🔴
+**Status**: `[x]` Done  
+Missing `ANTHROPIC_API_KEY` silently produced "saved, zero substance" clips.
+Both routes now 503 without the key; `/api/import` 502s on extraction failure
+instead of returning an empty success; share flow shows per-reason copy.
+
+### H4 — Abortable plan generation 🔴
+**Status**: `[x]` Done  
+Cancel only flipped UI state — the Opus/Sonnet stream kept burning tokens.
+AbortController wired to cancel + unmount; HTTP errors visible; plan credit
+recorded only after the server accepts.
+
+### H5 — Citation integrity (sourcedTips) 🔴
+**Status**: `[x]` Done  
+Nothing validated `sourceTitle` against real clips — fabricated citations could
+render. `lib/planIntegrity.ts#sanitizePlan` filters them on stream + on loading
+saved trips. Demo clips excluded from real-board plans server-side; payload
+bounded (60 items / 8 substance each / 240 chars).
+
+### H6 — Durability + visibility quick wins
+**Status**: `[x]` Done  
+JSON backup/restore (boards header) — B5 effectively shipped; empty-map
+onboarding card with demo reseed; 💡 wisdom badge on map pins + popup count;
+`clip_saved` tracked from ImportSheet (North Star was under-counting); inbox
+move-to-board refresh fixed; token usage telemetry → `lib/usageLog.ts`.
+
+### H7 — Verify on a real device
+**Status**: `[ ]` Not started — **needs the user** (macOS + iPhone)  
+Run the PWA on iPhone Safari, then the Capacitor shell via Xcode
+(see `ios/App/ShareExtension/XCODE_SETUP.md`). Gates: share-sheet UX, map
+performance, monetization decisions.
 
 ---
 
@@ -174,8 +223,8 @@ add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google pr
 **What to do**: Embed clip descriptions + substance text, enable semantic search ("minimalist cafe Tokyo")
 
 ### B5 — Cloud Backup Export
-**Status**: `[ ]` Not started  
-**What to do**: "Download all my data" as JSON from the account settings page
+**Status**: `[x]` Done (shipped early as H6 — local JSON export/restore from the boards
+header via `lib/exportData.ts`; revisit a cloud-hosted copy once B1 is live)
 
 ---
 
