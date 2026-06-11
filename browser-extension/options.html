@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container { max-width: 460px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #6366f1;
+      letter-spacing: -0.3px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 22px;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+    .section-hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    input[type="url"] {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      color: #111827;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input[type="url"]:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
+    /* ── Presets ── */
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .preset-label {
+      width: 100%;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    .preset-btn {
+      padding: 4px 11px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 20px;
+      font-size: 11px;
+      cursor: pointer;
+      color: #374151;
+      background: #f9fafb;
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+    }
+    .preset-btn:hover {
+      border-color: #6366f1;
+      color: #6366f1;
+      background: #eef2ff;
+    }
+
+    /* ── Save button ── */
+    .save-btn {
+      margin-top: 16px;
+      padding: 10px 22px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .save-btn:hover { background: #4f46e5; }
+    .save-btn:active { background: #4338ca; }
+
+    .saved-msg {
+      display: none;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #059669;
+    }
+
+    /* ── Info card ── */
+    .info-card {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .info-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4338ca;
+      margin-bottom: 6px;
+    }
+    .info-list {
+      font-size: 12px;
+      color: #4338ca;
+      line-height: 1.7;
+      padding-left: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L2 7l10 5 10-5-10-5Z" fill="#6366f1" opacity="0.35"/>
+        <path d="M2 17l10 5 10-5M2 12l10 5 10-5"
+              stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="logo-text">TravelPanel Clipper</span>
+    </div>
+
+    <div class="card">
+      <div class="section-title">TravelPanel URL</div>
+      <div class="section-hint">
+        Enter the URL where your TravelPanel app is running. The extension will open the share
+        page on this host when you clip a page.
+      </div>
+
+      <input type="url" id="urlInput" placeholder="https://your-app.vercel.app" autocomplete="off">
+
+      <div class="presets">
+        <div class="preset-label">Quick presets:</div>
+        <button class="preset-btn" data-url="http://localhost:3000">localhost:3000</button>
+        <button class="preset-btn" data-url="https://travelpanel.vercel.app">travelpanel.vercel.app</button>
+      </div>
+
+      <button class="save-btn" id="saveBtn">Save Settings</button>
+      <div class="saved-msg" id="savedMsg">✓ Settings saved!</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-title">How it works</div>
+      <ul class="info-list">
+        <li>Click the toolbar icon on any travel page</li>
+        <li>Hit "Save to TravelPanel" — the share page opens</li>
+        <li>Select a board and save your clip</li>
+        <li>Claude extracts locations + wisdom automatically</li>
+      </ul>
+    </div>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

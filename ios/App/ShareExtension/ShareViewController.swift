@@ -69,6 +69,11 @@ class ShareViewController: UIViewController {
     }
 
     private func openApp(url: String, title: String) {
+        // Best-effort: capture any image attachment and save it to App Group so
+        // CapacitorBridge can pass it to Claude Vision on the web side.
+        // This runs asynchronously and does not block opening the app.
+        extractAndSaveImageToAppGroup()
+
         var components = URLComponents()
         components.scheme = "travelpanel"
         components.host = "share"
@@ -98,6 +103,69 @@ class ShareViewController: UIViewController {
         // Fallback: write to App Group and let the main app pick it up on next launch
         savePendingShareToAppGroup(url: url, title: title)
         finish()
+    }
+
+    // MARK: — Image capture for Claude Vision
+
+    /// Scans all attachments for the first image payload, compresses it to a
+    /// JPEG thumbnail (≤ 768 px, 0.7 quality) and stores the base64 string in
+    /// the App Group so CapacitorBridge can forward it to /api/import.
+    private func extractAndSaveImageToAppGroup() {
+        guard let items = extensionContext?.inputItems as? [NSExtensionItem] else { return }
+
+        let imageTypeIdentifiers: [String] = [
+            UTType.jpeg.identifier,
+            UTType.png.identifier,
+            UTType.image.identifier,
+            "com.apple.uikit.image",
+        ]
+
+        for item in items {
+            guard let attachments = item.attachments else { continue }
+            for attachment in attachments {
+                for typeId in imageTypeIdentifiers {
+                    guard attachment.hasItemConformingToTypeIdentifier(typeId) else { continue }
+                    attachment.loadItem(forTypeIdentifier: typeId) { [weak self] data, _ in
+                        guard let self else { return }
+                        var image: UIImage?
+                        if let uiImage = data as? UIImage {
+                            image = uiImage
+                        } else if let rawData = data as? Data {
+                            image = UIImage(data: rawData)
+                        } else if let fileURL = data as? URL,
+                                  let fileData = try? Data(contentsOf: fileURL) {
+                            image = UIImage(data: fileData)
+                        }
+                        guard let img = image,
+                              let base64 = self.compressToJpegBase64(img) else { return }
+                        self.saveImageToAppGroup(base64: base64)
+                    }
+                    return // Stop after the first matching attachment type
+                }
+            }
+        }
+    }
+
+    /// Resizes and JPEG-compresses an image for Vision API consumption.
+    private func compressToJpegBase64(_ image: UIImage) -> String? {
+        let maxDimension: CGFloat = 768
+        let scale = min(maxDimension / image.size.width, maxDimension / image.size.height, 1.0)
+        let targetSize = CGSize(
+            width: (image.size.width  * scale).rounded(),
+            height: (image.size.height * scale).rounded()
+        )
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        guard let jpegData = resized.jpegData(compressionQuality: 0.7) else { return nil }
+        return jpegData.base64EncodedString()
+    }
+
+    private func saveImageToAppGroup(base64: String) {
+        guard let defaults = UserDefaults(suiteName: "group.com.travelpanel.app") else { return }
+        defaults.set(base64, forKey: "pendingShareImageBase64")
+        defaults.synchronize()
     }
 
     private func savePendingShareToAppGroup(url: String, title: String) {

@@ -88,9 +88,13 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
+    // Pick up any image the iOS Share Extension stashed via CapacitorBridge
+    const imageBase64 = sessionStorage.getItem('pendingClipImage') ?? undefined;
+    sessionStorage.removeItem('pendingClipImage');
+
     // Background enrichment
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, imageBase64)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
