@@ -44,17 +44,24 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>[&hasImage=1]
+        // hasImage=1 means the Share Extension wrote a screenshot to the App Group container.
         const listener = await App.addListener('appUrlOpen', ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage = parsed.searchParams.get('hasImage') === '1';
 
-            if (shareUrl) {
-              const qs = new URLSearchParams({ url: shareUrl });
+            if (shareUrl || hasImage) {
+              const qs = new URLSearchParams();
+              if (shareUrl) qs.set('url', shareUrl);
               if (shareTitle) qs.set('title', shareTitle);
+              // hasImage signals the /share page to show "screenshot detected" hint.
+              // The actual image is read from the App Group container via a future
+              // TravelPanelPlugin (custom Capacitor plugin — see ShareViewController.swift).
+              if (hasImage) qs.set('hasImage', '1');
               router.push(`/share?${qs.toString()}`);
             }
           } catch {
