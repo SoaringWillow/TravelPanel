@@ -85,8 +85,9 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,7 +99,15 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(url);
   const page = await fetchPageData(url);
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Use Claude Vision when:
+  // • The caller provides a screenshot/image (iOS Share Extension image payload), AND
+  // • The platform is known to block scraping (Xiaohongshu, WeChat) OR the scraped
+  //   text content is too thin to be useful (< 200 chars).
+  const platformBlocked = platform === 'xiaohongshu' || platform === 'wechat';
+  const textThin = !page?.textContent || page.textContent.trim().length < 200;
+  const useVision = typeof imageBase64 === 'string' && imageBase64.length > 0 && (platformBlocked || textThin);
+
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -128,14 +137,50 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  const visionPrompt = `You are a travel content analyzer. The image is a screenshot of a ${platform} travel post.
+URL: ${url}
+${page?.title ? `Title from page metadata: ${page.title}` : ''}
+
+Read the visible text and visuals in the screenshot and extract TWO layers:
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+Do NOT invent or guess coordinates.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every tip, warning, opinion, or insight visible in the post — text, captions,
+on-screen labels. Even a post with no named locations can yield many substance items.
+Never return an empty substance array for a real travel post.`;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (useVision) {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: Buffer.from(imageBase64!, 'base64'),
+                mediaType: 'image/jpeg',
+              },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
