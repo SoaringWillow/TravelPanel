@@ -26,6 +26,29 @@
     --ring: 240 5.9% 10%;
     --radius: 0.75rem;
   }
+
+  /* Dark mode — activated by class="dark" on <html> (set by theme-init script) */
+  .dark {
+    --background: 222 47% 8%;       /* #0d1424 — deep navy */
+    --foreground: 213 31% 91%;      /* #dce9f5 — soft white */
+    --card: 222 47% 12%;            /* #141f33 — card surface */
+    --card-foreground: 213 31% 91%;
+    --popover: 222 47% 12%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 238 84% 72%;         /* #7b8df8 — indigo light */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 47% 17%;       /* #1c2e4a — subtle raised surface */
+    --secondary-foreground: 213 31% 91%;
+    --muted: 222 47% 17%;
+    --muted-foreground: 215 20% 55%; /* #7a93aa — subdued text */
+    --accent: 222 47% 17%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 62% 48%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 40% 20%;          /* #1d3050 — subtle border */
+    --input: 222 40% 20%;
+    --ring: 238 84% 72%;
+  }
 }
 
 @layer base {
