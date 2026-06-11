@@ -30,11 +30,41 @@ function SharePageInner() {
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
+  // Supplementary data from iOS Share Extension (for Claude Vision on blocked platforms)
+  const [sharedText, setSharedText]           = useState<string | undefined>();
+  const [imageBase64, setImageBase64]         = useState<string | undefined>();
+
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Read supplementary caption text and image stored by the iOS Share Extension.
+  // Text is available immediately; image arrives ~1-2s later via async extraction.
+  useEffect(() => {
+    const text = sessionStorage.getItem('pendingShareText');
+    if (text) { setSharedText(text); sessionStorage.removeItem('pendingShareText'); }
+
+    const img = sessionStorage.getItem('pendingShareImageBase64');
+    if (img) { setImageBase64(img); sessionStorage.removeItem('pendingShareImageBase64'); }
+
+    if (!img) {
+      // Image loading in the Share Extension is async — it may not be in sessionStorage
+      // yet. Try reading it from Preferences once more after a short delay.
+      const timer = setTimeout(async () => {
+        try {
+          const { Preferences } = await import('@capacitor/preferences');
+          const { value } = await Preferences.get({ key: 'pendingShareImageBase64' });
+          if (value) {
+            setImageBase64(value);
+            await Preferences.remove({ key: 'pendingShareImageBase64' });
+          }
+        } catch { /* not in Capacitor context */ }
+      }, 1800);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +118,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass iOS-sourced text/image for Xiaohongshu etc.
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, { sharedText, imageBase64 })
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI
