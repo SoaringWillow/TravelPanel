@@ -3,8 +3,9 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Reads a pending share URL stored by the iOS Share Extension via App Groups.
-// The App Group suite name must match the one in ShareViewController.swift.
+// Reads a pending share + optional image stored by the iOS Share Extension via App Groups.
+// Image is read from the shared container file and forwarded as a base64 data URL
+// so the share page can pass it to Claude Vision for extraction.
 async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
   try {
     const { Preferences } = await import('@capacitor/preferences');
@@ -17,15 +18,44 @@ async function checkPendingAppGroupShare(router: ReturnType<typeof useRouter>) {
 
     const qs = new URLSearchParams({ url });
     if (title) qs.set('title', title);
+
+    // Check for a pending image saved by the Share Extension (B3 — vision support)
+    const imageDataUrl = await readPendingImage();
+    if (imageDataUrl) qs.set('image', imageDataUrl);
+
     router.push(`/share?${qs.toString()}`);
   } catch {
     // @capacitor/preferences not installed or not in native context
   }
 }
 
+// Read the pending share image from the App Group container via Capacitor Filesystem.
+// Returns a base64 data URL string, or null if no image is pending.
+async function readPendingImage(): Promise<string | null> {
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+    // The Share Extension writes to the shared App Group container.
+    // Capacitor's Documents directory maps to the App Group container when properly wired.
+    const result = await Filesystem.readFile({
+      path: 'pendingShareImage.jpg',
+      directory: Directory.Documents,
+    });
+    if (!result.data) return null;
+    // Clean up so it's not read again on next launch
+    await Filesystem.deleteFile({
+      path: 'pendingShareImage.jpg',
+      directory: Directory.Documents,
+    }).catch(() => {});
+    // result.data is already a base64 string
+    return `data:image/jpeg;base64,${result.data}`;
+  } catch {
+    return null;
+  }
+}
+
 // Initializes Capacitor plugins and handles deep links from the native Share Extension.
-// The iOS Share Extension opens travelpanel://share?url=...&title=... which triggers
-// the appUrlOpen event here, routing into the web share capture flow.
+// The iOS Share Extension opens travelpanel://share?url=...&title=...&hasImage=1 which
+// triggers the appUrlOpen event here, routing into the web share capture flow.
 export function CapacitorBridge() {
   const router = useRouter();
 
@@ -44,17 +74,25 @@ export function CapacitorBridge() {
         ]);
 
         // Handle URL scheme deep links from the iOS Share Extension.
-        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>
-        const listener = await App.addListener('appUrlOpen', ({ url }) => {
+        // The extension fires: travelpanel://share?url=<encoded>&title=<encoded>&hasImage=1
+        const listener = await App.addListener('appUrlOpen', async ({ url }) => {
           try {
             // Normalise the custom scheme to a parseable HTTPS URL
             const parsed = new URL(url.replace(/^[a-z][a-z0-9+\-.]*:\/\//i, 'https://app/'));
             const shareUrl = parsed.searchParams.get('url');
             const shareTitle = parsed.searchParams.get('title');
+            const hasImage = parsed.searchParams.get('hasImage') === '1';
 
             if (shareUrl) {
               const qs = new URLSearchParams({ url: shareUrl });
               if (shareTitle) qs.set('title', shareTitle);
+
+              // If the Share Extension captured an image, read it now
+              if (hasImage) {
+                const imageDataUrl = await readPendingImage();
+                if (imageDataUrl) qs.set('image', imageDataUrl);
+              }
+
               router.push(`/share?${qs.toString()}`);
             }
           } catch {

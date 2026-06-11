@@ -81,23 +81,82 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Image data URL parser ────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
+function parseImageDataUrl(dataUrl: string): { mimeType: string; base64: string } | null {
+  // Accepts "data:image/jpeg;base64,<data>" or plain base64 (assumed JPEG)
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/s);
+  if (match) return { mimeType: match[1], base64: match[2] };
+  // Plain base64 fallback (sent by iOS Share Extension)
+  if (/^[A-Za-z0-9+/]+=*$/.test(dataUrl.slice(0, 64))) {
+    return { mimeType: 'image/jpeg', base64: dataUrl };
+  }
+  return null;
+}
+
+// Platforms where scraping reliably fails — image path preferred when available
+const ANTI_SCRAPE_PLATFORMS = new Set(['xiaohongshu', 'wechat', 'douyin']);
+
+// ─── Extraction via Claude Vision ─────────────────────────────────────────────
+
+async function extractWithVision(
+  imageBase64: string,
+  mimeType: string,
+  url: string,
+  platform: string,
+): Promise<z.infer<typeof importSchema> | null> {
+  const prompt = `You are analyzing a screenshot of a ${platform} social media travel post.
+Extract TWO layers of travel intelligence from what you see in the image.
+
+## Layer 1 — Spots (geographic skeleton)
+Identify any real, named locations visible in the image (from text, captions, or map elements).
+Include GPS coordinates only if you are confident; otherwise omit lat/lng.
+Prioritize what's explicitly shown or mentioned in the image text.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Read all the text visible in the image and extract every piece of actionable travel insight:
+- Tips ("best time to visit", "get there early")
+- Warnings ("crowded on weekends", "cash only")
+- Opinions ("overrated", "hidden gem")
+- Wisdom ("locals eat here, not at the tourist version")
+- Context ("typhoon season July-Sept")
+- Recommendations ("order the hand-pulled noodles, not the fried ones")
+
+For list-format posts ("10 tips for Tokyo"), extract ALL items visible in the image.
+Even if location names are unclear, extract every piece of advice shown in the image text.
+URL hint for platform context: ${url}`;
+
   try {
-    ({ url } = await req.json());
+    const { object } = await generateObject({
+      model: models.enrichment,
+      schema: importSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: imageBase64,
+              mimeType: mimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+            },
+            { type: 'text', text: prompt },
+          ],
+        },
+      ],
+    });
+    return object;
   } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return null;
   }
+}
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
+// ─── Extraction via text (existing path) ──────────────────────────────────────
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
+async function extractWithText(
+  url: string,
+  platform: string,
+  page: Awaited<ReturnType<typeof fetchPageData>>,
+): Promise<z.infer<typeof importSchema> | null> {
   const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
@@ -128,23 +187,79 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
     const { object } = await generateObject({
       model: models.enrichment,
       schema: importSchema,
       prompt,
     });
-    claudeResult = object;
+    return object;
   } catch {
-    // Fall through to defaults
+    return null;
+  }
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let image: string | undefined;
+  try {
+    ({ url, image } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+  const imageInfo = image ? parseImageDataUrl(image) : null;
+
+  // Determine extraction strategy:
+  // - Image provided + anti-scrape platform → vision-first, text as fallback
+  // - Image provided + normal platform → try both, merge (vision wins for substance)
+  // - No image → text-only (existing behaviour)
+  const useVisionFirst = imageInfo && ANTI_SCRAPE_PLATFORMS.has(platform);
+  const useVisionOnly = useVisionFirst; // can widen to try text too if needed
+
+  let claudeResult: z.infer<typeof importSchema> | null = null;
+  let thumbnail: string | undefined;
+
+  if (imageInfo) {
+    // Vision path — no need to fetch page for anti-scrape platforms
+    if (!useVisionOnly) {
+      const page = await fetchPageData(url);
+      thumbnail = page?.thumbnail;
+      // Run vision + text in parallel, prefer vision result
+      const [visionResult, textResult] = await Promise.all([
+        extractWithVision(imageInfo.base64, imageInfo.mimeType, url, platform),
+        extractWithText(url, platform, page),
+      ]);
+      claudeResult = visionResult ?? textResult;
+    } else {
+      // Anti-scrape platform: skip page fetch, vision only
+      claudeResult = await extractWithVision(imageInfo.base64, imageInfo.mimeType, url, platform);
+      // Fall back to text if vision also fails
+      if (!claudeResult) {
+        const page = await fetchPageData(url);
+        thumbnail = page?.thumbnail;
+        claudeResult = await extractWithText(url, platform, page);
+      }
+    }
+  } else {
+    // Text-only path (original behaviour)
+    const page = await fetchPageData(url);
+    thumbnail = page?.thumbnail;
+    claudeResult = await extractWithText(url, platform, page);
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
-    thumbnail: page?.thumbnail || undefined,
+    title: (claudeResult?.title || url).slice(0, 200),
+    description: (claudeResult?.description || '').slice(0, 500),
+    thumbnail,
     locations: claudeResult?.locations ?? [],
     activities: claudeResult?.activities ?? [],
     tags: claudeResult?.tags ?? [],
