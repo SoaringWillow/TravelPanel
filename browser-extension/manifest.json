@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel Clipper",
+  "version": "1.0.0",
+  "description": "Clip travel inspiration from any website directly to TravelPanel",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options.html"
+}
