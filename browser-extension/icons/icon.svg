@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#312e81"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a5b4fc"/>
+      <stop offset="100%" style="stop-color:#c7d2fe"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded rect -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- Map pin -->
+  <path d="M64 18C48.5 18 36 30.5 36 46c0 21 28 64 28 64s28-43 28-64C92 30.5 79.5 18 64 18zm0 38c-5.5 0-10-4.5-10-10s4.5-10 10-10 10 4.5 10 10-4.5 10-10 10z" fill="url(#pin)"/>
+  <!-- Inner circle highlight -->
+  <circle cx="64" cy="46" r="6" fill="rgba(255,255,255,0.3)"/>
+</svg>

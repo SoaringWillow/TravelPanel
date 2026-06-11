@@ -81,24 +81,11 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// Platforms that actively block scraping — Vision is required when an image is available
+const ANTI_SCRAPE_PLATFORMS = new Set(['xiaohongshu', 'wechat']);
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+function buildTextPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
@@ -127,17 +114,110 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+function buildVisionPrompt(platform: string, url: string, page: Awaited<ReturnType<typeof fetchPageData>>) {
+  const pageContext = page?.title || page?.description
+    ? `\nContext from the URL:\n- Title: ${page.title || '(none)'}\n- Description: ${page.description || '(none)'}`
+    : '';
+
+  return `You are analyzing a screenshot of a ${platform} travel post. Extract TWO layers of information from what you see in the image.${pageContext}
+
+Source URL: ${url}
+
+## Layer 1 — Spots (geographic skeleton)
+Identify any real, named locations visible in the screenshot (place names, captions, text overlays, map pins).
+Only include locations with GPS coordinates you are confident about from what is shown.
+Do NOT guess — if you can't see a specific place name, omit it.
+
+## Layer 2 — Substance (the actual wisdom — MOST IMPORTANT)
+Read every piece of text visible in the image: captions, overlaid text, comments, labels.
+Extract actionable travel insights: tips ("best time to visit"), warnings ("avoid in summer"),
+opinions ("overrated"), wisdom ("locals go here instead"), recommendations, context.
+If the post is a list ("10 things to know"), extract every item you can read.
+Never return an empty substance array if any text is visible in the image.
+
+Translate any non-English text (Chinese, Japanese, etc.) into English before extracting.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204 });
+}
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let imageBase64: string | undefined;
+  let imageMimeType: string | undefined;
+  try {
+    const body = await req.json();
+    url          = body.url;
+    imageBase64  = body.imageBase64 ?? undefined;
+    imageMimeType = body.imageMimeType ?? 'image/jpeg';
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // For anti-scraping platforms with an image, skip the expensive page fetch
+  const skipScrape = imageBase64 != null && ANTI_SCRAPE_PLATFORMS.has(platform);
+  const page = skipScrape ? null : await fetchPageData(url);
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
-  try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
-  } catch {
-    // Fall through to defaults
+
+  // ── Vision path (image provided) ───────────────────────────────────────────
+  if (imageBase64) {
+    try {
+      const { object } = await generateObject({
+        model: models.visionEnrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageBase64,
+                mimeType: (imageMimeType ?? 'image/jpeg') as
+                  | 'image/jpeg'
+                  | 'image/png'
+                  | 'image/gif'
+                  | 'image/webp',
+              },
+              {
+                type: 'text',
+                text: buildVisionPrompt(platform, url, page),
+              },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } catch {
+      // Vision failed — fall through to text extraction below
+    }
+  }
+
+  // ── Text path (no image, or vision failed) ─────────────────────────────────
+  if (!claudeResult) {
+    // Fetch page if we skipped it earlier (vision failed for an anti-scrape platform)
+    const textPage = page ?? (skipScrape ? await fetchPageData(url) : null);
+    try {
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildTextPrompt(platform, url, textPage),
+      });
+      claudeResult = object;
+    } catch {
+      // Fall through to defaults
+    }
   }
 
   const result: ImportResult = {
