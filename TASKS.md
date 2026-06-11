@@ -5,6 +5,21 @@
 > **Task format**: Each task has enough detail to implement without further clarification.
 > **Priority order**: Work top-to-bottom within each phase. Don't skip phases.
 
+## 🤖 AUTOMATION PROTOCOL — READ BEFORE PICKING A TASK
+
+An hourly scheduled run has been creating **duplicate PRs** for the same task
+(B2 was implemented 5× — PRs #174, #175, #176, #177, #178 — because each run
+started from this file's unchanged state). To prevent that:
+
+1. **Before starting any task**: search open PRs (`list_pull_requests`) for one
+   that already implements it. If found, do NOT re-implement. Either improve
+   that PR's branch or pick a different task.
+2. **When you open a PR for a task**: immediately mark it `[~] In review — PR #N`
+   in this file and push that change to the default branch in the same session.
+3. **Skip tasks tagged `USER-ONLY` or `NEEDS-RESOURCE`** — they cannot proceed
+   without the human and must not be attempted by automation.
+4. If no actionable `[ ]` task remains, END THE SESSION without inventing work.
+
 ---
 
 ## ⭐ Recommended Execution Order (revised 2026-06-11)
@@ -63,7 +78,7 @@ onboarding card with demo reseed; 💡 wisdom badge on map pins + popup count;
 move-to-board refresh fixed; token usage telemetry → `lib/usageLog.ts`.
 
 ### H7 — Verify on a real device
-**Status**: `[ ]` Not started — **needs the user** (macOS + iPhone)  
+**Status**: `[ ]` `USER-ONLY` — needs the human (macOS + iPhone); automation must skip  
 Run the PWA on iPhone Safari, then the Capacitor shell via Xcode
 (see `ios/App/ShareExtension/XCODE_SETUP.md`). Gates: share-sheet UX, map
 performance, monetization decisions.
@@ -210,11 +225,12 @@ performance, monetization decisions.
 add a sign-in UI surface, wire `syncNow()` on auth + app focus, enable Google provider in the dashboard.
 
 ### B2 — Browser Extension
-**Status**: `[ ]` Not started  
-**What to do**: Chrome/Safari extension that clips the current page URL into TravelPanel
+**Status**: `[~]` In review — implemented 5× by the hourly automation: PRs #174, #175, #176, #177, #178.  
+**DO NOT RE-IMPLEMENT.** User to pick one PR to merge (recommend newest, #178) and close the other four as duplicates.
 
 ### B3 — Xiaohongshu Fix (Claude Vision)
-**Status**: `[ ]` Not started  
+**Status**: `[ ]` Not started — partially `NEEDS-RESOURCE` (full flow needs the iOS Share
+Extension wired in Xcode on macOS; the API-side Vision path CAN be built now)  
 **What to do**: Accept image payload from iOS Share Sheet, use Claude Vision to extract metadata + substance
 
 ### B4 — Embedding/Vibe Search
