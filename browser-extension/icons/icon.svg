@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Background rounded square -->
+  <rect width="128" height="128" rx="28" ry="28" fill="#0d9488"/>
+  <!-- Location pin outline -->
+  <!-- Pin head: circle top -->
+  <circle cx="64" cy="46" r="22" fill="white"/>
+  <!-- Pin tail: triangle pointing down -->
+  <polygon points="42,52 86,52 64,102" fill="white"/>
+  <!-- Inner hole -->
+  <circle cx="64" cy="46" r="9" fill="#0d9488"/>
+</svg>
