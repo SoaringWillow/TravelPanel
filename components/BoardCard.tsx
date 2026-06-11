@@ -17,7 +17,7 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
+      className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden cursor-pointer min-h-[160px] flex flex-col hover:border-l-[3px] hover:border-l-indigo-500 transition-all duration-150"
       style={{ borderLeftWidth: undefined }}
     >
       {/* Cover thumbnail background */}
@@ -28,7 +28,7 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-white/80" />
+          <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80" />
         </>
       )}
 
@@ -38,12 +38,12 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
         <div className="text-2xl leading-none mb-3">{board.emoji}</div>
 
         {/* Name */}
-        <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-1 mb-1">
+        <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-1 mb-1">
           {board.name}
         </h3>
 
         {/* Item count */}
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-400 dark:text-gray-500">
           {itemCount} place{itemCount !== 1 ? 's' : ''}
         </p>
 
@@ -55,7 +55,7 @@ export default function BoardCard({ board, itemCount, onClick, onDelete }: Board
               e.stopPropagation();
               onDelete();
             }}
-            className="absolute bottom-3 right-3 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            className="absolute bottom-3 right-3 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
             aria-label="Delete board"
           >
             <Trash2 size={14} />
