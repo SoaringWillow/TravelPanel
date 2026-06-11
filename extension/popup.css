@@ -1,0 +1,280 @@
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #111827;
+  background: #ffffff;
+  width: 300px;
+  min-height: 200px;
+  padding: 12px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.logo-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #6366f1;
+  letter-spacing: -0.2px;
+}
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.15s, background 0.15s;
+}
+.icon-btn:hover { opacity: 1; background: #f3f4f6; }
+
+/* ── Page preview ────────────────────────────────────────────────────────── */
+.page-preview {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.platform-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: white;
+  background: #6b7280;
+  border-radius: 100px;
+  padding: 2px 8px;
+  align-self: flex-start;
+}
+.platform-badge[data-platform="instagram"]   { background: #e1306c; }
+.platform-badge[data-platform="youtube"]     { background: #ff0000; }
+.platform-badge[data-platform="xiaohongshu"] { background: #ff2442; }
+.platform-badge[data-platform="douyin"]      { background: #010101; }
+.platform-badge[data-platform="bilibili"]    { background: #00a1d6; }
+.platform-badge[data-platform="tiktok"]      { background: #010101; }
+.platform-badge[data-platform="twitter"]     { background: #1da1f2; }
+.platform-badge[data-platform="reddit"]      { background: #ff4500; }
+.platform-badge[data-platform="pinterest"]   { background: #e60023; }
+
+.page-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.page-url {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Section label ───────────────────────────────────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: -4px;
+}
+
+/* ── Boards row ──────────────────────────────────────────────────────────── */
+.boards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.boards-loading {
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 4px 0;
+}
+
+.board-chip {
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 100px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+  white-space: nowrap;
+}
+.board-chip:active { transform: scale(0.95); }
+.board-chip:disabled { opacity: 0.4; cursor: default; }
+
+.board-chip--inbox {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.board-chip--inbox:hover { background: #e0e7ff; }
+
+.board-chip--board {
+  background: #f3f4f6;
+  color: #374151;
+}
+.board-chip--board:hover { background: #e5e7eb; }
+
+.board-chip--new {
+  background: transparent;
+  border: 1.5px dashed #d1d5db;
+  color: #6b7280;
+}
+.board-chip--new:hover { border-color: #9ca3af; color: #374151; }
+
+.board-chip--selected {
+  background: #6366f1 !important;
+  color: #fff !important;
+}
+
+/* ── New board input ─────────────────────────────────────────────────────── */
+.new-board-section {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.new-board-input {
+  flex: 1;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.new-board-input:focus { border-color: #6366f1; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+
+.btn--save {
+  width: 100%;
+  padding: 10px 14px;
+  background: #6366f1;
+  color: white;
+  font-size: 14px;
+}
+.btn--save:hover:not(:disabled) { background: #4f46e5; }
+
+.btn--primary {
+  background: #6366f1;
+  color: white;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.btn--primary:hover:not(:disabled) { background: #4f46e5; }
+
+.btn--ghost {
+  background: transparent;
+  color: #6b7280;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.btn--ghost:hover { color: #374151; }
+
+.btn--sm { border-radius: 8px; }
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: -2px 0;
+}
+
+/* ── States ──────────────────────────────────────────────────────────────── */
+.success-state, .error-state {
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.success-state {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.success-icon {
+  width: 28px;
+  height: 28px;
+  background: #22c55e;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.success-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+.success-text strong { font-size: 13px; color: #15803d; }
+.success-text span { color: #6b7280; }
+
+.error-state {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 12px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: #d1d5db;
+  padding-top: 2px;
+}
+.footer-link {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+  opacity: 0.8;
+}
+.footer-link:hover { opacity: 1; }

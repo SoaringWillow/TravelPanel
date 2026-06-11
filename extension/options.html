@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #111827;
+      background: #f9fafb;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .logo svg circle { fill: #6366f1; }
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #6366f1;
+    }
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+    input[type="url"] {
+      width: 100%;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      color: #111827;
+    }
+    input[type="url"]:focus { border-color: #6366f1; }
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save {
+      background: #6366f1;
+      color: white;
+      flex: 1;
+    }
+    .btn-save:hover { background: #4f46e5; }
+    .btn-reset {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .btn-reset:hover { background: #e5e7eb; }
+    .status {
+      font-size: 13px;
+      color: #22c55e;
+      font-weight: 600;
+      min-height: 20px;
+      margin-top: 10px;
+    }
+    .divider {
+      height: 1px;
+      background: #f3f4f6;
+      margin: 24px 0;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+    }
+    .info-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .info-row span:last-child { color: #374151; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="10" fill="#6366f1"/>
+        <path d="M10 4C7.8 4 6 5.8 6 8c0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4zm0 5.5c-.83 0-1.5-.67-1.5-1.5S9.17 6.5 10 6.5 11.5 7.17 11.5 8 10.83 9.5 10 9.5z" fill="white"/>
+      </svg>
+      <span class="logo-text">TravelPanel</span>
+    </div>
+
+    <h1>Extension Settings</h1>
+
+    <div>
+      <label for="app-url">TravelPanel App URL</label>
+      <input
+        type="url"
+        id="app-url"
+        placeholder="https://travelpanel.vercel.app"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="hint">The URL where your TravelPanel app is deployed. Change this if you're running a local or self-hosted instance.</p>
+    </div>
+
+    <div class="actions">
+      <button class="btn-save" id="save-btn">Save Settings</button>
+      <button class="btn-reset" id="reset-btn">Reset to Default</button>
+    </div>
+    <div class="status" id="status"></div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">About</div>
+    <div class="info-grid">
+      <div class="info-row">
+        <span>Version</span>
+        <span id="version">1.0.0</span>
+      </div>
+      <div class="info-row">
+        <span>Keyboard shortcut</span>
+        <span>Alt+Shift+S</span>
+      </div>
+      <div class="info-row">
+        <span>Right-click menu</span>
+        <span>Save page / Save link</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

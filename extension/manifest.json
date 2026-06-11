@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "TravelPanel — Save Inspiration",
+  "short_name": "TravelPanel",
+  "version": "1.0.0",
+  "description": "Clip any travel post to your TravelPanel boards with one click. Extracts locations, tips, and wisdom automatically.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_title": "Save to TravelPanel"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus"
+  ],
+  "commands": {
+    "save-page": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
+      "description": "Save current page to TravelPanel"
+    }
+  }
+}
