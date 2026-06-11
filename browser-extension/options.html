@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      min-height: 100vh;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 48px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 28px 32px;
+      width: 100%; max-width: 480px;
+    }
+
+    .header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    h1 { font-size: 18px; font-weight: 700; }
+    .subtitle { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+    .field { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .field-desc { font-size: 12px; color: #9ca3af; margin-bottom: 8px; }
+
+    input[type="url"] {
+      width: 100%;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: #111827;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="url"]:focus { border-color: #4f46e5; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 24px; }
+
+    .btn-primary {
+      flex: 1;
+      background: #4f46e5; color: #fff;
+      border: none; border-radius: 10px;
+      padding: 11px 20px; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #4338ca; }
+
+    .btn-secondary {
+      background: #f3f4f6; color: #374151;
+      border: none; border-radius: 10px;
+      padding: 11px 16px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #e5e7eb; }
+
+    .toast {
+      display: none;
+      background: #d1fae5; border: 1px solid #6ee7b7;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 13px; color: #065f46; font-weight: 600;
+      margin-top: 14px;
+    }
+    .toast.visible { display: block; }
+
+    .presets { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .preset {
+      font-size: 11px; padding: 4px 10px;
+      background: #eef2ff; color: #4f46e5;
+      border: none; border-radius: 6px; cursor: pointer;
+      font-weight: 600; transition: background 0.15s;
+    }
+    .preset:hover { background: #e0e7ff; }
+
+    .divider { border: none; border-top: 1px solid #f3f4f6; margin: 24px 0; }
+
+    .info-row { display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="logo">✈️</div>
+      <div>
+        <h1>TravelPanel Clipper</h1>
+        <div class="subtitle">Extension settings</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="tp-url">TravelPanel URL</label>
+      <div class="field-desc">The URL where your TravelPanel app is running.</div>
+      <input type="url" id="tp-url" placeholder="http://localhost:3000" autocomplete="off">
+      <div class="presets">
+        <button class="preset" data-url="http://localhost:3000">Local (3000)</button>
+        <button class="preset" data-url="http://localhost:3001">Local (3001)</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-save">Save settings</button>
+      <button class="btn-secondary" id="btn-reset">Reset</button>
+    </div>
+
+    <div class="toast" id="toast">✓ Settings saved!</div>
+
+    <hr class="divider">
+
+    <div class="info-row">
+      <span>TravelPanel Clipper v1.0.0</span>
+      <span>Chrome / Edge / Brave</span>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

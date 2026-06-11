@@ -81,31 +81,34 @@ async function fetchPageData(url: string) {
   }
 }
 
-// ─── Route handler ───────────────────────────────────────────────────────────
+// ─── Extraction prompt builder ────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  let url: string;
-  try {
-    ({ url } = await req.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+function buildPrompt({
+  platform,
+  url,
+  title,
+  description,
+  textContent,
+  isVision = false,
+}: {
+  platform: string;
+  url: string;
+  title: string;
+  description: string;
+  textContent: string;
+  isVision?: boolean;
+}) {
+  const sourceNote = isVision
+    ? 'The post image is attached — use it as the primary source.'
+    : `Page content:\n${textContent}`;
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
-  }
-
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
-
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  return `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
 URL: ${url}
-Title: ${page?.title ?? '(unavailable)'}
-Description: ${page?.description ?? '(unavailable)'}
-Page content:
-${page?.textContent ?? '(could not fetch page)'}
+Title: ${title}
+Description: ${description}
+${sourceNote}
 
 ## Layer 1 — Spots (geographic skeleton)
 Extract real, identifiable locations with GPS coordinates you are confident about.
@@ -127,23 +130,87 @@ This is what competitors miss. Examples of what to capture:
 For list-format content like "35 mistakes to avoid" or "10 things I wish I knew", extract ALL items.
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
+}
+
+// ─── Route handler ───────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  let url: string;
+  let sharedText: string | undefined;
+  let imageBase64: string | undefined;
+
+  try {
+    ({ url, sharedText, imageBase64 } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  }
+
+  const platform = detectPlatform(url);
+
+  // Fetch page metadata (title, description, thumbnail).
+  // For blocked platforms (Xiaohongshu, Douyin) this will likely return empty content —
+  // that's expected, and sharedText / imageBase64 pick up the slack.
+  const page = await fetchPageData(url);
+
+  // Text content priority: iOS Share Sheet caption > scraped page text
+  const effectiveTextContent =
+    sharedText
+      ? `[iOS Share Sheet caption]\n${sharedText}` + (page?.textContent ? `\n\n[Scraped page]\n${page.textContent}` : '')
+      : (page?.textContent ?? '(could not fetch page)');
+
+  const effectiveTitle       = page?.title || (sharedText ? sharedText.slice(0, 120) : '') || url;
+  const effectiveDescription = page?.description || '';
+
+  const promptArgs = {
+    platform,
+    url,
+    title: effectiveTitle,
+    description: effectiveDescription,
+    textContent: effectiveTextContent,
+  };
 
   let claudeResult: z.infer<typeof importSchema> | null = null;
+
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Claude Vision path: image from the iOS Share Extension gives full visual context
+      // even when web scraping returns nothing (Xiaohongshu, WeChat, private posts).
+      const imageBuffer = Buffer.from(imageBase64, 'base64');
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: buildPrompt({ ...promptArgs, isVision: true }) },
+              { type: 'image', image: imageBuffer, mimeType: 'image/jpeg' },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text-only path: scraped page content or iOS-provided caption
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: buildPrompt(promptArgs),
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
+    title: (claudeResult?.title || effectiveTitle).slice(0, 200),
+    description: (claudeResult?.description || effectiveDescription).slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
     locations: claudeResult?.locations ?? [],
     activities: claudeResult?.activities ?? [],

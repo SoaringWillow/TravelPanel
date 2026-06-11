@@ -5,7 +5,12 @@ import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
-export async function enrichItem(id: string, url: string): Promise<boolean> {
+interface EnrichOptions {
+  sharedText?: string;   // caption/post body from iOS Share Sheet (bypasses anti-scraping)
+  imageBase64?: string;  // JPEG base64 from iOS Share Sheet (enables Claude Vision)
+}
+
+export async function enrichItem(id: string, url: string, opts: EnrichOptions = {}): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
     // Don't mark as failed — leave as pending so retry queue picks it up later
@@ -18,10 +23,14 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
   await updateItemEnrichment(id, 'processing');
   recordEnrichment();
   try {
+    const body: Record<string, string> = { url };
+    if (opts.sharedText)  body.sharedText  = opts.sharedText;
+    if (opts.imageBase64) body.imageBase64 = opts.imageBase64;
+
     const res = await fetch('/api/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(body),
       keepalive: true,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

@@ -96,3 +96,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-11 02:27 | 42bee74 | feat(B2): add Chrome/Safari browser extension for one-click page clipping
+2026-06-11 02:35 | 8564436 | feat(B3): Claude Vision path for Xiaohongshu + blocked platforms
