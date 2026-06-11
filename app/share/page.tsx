@@ -29,12 +29,27 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [pendingScreenshot, setPendingScreenshot] = useState<string | undefined>(undefined);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
     getAllBoards().then((b) => setBoards(b)).catch(() => setBoards([]));
+  }, []);
+
+  // Pick up any screenshot the iOS Share Extension stored in sessionStorage
+  // (populated by CapacitorBridge when it reads the App Group pendingShareScreenshot)
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('travelpanel_pending_screenshot');
+      if (stored) {
+        setPendingScreenshot(stored);
+        sessionStorage.removeItem('travelpanel_pending_screenshot');
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing restriction)
+    }
   }, []);
 
   // Auto-dismiss when done
@@ -88,9 +103,9 @@ function SharePageInner() {
       await addItemToBoard(selectedBoardId, itemId);
     }
 
-    // Background enrichment
+    // Background enrichment — pass screenshot for vision extraction on anti-scraping platforms
     setEnrichmentLoading(true);
-    enrichItem(itemId, rawUrl)
+    enrichItem(itemId, rawUrl, pendingScreenshot)
       .then(async (success) => {
         if (success) {
           // Read back the enriched data to show location count in the done UI

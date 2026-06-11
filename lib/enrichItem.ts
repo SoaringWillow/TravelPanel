@@ -5,7 +5,7 @@ import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
-export async function enrichItem(id: string, url: string): Promise<boolean> {
+export async function enrichItem(id: string, url: string, imageBase64?: string): Promise<boolean> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
     // Don't mark as failed — leave as pending so retry queue picks it up later
@@ -18,10 +18,15 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
   await updateItemEnrichment(id, 'processing');
   recordEnrichment();
   try {
+    const body: Record<string, string> = { url };
+    if (imageBase64) {
+      body.imageBase64  = imageBase64;
+      body.imageMimeType = 'image/jpeg';
+    }
     const res = await fetch('/api/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(body),
       keepalive: true,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
