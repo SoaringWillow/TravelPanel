@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelPanel Extension Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #F9FAFB;
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #4338CA 0%, #6366F1 100%);
+      padding: 24px 28px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .card-header-logo {
+      width: 40px;
+      height: 40px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .card-header-title {
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .card-header-sub {
+      color: rgba(255,255,255,0.75);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .card-body {
+      padding: 28px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .field-hint {
+      font-size: 12px;
+      color: #6B7280;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .field-input {
+      width: 100%;
+      border: 2px solid #E5E7EB;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #111827;
+      background: #fff;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .field-input:focus {
+      border-color: #6366F1;
+    }
+    .field-input::placeholder {
+      color: #9CA3AF;
+    }
+
+    .save-row {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .save-btn {
+      background: #4F46E5;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .save-btn:hover { background: #4338CA; }
+    .save-btn:active { transform: scale(0.97); }
+
+    .status-msg {
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .status-msg.visible { opacity: 1; }
+    .status-msg.success { color: #059669; }
+    .status-msg.error { color: #DC2626; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #F3F4F6;
+      margin: 24px 0;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9CA3AF;
+      margin-bottom: 12px;
+    }
+
+    .info-block {
+      background: #F9FAFB;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .info-block p {
+      font-size: 13px;
+      color: #4B5563;
+      line-height: 1.6;
+    }
+    .info-block code {
+      background: #E5E7EB;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 12px;
+      font-family: "SF Mono", "Monaco", monospace;
+      color: #1F2937;
+    }
+    .info-block ol {
+      margin-top: 8px;
+      padding-left: 18px;
+    }
+    .info-block ol li {
+      font-size: 13px;
+      color: #4B5563;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-logo">📍</div>
+      <div>
+        <div class="card-header-title">TravelPanel Extension</div>
+        <div class="card-header-sub">Settings</div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- App URL field -->
+      <label class="field-label" for="app-url">TravelPanel App URL</label>
+      <p class="field-hint">
+        Enter the URL where your TravelPanel app is deployed. This is where the extension will send saved links.
+      </p>
+      <input
+        type="url"
+        id="app-url"
+        class="field-input"
+        placeholder="https://your-app.vercel.app"
+        spellcheck="false"
+        autocomplete="off"
+      />
+
+      <div class="save-row">
+        <button class="save-btn" id="save-btn">Save settings</button>
+        <span class="status-msg" id="status-msg"></span>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- How to use -->
+      <div class="section-title">How to use</div>
+      <div class="info-block">
+        <p>After saving your app URL:</p>
+        <ol>
+          <li>Navigate to any travel page (Instagram, YouTube, blogs…)</li>
+          <li>Click the TravelPanel icon in your browser toolbar</li>
+          <li>Click <strong>Save to TravelPanel</strong></li>
+          <li>Choose a board in the TravelPanel save dialog that opens</li>
+        </ol>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Self-host note -->
+      <div class="section-title">Finding your app URL</div>
+      <div class="info-block">
+        <p>
+          If deployed on Vercel, your URL looks like <code>https://my-project.vercel.app</code>.
+          You can also use a local development URL like <code>http://localhost:3000</code>
+          for testing with the dev server running.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
