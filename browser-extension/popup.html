@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-row">
+        <img src="icons/icon48.png" alt="" class="logo-img">
+        <span class="logo-text">TravelPanel</span>
+      </div>
+    </header>
+
+    <!-- Page info card -->
+    <div class="card" id="pageCard">
+      <div class="card-loading" id="loadingState">
+        <div class="spinner"></div>
+        <span>Reading page…</span>
+      </div>
+
+      <div class="card-content" id="contentState" hidden>
+        <div class="platform-row">
+          <span class="platform-badge" id="platformBadge"></span>
+          <span class="platform-label" id="platformLabel"></span>
+        </div>
+        <div class="page-title" id="pageTitle"></div>
+        <div class="page-url" id="pageUrl"></div>
+      </div>
+
+      <div class="card-error" id="errorState" hidden>
+        <span class="error-icon">⚠</span>
+        <span id="errorMessage">Could not read this page.</span>
+      </div>
+    </div>
+
+    <!-- Action button -->
+    <button class="clip-btn" id="clipBtn" disabled>
+      <span class="clip-btn-icon">✈</span>
+      <span class="clip-btn-text">Save to TravelPanel</span>
+    </button>
+
+    <!-- Success state -->
+    <div class="success-state" id="successState" hidden>
+      <div class="success-icon">✓</div>
+      <div class="success-text">Opening TravelPanel…</div>
+      <div class="success-sub">Choose a board in the new tab</div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <a href="#" id="optionsLink" class="settings-link">⚙ Settings</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

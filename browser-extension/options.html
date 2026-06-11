@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo-row">
+        <img src="icons/icon48.png" alt="" class="logo-img">
+        <div>
+          <div class="logo-text">TravelPanel Clipper</div>
+          <div class="logo-sub">Settings</div>
+        </div>
+      </div>
+    </header>
+
+    <form id="settingsForm" class="form">
+      <div class="field">
+        <label class="label" for="appUrl">TravelPanel URL</label>
+        <p class="hint">The base URL of your TravelPanel deployment. Change this if you're self-hosting or running locally.</p>
+        <input
+          type="url"
+          id="appUrl"
+          name="appUrl"
+          class="input"
+          placeholder="https://travelpanel.vercel.app"
+          spellcheck="false"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="save-btn" id="saveBtn">Save settings</button>
+        <button type="button" class="reset-btn" id="resetBtn">Reset to default</button>
+      </div>
+
+      <div class="status" id="statusMsg" hidden></div>
+    </form>
+
+    <section class="info-section">
+      <h2 class="section-title">How to use</h2>
+      <ol class="steps">
+        <li>Browse to any travel post — Instagram, YouTube, 小红书, TikTok, or any website.</li>
+        <li>Click the TravelPanel icon in your browser toolbar.</li>
+        <li>Hit <strong>Save to TravelPanel</strong>. A new tab opens so you can choose a board.</li>
+        <li>TravelPanel extracts locations, tips, and wisdom from the post automatically.</li>
+      </ol>
+      <p class="tip">
+        <strong>Tip:</strong> Right-click any link and choose <em>Save to TravelPanel</em> to clip without navigating.
+      </p>
+    </section>
+
+    <footer class="footer">
+      <a href="https://github.com/soaringwillow/travelpanel" target="_blank" rel="noopener" class="footer-link">GitHub</a>
+      <span class="divider">·</span>
+      <span class="version" id="versionLabel"></span>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
