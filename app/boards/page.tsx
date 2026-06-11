@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Download, Upload } from 'lucide-react';
 import { useBoards } from '@/hooks/useBoards';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { exportAllData, importAllData } from '@/lib/exportData';
 import BoardCard from '@/components/BoardCard';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import OnboardingSeed from '@/components/OnboardingSeed';
@@ -15,6 +16,19 @@ export default function BoardsPage() {
   const { items } = useSavedItems();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  const restoreInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleRestoreFile(file: File) {
+    try {
+      const text = await file.text();
+      const counts = await importAllData(text);
+      setBackupMsg(`Restored ${counts.items} clips, ${counts.boards} boards, ${counts.trips} plans.`);
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      setBackupMsg(err instanceof Error ? err.message : 'Restore failed.');
+    }
+  }
 
   function getItemCount(boardId: string): number {
     const board = boards.find((b) => b.id === boardId);
@@ -38,15 +52,49 @@ export default function BoardsPage() {
             <LayoutGrid className="text-indigo-600" size={22} />
             <h1 className="text-xl font-bold text-gray-800">My Boards</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            <Plus size={16} />
-            <span>New Board</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => exportAllData()}
+              title="Back up all my data (JSON)"
+              aria-label="Back up all my data"
+              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+            >
+              <Download size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => restoreInputRef.current?.click()}
+              title="Restore from backup"
+              aria-label="Restore from backup"
+              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+            >
+              <Upload size={18} />
+            </button>
+            <input
+              ref={restoreInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleRestoreFile(file);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+              <Plus size={16} />
+              <span>New Board</span>
+            </button>
+          </div>
         </div>
+        {backupMsg && (
+          <p className="text-xs text-indigo-600 mt-2">{backupMsg}</p>
+        )}
       </div>
 
       {/* First-launch demo seed banner */}

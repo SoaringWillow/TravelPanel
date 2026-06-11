@@ -65,6 +65,14 @@ export async function seedDemoIfFirstLaunch(): Promise<boolean> {
   return true;
 }
 
+// Re-seed on demand (e.g. "Load demo boards" from the empty map) — clears the
+// first-launch flag so seedDemoIfFirstLaunch will run again on an empty DB.
+export async function forceReseedDemo(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  localStorage.removeItem(SEEDED_FLAG);
+  return seedDemoIfFirstLaunch();
+}
+
 // True if any demo content currently lives in the DB.
 export async function hasDemoData(): Promise<boolean> {
   const [items, boards] = await Promise.all([getAllItems(), getAllBoards()]);

@@ -4,9 +4,10 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { Globe2, Plus } from 'lucide-react';
+import { Globe2, Plus, Sparkles } from 'lucide-react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { SavedItem, Location } from '@/lib/types';
+import { forceReseedDemo } from '@/lib/seed';
 import ImportSheet from '@/components/ImportSheet';
 import LocationDetailCard from '@/components/LocationDetailCard';
 import NavBar from '@/components/NavBar';
@@ -83,6 +84,39 @@ function HomePageInner() {
           </div>
         </div>
       </div>
+
+      {/* Empty-map onboarding card — the blank globe is fatal at first touch */}
+      {!loading && items.length === 0 && !showImport && (
+        <div className="absolute inset-x-4 top-24 z-[999]">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-5 space-y-3 max-w-sm mx-auto">
+            <div className="flex items-center gap-2">
+              <Sparkles size={18} className="text-indigo-500" />
+              <h2 className="font-bold text-gray-800">Your map is empty</h2>
+            </div>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Clip a post from Instagram, RED or YouTube — we&apos;ll pull out the
+              places <em>and</em> the wisdom (tips, warnings, local knowledge) automatically.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setShowImport(true)}
+                className="flex-1 bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
+              >
+                Clip your first place
+              </button>
+              <button
+                onClick={async () => {
+                  const seeded = await forceReseedDemo();
+                  if (seeded) window.location.reload();
+                }}
+                className="flex-1 border-2 border-indigo-200 text-indigo-600 text-sm font-medium py-2.5 rounded-xl hover:bg-indigo-50 transition-colors"
+              >
+                Load demo boards
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Selected item detail card */}
       <AnimatePresence>

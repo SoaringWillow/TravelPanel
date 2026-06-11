@@ -9,6 +9,8 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { SavedItem, ImportResult } from '@/lib/types';
+import { track } from '@/lib/analytics';
+import { recordUsage } from '@/lib/usageLog';
 import {
   detectPlatform,
   PLATFORM_LABELS,
@@ -73,6 +75,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ImportResult = await res.json();
+      recordUsage(data.usage);
       setPreview(data);
       setStage('preview');
     } catch (err) {
@@ -106,6 +109,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    track('clip_saved', { platform: preview.platform, source: 'import_sheet' });
     onSaved(item);
     resetState();
   }
@@ -130,6 +134,7 @@ export default function ImportSheet({ open, onClose, onSaved, initialUrl = '' }:
       retryCount: 0,
       boardId: undefined,
     };
+    track('clip_saved', { platform, source: 'import_sheet_url_only' });
     onSaved(item);
     resetState();
   }

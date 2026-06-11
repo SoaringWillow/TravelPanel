@@ -47,10 +47,6 @@ export default function BoardDetailPage() {
     await removeItem(id);
   }
 
-  async function handleMoveToBoard(id: string) {
-    // No-op on board detail page — removal handled by handleDelete
-  }
-
   if (loading) {
     return (
       <div className="flex flex-col h-screen bg-gray-50">

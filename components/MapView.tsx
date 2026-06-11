@@ -91,9 +91,36 @@ interface PinProps {
 function Pin({ item, locName, onClick }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const emoji = getPinEmoji(item.tags);
+  const hasWisdom = (item.substance?.length ?? 0) > 0;
 
   return (
     <div style={{ position: 'relative' }}>
+      {/* Wisdom badge — the substance moat must be visible on the map, the
+          primary surface. Pins with extracted tips get a small amber dot. */}
+      {hasWisdom && (
+        <div
+          style={{
+            position:       'absolute',
+            top:            -5,
+            right:          -5,
+            width:          15,
+            height:         15,
+            borderRadius:   '50%',
+            backgroundColor:'#f59e0b',
+            border:         '1.5px solid white',
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'center',
+            fontSize:       8,
+            zIndex:         5,
+            pointerEvents:  'none',
+            boxShadow:      '0 1px 3px rgba(0,0,0,0.3)',
+          }}
+        >
+          💡
+        </div>
+      )}
+
       {/* Hover label */}
       {hovered && (
         <div
@@ -346,6 +373,11 @@ export default function MapView({ items, onPinClick, flyTo }: MapViewProps) {
               <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-2">
                 {popupInfo.item.title}
               </p>
+              {(popupInfo.item.substance?.length ?? 0) > 0 && (
+                <p className="text-[10px] text-amber-600 mt-0.5 font-medium">
+                  💡 {popupInfo.item.substance.length} tip{popupInfo.item.substance.length !== 1 ? 's' : ''} from this clip
+                </p>
+              )}
             </div>
           </Popup>
         )}

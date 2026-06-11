@@ -8,7 +8,7 @@ import { useSavedItems } from '@/hooks/useSavedItems';
 import { useBoards } from '@/hooks/useBoards';
 import { Platform } from '@/lib/types';
 import { PLATFORM_LABELS } from '@/lib/parse-url';
-import { addItemToBoard, removeItemFromBoard, getAllItems, saveItem } from '@/lib/db';
+import { addItemToBoard, removeItemFromBoard } from '@/lib/db';
 import { useEnrichmentRetry } from '@/hooks/useEnrichmentRetry';
 import { searchItems } from '@/lib/searchItems';
 import { track } from '@/lib/analytics';
@@ -29,7 +29,7 @@ const PLATFORM_FILTERS: Array<{ key: Platform | 'all'; label: string }> = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { items, loading, removeItem, refreshItem } = useSavedItems();
+  const { items, loading, removeItem, refreshItem, refresh } = useSavedItems();
   const { boards } = useBoards();
   const router = useRouter();
 
@@ -73,27 +73,21 @@ export default function InboxPage() {
       if (!movingItemId) return;
 
       if (boardId === null) {
-        // Unassign from any board: find item's current board and remove
+        // Unassign: removeItemFromBoard already clears the item's boardId
         const item = items.find((i) => i.id === movingItemId);
-        if (item && item.boardId) {
+        if (item?.boardId) {
           await removeItemFromBoard(item.boardId, movingItemId);
-          // Refresh items by reloading the page state — simplest approach
-          // since useSavedItems doesn't expose a refresh. We update boardId on item.
-          const allItems = await getAllItems();
-          const updatedItem = allItems.find((i) => i.id === movingItemId);
-          if (updatedItem) {
-            await saveItem({ ...updatedItem, boardId: undefined });
-          }
         }
       } else {
         await addItemToBoard(boardId, movingItemId);
       }
 
       setMovingItemId(null);
-      // Trigger a soft reload by navigating to the same page
-      router.refresh();
+      // router.refresh() re-renders server components only — it can't see
+      // IndexedDB. Re-read client state so the move is visible immediately.
+      await refresh();
     },
-    [movingItemId, items, router]
+    [movingItemId, items, refresh]
   );
 
   return (
