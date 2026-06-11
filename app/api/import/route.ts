@@ -85,23 +85,29 @@ async function fetchPageData(url: string) {
 
 export async function POST(req: NextRequest) {
   let url: string;
+  let imageBase64: string | undefined;
   try {
-    ({ url } = await req.json());
+    ({ url, imageBase64 } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'URL required' }, { status: 400 });
+  if ((!url || typeof url !== 'string') && !imageBase64) {
+    return NextResponse.json({ error: 'URL or image required' }, { status: 400 });
   }
 
-  const platform = detectPlatform(url);
-  const page = await fetchPageData(url);
+  url = url || '';
+  const platform = url ? detectPlatform(url) : 'other';
 
-  const prompt = `You are a travel content analyzer extracting TWO layers from this social media post.
+  // Fetch page metadata for text-based platforms; skip for anti-scraping platforms when
+  // an image is provided (image will be the primary extraction source).
+  const isAntiScraping = ['xiaohongshu', 'wechat'].includes(platform);
+  const page = (url && !(isAntiScraping && imageBase64)) ? await fetchPageData(url) : null;
+
+  const textPrompt = `You are a travel content analyzer extracting TWO layers from this social media post.
 
 Platform: ${platform}
-URL: ${url}
+URL: ${url || '(none — image-only share)'}
 Title: ${page?.title ?? '(unavailable)'}
 Description: ${page?.description ?? '(unavailable)'}
 Page content:
@@ -128,14 +134,52 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
+  const visionPrompt = `You are a travel content analyzer. The image is a screenshot of a ${platform === 'xiaohongshu' ? '小红书 (Xiaohongshu/RedNote)' : 'social media'} travel post.
+
+Extract TWO layers from everything visible in the image — text, captions, comments, location tags, and photos.
+
+## Layer 1 — Spots (geographic skeleton)
+Extract real, identifiable locations with GPS coordinates you are confident about.
+Look for location tags, place names in text, or recognizable landmarks in photos.
+Do NOT invent or guess coordinates.
+
+## Layer 2 — Substance (the actual wisdom — THIS IS THE MOST IMPORTANT LAYER)
+Extract every piece of actionable insight, advice, warning, or opinion visible in the image.
+Read ALL text in the image — captions, overlaid text, comments, descriptions.
+Examples: tips, warnings, "go in morning" advice, price info, seasonal notes, opinions.
+Never return an empty substance array for a real travel post.`;
+
   let claudeResult: z.infer<typeof importSchema> | null = null;
   try {
-    const { object } = await generateObject({
-      model: models.enrichment,
-      schema: importSchema,
-      prompt,
-    });
-    claudeResult = object;
+    if (imageBase64) {
+      // Vision path: use the image as the primary source of truth
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: imageBase64,
+                mimeType: 'image/jpeg',
+              },
+              { type: 'text', text: visionPrompt },
+            ],
+          },
+        ],
+      });
+      claudeResult = object;
+    } else {
+      // Text path: use scraped page content
+      const { object } = await generateObject({
+        model: models.enrichment,
+        schema: importSchema,
+        prompt: textPrompt,
+      });
+      claudeResult = object;
+    }
   } catch {
     // Fall through to defaults
   }
