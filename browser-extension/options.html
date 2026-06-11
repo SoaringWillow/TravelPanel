@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelPanel Clipper — Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f13;
+      color: #e2e8f0;
+      padding: 32px 24px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.02em;
+    }
+
+    .header span {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 400;
+    }
+
+    .section {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 13.5px;
+      color: #cbd5e1;
+      margin-bottom: 7px;
+      font-weight: 500;
+    }
+
+    .hint {
+      font-size: 11.5px;
+      color: #475569;
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #6366f1;
+    }
+
+    input[type="text"]::placeholder {
+      color: #334155;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn-save {
+      flex: 1;
+      padding: 10px;
+      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-save:hover { opacity: 0.9; }
+
+    .btn-test {
+      padding: 10px 16px;
+      background: transparent;
+      color: #64748b;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-test:hover {
+      background: rgba(255,255,255,0.05);
+      color: #94a3b8;
+    }
+
+    .status-msg {
+      margin-top: 12px;
+      font-size: 12.5px;
+      padding: 8px 12px;
+      border-radius: 7px;
+      display: none;
+    }
+
+    .status-msg.success {
+      background: rgba(34, 197, 94, 0.1);
+      color: #4ade80;
+      display: block;
+    }
+
+    .status-msg.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #f87171;
+      display: block;
+    }
+
+    .info-section {
+      border: 1px solid rgba(99,102,241,0.2);
+      background: rgba(99,102,241,0.05);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+
+    .info-section p {
+      font-size: 12.5px;
+      color: #818cf8;
+      line-height: 1.6;
+    }
+
+    .info-section strong {
+      color: #a5b4fc;
+    }
+
+    .shortcut-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 4px;
+      font-size: 11px;
+      color: #94a3b8;
+      font-family: 'SF Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo-icon">✈️</div>
+    <div>
+      <h1>TravelPanel Clipper <span>Settings</span></h1>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">App URL</div>
+    <label for="appUrl">Your TravelPanel URL</label>
+    <input
+      type="text"
+      id="appUrl"
+      placeholder="https://travelpanel.vercel.app"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <div class="hint">
+      Enter your deployed TravelPanel URL. For local development: <code style="color:#818cf8">http://localhost:3000</code>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-save" id="saveBtn">Save Settings</button>
+      <button class="btn-test" id="testBtn">Test Connection</button>
+    </div>
+
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+
+  <div class="info-section">
+    <p>
+      <strong>How to use:</strong> Click the TravelPanel icon in your toolbar while viewing any travel page.
+      The AI will extract locations, tips, warnings, and wisdom from the page and save it to your boards.
+    </p>
+    <div class="shortcut-hint" style="margin-top:10px">
+      <span style="font-size:12px;color:#64748b">Tip: Right-click any page to clip it too →</span>
+      <kbd>Right-click</kbd> <span style="color:#64748b;font-size:11px">→ "Save to TravelPanel"</span>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
