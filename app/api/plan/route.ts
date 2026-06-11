@@ -48,7 +48,20 @@ const tripPlanSchema = z.object({
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+// Guardrails on the hottest, most expensive request in the app: the payload
+// is bounded so a 200-clip board can't blow out the context window.
+const MAX_PLAN_ITEMS = 60;
+const MAX_SUBSTANCE_PER_ITEM = 8;
+const MAX_SUBSTANCE_CHARS = 240;
+
 export async function POST(req: NextRequest) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return new Response(
+      JSON.stringify({ error: 'AI planning unavailable — ANTHROPIC_API_KEY is not configured' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   let items: SavedItem[], days: number, preferences: string;
   try {
     ({ items, days, preferences } = await req.json());
@@ -57,6 +70,15 @@ export async function POST(req: NextRequest) {
   }
 
   if (!Array.isArray(items) || items.length === 0) {
+    return new Response('No items provided', { status: 400 });
+  }
+
+  // Demo clips must never leak citations into a real board's plan — but a
+  // pure demo board (first-launch showcase) should still plan beautifully.
+  const allDemo = items.every((i) => i.isDemo);
+  items = (allDemo ? items : items.filter((i) => !i.isDemo)).slice(0, MAX_PLAN_ITEMS);
+
+  if (items.length === 0) {
     return new Response('No items provided', { status: 400 });
   }
 
@@ -88,10 +110,16 @@ export async function POST(req: NextRequest) {
           model: models.planResolve,
           schema: z.object({ locations: z.array(locationSchema) }),
           prompt: `Verify these ${rawLocations.length} travel locations have accurate GPS coordinates. Correct any wrong ones and return all of them.\n\n${JSON.stringify(rawLocations)}`,
+          maxOutputTokens: 4096,
         });
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[plan/resolve] tokens:', resolvedResult.usage);
-        }
+        emit({
+          t: 'usage',
+          stage: 'resolve',
+          usage: {
+            inputTokens: resolvedResult.usage?.inputTokens,
+            outputTokens: resolvedResult.usage?.outputTokens,
+          },
+        });
         const { object: resolvedLocs } = resolvedResult;
 
         step('found', `Resolved ${resolvedLocs.locations.length} location${resolvedLocs.locations.length !== 1 ? 's' : ''}`);
@@ -109,10 +137,16 @@ export async function POST(req: NextRequest) {
             })),
           }),
           prompt: `Cluster these ${resolvedLocs.locations.length} locations into ${days} geographic day groups, minimising travel distance each day. Give each day a short theme.\n\nLocations:\n${JSON.stringify(resolvedLocs.locations)}`,
+          maxOutputTokens: 2048,
         });
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[plan/cluster] tokens:', clusterResult.usage);
-        }
+        emit({
+          t: 'usage',
+          stage: 'cluster',
+          usage: {
+            inputTokens: clusterResult.usage?.inputTokens,
+            outputTokens: clusterResult.usage?.outputTokens,
+          },
+        });
         const { object: clusters } = clusterResult;
 
         step('routing', 'Building optimised route…');
@@ -124,9 +158,9 @@ export async function POST(req: NextRequest) {
           title: i.title,
           activities: i.activities,
           tags: i.tags,
-          substance: (i.substance ?? []).map((s) => ({
+          substance: (i.substance ?? []).slice(0, MAX_SUBSTANCE_PER_ITEM).map((s) => ({
             type: s.type,
-            content: s.content,
+            content: s.content.slice(0, MAX_SUBSTANCE_CHARS),
             applies_to: s.applies_to,
           })),
         }));
@@ -135,6 +169,7 @@ export async function POST(req: NextRequest) {
 
         const planStream = streamObject({
           model: models.planItinerary,
+          maxOutputTokens: 16000,
           schema: tripPlanSchema,
           prompt: `Create a detailed ${days}-day travel itinerary.
 
@@ -161,6 +196,15 @@ Rules:
         }
 
         step('validating', 'Finalising your itinerary…');
+        const itineraryUsage = await planStream.usage;
+        emit({
+          t: 'usage',
+          stage: 'itinerary',
+          usage: {
+            inputTokens: itineraryUsage?.inputTokens,
+            outputTokens: itineraryUsage?.outputTokens,
+          },
+        });
         step('done', `Your ${days}-day plan is ready!`);
       } catch (err) {
         step('error', err instanceof Error ? err.message : 'Something went wrong generating your plan');

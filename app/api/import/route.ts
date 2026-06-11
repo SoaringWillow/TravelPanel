@@ -84,6 +84,16 @@ async function fetchPageData(url: string) {
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // Without the key, extraction would silently degrade to "URL saved, zero
+  // substance" — fail loudly instead so clients can show the real state and
+  // the retry queue can pick the item up once the key exists.
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json(
+      { error: 'AI extraction unavailable — ANTHROPIC_API_KEY is not configured' },
+      { status: 503 }
+    );
+  }
+
   let url: string;
   try {
     ({ url } = await req.json());
@@ -128,27 +138,36 @@ For list-format content like "35 mistakes to avoid" or "10 things I wish I knew"
 A post with no specific location can still have 5–10 substance items.
 Never return an empty substance array for a real travel post.`;
 
-  let claudeResult: z.infer<typeof importSchema> | null = null;
+  let claudeResult: z.infer<typeof importSchema>;
+  let usage: { inputTokens?: number; outputTokens?: number } | undefined;
   try {
-    const { object } = await generateObject({
+    const generated = await generateObject({
       model: models.enrichment,
       schema: importSchema,
       prompt,
+      maxOutputTokens: 8192,
     });
-    claudeResult = object;
+    claudeResult = generated.object;
+    usage = {
+      inputTokens: generated.usage?.inputTokens,
+      outputTokens: generated.usage?.outputTokens,
+    };
   } catch {
-    // Fall through to defaults
+    // A swallowed failure here used to masquerade as "no substance in this
+    // post" — return a real error so the item is marked failed and retried.
+    return NextResponse.json({ error: 'AI extraction failed' }, { status: 502 });
   }
 
   const result: ImportResult = {
     platform,
-    title: (claudeResult?.title || page?.title || url).slice(0, 200),
-    description: (claudeResult?.description || page?.description || '').slice(0, 500),
+    title: (claudeResult.title || page?.title || url).slice(0, 200),
+    description: (claudeResult.description || page?.description || '').slice(0, 500),
     thumbnail: page?.thumbnail || undefined,
-    locations: claudeResult?.locations ?? [],
-    activities: claudeResult?.activities ?? [],
-    tags: claudeResult?.tags ?? [],
-    substance: claudeResult?.substance ?? [],
+    locations: claudeResult.locations,
+    activities: claudeResult.activities,
+    tags: claudeResult.tags,
+    substance: claudeResult.substance,
+    usage,
   };
 
   return NextResponse.json(result);

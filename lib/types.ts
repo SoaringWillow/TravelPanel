@@ -137,9 +137,17 @@ export interface ImportResult {
   activities: string[];
   tags: string[];
   substance: SubstanceItem[];
+  usage?: TokenUsage; // server-reported token spend for this extraction
+}
+
+// Token spend reported by the API routes — feeds the client-side cost log.
+export interface TokenUsage {
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 // NDJSON messages streamed from /api/plan
 export type PlanStreamMessage =
   | { t: 'step'; step: AgentStep }
-  | { t: 'plan'; plan: Partial<TripPlan> };
+  | { t: 'plan'; plan: Partial<TripPlan> }
+  | { t: 'usage'; stage: 'resolve' | 'cluster' | 'itinerary'; usage: TokenUsage };

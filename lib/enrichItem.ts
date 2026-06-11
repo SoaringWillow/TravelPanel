@@ -1,18 +1,26 @@
 'use client';
 
-import { updateItemEnrichment } from './db';
+import { updateItemEnrichment, markEnrichmentFailed } from './db';
 import { ImportResult } from './types';
 import { checkEnrichmentLimit, recordEnrichment } from './rateLimits';
 import { track } from './analytics';
 
-export async function enrichItem(id: string, url: string): Promise<boolean> {
+// Distinguishes the three very different "didn't work" cases so the UI can be
+// honest: rate-limited (will retry later, nothing wrong), AI unconfigured
+// (needs the API key), or a genuine failure (retry queue handles it).
+export type EnrichResult =
+  | { ok: true }
+  | { ok: false; reason: 'rate_limit' | 'ai_unavailable' | 'failed' };
+
+export async function enrichItem(id: string, url: string): Promise<EnrichResult> {
   const limit = checkEnrichmentLimit();
   if (!limit.allowed) {
-    // Don't mark as failed — leave as pending so retry queue picks it up later
+    // Don't mark as failed — leave as pending; the retry queue picks pending
+    // items up on next app load, after the window has rolled.
     if (process.env.NODE_ENV === 'development') {
       console.warn(`[TravelPanel] Enrichment rate limit hit. Resets in ${Math.ceil((limit.resetsAt - Date.now()) / 60000)}m`);
     }
-    return false;
+    return { ok: false, reason: 'rate_limit' };
   }
 
   await updateItemEnrichment(id, 'processing');
@@ -24,7 +32,11 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
       body: JSON.stringify({ url }),
       keepalive: true,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      await markEnrichmentFailed(id);
+      track('clip_enrich_failed', { url, status: res.status });
+      return { ok: false, reason: res.status === 503 ? 'ai_unavailable' : 'failed' };
+    }
     const data = (await res.json()) as ImportResult;
     await updateItemEnrichment(id, 'done', {
       title: data.title,
@@ -41,10 +53,10 @@ export async function enrichItem(id: string, url: string): Promise<boolean> {
       locationCount: data.locations.length,
       substanceCount: data.substance?.length ?? 0,
     });
-    return true;
+    return { ok: true };
   } catch {
-    await updateItemEnrichment(id, 'failed');
+    await markEnrichmentFailed(id);
     track('clip_enrich_failed', { url });
-    return false;
+    return { ok: false, reason: 'failed' };
   }
 }

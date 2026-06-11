@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Sparkles, X } from 'lucide-react';
-import { seedDemoIfFirstLaunch, hasDemoData, clearDemoData } from '@/lib/seed';
+import { hasDemoData, clearDemoData } from '@/lib/seed';
 
 const BANNER_DISMISSED = 'travelpanel_demo_banner_dismissed';
 
-// Seeds demo boards on first launch and offers a one-tap "clear & start fresh".
-// Renders a slim banner only while demo data is present and not dismissed.
+// Banner offering a one-tap "clear & start fresh" while demo data exists.
+// (Seeding itself happens app-wide in components/AppServices.tsx.)
 export default function OnboardingSeed() {
   const [show, setShow] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -15,17 +15,9 @@ export default function OnboardingSeed() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const seeded = await seedDemoIfFirstLaunch();
-      if (seeded) {
-        // Reload so the boards/items hooks pick up freshly-seeded data.
-        // The seeded flag is already set, so this won't loop.
-        window.location.reload();
-        return;
-      }
-      if (cancelled) return;
       const dismissed = localStorage.getItem(BANNER_DISMISSED) === '1';
       const demo = await hasDemoData();
-      setShow(demo && !dismissed);
+      if (!cancelled) setShow(demo && !dismissed);
     })();
     return () => { cancelled = true; };
   }, []);

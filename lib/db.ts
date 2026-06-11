@@ -121,7 +121,20 @@ export async function updateItemEnrichment(
     ...item,
     ...enrichedData,
     enrichmentStatus: status,
-    retryCount: status === 'failed' ? (item.retryCount ?? 0) + 1 : item.retryCount ?? 0,
+  });
+}
+
+// The ONLY place retryCount increments — one real enrichment attempt costs
+// exactly one retry slot. Status changes alone (crash recovery, manual
+// processing flips) never touch the count.
+export async function markEnrichmentFailed(id: string): Promise<void> {
+  const db = await getDB();
+  const item = await db.get('items', id);
+  if (!item) return;
+  await db.put('items', {
+    ...item,
+    enrichmentStatus: 'failed',
+    retryCount: (item.retryCount ?? 0) + 1,
   });
 }
 

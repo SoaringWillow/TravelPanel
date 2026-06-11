@@ -1,19 +1,25 @@
 import { anthropic } from '@ai-sdk/anthropic';
 
-// Model routing: right model for the right job.
+// Model routing: right model for the right job (revised after the 2026-06-11
+// full-codebase audit).
 //
-// Haiku  — fast, cheap, structured extraction (enrichment, coordinate checks, clustering)
-// Opus   — highest reasoning quality (complex multi-day itinerary generation)
-// Sonnet — fallback middle-ground (keep for future use if Opus cost becomes a concern)
+// The earlier routing put Opus on the itinerary and Haiku on extraction —
+// backwards for this product: substance extraction IS the moat (nuanced wisdom
+// from messy social posts), while itinerary generation is mostly structured
+// composition over already-resolved data. Sonnet also streams faster than
+// Opus, which matters for the plan's "gift moment" pacing, and costs ~5x less
+// on the hottest call. Revisit Opus for the itinerary when revenue covers it.
 
 export const models = {
-  // Simple structured extraction — runs on every clip save, must be fast and cheap
-  enrichment: anthropic('claude-haiku-4-5-20251001'),
+  // Two-layer clip extraction — the moat. Quality matters most here; volume is
+  // bounded by the client-side 10/hr rate limit.
+  enrichment: anthropic('claude-sonnet-4-6'),
 
-  // Intermediate planning steps — coordinate resolution and geographic clustering
+  // Mechanical intermediate steps — coordinate sanity-check and geographic
+  // grouping are cheap structured tasks; Haiku is fast and ~10x cheaper.
   planResolve: anthropic('claude-haiku-4-5-20251001'),
   planCluster: anthropic('claude-haiku-4-5-20251001'),
 
-  // Final itinerary stream — complex reasoning, sourced wisdom citation, route optimisation
-  planItinerary: anthropic('claude-opus-4-8'),
+  // Final itinerary stream — structured assembly with sourced-wisdom citation.
+  planItinerary: anthropic('claude-sonnet-4-6'),
 } as const;

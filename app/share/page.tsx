@@ -1,11 +1,11 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { getAllBoards, saveBoard, saveItem, addItemToBoard } from '@/lib/db';
-import { enrichItem } from '@/lib/enrichItem';
+import { enrichItem, EnrichResult } from '@/lib/enrichItem';
 import { track } from '@/lib/analytics';
 import { Board, SavedItem, ImportResult } from '@/lib/types';
 import { detectPlatform, PLATFORM_LABELS, PLATFORM_COLORS } from '@/lib/parse-url';
@@ -18,6 +18,7 @@ type Stage = 'picking' | 'saving' | 'done';
 
 function SharePageInner() {
   const searchParams    = useSearchParams();
+  const router          = useRouter();
   const rawUrl          = searchParams.get('url') ?? '';
   const rawTitle        = searchParams.get('title') ?? '';
   const sharedTitle     = rawTitle || 'New inspiration';
@@ -29,8 +30,13 @@ function SharePageInner() {
   const [showNewBoardInput, setShowNewBoardInput] = useState(false);
   const [enrichedData, setEnrichedData]       = useState<ImportResult | null>(null);
   const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [enrichFailReason, setEnrichFailReason] = useState<Extract<EnrichResult, { ok: false }>['reason'] | null>(null);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // On a cold deep-link open (the normal Share-Extension path) there is no
+  // history to go "back" to — always return to the map explicitly.
+  const returnToApp = () => router.replace('/');
 
   // Load boards on mount — no heavy work, just IndexedDB
   useEffect(() => {
@@ -41,13 +47,13 @@ function SharePageInner() {
   useEffect(() => {
     if (stage === 'done') {
       dismissTimerRef.current = setTimeout(() => {
-        window.history.back();
+        router.replace('/');
       }, 3000);
     }
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [stage]);
+  }, [stage, router]);
 
   const platform     = rawUrl ? detectPlatform(rawUrl) : 'other';
   const platformColor = PLATFORM_COLORS[platform];
@@ -90,9 +96,10 @@ function SharePageInner() {
 
     // Background enrichment
     setEnrichmentLoading(true);
+    setEnrichFailReason(null);
     enrichItem(itemId, rawUrl)
-      .then(async (success) => {
-        if (success) {
+      .then(async (result) => {
+        if (result.ok) {
           // Read back the enriched data to show location count in the done UI
           const { getItemById } = await import('@/lib/db');
           const updated = await getItemById(itemId);
@@ -108,6 +115,8 @@ function SharePageInner() {
               substance: updated.substance,
             } as ImportResult);
           }
+        } else {
+          setEnrichFailReason(result.reason);
         }
         setEnrichmentLoading(false);
       });
@@ -247,7 +256,7 @@ function SharePageInner() {
         {/* Bottom — return button (ghost) */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={returnToApp}
           className="w-full py-3 rounded-2xl border-2 border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
         >
           Return to app
@@ -301,6 +310,8 @@ function SharePageInner() {
             <div className="bg-indigo-50 rounded-2xl px-4 py-3 space-y-1.5">
               <p className="text-sm font-semibold text-indigo-700">
                 📍 {enrichedData.locations.length} location{enrichedData.locations.length !== 1 ? 's' : ''} found
+                {(enrichedData.substance?.length ?? 0) > 0 &&
+                  ` · 💡 ${enrichedData.substance.length} tip${enrichedData.substance.length !== 1 ? 's' : ''}`}
               </p>
               {enrichedData.locations.map((loc, i) => (
                 <p key={i} className="text-sm text-indigo-600">
@@ -311,6 +322,16 @@ function SharePageInner() {
           ) : enrichedData && enrichedData.locations.length === 0 ? (
             <div className="bg-gray-50 rounded-2xl px-4 py-3">
               <p className="text-sm text-gray-500">No specific locations detected</p>
+            </div>
+          ) : enrichFailReason ? (
+            <div className="bg-amber-50 rounded-2xl px-4 py-3">
+              <p className="text-sm text-amber-700">
+                {enrichFailReason === 'rate_limit'
+                  ? '⏳ Saved! Hourly analysis limit reached — this clip will be analyzed automatically later.'
+                  : enrichFailReason === 'ai_unavailable'
+                  ? '⚠️ Saved, but AI analysis is not configured yet. It will retry once the API key is set.'
+                  : '⚠️ Saved! Analysis hit a snag — we’ll retry automatically.'}
+              </p>
             </div>
           ) : null}
         </motion.div>
@@ -330,7 +351,7 @@ function SharePageInner() {
         type="button"
         onClick={() => {
           if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-          window.history.back();
+          returnToApp();
         }}
         className="w-full py-3 rounded-2xl border-2 border-indigo-300 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
       >

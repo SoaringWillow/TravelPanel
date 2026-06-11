@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SavedItem } from '@/lib/types';
 import { getAllItems, saveItem, deleteItem, getItemById } from '@/lib/db';
+import { onItemUpdated } from '@/lib/appEvents';
 
 export function useSavedItems() {
   const [items, setItems] = useState<SavedItem[]>([]);
@@ -36,6 +37,9 @@ export function useSavedItems() {
     const fetchedItems = await getAllItems();
     setItems(fetchedItems.sort((a, b) => b.savedAt - a.savedAt));
   }, []);
+
+  // Pick up writes from outside this hook instance (layout-level retry queue)
+  useEffect(() => onItemUpdated(refreshItem), [refreshItem]);
 
   return { items, loading, addItem, removeItem, refreshItem, refresh };
 }

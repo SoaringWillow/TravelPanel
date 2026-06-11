@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Route, Lightbulb, RotateCcw, X, Download, CalendarPlus, AlertTriangle } from 'lucide-react';
 import { Board, SavedItem, AgentStep, TripPlan, PlanStreamMessage, Trip } from '@/lib/types';
 import { getBoardById, getAllItems, getTripsForBoard, saveTrip, deleteTrip } from '@/lib/db';
 import { checkPlanLimit, recordPlanGeneration, formatResetsIn } from '@/lib/rateLimits';
 import { exportPlanToPDF, exportPlanToICS } from '@/lib/exportPlan';
+import { sanitizePlan } from '@/lib/planIntegrity';
+import { recordUsage } from '@/lib/usageLog';
 import { track } from '@/lib/analytics';
 import { Slider } from '@/components/ui/slider';
 import PlannerAgent from '@/components/PlannerAgent';
@@ -36,8 +38,14 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<Partial<TripPlan> | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [planLimitError, setPlanLimitError] = useState<string | null>(null);
+  const [genError, setGenError] = useState<string | null>(null);
   const [savedTrips, setSavedTrips] = useState<Trip[]>([]);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Abort any in-flight generation when the user leaves the page — otherwise
+  // the stream keeps burning tokens server-side with nobody watching.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   useEffect(() => {
     async function load() {
@@ -66,6 +74,7 @@ export default function PlanPage() {
 
   const generatePlan = useCallback(async () => {
     setPlanLimitError(null);
+    setGenError(null);
     const limit = checkPlanLimit();
     if (!limit.allowed) {
       setPlanLimitError(
@@ -80,82 +89,108 @@ export default function PlanPage() {
     setSteps([]);
     setPlan(null);
     setActiveDayIndex(0);
-    recordPlanGeneration();
     track('plan_generated', { boardId, days, itemCount: boardItems.length });
 
-    const res = await fetch('/api/plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: boardItems,
-        days,
-        preferences: [
-          ...Array.from(selectedChips),
-          ...(customNotes.trim() ? [customNotes.trim()] : []),
-        ].join('. '),
-      }),
-    });
+    // Citations may only reference clips that actually exist on this board.
+    const validTitles = boardItems.map((i) => i.title);
 
-    if (!res.ok || !res.body) {
-      setStage('idle');
-      return;
-    }
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-    const reader = res.body.getReader();
-    let buf = '';
-    let latestPlan: Partial<TripPlan> | null = null;
-    const collectedSteps: AgentStep[] = [];
-    const prefs = [
-      ...Array.from(selectedChips),
-      ...(customNotes.trim() ? [customNotes.trim()] : []),
-    ].join('. ');
+    try {
+      const res = await fetch('/api/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: boardItems,
+          days,
+          preferences: [
+            ...Array.from(selectedChips),
+            ...(customNotes.trim() ? [customNotes.trim()] : []),
+          ].join('. '),
+        }),
+        signal: controller.signal,
+      });
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += new TextDecoder().decode(value);
-      const lines = buf.split('\n');
-      buf = lines.pop() ?? '';
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const msg = JSON.parse(line) as PlanStreamMessage;
-          if (msg.t === 'step') {
-            collectedSteps.push(msg.step);
-            setSteps((s) => [...s, msg.step]);
-            if (msg.step.type === 'done' || msg.step.type === 'error') {
-              setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+      if (!res.ok || !res.body) {
+        setGenError(
+          res.status === 503
+            ? 'AI planning is unavailable — the server is missing its ANTHROPIC_API_KEY.'
+            : 'Plan generation failed. Please try again in a moment.'
+        );
+        setStage('idle');
+        return;
+      }
+
+      // Only count a plan against the daily limit once the server accepted it.
+      recordPlanGeneration();
+
+      const reader = res.body.getReader();
+      let buf = '';
+      let latestPlan: Partial<TripPlan> | null = null;
+      const collectedSteps: AgentStep[] = [];
+      const prefs = [
+        ...Array.from(selectedChips),
+        ...(customNotes.trim() ? [customNotes.trim()] : []),
+      ].join('. ');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += new TextDecoder().decode(value);
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line) as PlanStreamMessage;
+            if (msg.t === 'step') {
+              collectedSteps.push(msg.step);
+              setSteps((s) => [...s, msg.step]);
+              if (msg.step.type === 'done' || msg.step.type === 'error') {
+                setStage(msg.step.type === 'done' ? 'complete' : 'idle');
+              }
+              // Persist the finished plan as a new named variant.
+              if (msg.step.type === 'done' && latestPlan?.days?.length) {
+                const trip: Trip = {
+                  id: crypto.randomUUID(),
+                  boardId,
+                  boardName: board?.name ?? '',
+                  name: `Plan ${savedTrips.length + 1}`,
+                  days,
+                  preferences: prefs,
+                  agentSteps: collectedSteps,
+                  plan: latestPlan as TripPlan,
+                  createdAt: Date.now(),
+                };
+                await saveTrip(trip);
+                setSavedTrips((prev) => [...prev, trip]);
+                setCurrentTripId(trip.id);
+              }
             }
-            // Persist the finished plan as a new named variant.
-            if (msg.step.type === 'done' && latestPlan?.days?.length) {
-              const trip: Trip = {
-                id: crypto.randomUUID(),
-                boardId,
-                boardName: board?.name ?? '',
-                name: `Plan ${savedTrips.length + 1}`,
-                days,
-                preferences: prefs,
-                agentSteps: collectedSteps,
-                plan: latestPlan as TripPlan,
-                createdAt: Date.now(),
-              };
-              await saveTrip(trip);
-              setSavedTrips((prev) => [...prev, trip]);
-              setCurrentTripId(trip.id);
+            if (msg.t === 'plan') {
+              latestPlan = sanitizePlan(msg.plan as Partial<TripPlan>, validTitles);
+              setPlan(latestPlan);
             }
+            if (msg.t === 'usage') {
+              recordUsage(msg.usage);
+            }
+          } catch {
+            // skip bad lines
           }
-          if (msg.t === 'plan') {
-            latestPlan = msg.plan as Partial<TripPlan>;
-            setPlan(latestPlan);
-          }
-        } catch {
-          // skip bad lines
         }
       }
+    } catch (err) {
+      // A user-initiated cancel (or unmount) aborts the fetch — that's not an error.
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      setGenError('Connection lost while generating the plan. Please try again.');
+      setStage('idle');
     }
   }, [boardItems, days, selectedChips, customNotes, board, boardId, savedTrips.length]);
 
   const handleCancel = useCallback(() => {
+    abortRef.current?.abort();
     setStage('idle');
   }, []);
 
@@ -184,16 +219,17 @@ export default function PlanPage() {
     track('plan_exported', { format: 'ics', boardId });
   }, [plan, board, boardId]);
 
-  // Load a previously-saved plan variant into view.
+  // Load a previously-saved plan variant into view. Sanitize on the way in so
+  // trips saved before citation-validation existed are also cleaned up.
   const loadTrip = useCallback((trip: Trip) => {
     if (!trip.plan) return;
-    setPlan(trip.plan);
+    setPlan(sanitizePlan(trip.plan, boardItems.map((i) => i.title)));
     setSteps(trip.agentSteps ?? []);
     setDays(trip.days);
     setActiveDayIndex(0);
     setCurrentTripId(trip.id);
     setStage('complete');
-  }, []);
+  }, [boardItems]);
 
   const renameTrip = useCallback(async (tripId: string, name: string) => {
     const trip = savedTrips.find((t) => t.id === tripId);
@@ -370,6 +406,14 @@ export default function PlanPage() {
                 <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 text-xs text-indigo-700">
                   <Lightbulb size={14} className="flex-shrink-0 mt-0.5 text-indigo-500" />
                   <span>{planLimitError}</span>
+                </div>
+              )}
+
+              {/* Generation error */}
+              {genError && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 text-xs text-red-700">
+                  <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 text-red-500" />
+                  <span>{genError}</span>
                 </div>
               )}
 
