@@ -129,3 +129,4 @@ packages); recovered two commits from a detached HEAD onto the branch.
 - `NEXT_PUBLIC_POSTHOG_KEY` to turn the North Star metric on
 - next@14.2.3 has a published security advisory — upgrade to patched 14.2.x soon
 2026-06-11 10:44 | d2005d4 | docs: Phase H hardening log + revised execution order from 2026-06-11 audit
+2026-06-11 10:45 | 72050dd | docs: automation protocol — stop hourly runs duplicating tasks (B2 done 5x: PRs #174-#178)
