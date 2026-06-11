@@ -96,3 +96,5 @@ Substance-over-Spots wired end-to-end: extract (A1) → store → surface (A11) 
 2026-05-31 07:18 | 75b0cdb | chore: session log auto-entry
 2026-05-31 07:18 | ebfca68 | chore: session log auto-entry
 2026-05-31 07:19 | 0e3c7b4 | chore: session log auto-entry
+2026-06-11 09:26 | 999f2c7 | feat(B2): add Chrome/Edge browser extension for one-click URL clipping
+2026-06-11 09:35 | b20e86e | feat(B3): Claude Vision fallback for Xiaohongshu/WeChat anti-scraping
