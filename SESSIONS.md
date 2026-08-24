@@ -131,3 +131,4 @@ packages); recovered two commits from a detached HEAD onto the branch.
 2026-06-11 10:44 | d2005d4 | docs: Phase H hardening log + revised execution order from 2026-06-11 audit
 2026-06-11 10:45 | 72050dd | docs: automation protocol — stop hourly runs duplicating tasks (B2 done 5x: PRs #174-#178)
 2026-08-22 07:34 | 07536b3 | docs: 12-month embodied AI learning + market-sensing plan
+2026-08-24 01:39 | 80c043e | docs: move embodied AI study plan out to its own repo
